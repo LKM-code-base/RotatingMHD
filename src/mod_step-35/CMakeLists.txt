@@ -3,7 +3,10 @@
 ##
 
 # Set the name of the project and target:
-SET(TARGET "step-35")
+SET(TARGET "step-35_barebones")
+SET(TARGET_2 "step-35_constraints")
+SET(TARGET_3 "step-35_sebastian")
+SET(TARGET_4 "step-35_original")
 
 # Declare all source files the target consists of. Here, this is only
 # the one step-X.cc file, but as you expand your project you may wish
@@ -39,3 +42,18 @@ ENDIF()
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 PROJECT(${TARGET})
 DEAL_II_INVOKE_AUTOPILOT()
+
+IF(EXISTS "${CMAKE_SOURCE_DIR}/${TARGET_2}.cc")
+  ADD_EXECUTABLE(${TARGET_2} ${TARGET_2}.cc)
+  DEAL_II_SETUP_TARGET(${TARGET_2})
+ENDIF()
+
+IF(EXISTS "${CMAKE_SOURCE_DIR}/${TARGET_3}.cc")
+  ADD_EXECUTABLE(${TARGET_3} ${TARGET_3}.cc)
+  DEAL_II_SETUP_TARGET(${TARGET_3})
+ENDIF()
+
+IF(EXISTS "${CMAKE_SOURCE_DIR}/${TARGET_4}.cc")
+  ADD_EXECUTABLE(${TARGET_4} ${TARGET_4}.cc)
+  DEAL_II_SETUP_TARGET(${TARGET_4})
+ENDIF()
