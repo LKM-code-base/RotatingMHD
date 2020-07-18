@@ -7,6 +7,8 @@ SET(TARGET "step-35_barebones")
 SET(TARGET_2 "step-35_constraints")
 SET(TARGET_3 "step-35_sebastian")
 SET(TARGET_4 "step-35_original")
+SET(TARGET_5 "step-35_mod")
+SET(TARGET_6 "step-35_wip")
 
 # Declare all source files the target consists of. Here, this is only
 # the one step-X.cc file, but as you expand your project you may wish
@@ -56,4 +58,14 @@ ENDIF()
 IF(EXISTS "${CMAKE_SOURCE_DIR}/${TARGET_4}.cc")
   ADD_EXECUTABLE(${TARGET_4} ${TARGET_4}.cc)
   DEAL_II_SETUP_TARGET(${TARGET_4})
+ENDIF()
+
+IF(EXISTS "${CMAKE_SOURCE_DIR}/${TARGET_5}.cc")
+  ADD_EXECUTABLE(${TARGET_5} ${TARGET_5}.cc)
+  DEAL_II_SETUP_TARGET(${TARGET_5})
+ENDIF()
+
+IF(EXISTS "${CMAKE_SOURCE_DIR}/${TARGET_6}.cc")
+  ADD_EXECUTABLE(${TARGET_6} ${TARGET_6}.cc)
+  DEAL_II_SETUP_TARGET(${TARGET_6})
 ENDIF()
