@@ -7,7 +7,7 @@ end
 subsection Time discretization parameters
   set dt                              = 5e-3
   set t_0                             = 0.
-  set T                               = 0.1
+  set T                               = 10.
 end
 
 subsection Space discretization parameters
@@ -16,13 +16,13 @@ subsection Space discretization parameters
 end
 
 subsection Parameters of the diffusion-step solver
-  set v_solver_max_iterations         = 1000  
-  set v_solver_tolerance              = 1e-8  
-  set v_solver_krylov_size            = 30    
-  set v_solver_off_diagonals          = 70
-  set v_solver_diag_strength          = 0.1
-  set v_solver_update_preconditioner  = 10
+  set solver_max_iterations         = 1000  
+  set solver_tolerance              = 1e-8  
+  set solver_krylov_size            = 30    
+  set solver_off_diagonals          = 70
+  set solver_diag_strength          = 0.1
+  set solver_update_preconditioner  = 10
 end
 
-set flag_verbose_output               = true
-set output_interval                   = 1
+set flag_verbose_output               = false
+set output_interval                   = 50
