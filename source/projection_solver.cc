@@ -95,9 +95,38 @@ void NavierStokesProjection<dim>::run(const bool         verbose,
           verbose_cout << "Plotting Solution" << std::endl;
           output_results(n);
         }
-      std::cout << "Step = " << n << " Time = " << (n * dt) << std::endl;
-      verbose_cout << "  Interpolating the velocity " << std::endl;
 
+      Point<dim> evaluation_point;
+      evaluation_point(0) = 2.0;
+      evaluation_point(1) = 3.0;
+
+      Vector<double> point_value_velocity(dim);
+      VectorTools::point_value(dof_handler_velocity,
+                              u_n,
+                              evaluation_point,
+                              point_value_velocity);
+
+      const double point_value_pressure
+      = VectorTools::point_value(dof_handler_pressure,
+                                pres_n,
+                                evaluation_point);
+      std::cout << "Step = " 
+                << std::setw(2) 
+                << n 
+                << " Time = " 
+                << std::noshowpos << std::scientific
+                << (n * dt)
+                << " Velocity = (" 
+                << std::showpos << std::scientific
+                << point_value_velocity[0] 
+                << ", "
+                << std::showpos << std::scientific
+                << point_value_velocity[1] 
+                << ") Pressure = "
+                << std::showpos << std::scientific
+                << point_value_pressure << std::endl;
+
+      verbose_cout << "  Interpolating the velocity " << std::endl;
       interpolate_velocity();
       verbose_cout << "  Diffusion Step" << std::endl;
       if (n % vel_update_prec == 0)
