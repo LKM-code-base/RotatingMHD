@@ -81,4 +81,9 @@ _deps
 *.vtu
 *.pvtu
 *.xdmf
+*/*.gpl
+*/*.vtk
+*/*.vtu
+*/*.pvtu
+*/*.xdmf
 
