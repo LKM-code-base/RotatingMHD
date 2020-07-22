@@ -19,6 +19,8 @@ namespace Step35 {
 template <int dim>
 void NavierStokesProjection<dim>::create_triangulation_and_dofs(const unsigned int n_refines)
 {
+  std::cout << "Reading grid..." << std::endl;
+
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(triangulation);
 
@@ -29,18 +31,29 @@ void NavierStokesProjection<dim>::create_triangulation_and_dofs(const unsigned i
     grid_in.read_ucd(file);
   }
 
-  std::cout << "Number of refines = " << n_refines << std::endl;
+  std::cout << "   Number of refines = " << n_refines << std::endl;
   triangulation.refine_global(n_refines);
-  std::cout << "Number of active cells: " << triangulation.n_active_cells()
-                  << std::endl;
+  std::cout << "   Number of active cells: " << triangulation.n_active_cells()
+            << std::endl;
 
   boundary_ids = triangulation.get_boundary_ids();
+
+  std::cout << "Setup dofs..." << std::endl;
 
   dof_handler_velocity.distribute_dofs(fe_velocity);
   DoFRenumbering::boost::Cuthill_McKee(dof_handler_velocity);
 
   dof_handler_pressure.distribute_dofs(fe_pressure);
   DoFRenumbering::boost::Cuthill_McKee(dof_handler_pressure);
+
+  std::cout << "   dim (X_h) = " << (dof_handler_velocity.n_dofs() )
+            << std::endl
+            << "   dim (M_h) = " << dof_handler_pressure.n_dofs()
+            << std::endl
+            << "   Re        = " << Re << std::endl
+            << std::endl;
+
+  std::cout << "Setup sparsity patterns..." << std::endl;
 
   initialize_velocity_matrices();
   initialize_pressure_matrices();
@@ -62,13 +75,6 @@ void NavierStokesProjection<dim>::create_triangulation_and_dofs(const unsigned i
 
   v_tmp.reinit(dof_handler_velocity.n_dofs());
   rot_u.reinit(dof_handler_velocity.n_dofs());
-
-  std::cout << "dim (X_h) = " << (dof_handler_velocity.n_dofs() )
-            << std::endl
-            << "dim (M_h) = " << dof_handler_pressure.n_dofs()
-            << std::endl
-            << "Re        = " << Re << std::endl
-            << std::endl;
 }
 
 }  // namespace Step35

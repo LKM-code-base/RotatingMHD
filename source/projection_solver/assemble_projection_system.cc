@@ -28,7 +28,7 @@ void NavierStokesProjection<dim>::initialize_gradient_operator()
                                     dof_handler_pressure,
                                     dsp);
     sparsity_pattern_pres_vel.copy_from(dsp);
-    std::ofstream out("results_original/mixed_sparsity_pattern.gpl");
+    std::ofstream out("mixed_sparsity_pattern.gpl");
     sparsity_pattern_pres_vel.print_gnuplot(out);
   }
 

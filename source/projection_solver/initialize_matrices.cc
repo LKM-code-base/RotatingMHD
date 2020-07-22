@@ -26,7 +26,7 @@ void NavierStokesProjection<dim>::initialize_velocity_matrices()
                                dof_handler_velocity.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler_velocity, dsp);
     sparsity_pattern_velocity.copy_from(dsp);
-    std::ofstream out ("results_mod/v_sparsity_pattern.gpl");
+    std::ofstream out("v_sparsity_pattern.gpl");
     sparsity_pattern_velocity.print_gnuplot(out);
   }
   vel_Laplace_plus_Mass.reinit(sparsity_pattern_velocity);
@@ -54,7 +54,7 @@ void NavierStokesProjection<dim>::initialize_pressure_matrices()
                                dof_handler_pressure.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler_pressure, dsp);
     sparsity_pattern_pressure.copy_from(dsp);
-    std::ofstream out ("results_original/p_sparsity_pattern.gpl");
+    std::ofstream out("p_sparsity_pattern.gpl");
     sparsity_pattern_pressure.print_gnuplot(out);
   }
 
