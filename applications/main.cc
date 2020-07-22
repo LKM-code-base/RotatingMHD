@@ -17,13 +17,14 @@ int main()
       using namespace dealii;
       using namespace Step35;
 
-      RunTimeParameters::Data_Storage data;
-      data.read_data("parameter-file.prm");
+      RunTimeParameters::ParameterSet parameter_set;
+      parameter_set.read_data_from_file("parameter_file.prm");
 
-      deallog.depth_console(data.verbose ? 2 : 0);
+      deallog.depth_console(parameter_set.flag_verbose_output ? 2 : 0);
 
-      NavierStokesProjection<2> test(data);
-      test.run(data.verbose, data.output_interval);
+      NavierStokesProjection<2> simulation(parameter_set);
+      simulation.run(parameter_set.flag_verbose_output, 
+                     parameter_set.output_interval);
   }
   catch (std::exception &exc)
   {
