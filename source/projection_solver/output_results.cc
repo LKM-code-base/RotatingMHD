@@ -28,7 +28,7 @@ void NavierStokesProjection<dim>::output_results(const unsigned int step)
   data_out.add_data_vector(dof_handler_pressure, pres_n, "Pressure");
   data_out.build_patches(deg);
 
-  std::ofstream output_file("results_mod/solution-"
+  std::ofstream output_file("solution-"
                             + Utilities::int_to_string(step, 5)
                             + ".vtk");
   data_out.write_vtk(output_file);
