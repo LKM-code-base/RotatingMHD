@@ -16,147 +16,110 @@
 namespace Step35
 {
 
-template <int dim>
-NavierStokesProjection<dim>::NavierStokesProjection(
-const RunTimeParameters::Data_Storage &data)
-:
-type(data.form),
-deg(data.pressure_degree),
-dt(data.dt),
-t_0(data.initial_time),
-T(data.final_time),
-Re(data.Reynolds),
-vel_exact(data.initial_time),
-fe_velocity(FE_Q<dim>(deg + 1), dim),
-fe_pressure(deg),
-dof_handler_velocity(triangulation),
-dof_handler_pressure(triangulation),
-quadrature_pressure(deg + 1),
-quadrature_velocity(deg + 2),
-vel_max_its(data.vel_max_iterations),
-vel_Krylov_size(data.vel_Krylov_size),
-vel_off_diagonals(data.vel_off_diagonals),
-vel_update_prec(data.vel_update_prec),
-vel_eps(data.vel_eps),
-vel_diag_strength(data.vel_diag_strength)
-{
-  if (deg < 1)
-    std::cout << " WARNING: The chosen pair of finite element spaces is not stable."
-              << std::endl
-              << " The obtained results will be nonsense" << std::endl;
+  template <int dim>
+  NavierStokesProjection<dim>::
+  NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
+    : projection_method(data.projection_method),
+      p_fe_degree(data.p_fe_degree),
+      v_fe_degree(p_fe_degree + 1),
+      dt(data.dt),
+      t_0(data.t_0),
+      T(data.T),
+      Re(data.Re),
+      inflow_bc(data.t_0),
+      v_fe(FE_Q<dim>(v_fe_degree), dim),
+      p_fe(p_fe_degree),
+      v_dof_handler(triangulation),
+      p_dof_handler(triangulation),
+      p_quadrature_formula(p_fe_degree + 1),
+      v_quadrature_formula(v_fe_degree + 1),
+      solver_max_iterations(data.solver_max_iterations),
+      solver_krylov_size(data.solver_krylov_size),
+      solver_off_diagonals(data.solver_off_diagonals),
+      solver_update_preconditioner(data.solver_update_preconditioner),
+      solver_tolerance(data.solver_tolerance),
+      solver_diag_strength(data.solver_diag_strength)
+  {
+    if (p_fe_degree < 1)
+      std::cout
+        << " WARNING: The chosen pair of finite element spaces is not stable."
+        << std::endl
+        << " The obtained results will be nonsense" << std::endl;
 
-  AssertThrow(!((dt <= 0.) || (dt > .5 * T)), ExcInvalidTimeStep(dt, .5 * T));
+    AssertThrow(!((dt <= 0.) || (dt > .5 * T)), ExcInvalidTimeStep(dt, .5 * T));
 
-  create_triangulation_and_dofs(data.n_global_refines);
+    make_grid(data.n_global_refinements);
+    setup_dofs();
+    initialize();
+  }
 
-  initialize();
-}
+  template <int dim>
+  void NavierStokesProjection<dim>::
+  run(const bool  flag_verbose_output,
+      const unsigned int output_interval)
+  {
+    ConditionalOStream verbose_cout(std::cout, flag_verbose_output);
 
+    const auto n_steps = static_cast<unsigned int>((T - t_0) / dt);
 
-template <int dim>
-void NavierStokesProjection<dim>::initialize()
-{
-  vel_Laplace_plus_Mass = 0.;
-  vel_Laplace_plus_Mass.add(1. / Re, vel_Laplace);
-  vel_Laplace_plus_Mass.add(1.5 / dt, vel_Mass);
+    inflow_bc.set_time(2. * dt);
+    output_results(1);
 
-  EquationData::PressureIC<dim> pres(t_0);
-  VectorTools::interpolate(dof_handler_pressure, pres, pres_n_minus_1);
-  pres.advance_time(dt);
-  VectorTools::interpolate(dof_handler_pressure, pres, pres_n);
-  phi_n         = 0.;
-  phi_n_minus_1 = 0.;
-  //for (unsigned int d = 0; d < dim; ++d)
-  //  {
-  vel_exact.set_time(t_0);
-  VectorTools::interpolate(dof_handler_velocity,
-                           Functions::ZeroFunction<dim>(dim),
-                           u_n_minus_1);
-  vel_exact.advance_time(dt);
-  VectorTools::interpolate(dof_handler_velocity,
-                           Functions::ZeroFunction<dim>(dim),
-                           u_n);
-  //  }
-}
+    for (unsigned int n = 2; n <= n_steps; ++n)
+      {
+        if (n % output_interval == 0)
+          {
+            verbose_cout << "Plotting Solution" << std::endl;
+            output_results(n);
+          }
+        Point<dim> evaluation_point;
+        evaluation_point(0) = 2.0;
+        evaluation_point(1) = 3.0;
 
-template <int dim>
-void NavierStokesProjection<dim>::run(const bool         verbose,
-                                      const unsigned int output_interval)
-                                      {
-  ConditionalOStream verbose_cout(std::cout, verbose);
+        Vector<double> point_value_velocity(dim);
+        VectorTools::point_value(v_dof_handler,
+                                v_n,
+                                evaluation_point,
+                                point_value_velocity);
 
-  const auto n_steps = static_cast<unsigned int>((T - t_0) / dt);
-  vel_exact.set_time(2. * dt);
-  output_results(1);
-  for (unsigned int n = 2; n <= n_steps; ++n)
-    {
-      if (n % output_interval == 0)
-        {
-          verbose_cout << "Plotting Solution" << std::endl;
-          output_results(n);
-        }
+        const double point_value_pressure
+        = VectorTools::point_value(p_dof_handler,
+                                  p_n,
+                                  evaluation_point);
+        std::cout << "Step = " 
+                  << std::setw(2) 
+                  << n 
+                  << " Time = " 
+                  << std::noshowpos << std::scientific
+                  << (n * dt)
+                  << " Velocity = (" 
+                  << std::showpos << std::scientific
+                  << point_value_velocity[0] 
+                  << ", "
+                  << std::showpos << std::scientific
+                  << point_value_velocity[1] 
+                  << ") Pressure = "
+                  << std::showpos << std::scientific
+                  << point_value_pressure << std::endl;
 
-      Point<dim> evaluation_point;
-      evaluation_point(0) = 2.0;
-      evaluation_point(1) = 3.0;
+        verbose_cout << "  Diffusion Step" << std::endl;
+        if (n % solver_update_preconditioner == 0)
+          verbose_cout << "    With reinitialization of the preconditioner"
+                       << std::endl;
+        diffusion_step_assembly();
+        diffusion_step_solve((n % solver_update_preconditioner == 0) || (n == 2));
 
-      Vector<double> point_value_velocity(dim);
-      VectorTools::point_value(dof_handler_velocity,
-                              u_n,
-                              evaluation_point,
-                              point_value_velocity);
+        verbose_cout << "  Projection Step" << std::endl;
+        projection_step_assembly((n == 2));
+        projection_step_solve((n==2));
+        
+        verbose_cout << "  Updating the Pressure" << std::endl;
+        correction_step((n == 2));
 
-      const double point_value_pressure
-      = VectorTools::point_value(dof_handler_pressure,
-                                pres_n,
-                                evaluation_point);
-      std::cout << "Step = " 
-                << std::setw(2) 
-                << n 
-                << " Time = " 
-                << std::noshowpos << std::scientific
-                << (n * dt)
-                << " Velocity = (" 
-                << std::showpos << std::scientific
-                << point_value_velocity[0] 
-                << ", "
-                << std::showpos << std::scientific
-                << point_value_velocity[1] 
-                << ") Pressure = "
-                << std::showpos << std::scientific
-                << point_value_pressure << std::endl;
-
-      verbose_cout << "  Interpolating the velocity " << std::endl;
-      interpolate_velocity();
-      verbose_cout << "  Diffusion Step" << std::endl;
-      if (n % vel_update_prec == 0)
-        verbose_cout << "    With reinitialization of the preconditioner"
-        << std::endl;
-      diffusion_step((n % vel_update_prec == 0) || (n == 2));
-
-      verbose_cout << "  Projection Step" << std::endl;
-      projection_step((n == 2));
-      verbose_cout << "  Updating the Pressure" << std::endl;
-      update_pressure((n == 2));
-      vel_exact.advance_time(dt);
-    }
-  output_results(n_steps);
-                                      }
-
-
-
-template <int dim>
-void NavierStokesProjection<dim>::interpolate_velocity()
-{
-  //for (unsigned int d = 0; d < dim; ++d)
-  //  {
-
-  u_star.equ(2., u_n);
-  u_star -= u_n_minus_1;
-
-  //  }
-}
-
+        inflow_bc.advance_time(dt);
+      }
+    output_results(n_steps);
+  }
 }  // namespace Step35
 
 // explicit instantiations
