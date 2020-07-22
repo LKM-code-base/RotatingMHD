@@ -12,52 +12,43 @@
 
 namespace Step35
 {
+  using namespace dealii;
 
-using namespace dealii;
+  namespace RunTimeParameters
+  {
+    enum class ProjectionMethod
+    {
+      standard,
+      rotational
+    };
 
-namespace RunTimeParameters
-{
+    class ParameterSet
+    {
+    public:
+      ProjectionMethod  projection_method;
+      double            dt;
+      double            t_0;
+      double            T;
+      double            Re;
+      unsigned int      n_global_refinements;
+      unsigned int      p_fe_degree;
+      unsigned int      solver_max_iterations;
+      unsigned int      solver_krylov_size;
+      unsigned int      solver_off_diagonals;
+      unsigned int      solver_update_preconditioner;
+      double            solver_tolerance;
+      double            solver_diag_strength;
+      bool              flag_verbose_output;
+      unsigned int      output_interval;
+  
+      ParameterSet();
+      void read_data_from_file(const std::string &filename);
+    
+    protected:
+      ParameterHandler  prm;
+    };
 
-enum class Method
-{
-	standard,
-	rotational
-};
-
-class Data_Storage
-{
-public:
-	Data_Storage();
-
-	void read_data(const std::string &filename);
-
-	Method form;
-
-	double dt;
-	double initial_time;
-	double final_time;
-
-	double Reynolds;
-
-	unsigned int n_global_refines;
-
-	unsigned int pressure_degree;
-
-	unsigned int vel_max_iterations;
-	unsigned int vel_Krylov_size;
-	unsigned int vel_off_diagonals;
-	unsigned int vel_update_prec;
-	double       vel_eps;
-	double       vel_diag_strength;
-
-	bool         verbose;
-	unsigned int output_interval;
-
-protected:
-	ParameterHandler prm;
-};
-
-} // namespace RunTimeParameters
+  } // namespace RunTimeParameters
 
 } // namespace Step35
 
