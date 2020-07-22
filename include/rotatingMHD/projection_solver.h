@@ -10,6 +10,7 @@
 
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/run_time_parameters.h>
+#include <rotatingMHD/assembly_data.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/utilities.h>
@@ -30,197 +31,129 @@
 namespace Step35
 {
 
-using namespace dealii;
+  using namespace dealii;
 
-template <int dim>
-class NavierStokesProjection
-{
-public:
-  NavierStokesProjection(const RunTimeParameters::Data_Storage &data);
+  template <int dim>
+  class NavierStokesProjection
+  {
+  public:
+    NavierStokesProjection(const RunTimeParameters::ParameterSet &data);
+    void run(const bool flag_verbose_output = false, 
+             const unsigned int n_plots = 10);
 
-  void run(const bool verbose = false, const unsigned int n_plots = 10);
+  protected:
+    RunTimeParameters::ProjectionMethod       projection_method;
+    const unsigned int                        p_fe_degree;
+    const unsigned int                        v_fe_degree;
+    const double                              dt;
+    const double                              t_0;
+    const double                              T;
+    const double                              Re;
 
-protected:
-  RunTimeParameters::Method type;
+    EquationData::VelocityInflowBC<dim>       inflow_bc;
+    EquationData::VelocityIC<dim>             v_initial_conditions;
+    EquationData::PressureIC<dim>             p_initial_conditions;
+    std::map<types::global_dof_index, double> boundary_values;
+    std::vector<types::boundary_id>           boundary_ids;
 
-  const unsigned int deg;
-  const double       dt;
-  const double       t_0;
-  const double       T;
-  const double       Re;
+    Triangulation<dim>                        triangulation;
+    FESystem<dim>                             v_fe;
+    FE_Q<dim>                                 p_fe;
+    DoFHandler<dim>                           v_dof_handler;
+    DoFHandler<dim>                           p_dof_handler;
+    AffineConstraints<double>                 v_constraints;
+    AffineConstraints<double>                 p_constraints;
+    QGauss<dim>                               p_quadrature_formula;
+    QGauss<dim>                               v_quadrature_formula;
 
-  EquationData::VelocityInflowBC<dim>               vel_exact;
-  EquationData::VelocityIC<dim>             vel_ic;
-  std::map<types::global_dof_index, double> boundary_values;
-  std::vector<types::boundary_id>           boundary_ids;
+    SparsityPattern                           v_sparsity_pattern;
+    SparsityPattern                           p_sparsity_pattern;
+    SparsityPattern                           mixed_sparsity_pattern;
+    SparseMatrix<double>                      v_system_matrix;
+    SparseMatrix<double>                      v_mass_matrix;
+    SparseMatrix<double>                      v_laplace_matrix;
+    SparseMatrix<double>                      v_mass_plus_laplace_matrix;
+    SparseMatrix<double>                      v_advection_matrix;
+    SparseMatrix<double>                      p_system_matrix;
+    SparseMatrix<double>                      p_mass_matrix;
+    SparseMatrix<double>                      p_laplace_matrix;
+    SparseMatrix<double>                      p_gradient_matrix;
 
-  Triangulation<dim> triangulation;
+    Vector<double>                            v_n;
+    Vector<double>                            v_n_m1;
+    Vector<double>                            v_extrapolated;
+    Vector<double>                            v_tmp;
+    Vector<double>                            v_rot;
+    Vector<double>                            v_rhs;
+    Vector<double>                            p_n;
+    Vector<double>                            p_n_m1;
+    Vector<double>                            p_tmp;
+    Vector<double>                            p_rhs;
+    Vector<double>                            phi_n;
+    Vector<double>                            phi_n_m1;
 
-  FESystem<dim> fe_velocity;
-  FE_Q<dim> fe_pressure;
+    SparseILU<double>                         v_preconditioner;
+    SparseILU<double>                         p_preconditioner;
+    SparseDirectUMFPACK                       p_update_preconditioner;
+    SparseDirectUMFPACK                       v_rot_preconditioner;
 
-  DoFHandler<dim> dof_handler_velocity;
-  DoFHandler<dim> dof_handler_pressure;
+    double                                    dt_n;
+    double                                    dt_n_m1;
 
-  QGauss<dim> quadrature_pressure;
-  QGauss<dim> quadrature_velocity;
+    DeclException2(ExcInvalidTimeStep,
+                   double,
+                   double,
+                   << " The time step " << arg1 << " is out of range."
+                   << std::endl
+                   << " The permitted range is (0," << arg2 << "]");
 
-  SparsityPattern sparsity_pattern_velocity;
-  SparsityPattern sparsity_pattern_pressure;
-  SparsityPattern sparsity_pattern_pres_vel;
+    void make_grid(const unsigned int n_global_refinements);
+    void setup_dofs();
+    void initialize();
+    void diffusion_step_assembly();
+    void diffusion_step_solve(const bool reinit_prec);
+    void projection_step_assembly(const bool reinit_prec);
+    void projection_step_solve(const bool reinit_prec);
+    void correction_step(const bool reinit_prec);
+    void update_time_step();
+    void output_results(const unsigned int step);
 
-  SparseMatrix<double> vel_Laplace_plus_Mass;
-  SparseMatrix<double> vel_it_matrix;
-  SparseMatrix<double> vel_Mass;
-  SparseMatrix<double> vel_Laplace;
-  SparseMatrix<double> vel_Advection;
-  SparseMatrix<double> pres_Laplace;
-  SparseMatrix<double> pres_Mass;
-  SparseMatrix<double> pres_Diff;
-  SparseMatrix<double> pres_iterative;
-
-  Vector<double> pres_n;
-  Vector<double> pres_n_minus_1;
-  Vector<double> phi_n;
-  Vector<double> phi_n_minus_1;
-  Vector<double> u_n;
-  Vector<double> u_n_minus_1;
-  Vector<double> u_star;
-  Vector<double> force;
-  Vector<double> v_tmp;
-  Vector<double> pres_tmp;
-  Vector<double> rot_u;
-
-  SparseILU<double>   prec_velocity;
-  SparseILU<double>   prec_pres_Laplace;
-  SparseDirectUMFPACK prec_mass;
-  SparseDirectUMFPACK prec_vel_mass;
-
-  DeclException2(ExcInvalidTimeStep,
-                 double,
-                 double,
-                 << " The time step " << arg1 << " is out of range."
-                 << std::endl
-                 << " The permitted range is (0," << arg2 << "]");
-
-  void create_triangulation_and_dofs(const unsigned int n_refines);
-
-  void initialize();
-
-  void interpolate_velocity();
-
-  void diffusion_step(const bool reinit_prec);
-
-  void projection_step(const bool reinit_prec);
-
-  void update_pressure(const bool reinit_prec);
-
-private:
-
-  unsigned int vel_max_its;
-  unsigned int vel_Krylov_size;
-  unsigned int vel_off_diagonals;
-  unsigned int vel_update_prec;
-  double       vel_eps;
-  double       vel_diag_strength;
-
-  void initialize_velocity_matrices();
-
-  void initialize_pressure_matrices();
-
-  using IteratorTuple =
+  private:
+    using IteratorTuple =
       std::tuple<typename DoFHandler<dim>::active_cell_iterator,
                  typename DoFHandler<dim>::active_cell_iterator>;
+    using IteratorPair = SynchronousIterators<IteratorTuple>;
 
-  using IteratorPair = SynchronousIterators<IteratorTuple>;
+    unsigned int                              solver_max_iterations;
+    unsigned int                              solver_krylov_size;
+    unsigned int                              solver_off_diagonals;
+    unsigned int                              solver_update_preconditioner;
+    double                                    solver_tolerance;
+    double                                    solver_diag_strength;
+    
+    void setup_v_matrices();
+    void setup_p_matrices();
+    void setup_p_gradient_matrix();
+    void assemble_v_matrices();
+    void assemble_p_matrices();
+    void assemble_p_gradient_matrix();
+    void local_assemble_p_gradient_matrix(
+      const IteratorPair                                    &SI,
+      PressureGradientTermAssembly::LocalCellData<dim>      &scratch,
+      PressureGradientTermAssembly::MappingData<dim>        &data);
+    void mapping_p_gradient_matrix(
+      const PressureGradientTermAssembly::MappingData<dim>  &data);
 
-  void initialize_gradient_operator();
-
-  struct InitGradPerTaskData
-  {
-    unsigned int                         vel_dpc;
-    unsigned int                         pres_dpc;
-
-    FullMatrix<double>                   local_grad;
-
-    std::vector<types::global_dof_index> vel_local_dof_indices;
-    std::vector<types::global_dof_index> pres_local_dof_indices;
-
-    InitGradPerTaskData(const unsigned int vdpc,
-                        const unsigned int pdpc);
+    void assemble_v_advection_matrix();
+    void local_assemble_v_advection_matrix(
+      const typename DoFHandler<dim>::active_cell_iterator  &cell,
+      AdvectionTermAssembly::LocalCellData<dim>             &scratch,
+      AdvectionTermAssembly::MappingData<dim>               &data);
+    void mapping_v_advection_matrix(
+      const AdvectionTermAssembly::MappingData<dim>         &data);
+    
+    double compute_max_velocity();
   };
-
-  struct InitGradScratchData
-  {
-    unsigned int  nqp;
-
-    FEValues<dim> fe_val_vel;
-    FEValues<dim> fe_val_pres;
-
-    InitGradScratchData(const FESystem<dim> &  fe_v,
-                        const FE_Q<dim> &  fe_p,
-                        const QGauss<dim> &quad,
-                        const UpdateFlags  flags_v,
-                        const UpdateFlags  flags_p);
-
-    InitGradScratchData(const InitGradScratchData &data);
-  };
-
-  void assemble_one_cell_of_gradient(const IteratorPair & SI,
-                                     InitGradScratchData &scratch,
-                                     InitGradPerTaskData &data);
-
-  void copy_gradient_local_to_global(const InitGradPerTaskData &data);
-
-  void assemble_advection_term();
-
-  struct AdvectionPerTaskData
-  {
-
-    FullMatrix<double>                   local_advection;
-    std::vector<types::global_dof_index> local_dof_indices;
-    AdvectionPerTaskData(const unsigned int dpc);
-
-  };
-
-  struct AdvectionScratchData
-  {
-
-    unsigned int                nqp;
-    unsigned int                dpc;
-    /*
-     *
-
-      std::vector<Point<dim>>     u_star_local;
-      std::vector<Tensor<1, dim>> grad_u_star;
-      std::vector<double>         u_star_tmp;
-
-     *
-     */
-    std::vector<double>         div_u_star;
-    std::vector<Tensor<1,dim>>  u_star_local;
-    FEValues<dim>               fe_val;
-
-    AdvectionScratchData(const FESystem<dim> &fe,
-                         const QGauss<dim>   &quad,
-                         const UpdateFlags    flags);
-
-    AdvectionScratchData(const AdvectionScratchData &data);
-  };
-
-  void assemble_one_cell_of_advection(
-      const typename DoFHandler<dim>::active_cell_iterator &cell,
-      AdvectionScratchData &                                scratch,
-      AdvectionPerTaskData &                                data);
-
-  void copy_advection_local_to_global(const AdvectionPerTaskData &data);
-
-  void diffusion_component_solve();
-
-  void output_results(const unsigned int step);
-
-//  void assemble_vorticity(const bool reinit_prec);
-};
 
 } // namespace Step35
 
