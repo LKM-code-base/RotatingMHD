@@ -14,25 +14,31 @@
 namespace Step35
 {
 
-template <int dim>
-void NavierStokesProjection<dim>::output_results(const unsigned int step)
-{
-  std::vector<std::string> names(dim, "velocity");
+  template <int dim>
+  void NavierStokesProjection<dim>::
+  output_results(const unsigned int step)
+  {
+    std::vector<std::string> names(dim, "velocity");
+    std::vector<DataComponentInterpretation::DataComponentInterpretation>
+      component_interpretation(
+        dim, DataComponentInterpretation::component_is_part_of_vector);
+    DataOut<dim>        data_out;
 
-  std::vector<DataComponentInterpretation::DataComponentInterpretation>
-  component_interpretation(dim,
-                           DataComponentInterpretation::component_is_part_of_vector);
+    data_out.add_data_vector(v_dof_handler, 
+                             v_n, 
+                             names, 
+                             component_interpretation);
+    data_out.add_data_vector(p_dof_handler, 
+                             p_n, 
+                             "Pressure");
+    data_out.build_patches(p_fe_degree+1);
 
-  DataOut<dim>        data_out;
-  data_out.add_data_vector(dof_handler_velocity, u_n, names, component_interpretation);
-  data_out.add_data_vector(dof_handler_pressure, pres_n, "Pressure");
-  data_out.build_patches(deg);
+    std::ofstream       output_file("solution-" 
+                                    + Utilities::int_to_string(step, 5)
+                                    + ".vtk");
 
-  std::ofstream output_file("solution-"
-                            + Utilities::int_to_string(step, 5)
-                            + ".vtk");
-  data_out.write_vtk(output_file);
-}
+    data_out.write_vtk(output_file);
+  }
 
 }  // namespace Step35
 
