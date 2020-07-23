@@ -23,6 +23,8 @@ namespace Step35
       p_fe_degree(data.p_fe_degree),
       v_fe_degree(p_fe_degree + 1),
       dt(data.dt),
+      dt_n(data.dt),
+      dt_n_m1(data.dt),
       t_0(data.t_0),
       T(data.T),
       Re(data.Re),
@@ -72,6 +74,23 @@ namespace Step35
             verbose_cout << "Plotting Solution" << std::endl;
             output_results(n);
           }
+        
+        verbose_cout << "  Diffusion Step" << std::endl;
+        if (n % solver_update_preconditioner == 0)
+          verbose_cout << "    With reinitialization of the preconditioner"
+                       << std::endl;
+        diffusion_step_assembly();
+        diffusion_step_solve((n % solver_update_preconditioner == 0) || (n == 2));
+
+        verbose_cout << "  Projection Step" << std::endl;
+        projection_step_assembly((n == 2));
+        projection_step_solve((n==2));
+        
+        verbose_cout << "  Updating the Pressure" << std::endl;
+        correction_step((n == 2));
+
+        update_time_step();
+
         Point<dim> evaluation_point;
         evaluation_point(0) = 2.0;
         evaluation_point(1) = 3.0;
@@ -100,21 +119,10 @@ namespace Step35
                   << point_value_velocity[1] 
                   << ") Pressure = "
                   << std::showpos << std::scientific
-                  << point_value_pressure << std::endl;
-
-        verbose_cout << "  Diffusion Step" << std::endl;
-        if (n % solver_update_preconditioner == 0)
-          verbose_cout << "    With reinitialization of the preconditioner"
-                       << std::endl;
-        diffusion_step_assembly();
-        diffusion_step_solve((n % solver_update_preconditioner == 0) || (n == 2));
-
-        verbose_cout << "  Projection Step" << std::endl;
-        projection_step_assembly((n == 2));
-        projection_step_solve((n==2));
-        
-        verbose_cout << "  Updating the Pressure" << std::endl;
-        correction_step((n == 2));
+                  << point_value_pressure 
+                  << " Time step = " 
+                  << std::showpos << std::scientific
+                  << dt_n << std::endl;
 
         inflow_bc.advance_time(dt);
       }
