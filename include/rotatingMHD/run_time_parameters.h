@@ -39,6 +39,7 @@ namespace Step35
       double            solver_tolerance;
       double            solver_diag_strength;
       bool              flag_verbose_output;
+      bool              flag_adaptive_time_step;
       unsigned int      output_interval;
   
       ParameterSet();

@@ -40,7 +40,8 @@ namespace Step35
       solver_off_diagonals(data.solver_off_diagonals),
       solver_update_preconditioner(data.solver_update_preconditioner),
       solver_tolerance(data.solver_tolerance),
-      solver_diag_strength(data.solver_diag_strength)
+      solver_diag_strength(data.solver_diag_strength),
+      flag_adpative_time_step(data.flag_adaptive_time_step)
   {
     if (p_fe_degree < 1)
       std::cout

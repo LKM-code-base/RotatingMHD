@@ -36,6 +36,7 @@ namespace Step35
         solver_tolerance(1e-12),
         solver_diag_strength(0.01),
         flag_verbose_output(true),
+        flag_adaptive_time_step(true),
         output_interval(15)
     {
       prm.declare_entry("projection_method",
@@ -120,6 +121,11 @@ namespace Step35
                         Patterns::Bool(),
                         " This indicates whether the output of the" 
                           "solution process should be verbose. ");
+      prm.declare_entry("flag_adaptive_time_step",
+                        "true",
+                        Patterns::Bool(),
+                        " This indicates whether the output " 
+                          "is fixed or adaptive. ");
       prm.declare_entry("output_interval",
                         "1",
                         Patterns::Integer(1),
@@ -173,8 +179,9 @@ namespace Step35
       }
       prm.leave_subsection();
 
-      flag_verbose_output = prm.get_bool("flag_verbose_output");
-      output_interval     = prm.get_integer("output_interval");
+      flag_verbose_output     = prm.get_bool("flag_verbose_output");
+      flag_adaptive_time_step = prm.get_bool("flag_adaptive_time_step");
+      output_interval         = prm.get_integer("output_interval");
     }
 
   } // namespace RunTimeParameters

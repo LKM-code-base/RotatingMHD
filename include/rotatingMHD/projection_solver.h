@@ -46,6 +46,8 @@ namespace Step35
     const unsigned int                        p_fe_degree;
     const unsigned int                        v_fe_degree;
     const double                              dt;
+    double                                    dt_n;
+    double                                    dt_n_m1;
     const double                              t_0;
     const double                              T;
     const double                              Re;
@@ -97,9 +99,6 @@ namespace Step35
     SparseDirectUMFPACK                       p_update_preconditioner;
     SparseDirectUMFPACK                       v_rot_preconditioner;
 
-    double                                    dt_n;
-    double                                    dt_n_m1;
-
     DeclException2(ExcInvalidTimeStep,
                    double,
                    double,
@@ -130,7 +129,8 @@ namespace Step35
     unsigned int                              solver_update_preconditioner;
     double                                    solver_tolerance;
     double                                    solver_diag_strength;
-    
+    bool                                      flag_adpative_time_step;
+
     void setup_v_matrices();
     void setup_p_matrices();
     void setup_p_gradient_matrix();
