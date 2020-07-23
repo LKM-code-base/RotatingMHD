@@ -16,13 +16,13 @@ namespace Step35
     const double v_max  = compute_max_velocity();
 
     if (v_max >= 0.01)
+      dt_n = 1.0 / (1.7 * dim * std::sqrt(1. * dim )) 
+            * GridTools::minimal_cell_diameter(triangulation)
+            / v_max;
+    else
       dt_n = 1.0 / std::sqrt(1. * dim ) 
-             * GridTools::minimal_cell_diameter(triangulation)
-             / v_max;
-    else 
-      dt_n = 1.0 / std::sqrt(1. * dim ) 
-             * GridTools::minimal_cell_diameter(triangulation)
-             / 0.01;
+            * GridTools::minimal_cell_diameter(triangulation)
+            / 0.01;
   }
 
   template <int dim>

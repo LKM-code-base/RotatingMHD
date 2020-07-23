@@ -29,10 +29,12 @@ namespace Step35
     assemble_p_matrices();
     assemble_p_gradient_matrix();
 
-    v_mass_plus_laplace_matrix = 0.;
-    v_mass_plus_laplace_matrix.add(1.0 / Re, v_laplace_matrix);
     if (!flag_adpative_time_step)
-      v_mass_plus_laplace_matrix.add(1.5 / dt, v_mass_matrix);
+    {
+      v_mass_plus_laplace_matrix = 0.;
+      v_mass_plus_laplace_matrix.add(1.0 / Re, v_laplace_matrix);
+      v_mass_plus_laplace_matrix.add(1.5 / dt_n, v_mass_matrix);
+    }
 
     phi_n     = 0.;
     phi_n_m1  = 0.;
@@ -41,7 +43,7 @@ namespace Step35
     VectorTools::interpolate(p_dof_handler, 
                              p_initial_conditions, 
                              p_n_m1);
-    p_initial_conditions.advance_time(dt);
+    p_initial_conditions.advance_time(dt_n);
     VectorTools::interpolate(p_dof_handler, 
                              p_initial_conditions, 
                              p_n);
@@ -50,7 +52,7 @@ namespace Step35
     VectorTools::interpolate(v_dof_handler,
                              v_initial_conditions,
                              v_n_m1);
-    v_initial_conditions.advance_time(dt);
+    v_initial_conditions.advance_time(dt_n);
     VectorTools::interpolate(v_dof_handler,
                              v_initial_conditions,
                              v_n);

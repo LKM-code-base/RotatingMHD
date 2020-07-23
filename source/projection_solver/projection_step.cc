@@ -48,10 +48,7 @@ namespace Step35
              p_rhs, 
              p_preconditioner);
     p_constraints.distribute(phi_n);
-    if (flag_adpative_time_step)
-      phi_n *= (2.0 * dt_n + dt_n_m1) / (dt_n * (dt_n + dt_n_m1));
-    else
-      phi_n *= 1.5 / dt;
+    phi_n *= ((2.0 * dt_n + dt_n_m1) / (dt_n * (dt_n + dt_n_m1)));
   }
 }
 
