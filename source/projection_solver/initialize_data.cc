@@ -31,7 +31,8 @@ namespace Step35
 
     v_mass_plus_laplace_matrix = 0.;
     v_mass_plus_laplace_matrix.add(1.0 / Re, v_laplace_matrix);
-    v_mass_plus_laplace_matrix.add(1.5 / dt, v_mass_matrix);
+    if (!flag_adpative_time_step)
+      v_mass_plus_laplace_matrix.add(1.5 / dt, v_mass_matrix);
 
     phi_n     = 0.;
     phi_n_m1  = 0.;

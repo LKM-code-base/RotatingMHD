@@ -12,12 +12,17 @@ namespace Step35
     /*Extrapolate velocity by a Taylor expansion
       v^{\textrm{k}+1} \approx 2 * v^\textrm{k} - v^{\textrm{k}-1 */
 
-    v_extrapolated.equ(2., v_n);
-    v_extrapolated -= v_n_m1;
-
-    // v_extrapolated.equ(1.0 + dt_n / dt_n_m1, v_n);
-    // v_extrapolated -= dt_n / dt_n_m1 * v_n_m1;
-
+    if (flag_adpative_time_step)
+    {
+      v_extrapolated.equ(1.0 + dt_n / dt_n_m1, v_n);
+      v_extrapolated.add(-dt_n / dt_n_m1, v_n_m1);
+    }
+    else
+    {
+      v_extrapolated.equ(2., v_n);
+      v_extrapolated.add(-1.0, v_n_m1);
+    }
+    
     /*Define auxiliary pressure
       p^{\#} = p^\textrm{k} + 4/3 * \phi^\textrm{k} 
                 - 1/3 * \phi^{\textrm{k}-1} 
@@ -29,16 +34,23 @@ namespace Step35
 
     /* System matrix setup */
     assemble_v_advection_matrix();
-    //v_mass_plus_laplace_matrix.add( (2.0 * dt_n + dt_n_m1) / (dt_n * (dt_n + dt_n_m1)), v_mass_matrix);
+    if (flag_adpative_time_step)
+      v_mass_plus_laplace_matrix.add( (2.0 * dt_n + dt_n_m1) / (dt_n * (dt_n + dt_n_m1)), v_mass_matrix);
     v_system_matrix.copy_from(v_mass_plus_laplace_matrix);
     v_system_matrix.add(1., v_advection_matrix);
 
     /* Right hand side setup */
     v_rhs = 0.;
-    v_tmp.equ(2. / dt, v_n);
-    v_tmp.add(-.5 / dt, v_n_m1);
-    // v_tmp.equ( ( dt_n + dt_n_m1 ) / (dt_n * dt_n_m1), v_n);
-    // v_tmp.add( (dt_n * dt_n) / (dt_n * dt_n_m1 * (dt_n + dt_n_m1)), v_n_m1);
+    if (flag_adpative_time_step)
+    {
+      v_tmp.equ( ( dt_n + dt_n_m1 ) / (dt_n * dt_n_m1), v_n);
+      v_tmp.add( (dt_n * dt_n) / (dt_n * dt_n_m1 * (dt_n + dt_n_m1)), v_n_m1);
+    }
+    else
+    {
+      v_tmp.equ(2. / dt, v_n);
+      v_tmp.add(-.5 / dt, v_n_m1);
+    }
     v_mass_matrix.vmult_add(v_rhs, v_tmp);
     p_gradient_matrix.vmult_add(v_rhs, p_tmp);
 
