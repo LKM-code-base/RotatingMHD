@@ -7,7 +7,7 @@ end
 subsection Time discretization parameters
   set dt                              = 5e-3
   set t_0                             = 0.
-  set T                               = 5e-2.
+  set T                               = 5e-2
 end
 
 subsection Space discretization parameters
