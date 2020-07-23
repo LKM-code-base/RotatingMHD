@@ -45,7 +45,6 @@ namespace Step35
     RunTimeParameters::ProjectionMethod       projection_method;
     const unsigned int                        p_fe_degree;
     const unsigned int                        v_fe_degree;
-    const double                              dt;
     double                                    dt_n;
     double                                    dt_n_m1;
     const double                              t_0;

@@ -7,7 +7,7 @@ end
 subsection Time discretization parameters
   set dt                              = 5e-3
   set t_0                             = 0.
-  set T                               = 5e-2
+  set T                               = 5.
 end
 
 subsection Space discretization parameters
@@ -26,4 +26,4 @@ end
 
 set flag_verbose_output               = false
 set flag_adaptive_time_step           = false
-set output_interval                   = 1
+set output_interval                   = 10
