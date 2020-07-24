@@ -69,21 +69,3 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
-
-# eclipse
-.cproject
-.project
-.settings/
-
-# Output data
-*.gpl
-*.vtk
-*.vtu
-*.pvtu
-*.xdmf
-*/*.gpl
-*/*.vtk
-*/*.vtu
-*/*.pvtu
-*/*.xdmf
-
