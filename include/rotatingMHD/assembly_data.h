@@ -10,67 +10,67 @@
 namespace Step35
 {
   using namespace dealii;
-  namespace AdvectionTermAssembly
-  {
-    template <int dim>
-    struct MappingData
-    {
-      FullMatrix<double>                   local_matrix;
-      std::vector<types::global_dof_index> local_dof_indices;
-      MappingData(const unsigned int dofs_per_cell);
-    };
+namespace AdvectionAssembly
+{
+template <int dim>
+struct MappingData
+{
+  FullMatrix<double>                   local_matrix;
+  std::vector<types::global_dof_index> local_dof_indices;
+  MappingData(const unsigned int dofs_per_cell);
+};
 
-    template <int dim>  
-    struct LocalCellData
-    {
-      FEValues<dim>               fe_values;
-      unsigned int                n_q_points;
-      unsigned int                dofs_per_cell;
-      std::vector<double>         v_extrapolated_divergence;
-      std::vector<Tensor<1,dim>>  v_extrapolated_values;
-      std::vector<Tensor<1,dim>>  phi_v;
-      std::vector<Tensor<2,dim>>  grad_phi_v;
+template <int dim>  
+struct LocalCellData
+{
+  FEValues<dim>               fe_values;
+  unsigned int                n_q_points;
+  unsigned int                dofs_per_cell;
+  std::vector<double>         extrapolated_velocity_divergences;
+  std::vector<Tensor<1,dim>>  extrapolated_velocity_values;
+  std::vector<Tensor<1,dim>>  phi_velocity;
+  std::vector<Tensor<2,dim>>  grad_phi_velocity;
 
-      LocalCellData(const FESystem<dim> &fe,
-                    const QGauss<dim>   &quadrature_formula,
-                    const UpdateFlags   flags);
+  LocalCellData(const FESystem<dim> &fe,
+                const QGauss<dim>   &quadrature_formula,
+                const UpdateFlags   flags);
+  LocalCellData(const LocalCellData &data);
+};
+}// namespace AdvectionAssembly
 
-      LocalCellData(const LocalCellData &data);
-    };
-  }// namespace AdvectionTermAssembly
+namespace PressureGradientAssembly
+{
+template <int dim>
+struct MappingData
+{
+  unsigned int                         velocity_dofs_per_cell;
+  unsigned int                         pressure_dofs_per_cell;
+  FullMatrix<double>                   local_matrix;
+  std::vector<types::global_dof_index> local_velocity_dof_indices;
+  std::vector<types::global_dof_index> local_pressure_dof_indices;
 
-  namespace PressureGradientTermAssembly
-  {
-    template <int dim>
-    struct MappingData
-    {
-      unsigned int                         v_dofs_per_cell;
-      unsigned int                         p_dofs_per_cell;
-      FullMatrix<double>                   local_matrix;
-      std::vector<types::global_dof_index> v_local_dof_indices;
-      std::vector<types::global_dof_index> p_local_dof_indices;
+  MappingData(const unsigned int velocity_dofs_per_cell,
+              const unsigned int pressure_dofs_per_cell);
+};
+template <int dim>
+struct LocalCellData
+{
+  FEValues<dim>         velocity_fe_values;
+  FEValues<dim>         pressure_fe_values;
+  unsigned int          n_q_points;
+  unsigned int          velocity_dofs_per_cell;
+  unsigned int          pressure_dofs_per_cell;
+  std::vector<double>   div_phi_velocity;
+  std::vector<double>   phi_pressure;
 
-      MappingData(const unsigned int v_dofs_per_cell,
-                  const unsigned int p_dofs_per_cell);
-    };
-    template <int dim>
-    struct LocalCellData
-    {
-      FEValues<dim>         v_fe_values;
-      FEValues<dim>         p_fe_values;
-      unsigned int          n_q_points;
-      unsigned int          v_dofs_per_cell;
-      unsigned int          p_dofs_per_cell;
-      std::vector<double>   div_phi_v;
-      std::vector<double>   phi_p;
-      LocalCellData(const FESystem<dim> &v_fe,
-                    const FE_Q<dim>     &p_fe,
-                    const QGauss<dim>   &quadrature_formula,
-                    const UpdateFlags   v_flags,
-                    const UpdateFlags   p_flags);
-      LocalCellData(const LocalCellData &data);
-    };
-  }// namespace PressureGradientTermAssembly
+  LocalCellData(const FESystem<dim> &velocity_fe,
+                const FE_Q<dim>     &pressure_fe,
+                const QGauss<dim>   &quadrature_formula,
+                const UpdateFlags   velocity_flags,
+                const UpdateFlags   pressure_flags);
+  LocalCellData(const LocalCellData &data);
+};
+} // namespace PressureGradientAssembly
 } // namespace Step35
 
 #endif /* INCLUDE_ROTATINGMHD_ASSEMBLY_DATA_H_ */
