@@ -14,42 +14,42 @@ namespace Step35
 {
   using namespace dealii;
 
-  namespace RunTimeParameters
-  {
-    enum class ProjectionMethod
-    {
-      standard,
-      rotational
-    };
+namespace RunTimeParameters
+{
+enum class ProjectionMethod
+{
+  standard,
+  rotational
+};
 
-    class ParameterSet
-    {
-    public:
-      ProjectionMethod  projection_method;
-      double            dt;
-      double            t_0;
-      double            T;
-      double            Re;
-      unsigned int      n_global_refinements;
-      unsigned int      p_fe_degree;
-      unsigned int      solver_max_iterations;
-      unsigned int      solver_krylov_size;
-      unsigned int      solver_off_diagonals;
-      unsigned int      solver_update_preconditioner;
-      double            solver_tolerance;
-      double            solver_diag_strength;
-      bool              flag_verbose_output;
-      bool              flag_adaptive_time_step;
-      unsigned int      output_interval;
-  
-      ParameterSet();
-      void read_data_from_file(const std::string &filename);
-    
-    protected:
-      ParameterHandler  prm;
-    };
+class ParameterSet
+{
+public:
+  ProjectionMethod  projection_method;
+  double            dt;
+  double            t_0;
+  double            T;
+  double            Re;
+  unsigned int      n_global_refinements;
+  unsigned int      p_fe_degree;
+  unsigned int      solver_max_iterations;
+  unsigned int      solver_krylov_size;
+  unsigned int      solver_off_diagonals;
+  unsigned int      solver_update_preconditioner;
+  double            solver_tolerance;
+  double            solver_diag_strength;
+  bool              flag_verbose_output;
+  bool              flag_adaptive_time_step;
+  unsigned int      output_interval;
 
-  } // namespace RunTimeParameters
+  ParameterSet();
+  void read_data_from_file(const std::string &filename);
+
+protected:
+  ParameterHandler  prm;
+};
+
+} // namespace RunTimeParameters
 
 } // namespace Step35
 

@@ -18,39 +18,39 @@ namespace Step35
 
   using namespace dealii;
 
-  namespace EquationData
-  {
+namespace EquationData
+{
 
-    template <int dim>
-    class VelocityIC : public Function<dim>
-    {
-    public:
-      VelocityIC(const double time = 0);
-      virtual void vector_value(const Point<dim>  &p,
-                                Vector<double>    &values) const override;
-    };
+template <int dim>
+class VelocityInitialCondition : public Function<dim>
+{
+public:
+  VelocityInitialCondition(const double time = 0);
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+};
 
-    template <int dim>
-    class VelocityInflowBC : public Function<dim>
-    {
-    public:
-      VelocityInflowBC(const double time = 0);
+template <int dim>
+class VelocityInflowBoundaryCondition : public Function<dim>
+{
+public:
+  VelocityInflowBoundaryCondition(const double time = 0);
 
-      virtual void vector_value(const Point<dim>  &p,
-                                Vector<double>    &values) const override;
-    };
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+};
 
-    template <int dim>
-    class PressureIC : public Function<dim>
-    {
-    public:
-      PressureIC(const double time = 0);
+template <int dim>
+class PressureInitialCondition : public Function<dim>
+{
+public:
+  PressureInitialCondition(const double time = 0);
 
-      virtual double value(const Point<dim> &p,
-                          const unsigned int component = 0) const override;
-    };
+  virtual double value(const Point<dim> &p,
+                      const unsigned int component = 0) const override;
+};
 
-  } // namespace EquationData
+} // namespace EquationData
 
 } // namespace Step35
 
