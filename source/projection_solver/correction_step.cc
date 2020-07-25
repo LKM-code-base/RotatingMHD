@@ -4,30 +4,31 @@
 
 namespace Step35
 {
-  template <int dim>
-  void NavierStokesProjection<dim>::
-  correction_step(const bool reinit_prec)
-  {
-    /* Update for the next time step */
-    p_n_m1 = p_n;
-    switch (projection_method)
-      {
-        case RunTimeParameters::ProjectionMethod::standard:
-          p_n += phi_n;
-          break;
-        case RunTimeParameters::ProjectionMethod::rotational:
-          if (reinit_prec)
-            p_update_preconditioner.initialize(p_mass_matrix);
-          p_n = p_rhs;
-          p_update_preconditioner.solve(p_n);
-          p_n.sadd(1. / Re, 1., p_n_m1);
-          p_n += phi_n;
-          break;
-        default:
-          Assert(false, ExcNotImplemented());
-      };
-  }
+template <int dim>
+void NavierStokesProjection<dim>::
+pressure_correction(const bool reinit_prec)
+{
+  /* Update for the next time step */
+  pressure_n_minus_1 = pressure_n;
+  switch (projection_method)
+    {
+      case RunTimeParameters::ProjectionMethod::standard:
+        pressure_n += phi_n;
+        break;
+      case RunTimeParameters::ProjectionMethod::rotational:
+        if (reinit_prec)
+          pressure_correction_preconditioner.initialize(pressure_mass_matrix);
+        pressure_n = pressure_rhs;
+        pressure_correction_preconditioner.solve(pressure_n);
+        pressure_n.sadd(1. / Re, 1., pressure_n_minus_1);
+        pressure_n += phi_n;
+        break;
+      default:
+        Assert(false, ExcNotImplemented());
+    };
+}
 }
 
-template void Step35::NavierStokesProjection<2>::correction_step(const bool);
-template void Step35::NavierStokesProjection<3>::correction_step(const bool);
+// explicit instantiations
+template void Step35::NavierStokesProjection<2>::pressure_correction(const bool);
+template void Step35::NavierStokesProjection<3>::pressure_correction(const bool);
