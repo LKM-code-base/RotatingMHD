@@ -6,53 +6,59 @@
 
 namespace Step35
 {
-  template <int dim>
-  void NavierStokesProjection<dim>::
-  projection_step_assembly(const bool reinit_prec)
-  {
-    /* System matrix setup */
-    p_system_matrix.copy_from(p_laplace_matrix);
 
-    /* Right hand side setup */
-    p_rhs = 0.;
-    p_gradient_matrix.Tvmult_add(p_rhs, v_n);
+template <int dim>
+void NavierStokesProjection<dim>::
+projection_step(const bool reinit_prec)
+{
+  //SparseMatrix<double>& pressure_system_matrix = pressure_laplace_matrix;
 
-    /* Update for the next time step */
-    phi_n_m1 = phi_n;
+  assemble_projection_step();
+  
+  /* Update for the next time step */
+  phi_n_minus_1 = phi_n;
 
-    static std::map<types::global_dof_index, double> bval;
-    if (reinit_prec)
-      VectorTools::interpolate_boundary_values(p_dof_handler,
-                                               3,
-                                               Functions::ZeroFunction<dim>(),
-                                               bval);
-
-    p_constraints.condense(p_system_matrix, p_rhs);
-  }
-
-  template <int dim>
-  void NavierStokesProjection<dim>::
-  projection_step_solve(const bool reinit_prec)
-  {
-    if (reinit_prec)
-      p_preconditioner.initialize(p_system_matrix,
-                                   SparseILU<double>::AdditionalData(
-                                     solver_diag_strength, 
-                                     solver_off_diagonals));
-
-    SolverControl solvercontrol(solver_max_iterations, 
-                                solver_tolerance * p_rhs.l2_norm());
-    SolverCG<>    cg(solvercontrol);
-    cg.solve(p_system_matrix, 
-             phi_n, 
-             p_rhs, 
-             p_preconditioner);
-    p_constraints.distribute(phi_n);
-    phi_n *= ((2.0 * dt_n + dt_n_m1) / (dt_n * (dt_n + dt_n_m1)));
-  }
+  solve_projection_step(reinit_prec);
 }
 
-template void Step35::NavierStokesProjection<2>::projection_step_assembly(const bool);
-template void Step35::NavierStokesProjection<3>::projection_step_assembly(const bool);
-template void Step35::NavierStokesProjection<2>::projection_step_solve(const bool);
-template void Step35::NavierStokesProjection<3>::projection_step_solve(const bool);
+template <int dim>
+void NavierStokesProjection<dim>::
+assemble_projection_step()
+{
+  /* Right hand side setup */
+  pressure_rhs = 0.;
+  pressure_gradient_matrix.Tvmult_add(pressure_rhs, velocity_n);
+
+  pressure_constraints.condense(pressure_laplace_matrix, pressure_rhs);
+}
+
+template <int dim>
+void NavierStokesProjection<dim>::
+solve_projection_step(const bool reinit_prec)
+{
+  if (reinit_prec)
+    projection_step_preconditioner.initialize(pressure_laplace_matrix,
+                                  SparseILU<double>::AdditionalData(
+                                    solver_diag_strength, 
+                                    solver_off_diagonals));
+
+  SolverControl solvercontrol(solver_max_iterations, 
+                              solver_tolerance * pressure_rhs.l2_norm());
+  SolverCG<>    cg(solvercontrol);
+  cg.solve(pressure_laplace_matrix, 
+           phi_n, 
+           pressure_rhs, 
+           projection_step_preconditioner);
+  pressure_constraints.distribute(phi_n);
+  phi_n *= ((2.0 * dt_n + dt_n_minus_1) /     //
+            (dt_n * (dt_n + dt_n_minus_1)));
+}
+}
+
+// explicit instantiations
+template void Step35::NavierStokesProjection<2>::projection_step(const bool);
+template void Step35::NavierStokesProjection<3>::projection_step(const bool);
+template void Step35::NavierStokesProjection<2>::assemble_projection_step();
+template void Step35::NavierStokesProjection<3>::assemble_projection_step();
+template void Step35::NavierStokesProjection<2>::solve_projection_step(const bool);
+template void Step35::NavierStokesProjection<3>::solve_projection_step(const bool);
