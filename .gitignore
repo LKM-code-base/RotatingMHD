@@ -69,3 +69,33 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+/build/
+
+# Eclipse
+.cproject
+.project
+
+# Meshes and Output
+*.med
+*.xml
+*.vtk
+*.msh
+*.vtu
+*.pvtu
+*.visit
+*.pvd
+*.gpl
+
+# Python compiled modules
+*.pyc
+*.pyo
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
