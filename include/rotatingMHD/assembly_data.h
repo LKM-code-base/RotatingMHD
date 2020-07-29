@@ -71,6 +71,65 @@ struct LocalCellData
   LocalCellData(const LocalCellData &data);
 };
 } // namespace PressureGradientAssembly
+
+namespace VelocityMassLaplaceAssembly
+{
+template <int dim>
+struct MappingData
+{
+  unsigned int                          velocity_dofs_per_cell;
+  FullMatrix<double>                    local_velocity_mass_matrix;
+  FullMatrix<double>                    local_velocity_laplace_matrix;
+  std::vector<types::global_dof_index>  local_velocity_dof_indices;
+
+  MappingData(const unsigned int velocity_dofs_per_cell);
+};
+
+template <int dim>
+struct LocalCellData
+{
+  FEValues<dim>               velocity_fe_values;
+  unsigned int                n_q_points;
+  unsigned int                velocity_dofs_per_cell;
+  std::vector<Tensor<1,dim>>  phi_velocity;
+  std::vector<Tensor<2,dim>>  grad_phi_velocity;
+
+  LocalCellData(const FESystem<dim> &velocity_fe,
+                const QGauss<dim>   &velocity_quadrature_formula,
+                const UpdateFlags   velocity_update_flags);
+  LocalCellData(const LocalCellData &data);
+};
+} // namespace VelocityMassLaplaceAssembly
+
+namespace PressureMassLaplaceAssembly
+{
+template <int dim>
+struct MappingData
+{
+  unsigned int                          pressure_dofs_per_cell;
+  FullMatrix<double>                    local_pressure_mass_matrix;
+  FullMatrix<double>                    local_pressure_laplace_matrix;
+  std::vector<types::global_dof_index>  local_pressure_dof_indices;
+
+  MappingData(const unsigned int pressure_dofs_per_cell);
+};
+
+template <int dim>
+struct LocalCellData
+{
+  FEValues<dim>               pressure_fe_values;
+  unsigned int                n_q_points;
+  unsigned int                pressure_dofs_per_cell;
+  std::vector<double>         phi_pressure;
+  std::vector<Tensor<1,dim>>  grad_phi_pressure;
+
+  LocalCellData(const FE_Q<dim>     &pressure_fe,
+                const QGauss<dim>   &pressure_quadrature_formula,
+                const UpdateFlags   pressure_update_flags);
+  LocalCellData(const LocalCellData &data);
+};
+} // namespace PressureMassLaplaceAssembly
+
 } // namespace Step35
 
 #endif /* INCLUDE_ROTATINGMHD_ASSEMBLY_DATA_H_ */

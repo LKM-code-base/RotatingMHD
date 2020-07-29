@@ -91,8 +91,83 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
   {}
 }// namespace PressureGradientTermAssembly
 
-}
+namespace VelocityMassLaplaceAssembly
+{
+template <int dim>
+MappingData<dim>::MappingData(const unsigned int velocity_dofs_per_cell)
+  : velocity_dofs_per_cell(velocity_dofs_per_cell),
+    local_velocity_mass_matrix(velocity_dofs_per_cell, 
+                               velocity_dofs_per_cell),
+    local_velocity_laplace_matrix(velocity_dofs_per_cell, 
+                                  velocity_dofs_per_cell),
+    local_velocity_dof_indices(velocity_dofs_per_cell)
+  {}
 
+template <int dim>
+LocalCellData<dim>::LocalCellData(
+                      const FESystem<dim> &velocity_fe,
+                      const QGauss<dim>   &velocity_quadrature_formula,
+                      const UpdateFlags   velocity_update_flags)
+  : velocity_fe_values(velocity_fe, 
+                       velocity_quadrature_formula,
+                       velocity_update_flags),
+    n_q_points(velocity_quadrature_formula.size()),
+    velocity_dofs_per_cell(velocity_fe.dofs_per_cell),
+    phi_velocity(velocity_dofs_per_cell),
+    grad_phi_velocity(velocity_dofs_per_cell)
+  {}
+
+template <int dim>
+LocalCellData<dim>::LocalCellData(const LocalCellData &data)
+  : velocity_fe_values(data.velocity_fe_values.get_fe(), 
+                       data.velocity_fe_values.get_quadrature(),
+                       data.velocity_fe_values.get_update_flags()),
+    n_q_points(data.n_q_points),
+    velocity_dofs_per_cell(data.velocity_dofs_per_cell),
+    phi_velocity(velocity_dofs_per_cell),
+    grad_phi_velocity(velocity_dofs_per_cell) 
+  {}
+} // namespace VelocityMassLaplaceAssembly
+
+namespace PressureMassLaplaceAssembly
+{
+template <int dim>
+MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
+  : pressure_dofs_per_cell(pressure_dofs_per_cell),
+    local_pressure_mass_matrix(pressure_dofs_per_cell, 
+                               pressure_dofs_per_cell),
+    local_pressure_laplace_matrix(pressure_dofs_per_cell, 
+                                  pressure_dofs_per_cell),
+    local_pressure_dof_indices(pressure_dofs_per_cell)
+  {}
+
+template <int dim>
+LocalCellData<dim>::LocalCellData(
+                      const FE_Q<dim>     &pressure_fe,
+                      const QGauss<dim>   &pressure_quadrature_formula,
+                      const UpdateFlags   pressure_update_flags)
+  : pressure_fe_values(pressure_fe, 
+                       pressure_quadrature_formula,
+                       pressure_update_flags),
+    n_q_points(pressure_quadrature_formula.size()),
+    pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
+    phi_pressure(pressure_dofs_per_cell),
+    grad_phi_pressure(pressure_dofs_per_cell)
+  {}
+
+template <int dim>
+LocalCellData<dim>::LocalCellData(const LocalCellData &data)
+  : pressure_fe_values(data.pressure_fe_values.get_fe(), 
+                       data.pressure_fe_values.get_quadrature(),
+                       data.pressure_fe_values.get_update_flags()),
+    n_q_points(data.n_q_points),
+    pressure_dofs_per_cell(data.pressure_dofs_per_cell),
+    phi_pressure(pressure_dofs_per_cell),
+    grad_phi_pressure(pressure_dofs_per_cell) 
+  {}
+} // namespace PressureMassLaplaceAssembly
+
+} // namespace Step35
 // explicit instantiations
 template struct Step35::AdvectionAssembly::MappingData<2>;
 template struct Step35::AdvectionAssembly::MappingData<3>;
@@ -102,3 +177,11 @@ template struct Step35::PressureGradientAssembly::MappingData<2>;
 template struct Step35::PressureGradientAssembly::MappingData<3>;
 template struct Step35::PressureGradientAssembly::LocalCellData<2>;
 template struct Step35::PressureGradientAssembly::LocalCellData<3>;
+template struct Step35::VelocityMassLaplaceAssembly::MappingData<2>;
+template struct Step35::VelocityMassLaplaceAssembly::MappingData<3>;
+template struct Step35::VelocityMassLaplaceAssembly::LocalCellData<2>;
+template struct Step35::VelocityMassLaplaceAssembly::LocalCellData<3>;
+template struct Step35::PressureMassLaplaceAssembly::MappingData<2>;
+template struct Step35::PressureMassLaplaceAssembly::MappingData<3>;
+template struct Step35::PressureMassLaplaceAssembly::LocalCellData<2>;
+template struct Step35::PressureMassLaplaceAssembly::LocalCellData<3>;
