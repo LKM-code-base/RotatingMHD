@@ -143,14 +143,30 @@ private:
   void setup_velocity_matrices();
   void setup_pressure_matrices();
   void setup_pressure_gradient_matrix();
+
   void assemble_velocity_matrices();
+  void assemble_local_velocity_matrices(
+    const typename DoFHandler<dim>::active_cell_iterator  &cell,
+    VelocityMassLaplaceAssembly::LocalCellData<dim>       &scratch,
+    VelocityMassLaplaceAssembly::MappingData<dim>         &data);
+  void copy_local_to_global_velocity_matrices(
+    const VelocityMassLaplaceAssembly::MappingData<dim>   &data);
+
+
   void assemble_pressure_matrices();
+  void assemble_local_pressure_matrices(
+    const typename DoFHandler<dim>::active_cell_iterator  &cell,
+    PressureMassLaplaceAssembly::LocalCellData<dim>       &scratch,
+    PressureMassLaplaceAssembly::MappingData<dim>         &data);
+  void copy_local_to_global_pressure_matrices(
+    const PressureMassLaplaceAssembly::MappingData<dim>   &data);
+
   void assemble_pressure_gradient_matrix();
   void assemble_local_pressure_gradient_matrix(
     const IteratorPair                                    &SI,
     PressureGradientAssembly::LocalCellData<dim>          &scratch,
     PressureGradientAssembly::MappingData<dim>            &data);
-  void copy_loca_to_global_pressure_gradient_matrix(
+  void copy_local_to_global_pressure_gradient_matrix(
     const PressureGradientAssembly::MappingData<dim>      &data);
 
   void assemble_velocity_advection_matrix();

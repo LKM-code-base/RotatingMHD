@@ -25,7 +25,7 @@ assemble_pressure_gradient_matrix()
                                 pressure_dof_handler.end())),
     *this,
     &NavierStokesProjection<dim>::assemble_local_pressure_gradient_matrix,
-    &NavierStokesProjection<dim>::copy_loca_to_global_pressure_gradient_matrix,
+    &NavierStokesProjection<dim>::copy_local_to_global_pressure_gradient_matrix,
     scratch_data,
     per_task_data);
 }
@@ -66,7 +66,7 @@ assemble_local_pressure_gradient_matrix(
 
 template <int dim>
 void NavierStokesProjection<dim>::
-copy_loca_to_global_pressure_gradient_matrix(
+copy_local_to_global_pressure_gradient_matrix(
   const PressureGradientAssembly::MappingData<dim> &data)
 {
   for (unsigned int i = 0; i < data.velocity_dofs_per_cell; ++i)
@@ -88,7 +88,7 @@ template void Step35::NavierStokesProjection<3>::assemble_local_pressure_gradien
     const IteratorPair &, 
     Step35::PressureGradientAssembly::LocalCellData<3>  &,
     Step35::PressureGradientAssembly::MappingData<3>    &);
-template void Step35::NavierStokesProjection<2>::copy_loca_to_global_pressure_gradient_matrix(
+template void Step35::NavierStokesProjection<2>::copy_local_to_global_pressure_gradient_matrix(
     const Step35::PressureGradientAssembly::MappingData<2> &);
-template void Step35::NavierStokesProjection<3>::copy_loca_to_global_pressure_gradient_matrix(
+template void Step35::NavierStokesProjection<3>::copy_local_to_global_pressure_gradient_matrix(
     const Step35::PressureGradientAssembly::MappingData<3> &);
