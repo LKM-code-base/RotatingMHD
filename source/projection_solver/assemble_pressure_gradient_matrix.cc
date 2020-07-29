@@ -74,6 +74,13 @@ copy_local_to_global_pressure_gradient_matrix(
       pressure_gradient_matrix.add(data.local_velocity_dof_indices[i],
                                    data.local_pressure_dof_indices[j],
                                    data.local_matrix(i, j));
+  /*
+  velocity_constraints.distribute_local_to_global(
+                                  data.local_matrix,
+                                  data.local_velocity_dof_indices,
+                                  pressure_constraints,
+                                  data.local_pressure_dof_indices,
+                                  pressure_gradient_matrix);*/
 }
 }
 
