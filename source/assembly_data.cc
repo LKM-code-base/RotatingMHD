@@ -167,6 +167,74 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
   {}
 } // namespace PressureMassLaplaceAssembly
 
+namespace DiffusionStepRightHandSideAssembly
+{
+template <int dim>
+MappingData<dim>::MappingData(const unsigned int velocity_dofs_per_cell)
+  : velocity_dofs_per_cell(velocity_dofs_per_cell),
+    local_diffusion_step_rhs(velocity_dofs_per_cell),
+    local_velocity_dof_indices(velocity_dofs_per_cell)
+{}
+
+template <int dim>
+LocalCellData<dim>::LocalCellData(
+                      const FESystem<dim> &velocity_fe,
+                      const QGauss<dim>   &velocity_quadrature_formula,
+                      const UpdateFlags   velocity_update_flags)
+  : velocity_fe_values(velocity_fe,
+                       velocity_quadrature_formula,
+                       velocity_update_flags),
+    n_q_points(velocity_quadrature_formula.size()),
+    velocity_dofs_per_cell(velocity_fe.dofs_per_cell),
+    pressure_tmp_values(velocity_dofs_per_cell),
+    velocity_tmp_values(velocity_dofs_per_cell)
+{}
+
+template <int dim>
+LocalCellData<dim>::LocalCellData(const LocalCellData &data)
+  : velocity_fe_values(data.velocity_fe_values.get_fe(),
+                       data.velocity_fe_values.get_quadrature(),
+                       data.velocity_fe_values.get_update_flags()),
+    n_q_points(data.n_q_points),
+    velocity_dofs_per_cell(data.velocity_dofs_per_cell), 
+    pressure_tmp_values(velocity_dofs_per_cell),
+    velocity_tmp_values(velocity_dofs_per_cell)
+{}
+} // namespace DiffusionStepRightHandSideAssembly
+
+namespace ProjectionStepRightHandSideAssembly
+{
+template <int dim>
+MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
+  : pressure_dofs_per_cell(pressure_dofs_per_cell),
+    local_projection_step_rhs(pressure_dofs_per_cell),
+    local_pressure_dof_indices(pressure_dofs_per_cell)
+{}
+
+template <int dim>
+LocalCellData<dim>::LocalCellData(
+                      const FE_Q<dim>     &pressure_fe,
+                      const QGauss<dim>   &pressure_quadrature_formula,
+                      const UpdateFlags   pressure_update_flags)
+  : pressure_fe_values(pressure_fe,
+                       pressure_quadrature_formula,
+                       pressure_update_flags),
+    n_q_points(pressure_quadrature_formula.size()),
+    pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
+    velocity_n_divergence_values(pressure_dofs_per_cell)
+{}
+
+template <int dim>
+LocalCellData<dim>::LocalCellData(const LocalCellData &data)
+  : pressure_fe_values(data.pressure_fe_values.get_fe(),
+                       data.pressure_fe_values.get_quadrature(),
+                       data.pressure_fe_values.get_update_flags()),
+    n_q_points(data.n_q_points),
+    pressure_dofs_per_cell(data.pressure_dofs_per_cell), 
+    velocity_n_divergence_values(pressure_dofs_per_cell)
+{}
+} // namespace ProjectionStepRightHandSideAssembly
+
 } // namespace Step35
 // explicit instantiations
 template struct Step35::AdvectionAssembly::MappingData<2>;
@@ -185,3 +253,11 @@ template struct Step35::PressureMassLaplaceAssembly::MappingData<2>;
 template struct Step35::PressureMassLaplaceAssembly::MappingData<3>;
 template struct Step35::PressureMassLaplaceAssembly::LocalCellData<2>;
 template struct Step35::PressureMassLaplaceAssembly::LocalCellData<3>;
+template struct Step35::DiffusionStepRightHandSideAssembly::MappingData<2>;
+template struct Step35::DiffusionStepRightHandSideAssembly::MappingData<3>;
+template struct Step35::DiffusionStepRightHandSideAssembly::LocalCellData<2>;
+template struct Step35::DiffusionStepRightHandSideAssembly::LocalCellData<3>;
+template struct Step35::ProjectionStepRightHandSideAssembly::MappingData<2>;
+template struct Step35::ProjectionStepRightHandSideAssembly::MappingData<3>;
+template struct Step35::ProjectionStepRightHandSideAssembly::LocalCellData<2>;
+template struct Step35::ProjectionStepRightHandSideAssembly::LocalCellData<3>;

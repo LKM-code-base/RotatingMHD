@@ -130,6 +130,61 @@ struct LocalCellData
 };
 } // namespace PressureMassLaplaceAssembly
 
+namespace DiffusionStepRightHandSideAssembly
+{
+template <int dim>
+struct MappingData
+{
+  unsigned int                          velocity_dofs_per_cell;
+  Vector<double>                        local_diffusion_step_rhs;
+  std::vector<types::global_dof_index>  local_velocity_dof_indices;
+
+  MappingData(const unsigned int velocity_dofs_per_cell);
+};
+
+template <int dim>
+struct LocalCellData
+{
+  FEValues<dim>                         velocity_fe_values;
+  unsigned int                          n_q_points;
+  unsigned int                          velocity_dofs_per_cell;
+  std::vector<double>                   pressure_tmp_values;
+  std::vector<Tensor<1, dim>>           velocity_tmp_values;
+
+  LocalCellData(const FESystem<dim>     &velocity_fe,
+                const QGauss<dim>       &velocity_quadrature_formula,
+                const UpdateFlags       velocity_update_flags);
+  LocalCellData(const LocalCellData     &data);
+};
+} // namespace DiffusionStepRightHandSideAssembly
+
+namespace ProjectionStepRightHandSideAssembly
+{
+template <int dim>
+struct MappingData
+{
+  unsigned int                          pressure_dofs_per_cell;
+  Vector<double>                        local_projection_step_rhs;
+  std::vector<types::global_dof_index>  local_pressure_dof_indices;
+
+  MappingData(const unsigned int velocity_dofs_per_cell);
+};
+
+template <int dim>
+struct LocalCellData
+{
+  FEValues<dim>                         pressure_fe_values;
+  unsigned int                          n_q_points;
+  unsigned int                          pressure_dofs_per_cell;
+  std::vector<double>                   velocity_n_divergence_values;
+
+  LocalCellData(const FE_Q<dim>         &pressure_fe,
+                const QGauss<dim>       &pressure_quadrature_formula,
+                const UpdateFlags       pressure_update_flags);
+  LocalCellData(const LocalCellData     &data);
+};
+} // namespace ProjectionStepRightHandSideAssembly
+
 } // namespace Step35
 
 #endif /* INCLUDE_ROTATINGMHD_ASSEMBLY_DATA_H_ */
