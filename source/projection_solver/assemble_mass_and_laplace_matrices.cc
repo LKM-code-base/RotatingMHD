@@ -160,7 +160,7 @@ copy_local_to_global_pressure_matrices(
       pressure_mass_matrix.add(data.local_pressure_dof_indices[i],
                                data.local_pressure_dof_indices[j],
                                data.local_pressure_mass_matrix(i, j));
-      /*pressure_laplace_matrix.add(data.local_pressure_dof_indices[i],
+      pressure_laplace_matrix.add(data.local_pressure_dof_indices[i],
                                   data.local_pressure_dof_indices[j],
                                   data.local_pressure_laplace_matrix(i, j));
     }*/
