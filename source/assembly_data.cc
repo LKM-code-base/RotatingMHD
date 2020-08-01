@@ -191,8 +191,8 @@ LocalCellData<dim>::LocalCellData(
                        pressure_update_flags),
     n_q_points(velocity_quadrature_formula.size()),
     velocity_dofs_per_cell(velocity_fe.dofs_per_cell),
-    pressure_tmp_values(velocity_dofs_per_cell),
-    velocity_tmp_values(velocity_dofs_per_cell),
+    pressure_tmp_values(n_q_points),
+    velocity_tmp_values(n_q_points),
     phi_velocity(velocity_dofs_per_cell),
     div_phi_velocity(velocity_dofs_per_cell)
 {}
@@ -207,8 +207,8 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
                        data.pressure_fe_values.get_update_flags()),
     n_q_points(data.n_q_points),
     velocity_dofs_per_cell(data.velocity_dofs_per_cell), 
-    pressure_tmp_values(velocity_dofs_per_cell),
-    velocity_tmp_values(velocity_dofs_per_cell),
+    pressure_tmp_values(n_q_points),
+    velocity_tmp_values(n_q_points),
     phi_velocity(velocity_dofs_per_cell),
     div_phi_velocity(velocity_dofs_per_cell)
 {}
@@ -238,7 +238,7 @@ LocalCellData<dim>::LocalCellData(
                        pressure_update_flags),
     n_q_points(pressure_quadrature_formula.size()),
     pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
-    velocity_n_divergence_values(pressure_dofs_per_cell)
+    velocity_n_divergence_values(n_q_points)
 {}
 
 template <int dim>
@@ -251,7 +251,7 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
                        data.pressure_fe_values.get_update_flags()),
     n_q_points(data.n_q_points),
     pressure_dofs_per_cell(data.pressure_dofs_per_cell), 
-    velocity_n_divergence_values(pressure_dofs_per_cell)
+    velocity_n_divergence_values(n_q_points)
 {}
 } // namespace ProjectionStepRightHandSideAssembly
 
