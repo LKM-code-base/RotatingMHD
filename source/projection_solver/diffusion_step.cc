@@ -11,24 +11,30 @@ diffusion_step(const bool reinit_prec)
 {
   /*Extrapolate velocity by a Taylor expansion
     v^{\textrm{k}+1} \approx 2 * v^\textrm{k} - v^{\textrm{k}-1 */
-
   extrapolated_velocity.equ(1.0 + dt_n / dt_n_minus_1, velocity_n);
   extrapolated_velocity.add(-dt_n / dt_n_minus_1, velocity_n_minus_1);
 
   /*Define auxiliary pressure
     p^{\#} = p^\textrm{k} + 4/3 * \phi^\textrm{k} 
-              - 1/3 * \phi^{\textrm{k}-1} 
-    Note: The signs are inverted since p_gradient_matrix is
-    defined as negative */
+              - 1/3 * \phi^{\textrm{k}-1} */
+  pressure_tmp.equ(+1., pressure_n);
+  pressure_tmp.add(+4. / 3., phi_n, -1. / 3., phi_n_minus_1);
 
-  pressure_tmp.equ(-1., pressure_n);
-  pressure_tmp.add(-4. / 3., phi_n, 1. / 3., phi_n_minus_1);
+  /*Define the auxiliary velocity as the sum from the velocities at
+  previous time steps weighted accordingly to the VSIMEX method */
+  velocity_tmp.equ(- (dt_n + dt_n_minus_1) / (dt_n * dt_n_minus_1), 
+                   velocity_n);
+  velocity_tmp.add((dt_n * dt_n) / (dt_n * dt_n_minus_1 *
+                   (dt_n + dt_n_minus_1)), 
+                   velocity_n_minus_1);
 
+  /* Assemble linear system */
   assemble_diffusion_step();
 
   /* Update for the next time step */
   velocity_n_minus_1 = velocity_n;
 
+  /* Solve linear system */
   solve_diffusion_step(reinit_prec);
 }
 template <int dim>
@@ -50,15 +56,9 @@ assemble_diffusion_step()
   velocity_system_matrix.add(1., velocity_advection_matrix);
 
   /* Right hand side setup */
-  velocity_rhs = 0.;
-  velocity_tmp.equ((dt_n + dt_n_minus_1) / (dt_n * dt_n_minus_1), 
-                   velocity_n);
-  velocity_tmp.add(- (dt_n * dt_n) / (dt_n * dt_n_minus_1 *             //
-                   (dt_n + dt_n_minus_1)), 
-                   velocity_n_minus_1);
-  velocity_mass_matrix.vmult_add(velocity_rhs, velocity_tmp);
-  pressure_gradient_matrix.vmult_add(velocity_rhs, pressure_tmp);
+  assemble_diffusion_step_rhs();
 
+  /* Apply boundary conditions and hanging node constraints */
   velocity_constraints.condense(velocity_system_matrix, velocity_rhs);
 }
 
