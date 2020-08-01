@@ -154,24 +154,24 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_pressure_matrices(
   const PressureMassLaplaceAssembly::MappingData<dim> &data)
 {
-  for (unsigned int i = 0; i < pressure_fe.dofs_per_cell; ++i)
+  /*for (unsigned int i = 0; i < pressure_fe.dofs_per_cell; ++i)
     for (unsigned int j = 0; j < pressure_fe.dofs_per_cell; ++j)
     {
       pressure_mass_matrix.add(data.local_pressure_dof_indices[i],
                                data.local_pressure_dof_indices[j],
                                data.local_pressure_mass_matrix(i, j));
-      pressure_laplace_matrix.add(data.local_pressure_dof_indices[i],
+      /*pressure_laplace_matrix.add(data.local_pressure_dof_indices[i],
                                   data.local_pressure_dof_indices[j],
                                   data.local_pressure_laplace_matrix(i, j));
-    }
-  /*pressure_constraints.distribute_local_to_global(
+    }*/
+  pressure_constraints.distribute_local_to_global(
                                       data.local_pressure_mass_matrix,
                                       data.local_pressure_dof_indices,
                                       pressure_mass_matrix);
   pressure_constraints.distribute_local_to_global(
                                       data.local_pressure_laplace_matrix,
                                       data.local_pressure_dof_indices,
-                                      pressure_laplace_matrix);*/
+                                      pressure_laplace_matrix);
 }
 } // namespace Step35
 

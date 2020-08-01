@@ -78,8 +78,7 @@ copy_local_to_global_velocity_advection_matrix(
   /*velocity_constraints.distribute_local_to_global(
                                       data.local_matrix,
                                       data.local_dof_indices,
-                                      velocity_advection_matrix);
-                                      */
+                                      velocity_advection_matrix);*/
 }
 }
 
