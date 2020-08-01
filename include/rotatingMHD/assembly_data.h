@@ -137,6 +137,7 @@ struct MappingData
 {
   unsigned int                          velocity_dofs_per_cell;
   Vector<double>                        local_diffusion_step_rhs;
+  FullMatrix<double>                    local_matrix_for_inhomogeneous_bc;
   std::vector<types::global_dof_index>  local_velocity_dof_indices;
 
   MappingData(const unsigned int velocity_dofs_per_cell);
@@ -153,7 +154,11 @@ struct LocalCellData
   std::vector<Tensor<1, dim>>           velocity_tmp_values;
   std::vector<Tensor<1, dim>>           phi_velocity;
   std::vector<double>                   div_phi_velocity;
-  
+  std::vector<double>                   extrapolated_velocity_divergences;
+  std::vector<Tensor<1,dim>>            extrapolated_velocity_values;
+  std::vector<Tensor<2,dim>>            grad_phi_velocity;
+
+
   LocalCellData(const FESystem<dim>     &velocity_fe,
                 const FE_Q<dim>         &pressure_fe,
                 const QGauss<dim>       &velocity_quadrature_formula,
@@ -170,6 +175,7 @@ struct MappingData
 {
   unsigned int                          pressure_dofs_per_cell;
   Vector<double>                        local_projection_step_rhs;
+  FullMatrix<double>                    local_matrix_for_inhomogeneous_bc;
   std::vector<types::global_dof_index>  local_pressure_dof_indices;
 
   MappingData(const unsigned int pressure_dofs_per_cell);
@@ -183,7 +189,9 @@ struct LocalCellData
   unsigned int                          n_q_points;
   unsigned int                          pressure_dofs_per_cell;
   std::vector<double>                   velocity_n_divergence_values;
-  
+  std::vector<double>                   phi_pressure;
+  std::vector<Tensor<1, dim>>           grad_phi_pressure;
+
   LocalCellData(const FESystem<dim>     &velocity_fe,
                 const FE_Q<dim>         &pressure_fe,
                 const QGauss<dim>       &pressure_quadrature_formula,
