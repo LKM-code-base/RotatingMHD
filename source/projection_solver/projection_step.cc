@@ -34,6 +34,7 @@ assemble_projection_step()
 
   /* Apply boundary conditions and hanging node constraints */
   pressure_constraints.condense(pressure_laplace_matrix, pressure_rhs);
+  //pressure_constraints.set_zero(pressure_rhs);
 }
 
 template <int dim>
