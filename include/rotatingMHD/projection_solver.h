@@ -72,8 +72,6 @@ private:
   SparsityPattern                     mixed_sparsity_pattern;
   SparseMatrix<double>                pressure_mass_matrix;
   SparseMatrix<double>                pressure_laplace_matrix;
-  SparseMatrix<double>                pressure_gradient_matrix;
-  //SparseMatrix<double>                pressure_system_matrix;
 
   Vector<double>                      pressure_n;
   Vector<double>                      pressure_n_minus_1;
