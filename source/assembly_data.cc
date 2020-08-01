@@ -239,7 +239,6 @@ LocalCellData<dim>::LocalCellData(
     n_q_points(pressure_quadrature_formula.size()),
     pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
     velocity_n_divergence_values(pressure_dofs_per_cell)
-    //phi_pressure(pressure_dofs_per_cell)
 {}
 
 template <int dim>
@@ -253,7 +252,6 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
     n_q_points(data.n_q_points),
     pressure_dofs_per_cell(data.pressure_dofs_per_cell), 
     velocity_n_divergence_values(pressure_dofs_per_cell)
-    //phi_pressure(pressure_dofs_per_cell)
 {}
 } // namespace ProjectionStepRightHandSideAssembly
 
