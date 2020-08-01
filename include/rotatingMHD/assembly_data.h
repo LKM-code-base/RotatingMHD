@@ -38,40 +38,6 @@ struct LocalCellData
 };
 }// namespace AdvectionAssembly
 
-namespace PressureGradientAssembly
-{
-template <int dim>
-struct MappingData
-{
-  unsigned int                         velocity_dofs_per_cell;
-  unsigned int                         pressure_dofs_per_cell;
-  FullMatrix<double>                   local_matrix;
-  std::vector<types::global_dof_index> local_velocity_dof_indices;
-  std::vector<types::global_dof_index> local_pressure_dof_indices;
-
-  MappingData(const unsigned int velocity_dofs_per_cell,
-              const unsigned int pressure_dofs_per_cell);
-};
-template <int dim>
-struct LocalCellData
-{
-  FEValues<dim>         velocity_fe_values;
-  FEValues<dim>         pressure_fe_values;
-  unsigned int          n_q_points;
-  unsigned int          velocity_dofs_per_cell;
-  unsigned int          pressure_dofs_per_cell;
-  std::vector<double>   div_phi_velocity;
-  std::vector<double>   phi_pressure;
-
-  LocalCellData(const FESystem<dim> &velocity_fe,
-                const FE_Q<dim>     &pressure_fe,
-                const QGauss<dim>   &quadrature_formula,
-                const UpdateFlags   velocity_flags,
-                const UpdateFlags   pressure_flags);
-  LocalCellData(const LocalCellData &data);
-};
-} // namespace PressureGradientAssembly
-
 namespace VelocityMassLaplaceAssembly
 {
 template <int dim>

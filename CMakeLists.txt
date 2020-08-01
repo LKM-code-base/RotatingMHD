@@ -69,7 +69,6 @@ SET(TARGET_SRC
     source/projection_solver/problem_setup.cc
     source/projection_solver/assemble_mass_and_laplace_matrices.cc
     source/projection_solver/assemble_advection_matrix.cc
-    source/projection_solver/assemble_pressure_gradient_matrix.cc
     source/projection_solver/assemble_diffusion_step_rhs.cc
     source/projection_solver/assemble_projection_step_rhs.cc
     source/projection_solver/diffusion_step.cc

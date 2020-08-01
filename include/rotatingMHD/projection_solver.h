@@ -142,7 +142,6 @@ private:
 
   void setup_velocity_matrices();
   void setup_pressure_matrices();
-  void setup_pressure_gradient_matrix();
 
   void assemble_velocity_matrices();
   void assemble_local_velocity_matrices(
@@ -151,7 +150,6 @@ private:
     VelocityMassLaplaceAssembly::MappingData<dim>         &data);
   void copy_local_to_global_velocity_matrices(
     const VelocityMassLaplaceAssembly::MappingData<dim>   &data);
-
 
   void assemble_pressure_matrices();
   void assemble_local_pressure_matrices(
@@ -176,14 +174,6 @@ private:
     ProjectionStepRightHandSideAssembly::MappingData<dim>       &data);
   void copy_local_to_global_projection_step_rhs(
     const ProjectionStepRightHandSideAssembly::MappingData<dim> &data);
-
-  void assemble_pressure_gradient_matrix();
-  void assemble_local_pressure_gradient_matrix(
-    const IteratorPair                                    &SI,
-    PressureGradientAssembly::LocalCellData<dim>          &scratch,
-    PressureGradientAssembly::MappingData<dim>            &data);
-  void copy_local_to_global_pressure_gradient_matrix(
-    const PressureGradientAssembly::MappingData<dim>      &data);
 
   void assemble_velocity_advection_matrix();
   void assemble_local_velocity_advection_matrix(
