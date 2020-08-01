@@ -179,15 +179,22 @@ MappingData<dim>::MappingData(const unsigned int velocity_dofs_per_cell)
 template <int dim>
 LocalCellData<dim>::LocalCellData(
                       const FESystem<dim> &velocity_fe,
+                      const FE_Q<dim>     &pressure_fe,
                       const QGauss<dim>   &velocity_quadrature_formula,
-                      const UpdateFlags   velocity_update_flags)
+                      const UpdateFlags   velocity_update_flags,
+                      const UpdateFlags   pressure_update_flags)
   : velocity_fe_values(velocity_fe,
                        velocity_quadrature_formula,
                        velocity_update_flags),
+    pressure_fe_values(pressure_fe,
+                       velocity_quadrature_formula,
+                       pressure_update_flags),
     n_q_points(velocity_quadrature_formula.size()),
     velocity_dofs_per_cell(velocity_fe.dofs_per_cell),
     pressure_tmp_values(velocity_dofs_per_cell),
-    velocity_tmp_values(velocity_dofs_per_cell)
+    velocity_tmp_values(velocity_dofs_per_cell),
+    phi_velocity(velocity_dofs_per_cell),
+    div_phi_velocity(velocity_dofs_per_cell)
 {}
 
 template <int dim>
@@ -195,10 +202,15 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
   : velocity_fe_values(data.velocity_fe_values.get_fe(),
                        data.velocity_fe_values.get_quadrature(),
                        data.velocity_fe_values.get_update_flags()),
+    pressure_fe_values(data.pressure_fe_values.get_fe(),
+                       data.pressure_fe_values.get_quadrature(),
+                       data.pressure_fe_values.get_update_flags()),
     n_q_points(data.n_q_points),
     velocity_dofs_per_cell(data.velocity_dofs_per_cell), 
     pressure_tmp_values(velocity_dofs_per_cell),
-    velocity_tmp_values(velocity_dofs_per_cell)
+    velocity_tmp_values(velocity_dofs_per_cell),
+    phi_velocity(velocity_dofs_per_cell),
+    div_phi_velocity(velocity_dofs_per_cell)
 {}
 } // namespace DiffusionStepRightHandSideAssembly
 
@@ -213,25 +225,35 @@ MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
 
 template <int dim>
 LocalCellData<dim>::LocalCellData(
+                      const FESystem<dim> &velocity_fe,
                       const FE_Q<dim>     &pressure_fe,
                       const QGauss<dim>   &pressure_quadrature_formula,
+                      const UpdateFlags   velocity_update_flags,
                       const UpdateFlags   pressure_update_flags)
-  : pressure_fe_values(pressure_fe,
+  : velocity_fe_values(velocity_fe,
+                       pressure_quadrature_formula,
+                       velocity_update_flags),
+    pressure_fe_values(pressure_fe,
                        pressure_quadrature_formula,
                        pressure_update_flags),
     n_q_points(pressure_quadrature_formula.size()),
     pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
     velocity_n_divergence_values(pressure_dofs_per_cell)
+    //phi_pressure(pressure_dofs_per_cell)
 {}
 
 template <int dim>
 LocalCellData<dim>::LocalCellData(const LocalCellData &data)
-  : pressure_fe_values(data.pressure_fe_values.get_fe(),
+  : velocity_fe_values(data.velocity_fe_values.get_fe(),
+                       data.velocity_fe_values.get_quadrature(),
+                       data.velocity_fe_values.get_update_flags()),
+    pressure_fe_values(data.pressure_fe_values.get_fe(),
                        data.pressure_fe_values.get_quadrature(),
                        data.pressure_fe_values.get_update_flags()),
     n_q_points(data.n_q_points),
     pressure_dofs_per_cell(data.pressure_dofs_per_cell), 
     velocity_n_divergence_values(pressure_dofs_per_cell)
+    //phi_pressure(pressure_dofs_per_cell)
 {}
 } // namespace ProjectionStepRightHandSideAssembly
 

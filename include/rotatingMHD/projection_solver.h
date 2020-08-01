@@ -161,6 +161,22 @@ private:
   void copy_local_to_global_pressure_matrices(
     const PressureMassLaplaceAssembly::MappingData<dim>   &data);
 
+  void assemble_diffusion_step_rhs();
+  void assemble_local_diffusion_step_rhs(
+    const IteratorPair                                          &SI,
+    DiffusionStepRightHandSideAssembly::LocalCellData<dim>      &scratch,
+    DiffusionStepRightHandSideAssembly::MappingData<dim>        &data);
+  void copy_local_to_global_diffusion_step_rhs(
+    const DiffusionStepRightHandSideAssembly::MappingData<dim>  &data);
+
+  void assemble_projection_step_rhs();
+  void assemble_local_projection_step_rhs(
+    const IteratorPair                                          &SI,
+    ProjectionStepRightHandSideAssembly::LocalCellData<dim>     &scratch,
+    ProjectionStepRightHandSideAssembly::MappingData<dim>       &data);
+  void copy_local_to_global_projection_step_rhs(
+    const ProjectionStepRightHandSideAssembly::MappingData<dim> &data);
+
   void assemble_pressure_gradient_matrix();
   void assemble_local_pressure_gradient_matrix(
     const IteratorPair                                    &SI,
