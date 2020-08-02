@@ -71,16 +71,6 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_velocity_matrices(
   const VelocityMassLaplaceAssembly::MappingData<dim> &data)
 {
-  /*for (unsigned int i = 0; i < velocity_fe.dofs_per_cell; ++i)
-    for (unsigned int j = 0; j < velocity_fe.dofs_per_cell; ++j)
-    {
-      velocity_mass_matrix.add(data.local_velocity_dof_indices[i],
-                               data.local_velocity_dof_indices[j],
-                               data.local_velocity_mass_matrix(i, j));
-      velocity_laplace_matrix.add(data.local_velocity_dof_indices[i],
-                                  data.local_velocity_dof_indices[j],
-                                  data.local_velocity_laplace_matrix(i, j));
-    }*/
   velocity_constraints.distribute_local_to_global(
                                       data.local_velocity_mass_matrix,
                                       data.local_velocity_dof_indices,
