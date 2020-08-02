@@ -86,9 +86,9 @@ assemble_local_diffusion_step_rhs(
                             extrapolated_velocity, 
                             scratch.extrapolated_velocity_divergences);
 
-        for (unsigned int j = 0; j < scratch.velocity_dofs_per_cell; ++j)
-          scratch.grad_phi_velocity[j] = 
-                    scratch.velocity_fe_values[velocity].gradient(j, q);
+        for (unsigned int k = 0; k < scratch.velocity_dofs_per_cell; ++k)
+          scratch.grad_phi_velocity[k] = 
+                    scratch.velocity_fe_values[velocity].gradient(k, q);
 
         for (unsigned int j = 0; j < scratch.velocity_dofs_per_cell; ++j)
           data.local_matrix_for_inhomogeneous_bc(j, i) += (
@@ -121,14 +121,11 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_diffusion_step_rhs(
   const DiffusionStepRightHandSideAssembly::MappingData<dim>  &data)
 {
-  for (unsigned int i = 0; i < velocity_fe.dofs_per_cell; ++i)
-    velocity_rhs(data.local_velocity_dof_indices[i]) +=
-      data.local_diffusion_step_rhs(i);
-  /*velocity_constraints.distribute_local_to_global(
+  velocity_constraints.distribute_local_to_global(
                                 data.local_diffusion_step_rhs,
                                 data.local_velocity_dof_indices,
                                 velocity_rhs,
-                                data.local_matrix_for_inhomogeneous_bc);*/
+                                data.local_matrix_for_inhomogeneous_bc);
 }
 
 } // namespace Step35

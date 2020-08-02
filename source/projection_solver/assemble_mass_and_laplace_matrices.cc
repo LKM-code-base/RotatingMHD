@@ -71,7 +71,7 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_velocity_matrices(
   const VelocityMassLaplaceAssembly::MappingData<dim> &data)
 {
-  for (unsigned int i = 0; i < velocity_fe.dofs_per_cell; ++i)
+  /*for (unsigned int i = 0; i < velocity_fe.dofs_per_cell; ++i)
     for (unsigned int j = 0; j < velocity_fe.dofs_per_cell; ++j)
     {
       velocity_mass_matrix.add(data.local_velocity_dof_indices[i],
@@ -80,15 +80,15 @@ copy_local_to_global_velocity_matrices(
       velocity_laplace_matrix.add(data.local_velocity_dof_indices[i],
                                   data.local_velocity_dof_indices[j],
                                   data.local_velocity_laplace_matrix(i, j));
-    }
-  /*velocity_constraints.distribute_local_to_global(
+    }*/
+  velocity_constraints.distribute_local_to_global(
                                       data.local_velocity_mass_matrix,
                                       data.local_velocity_dof_indices,
                                       velocity_mass_matrix);
   velocity_constraints.distribute_local_to_global(
                                       data.local_velocity_laplace_matrix,
                                       data.local_velocity_dof_indices,
-                                      velocity_laplace_matrix);*/
+                                      velocity_laplace_matrix);
 }
 
 template <int dim>
@@ -160,9 +160,6 @@ copy_local_to_global_pressure_matrices(
       pressure_mass_matrix.add(data.local_pressure_dof_indices[i],
                                data.local_pressure_dof_indices[j],
                                data.local_pressure_mass_matrix(i, j));
-      pressure_laplace_matrix.add(data.local_pressure_dof_indices[i],
-                                  data.local_pressure_dof_indices[j],
-                                  data.local_pressure_laplace_matrix(i, j));
     }*/
   pressure_constraints.distribute_local_to_global(
                                       data.local_pressure_mass_matrix,

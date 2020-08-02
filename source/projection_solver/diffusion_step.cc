@@ -57,10 +57,6 @@ assemble_diffusion_step()
 
   /* Right hand side setup */
   assemble_diffusion_step_rhs();
-
-  /* Apply boundary conditions and hanging node constraints */
-  velocity_constraints.condense(velocity_system_matrix, velocity_rhs);
-  //velocity_constraints.distribute(velocity_rhs);
 }
 
 template <int dim>

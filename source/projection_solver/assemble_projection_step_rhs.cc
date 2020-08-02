@@ -70,9 +70,9 @@ assemble_local_projection_step_rhs(
       if (pressure_constraints.is_inhomogeneously_constrained(
         data.local_pressure_dof_indices[i]))
       {
-        for (unsigned int j = 0; j < scratch.pressure_dofs_per_cell; ++j)
-          scratch.grad_phi_pressure[j] =
-                          scratch.pressure_fe_values.shape_grad(j, q);
+        for (unsigned int k = 0; k < scratch.pressure_dofs_per_cell; ++k)
+          scratch.grad_phi_pressure[k] =
+                          scratch.pressure_fe_values.shape_grad(k, q);
 
         for (unsigned int j = 0; j < scratch.pressure_dofs_per_cell; ++j)
           data.local_matrix_for_inhomogeneous_bc(j, i) +=
@@ -89,9 +89,6 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_projection_step_rhs(
   const ProjectionStepRightHandSideAssembly::MappingData<dim>  &data)
 {
-  /*for (unsigned int i = 0; i < pressure_fe.dofs_per_cell; ++i)
-    pressure_rhs(data.local_pressure_dof_indices[i]) +=
-      data.local_projection_step_rhs(i);*/
   pressure_constraints.distribute_local_to_global(
                                 data.local_projection_step_rhs,
                                 data.local_pressure_dof_indices,
