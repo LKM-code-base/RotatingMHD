@@ -68,7 +68,7 @@ assemble_local_velocity_matrices(
                     scratch.velocity_fe_values[velocity].gradient(i, q);
     }
     for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
-      for (unsigned int j = 0; j < scratch.velocity_dofs_per_cell; ++j)
+      for (unsigned int j = 0; j <= i; ++j)
       {
         data.local_velocity_mass_matrix(i, j) += 
                                     scratch.velocity_fe_values.JxW(q) *
@@ -81,6 +81,14 @@ assemble_local_velocity_matrices(
                                       scratch.grad_phi_velocity[j]);
       }
   }
+  for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
+    for (unsigned int j = i + 1; j < scratch.velocity_dofs_per_cell; ++j)
+    {
+      data.local_velocity_mass_matrix(i, j) =
+                            data.local_velocity_mass_matrix(j, i);
+      data.local_velocity_laplace_matrix(i, j) =
+                            data.local_velocity_laplace_matrix(j, i);
+    }
 }
 
 template <int dim>
@@ -159,7 +167,7 @@ assemble_local_pressure_matrices(
                     scratch.pressure_fe_values.shape_grad(i, q);
     }
     for (unsigned int i = 0; i < scratch.pressure_dofs_per_cell; ++i)
-      for (unsigned int j = 0; j < scratch.pressure_dofs_per_cell; ++j)
+      for (unsigned int j = 0; j <= i; ++j)
       {
         data.local_pressure_mass_matrix(i, j) += 
                                     scratch.pressure_fe_values.JxW(q) *
@@ -171,6 +179,14 @@ assemble_local_pressure_matrices(
                                     scratch.grad_phi_pressure[j];
       }
   }
+  for (unsigned int i = 0; i < scratch.pressure_dofs_per_cell; ++i)
+    for (unsigned int j = i + 1; j < scratch.pressure_dofs_per_cell; ++j)
+    {
+      data.local_pressure_mass_matrix(i, j) =
+                            data.local_pressure_mass_matrix(j, i);
+      data.local_pressure_laplace_matrix(i, j) =
+                            data.local_pressure_laplace_matrix(j, i);
+    }
 }
 
 template <int dim>
