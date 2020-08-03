@@ -19,7 +19,8 @@ namespace Step35
 template <int dim>
 NavierStokesProjection<dim>::
 NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
-  : projection_method(data.projection_method),
+  : mpi_communicator(MPI_COMM_WORLD),
+    projection_method(data.projection_method),
     dt_n(data.dt),
     dt_n_minus_1(data.dt),
     t_0(data.t_0),
@@ -40,10 +41,12 @@ NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
     solver_update_preconditioner(data.solver_update_preconditioner),
     solver_tolerance(data.solver_tolerance),
     solver_diag_strength(data.solver_diag_strength),
-    flag_adpative_time_step(data.flag_adaptive_time_step)
+    flag_adpative_time_step(data.flag_adaptive_time_step),
+    pcout(std::cout, 
+          (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))
 {
   if (pressure_fe_degree < 1)
-    std::cout
+    pcout
       << " WARNING: The chosen pair of finite element spaces is not stable."
       << std::endl
       << " The obtained results will be nonsense" << std::endl;
@@ -63,9 +66,10 @@ void NavierStokesProjection<dim>::
 run(const bool  flag_verbose_output,
     const unsigned int output_interval)
 {
-  ConditionalOStream verbose_cout(std::cout, flag_verbose_output);
-
-  //const auto n_steps = static_cast<unsigned int>((T - t_0) / dt);
+  ConditionalOStream verbose_cout(
+    std::cout, 
+    ((flag_verbose_output) && 
+      (Utilities::MPI::this_mpi_process(mpi_communicator) == 0) ));
 
   inflow_boundary_condition.set_time(2. * dt_n);
   output_results(1);
@@ -110,7 +114,7 @@ run(const bool  flag_verbose_output,
     = VectorTools::point_value(pressure_dof_handler,
                               pressure_n,
                               evaluation_point);
-    std::cout << "Step = " 
+    pcout     << "Step = " 
               << std::setw(2) 
               << n 
               << " Time = " 
