@@ -9,9 +9,9 @@ void NavierStokesProjection<dim>::
 assemble_diffusion_step_rhs()
 {
   velocity_rhs  = 0.;
-  DiffusionStepRightHandSideAssembly::MappingData<dim> 
+  VelocityRightHandSideAssembly::MappingData<dim> 
                                         data(velocity_fe.dofs_per_cell);
-  DiffusionStepRightHandSideAssembly::LocalCellData<dim>
+  VelocityRightHandSideAssembly::LocalCellData<dim>
                                         scratch(
                                           velocity_fe,
                                           pressure_fe,
@@ -35,9 +35,9 @@ assemble_diffusion_step_rhs()
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_local_diffusion_step_rhs(
-  const IteratorPair                                          &SI,
-  DiffusionStepRightHandSideAssembly::LocalCellData<dim>      &scratch,
-  DiffusionStepRightHandSideAssembly::MappingData<dim>        &data)
+  const IteratorPair                                  &SI,
+  VelocityRightHandSideAssembly::LocalCellData<dim>   &scratch,
+  VelocityRightHandSideAssembly::MappingData<dim>     &data)
 {
   data.local_diffusion_step_rhs = 0.;
   data.local_matrix_for_inhomogeneous_bc = 0.;
@@ -99,8 +99,8 @@ assemble_local_diffusion_step_rhs(
                             +
                             1.0 / Re *
                             scalar_product(
-                              scratch.grad_phi_velocity[i],
-                              scratch.grad_phi_velocity[j])
+                              scratch.grad_phi_velocity[j],
+                              scratch.grad_phi_velocity[i])
                             +
                             scratch.phi_velocity[j] *
                             scratch.grad_phi_velocity[i] *  
@@ -119,7 +119,7 @@ assemble_local_diffusion_step_rhs(
 template <int dim>
 void NavierStokesProjection<dim>::
 copy_local_to_global_diffusion_step_rhs(
-  const DiffusionStepRightHandSideAssembly::MappingData<dim>  &data)
+  const VelocityRightHandSideAssembly::MappingData<dim>  &data)
 {
   velocity_constraints.distribute_local_to_global(
                                 data.local_diffusion_step_rhs,
@@ -135,14 +135,14 @@ copy_local_to_global_diffusion_step_rhs(
 template void Step35::NavierStokesProjection<2>::assemble_diffusion_step_rhs();
 template void Step35::NavierStokesProjection<3>::assemble_diffusion_step_rhs();
 template void Step35::NavierStokesProjection<2>::assemble_local_diffusion_step_rhs(
-    const IteratorPair                                                   &,
-    Step35::DiffusionStepRightHandSideAssembly::LocalCellData<2>         &,
-    Step35::DiffusionStepRightHandSideAssembly::MappingData<2>           &);
+    const IteratorPair                                          &,
+    Step35::VelocityRightHandSideAssembly::LocalCellData<2>     &,
+    Step35::VelocityRightHandSideAssembly::MappingData<2>       &);
 template void Step35::NavierStokesProjection<3>::assemble_local_diffusion_step_rhs(
-    const IteratorPair                                                   &,
-    Step35::DiffusionStepRightHandSideAssembly::LocalCellData<3>         &,
-    Step35::DiffusionStepRightHandSideAssembly::MappingData<3>           &);
+    const IteratorPair                                          &,
+    Step35::VelocityRightHandSideAssembly::LocalCellData<3>     &,
+    Step35::VelocityRightHandSideAssembly::MappingData<3>       &);
 template void Step35::NavierStokesProjection<2>::copy_local_to_global_diffusion_step_rhs(
-    const Step35::DiffusionStepRightHandSideAssembly::MappingData<2> &);
+    const Step35::VelocityRightHandSideAssembly::MappingData<2> &);
 template void Step35::NavierStokesProjection<3>::copy_local_to_global_diffusion_step_rhs(
-    const Step35::DiffusionStepRightHandSideAssembly::MappingData<3> &);
+    const Step35::VelocityRightHandSideAssembly::MappingData<3> &);

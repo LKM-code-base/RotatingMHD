@@ -17,7 +17,9 @@ struct MappingData
 {
   FullMatrix<double>                   local_matrix;
   std::vector<types::global_dof_index> local_dof_indices;
+
   MappingData(const unsigned int dofs_per_cell);
+  MappingData(const MappingData &data);
 };
 
 template <int dim>  
@@ -38,7 +40,7 @@ struct LocalCellData
 };
 }// namespace AdvectionAssembly
 
-namespace VelocityMassLaplaceAssembly
+namespace VelocityMatricesAssembly
 {
 template <int dim>
 struct MappingData
@@ -49,6 +51,7 @@ struct MappingData
   std::vector<types::global_dof_index>  local_velocity_dof_indices;
 
   MappingData(const unsigned int velocity_dofs_per_cell);
+  MappingData(const MappingData &data);
 };
 
 template <int dim>
@@ -65,9 +68,9 @@ struct LocalCellData
                 const UpdateFlags   velocity_update_flags);
   LocalCellData(const LocalCellData &data);
 };
-} // namespace VelocityMassLaplaceAssembly
+} // namespace VelocityMatricesAssembly
 
-namespace PressureMassLaplaceAssembly
+namespace PressureMatricesAssembly
 {
 template <int dim>
 struct MappingData
@@ -78,6 +81,7 @@ struct MappingData
   std::vector<types::global_dof_index>  local_pressure_dof_indices;
 
   MappingData(const unsigned int pressure_dofs_per_cell);
+  MappingData(const MappingData &data);
 };
 
 template <int dim>
@@ -94,9 +98,9 @@ struct LocalCellData
                 const UpdateFlags   pressure_update_flags);
   LocalCellData(const LocalCellData &data);
 };
-} // namespace PressureMassLaplaceAssembly
+} // namespace PressureMatricesAssembly
 
-namespace DiffusionStepRightHandSideAssembly
+namespace VelocityRightHandSideAssembly
 {
 template <int dim>
 struct MappingData
@@ -107,6 +111,7 @@ struct MappingData
   std::vector<types::global_dof_index>  local_velocity_dof_indices;
 
   MappingData(const unsigned int velocity_dofs_per_cell);
+  MappingData(const MappingData &data);
 };
 
 template <int dim>
@@ -132,9 +137,9 @@ struct LocalCellData
                 const UpdateFlags       pressure_update_flags);
   LocalCellData(const LocalCellData     &data);
 };
-} // namespace DiffusionStepRightHandSideAssembly
+} // namespace VelocityRightHandSideAssembly
 
-namespace ProjectionStepRightHandSideAssembly
+namespace PressureRightHandSideAssembly
 {
 template <int dim>
 struct MappingData
@@ -145,6 +150,7 @@ struct MappingData
   std::vector<types::global_dof_index>  local_pressure_dof_indices;
 
   MappingData(const unsigned int pressure_dofs_per_cell);
+  MappingData(const MappingData &data);
 };
 
 template <int dim>
@@ -165,7 +171,7 @@ struct LocalCellData
                 const UpdateFlags       pressure_update_flags);
   LocalCellData(const LocalCellData     &data);
 };
-} // namespace ProjectionStepRightHandSideAssembly
+} // namespace PressureRightHandSideAssembly
 
 } // namespace Step35
 

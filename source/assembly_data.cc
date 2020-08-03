@@ -18,6 +18,12 @@ MappingData<dim>::MappingData(const unsigned int dofs_per_cell)
       local_dof_indices(dofs_per_cell)
   {}
 
+template <int dim>
+MappingData<dim>::MappingData(const MappingData &data)
+    : local_matrix(data.local_matrix),
+      local_dof_indices(data.local_dof_indices)
+  {}
+
 template <int dim>  
 LocalCellData<dim>::LocalCellData(
                             const FESystem<dim> &fe,
@@ -46,7 +52,7 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
   {}
 }// namespace AdvectionTermAssembly
 
-namespace VelocityMassLaplaceAssembly
+namespace VelocityMatricesAssembly
 {
 template <int dim>
 MappingData<dim>::MappingData(const unsigned int velocity_dofs_per_cell)
@@ -56,6 +62,14 @@ MappingData<dim>::MappingData(const unsigned int velocity_dofs_per_cell)
     local_velocity_laplace_matrix(velocity_dofs_per_cell, 
                                   velocity_dofs_per_cell),
     local_velocity_dof_indices(velocity_dofs_per_cell)
+  {}
+
+template <int dim>
+MappingData<dim>::MappingData(const MappingData &data)
+  : velocity_dofs_per_cell(data.velocity_dofs_per_cell),
+    local_velocity_mass_matrix(data.local_velocity_mass_matrix),
+    local_velocity_laplace_matrix(data.local_velocity_laplace_matrix),
+    local_velocity_dof_indices(data.local_velocity_dof_indices)
   {}
 
 template <int dim>
@@ -82,9 +96,9 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
     phi_velocity(velocity_dofs_per_cell),
     grad_phi_velocity(velocity_dofs_per_cell) 
   {}
-} // namespace VelocityMassLaplaceAssembly
+} // namespace VelocityMatricesAssembly
 
-namespace PressureMassLaplaceAssembly
+namespace PressureMatricesAssembly
 {
 template <int dim>
 MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
@@ -94,6 +108,14 @@ MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
     local_pressure_laplace_matrix(pressure_dofs_per_cell, 
                                   pressure_dofs_per_cell),
     local_pressure_dof_indices(pressure_dofs_per_cell)
+  {}
+
+template <int dim>
+MappingData<dim>::MappingData(const MappingData &data)
+  : pressure_dofs_per_cell(data.pressure_dofs_per_cell),
+    local_pressure_mass_matrix(data.local_pressure_mass_matrix),
+    local_pressure_laplace_matrix(data.local_pressure_laplace_matrix),
+    local_pressure_dof_indices(data.local_pressure_dof_indices)
   {}
 
 template <int dim>
@@ -120,9 +142,9 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
     phi_pressure(pressure_dofs_per_cell),
     grad_phi_pressure(pressure_dofs_per_cell) 
   {}
-} // namespace PressureMassLaplaceAssembly
+} // namespace PressureMatricesAssembly
 
-namespace DiffusionStepRightHandSideAssembly
+namespace VelocityRightHandSideAssembly
 {
 template <int dim>
 MappingData<dim>::MappingData(const unsigned int velocity_dofs_per_cell)
@@ -131,6 +153,14 @@ MappingData<dim>::MappingData(const unsigned int velocity_dofs_per_cell)
     local_matrix_for_inhomogeneous_bc(velocity_dofs_per_cell,
                                       velocity_dofs_per_cell),
     local_velocity_dof_indices(velocity_dofs_per_cell)
+{}
+
+template <int dim>
+MappingData<dim>::MappingData(const MappingData &data)
+  : velocity_dofs_per_cell(data.velocity_dofs_per_cell),
+    local_diffusion_step_rhs(data.local_diffusion_step_rhs),
+    local_matrix_for_inhomogeneous_bc(data.local_matrix_for_inhomogeneous_bc),
+    local_velocity_dof_indices(data.local_velocity_dof_indices)
 {}
 
 template <int dim>
@@ -175,9 +205,9 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
     extrapolated_velocity_values(n_q_points),
     grad_phi_velocity(velocity_dofs_per_cell)
 {}
-} // namespace DiffusionStepRightHandSideAssembly
+} // namespace VelocityRightHandSideAssembly
 
-namespace ProjectionStepRightHandSideAssembly
+namespace PressureRightHandSideAssembly
 {
 template <int dim>
 MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
@@ -186,6 +216,14 @@ MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
     local_matrix_for_inhomogeneous_bc(pressure_dofs_per_cell,
                                       pressure_dofs_per_cell),
     local_pressure_dof_indices(pressure_dofs_per_cell)
+{}
+
+template <int dim>
+MappingData<dim>::MappingData(const MappingData &data)
+  : pressure_dofs_per_cell(data.pressure_dofs_per_cell),
+    local_projection_step_rhs(data.local_projection_step_rhs),
+    local_matrix_for_inhomogeneous_bc(data.local_matrix_for_inhomogeneous_bc),
+    local_pressure_dof_indices(data.local_pressure_dof_indices)
 {}
 
 template <int dim>
@@ -222,7 +260,7 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
     phi_pressure(pressure_dofs_per_cell),
     grad_phi_pressure(pressure_dofs_per_cell)
 {}
-} // namespace ProjectionStepRightHandSideAssembly
+} // namespace PressureRightHandSideAssembly
 
 } // namespace Step35
 // explicit instantiations
@@ -230,19 +268,19 @@ template struct Step35::AdvectionAssembly::MappingData<2>;
 template struct Step35::AdvectionAssembly::MappingData<3>;
 template struct Step35::AdvectionAssembly::LocalCellData<2>;
 template struct Step35::AdvectionAssembly::LocalCellData<3>;
-template struct Step35::VelocityMassLaplaceAssembly::MappingData<2>;
-template struct Step35::VelocityMassLaplaceAssembly::MappingData<3>;
-template struct Step35::VelocityMassLaplaceAssembly::LocalCellData<2>;
-template struct Step35::VelocityMassLaplaceAssembly::LocalCellData<3>;
-template struct Step35::PressureMassLaplaceAssembly::MappingData<2>;
-template struct Step35::PressureMassLaplaceAssembly::MappingData<3>;
-template struct Step35::PressureMassLaplaceAssembly::LocalCellData<2>;
-template struct Step35::PressureMassLaplaceAssembly::LocalCellData<3>;
-template struct Step35::DiffusionStepRightHandSideAssembly::MappingData<2>;
-template struct Step35::DiffusionStepRightHandSideAssembly::MappingData<3>;
-template struct Step35::DiffusionStepRightHandSideAssembly::LocalCellData<2>;
-template struct Step35::DiffusionStepRightHandSideAssembly::LocalCellData<3>;
-template struct Step35::ProjectionStepRightHandSideAssembly::MappingData<2>;
-template struct Step35::ProjectionStepRightHandSideAssembly::MappingData<3>;
-template struct Step35::ProjectionStepRightHandSideAssembly::LocalCellData<2>;
-template struct Step35::ProjectionStepRightHandSideAssembly::LocalCellData<3>;
+template struct Step35::VelocityMatricesAssembly::MappingData<2>;
+template struct Step35::VelocityMatricesAssembly::MappingData<3>;
+template struct Step35::VelocityMatricesAssembly::LocalCellData<2>;
+template struct Step35::VelocityMatricesAssembly::LocalCellData<3>;
+template struct Step35::PressureMatricesAssembly::MappingData<2>;
+template struct Step35::PressureMatricesAssembly::MappingData<3>;
+template struct Step35::PressureMatricesAssembly::LocalCellData<2>;
+template struct Step35::PressureMatricesAssembly::LocalCellData<3>;
+template struct Step35::VelocityRightHandSideAssembly::MappingData<2>;
+template struct Step35::VelocityRightHandSideAssembly::MappingData<3>;
+template struct Step35::VelocityRightHandSideAssembly::LocalCellData<2>;
+template struct Step35::VelocityRightHandSideAssembly::LocalCellData<3>;
+template struct Step35::PressureRightHandSideAssembly::MappingData<2>;
+template struct Step35::PressureRightHandSideAssembly::MappingData<3>;
+template struct Step35::PressureRightHandSideAssembly::LocalCellData<2>;
+template struct Step35::PressureRightHandSideAssembly::LocalCellData<3>;

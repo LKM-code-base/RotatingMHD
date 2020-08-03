@@ -9,9 +9,9 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_velocity_matrices()
 {
-  VelocityMassLaplaceAssembly::MappingData<dim>   data(
+  VelocityMatricesAssembly::MappingData<dim>   data(
                                             velocity_fe.dofs_per_cell);
-  VelocityMassLaplaceAssembly::LocalCellData<dim> scratch(
+  VelocityMatricesAssembly::LocalCellData<dim> scratch(
                                             velocity_fe,
                                             velocity_quadrature_formula,
                                             update_values |
@@ -31,8 +31,8 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_local_velocity_matrices(
   const typename DoFHandler<dim>::active_cell_iterator  &cell, 
-  VelocityMassLaplaceAssembly::LocalCellData<dim>       &scratch, 
-  VelocityMassLaplaceAssembly::MappingData<dim>         &data)
+  VelocityMatricesAssembly::LocalCellData<dim>       &scratch, 
+  VelocityMatricesAssembly::MappingData<dim>         &data)
 {
   scratch.velocity_fe_values.reinit(cell);
   cell->get_dof_indices(data.local_velocity_dof_indices);
@@ -69,7 +69,7 @@ assemble_local_velocity_matrices(
 template <int dim>
 void NavierStokesProjection<dim>::
 copy_local_to_global_velocity_matrices(
-  const VelocityMassLaplaceAssembly::MappingData<dim> &data)
+  const VelocityMatricesAssembly::MappingData<dim> &data)
 {
   velocity_constraints.distribute_local_to_global(
                                       data.local_velocity_mass_matrix,
@@ -84,9 +84,9 @@ copy_local_to_global_velocity_matrices(
 template <int dim>
 void NavierStokesProjection<dim>::assemble_pressure_matrices()
 {
-  PressureMassLaplaceAssembly::MappingData<dim>   data(
+  PressureMatricesAssembly::MappingData<dim>   data(
                                             pressure_fe.dofs_per_cell);
-  PressureMassLaplaceAssembly::LocalCellData<dim> scratch(
+  PressureMatricesAssembly::LocalCellData<dim> scratch(
                                             pressure_fe,
                                             pressure_quadrature_formula,
                                             update_values |
@@ -106,8 +106,8 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_local_pressure_matrices(
   const typename DoFHandler<dim>::active_cell_iterator  &cell, 
-  PressureMassLaplaceAssembly::LocalCellData<dim>       &scratch, 
-  PressureMassLaplaceAssembly::MappingData<dim>         &data)
+  PressureMatricesAssembly::LocalCellData<dim>       &scratch, 
+  PressureMatricesAssembly::MappingData<dim>         &data)
 {
   scratch.pressure_fe_values.reinit(cell);
   cell->get_dof_indices(data.local_pressure_dof_indices);
@@ -142,7 +142,7 @@ assemble_local_pressure_matrices(
 template <int dim>
 void NavierStokesProjection<dim>::
 copy_local_to_global_pressure_matrices(
-  const PressureMassLaplaceAssembly::MappingData<dim> &data)
+  const PressureMatricesAssembly::MappingData<dim> &data)
 {
   /*for (unsigned int i = 0; i < pressure_fe.dofs_per_cell; ++i)
     for (unsigned int j = 0; j < pressure_fe.dofs_per_cell; ++j)
@@ -168,31 +168,31 @@ template void Step35::NavierStokesProjection<3>::assemble_velocity_matrices();
 
 template void Step35::NavierStokesProjection<2>::assemble_local_velocity_matrices(
     const typename DoFHandler<2>::active_cell_iterator      &,
-    Step35::VelocityMassLaplaceAssembly::LocalCellData<2>   &,
-    Step35::VelocityMassLaplaceAssembly::MappingData<2>     &);
+    Step35::VelocityMatricesAssembly::LocalCellData<2>   &,
+    Step35::VelocityMatricesAssembly::MappingData<2>     &);
 template void Step35::NavierStokesProjection<3>::assemble_local_velocity_matrices(
     const typename DoFHandler<3>::active_cell_iterator      &,
-    Step35::VelocityMassLaplaceAssembly::LocalCellData<3>   &,
-    Step35::VelocityMassLaplaceAssembly::MappingData<3>     &);
+    Step35::VelocityMatricesAssembly::LocalCellData<3>   &,
+    Step35::VelocityMatricesAssembly::MappingData<3>     &);
 
 template void Step35::NavierStokesProjection<2>::copy_local_to_global_velocity_matrices(
-  const Step35::VelocityMassLaplaceAssembly::MappingData<2> &);
+  const Step35::VelocityMatricesAssembly::MappingData<2> &);
 template void Step35::NavierStokesProjection<3>::copy_local_to_global_velocity_matrices(
-  const Step35::VelocityMassLaplaceAssembly::MappingData<3> &);
+  const Step35::VelocityMatricesAssembly::MappingData<3> &);
 
 template void Step35::NavierStokesProjection<2>::assemble_pressure_matrices();
 template void Step35::NavierStokesProjection<3>::assemble_pressure_matrices();
 
 template void Step35::NavierStokesProjection<2>::assemble_local_pressure_matrices(
     const typename DoFHandler<2>::active_cell_iterator      &,
-    Step35::PressureMassLaplaceAssembly::LocalCellData<2>   &,
-    Step35::PressureMassLaplaceAssembly::MappingData<2>     &);
+    Step35::PressureMatricesAssembly::LocalCellData<2>   &,
+    Step35::PressureMatricesAssembly::MappingData<2>     &);
 template void Step35::NavierStokesProjection<3>::assemble_local_pressure_matrices(
     const typename DoFHandler<3>::active_cell_iterator      &,
-    Step35::PressureMassLaplaceAssembly::LocalCellData<3>   &,
-    Step35::PressureMassLaplaceAssembly::MappingData<3>     &);
+    Step35::PressureMatricesAssembly::LocalCellData<3>   &,
+    Step35::PressureMatricesAssembly::MappingData<3>     &);
 
 template void Step35::NavierStokesProjection<2>::copy_local_to_global_pressure_matrices(
-  const Step35::PressureMassLaplaceAssembly::MappingData<2> &);
+  const Step35::PressureMatricesAssembly::MappingData<2> &);
 template void Step35::NavierStokesProjection<3>::copy_local_to_global_pressure_matrices(
-  const Step35::PressureMassLaplaceAssembly::MappingData<3> &);
+  const Step35::PressureMatricesAssembly::MappingData<3> &);

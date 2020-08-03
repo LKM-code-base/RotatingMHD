@@ -9,9 +9,9 @@ void NavierStokesProjection<dim>::
 assemble_projection_step_rhs()
 {
   pressure_rhs = 0.;
-  ProjectionStepRightHandSideAssembly::MappingData<dim> 
+  PressureRightHandSideAssembly::MappingData<dim> 
                                         data(pressure_fe.dofs_per_cell);
-  ProjectionStepRightHandSideAssembly::LocalCellData<dim>
+  PressureRightHandSideAssembly::LocalCellData<dim>
                                         scratch(
                                           velocity_fe,
                                           pressure_fe,
@@ -36,9 +36,9 @@ assemble_projection_step_rhs()
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_local_projection_step_rhs(
-  const IteratorPair                                           &SI,
-  ProjectionStepRightHandSideAssembly::LocalCellData<dim>      &scratch,
-  ProjectionStepRightHandSideAssembly::MappingData<dim>        &data)
+  const IteratorPair                                  &SI,
+  PressureRightHandSideAssembly::LocalCellData<dim>   &scratch,
+  PressureRightHandSideAssembly::MappingData<dim>     &data)
 {
   data.local_projection_step_rhs = 0.;
   data.local_matrix_for_inhomogeneous_bc = 0.;
@@ -87,7 +87,7 @@ assemble_local_projection_step_rhs(
 template <int dim>
 void NavierStokesProjection<dim>::
 copy_local_to_global_projection_step_rhs(
-  const ProjectionStepRightHandSideAssembly::MappingData<dim>  &data)
+  const PressureRightHandSideAssembly::MappingData<dim>  &data)
 {
   pressure_constraints.distribute_local_to_global(
                                 data.local_projection_step_rhs,
@@ -103,14 +103,14 @@ copy_local_to_global_projection_step_rhs(
 template void Step35::NavierStokesProjection<2>::assemble_projection_step_rhs();
 template void Step35::NavierStokesProjection<3>::assemble_projection_step_rhs();
 template void Step35::NavierStokesProjection<2>::assemble_local_projection_step_rhs(
-    const IteratorPair                                                    &,
-    Step35::ProjectionStepRightHandSideAssembly::LocalCellData<2>         &,
-    Step35::ProjectionStepRightHandSideAssembly::MappingData<2>           &);
+    const IteratorPair                                          &,
+    Step35::PressureRightHandSideAssembly::LocalCellData<2>     &,
+    Step35::PressureRightHandSideAssembly::MappingData<2>       &);
 template void Step35::NavierStokesProjection<3>::assemble_local_projection_step_rhs(
-    const IteratorPair                                                    &,
-    Step35::ProjectionStepRightHandSideAssembly::LocalCellData<3>         &,
-    Step35::ProjectionStepRightHandSideAssembly::MappingData<3>           &);
+    const IteratorPair                                          &,
+    Step35::PressureRightHandSideAssembly::LocalCellData<3>     &,
+    Step35::PressureRightHandSideAssembly::MappingData<3>       &);
 template void Step35::NavierStokesProjection<2>::copy_local_to_global_projection_step_rhs(
-    const Step35::ProjectionStepRightHandSideAssembly::MappingData<2> &);
+    const Step35::PressureRightHandSideAssembly::MappingData<2> &);
 template void Step35::NavierStokesProjection<3>::copy_local_to_global_projection_step_rhs(
-    const Step35::ProjectionStepRightHandSideAssembly::MappingData<3> &);
+    const Step35::PressureRightHandSideAssembly::MappingData<3> &);
