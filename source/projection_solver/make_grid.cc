@@ -30,9 +30,9 @@ make_grid(const unsigned int n_global_refinements)
   triangulation.refine_global(n_global_refinements);
   boundary_ids = triangulation.get_boundary_ids();
 
-  std::cout << "Number of refines                     = " 
+  pcout     << "Number of refines                     = " 
             << n_global_refinements << std::endl;
-  std::cout << "Number of active cells                = " 
+  pcout     << "Number of active cells                = " 
             << triangulation.n_active_cells() << std::endl;
 }
 

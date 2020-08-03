@@ -77,7 +77,7 @@ setup_dofs()
     pressure_constraints.close();
   }
 
-  std::cout << "Number of velocity degrees of freedom = " 
+  pcout     << "Number of velocity degrees of freedom = " 
             << velocity_dof_handler.n_dofs()
             << std::endl
             << "Number of pressure degrees of freedom = " 

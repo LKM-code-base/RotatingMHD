@@ -12,6 +12,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/assembly_data.h>
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/utilities.h>
 
@@ -42,6 +43,7 @@ public:
            const unsigned int n_plots = 10);
 
 private:
+  MPI_Comm                            mpi_communicator;
   RunTimeParameters::ProjectionMethod projection_method;
   double                              dt_n;
   double                              dt_n_minus_1;
@@ -122,6 +124,8 @@ private:
   double                              solver_tolerance;
   double                              solver_diag_strength;
   bool                                flag_adpative_time_step;
+
+  ConditionalOStream                  pcout;
 
   void make_grid(const unsigned int n_global_refinements);
   void setup_dofs();
