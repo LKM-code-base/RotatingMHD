@@ -17,9 +17,9 @@ pressure_correction(const bool reinit_prec)
         break;
       case RunTimeParameters::ProjectionMethod::rotational:
         if (reinit_prec)
-          pressure_correction_preconditioner.initialize(pressure_mass_matrix);
+          pressure_correction_solver.initialize(pressure_mass_matrix);
         pressure_n = pressure_rhs;
-        pressure_correction_preconditioner.solve(pressure_n);
+        pressure_correction_solver.solve(pressure_n);
         pressure_n.sadd(1. / Re, 1., pressure_n_minus_1);
         pressure_n += phi_n;
         break;

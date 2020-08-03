@@ -1,7 +1,7 @@
 #include <rotatingMHD/projection_solver.h>
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
-
+#include <deal.II/grid/filtered_iterator.h>
 namespace Step35
 {
 
@@ -9,22 +9,39 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_velocity_matrices()
 {
-  VelocityMatricesAssembly::MappingData<dim>   data(
-                                            velocity_fe.dofs_per_cell);
-  VelocityMatricesAssembly::LocalCellData<dim> scratch(
+  using CellFilter =
+    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
+
+  auto worker =
+    [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+           VelocityMatricesAssembly::LocalCellData<dim>         &scratch,
+           VelocityMatricesAssembly::MappingData<dim>           &data)
+    {
+      this->assemble_local_velocity_matrices(cell, 
+                                             scratch,
+                                             data);
+    };
+  
+  auto copier =
+    [this](const VelocityMatricesAssembly::MappingData<dim> &data) 
+    {
+      this->copy_local_to_global_velocity_matrices(data);
+    };
+
+  WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
+                             velocity_dof_handler.begin_active()),
+                  CellFilter(IteratorFilters::LocallyOwnedCell(),
+                             velocity_dof_handler.end()),
+                  worker,
+                  copier,
+                  VelocityMatricesAssembly::LocalCellData<dim>(
                                             velocity_fe,
                                             velocity_quadrature_formula,
                                             update_values |
                                             update_gradients |
-                                            update_JxW_values);
-  WorkStream::run(
-    velocity_dof_handler.begin_active(),
-    velocity_dof_handler.end(),
-    *this,
-    &NavierStokesProjection<dim>::assemble_local_velocity_matrices,
-    &NavierStokesProjection<dim>::copy_local_to_global_velocity_matrices,
-    scratch,
-    data);
+                                            update_JxW_values),
+                  VelocityMatricesAssembly::MappingData<dim>(
+                                            velocity_fe.dofs_per_cell));
 }
 
 template <int dim>
@@ -84,30 +101,47 @@ copy_local_to_global_velocity_matrices(
 template <int dim>
 void NavierStokesProjection<dim>::assemble_pressure_matrices()
 {
-  PressureMatricesAssembly::MappingData<dim>   data(
-                                            pressure_fe.dofs_per_cell);
-  PressureMatricesAssembly::LocalCellData<dim> scratch(
+  using CellFilter =
+    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
+
+  auto worker =
+    [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+           PressureMatricesAssembly::LocalCellData<dim>         &scratch,
+           PressureMatricesAssembly::MappingData<dim>           &data)
+    {
+      this->assemble_local_pressure_matrices(cell, 
+                                             scratch,
+                                             data);
+    };
+  
+  auto copier =
+    [this](const PressureMatricesAssembly::MappingData<dim> &data) 
+    {
+      this->copy_local_to_global_pressure_matrices(data);
+    };
+
+  WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
+                             pressure_dof_handler.begin_active()),
+                  CellFilter(IteratorFilters::LocallyOwnedCell(),
+                             pressure_dof_handler.end()),
+                  worker,
+                  copier,
+                  PressureMatricesAssembly::LocalCellData<dim>(
                                             pressure_fe,
                                             pressure_quadrature_formula,
                                             update_values |
                                             update_gradients |
-                                            update_JxW_values);
-  WorkStream::run(
-    pressure_dof_handler.begin_active(),
-    pressure_dof_handler.end(),
-    *this,
-    &NavierStokesProjection<dim>::assemble_local_pressure_matrices,
-    &NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices,
-    scratch,
-    data);
+                                            update_JxW_values),
+                  PressureMatricesAssembly::MappingData<dim>(
+                                            pressure_fe.dofs_per_cell));
 }
 
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_local_pressure_matrices(
   const typename DoFHandler<dim>::active_cell_iterator  &cell, 
-  PressureMatricesAssembly::LocalCellData<dim>       &scratch, 
-  PressureMatricesAssembly::MappingData<dim>         &data)
+  PressureMatricesAssembly::LocalCellData<dim>          &scratch, 
+  PressureMatricesAssembly::MappingData<dim>            &data)
 {
   scratch.pressure_fe_values.reinit(cell);
   cell->get_dof_indices(data.local_pressure_dof_indices);

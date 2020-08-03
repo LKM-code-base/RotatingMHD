@@ -103,7 +103,7 @@ private:
 
   SparseILU<double>                   diffusion_step_preconditioner;
   SparseILU<double>                   projection_step_preconditioner;
-  SparseDirectUMFPACK                 pressure_correction_preconditioner;
+  SparseDirectUMFPACK                 pressure_correction_solver;
 
   DeclException2(ExcInvalidTimeStep,
                  double,
@@ -163,7 +163,7 @@ private:
 
   void assemble_diffusion_step_rhs();
   void assemble_local_diffusion_step_rhs(
-    const IteratorPair                                    &SI,
+    const typename DoFHandler<dim>::active_cell_iterator  &cell,
     VelocityRightHandSideAssembly::LocalCellData<dim>     &scratch,
     VelocityRightHandSideAssembly::MappingData<dim>       &data);
   void copy_local_to_global_diffusion_step_rhs(
@@ -171,7 +171,7 @@ private:
 
   void assemble_projection_step_rhs();
   void assemble_local_projection_step_rhs(
-    const IteratorPair                                    &SI,
+    const typename DoFHandler<dim>::active_cell_iterator  &cell,
     PressureRightHandSideAssembly::LocalCellData<dim>     &scratch,
     PressureRightHandSideAssembly::MappingData<dim>       &data);
   void copy_local_to_global_projection_step_rhs(

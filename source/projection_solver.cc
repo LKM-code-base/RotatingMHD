@@ -114,7 +114,7 @@ run(const bool  flag_verbose_output,
     = VectorTools::point_value(pressure_dof_handler,
                               pressure_n,
                               evaluation_point);
-    pcout     << "Step = " 
+    std::cout     << "Step = " 
               << std::setw(2) 
               << n 
               << " Time = " 

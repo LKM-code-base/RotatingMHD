@@ -1,5 +1,6 @@
 #include <rotatingMHD/projection_solver.h>
 #include <deal.II/base/work_stream.h>
+#include <deal.II/grid/filtered_iterator.h>
 
 namespace Step35
 {
@@ -7,21 +8,40 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 {
   velocity_advection_matrix = 0.;
-  AdvectionAssembly::MappingData<dim> data(velocity_fe.dofs_per_cell);
-  AdvectionAssembly::LocalCellData<dim> scratch(
+
+  using CellFilter =
+    FilteredIterator<typename DoFHandler<2>::active_cell_iterator>;
+
+  auto worker =
+    [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+           AdvectionAssembly::LocalCellData<dim>                &scratch,
+           AdvectionAssembly::MappingData<dim>                  &data)
+    {
+      this->assemble_local_velocity_advection_matrix(cell, 
+                                                     scratch,
+                                                     data);
+    };
+  
+  auto copier =
+    [this](const AdvectionAssembly::MappingData<dim> &data) 
+    {
+      this->copy_local_to_global_velocity_advection_matrix(data);
+    };
+
+  WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
+                             velocity_dof_handler.begin_active()),
+                  CellFilter(IteratorFilters::LocallyOwnedCell(),
+                             velocity_dof_handler.end()),
+                  worker,
+                  copier,
+                  AdvectionAssembly::LocalCellData<dim>(
                                             velocity_fe,
                                             velocity_quadrature_formula,
                                             update_values | 
                                             update_JxW_values |
-                                            update_gradients);
-  WorkStream::run(
-    velocity_dof_handler.begin_active(),
-    velocity_dof_handler.end(),
-    *this,
-    &NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix,
-    &NavierStokesProjection<dim>::copy_local_to_global_velocity_advection_matrix,
-    scratch,
-    data);
+                                            update_gradients),
+                  AdvectionAssembly::MappingData<dim>(
+                                            velocity_fe.dofs_per_cell));
 }
 
 template <int dim>
