@@ -11,7 +11,6 @@ setup_matrices_and_vectors()
 {
   setup_velocity_matrices();
   setup_pressure_matrices();
-  setup_pressure_gradient_matrix();
 
   pressure_n.reinit(pressure_dof_handler.n_dofs());
   pressure_n_minus_1.reinit(pressure_dof_handler.n_dofs());
@@ -32,7 +31,6 @@ assemble_constant_matrices()
 {
   assemble_velocity_matrices();
   assemble_pressure_matrices();
-  assemble_pressure_gradient_matrix();
 
   if (!flag_adpative_time_step)
   {
@@ -87,23 +85,6 @@ setup_pressure_matrices()
 
 template <int dim>
 void NavierStokesProjection<dim>::
-setup_pressure_gradient_matrix()
-{
-  {
-    DynamicSparsityPattern dsp(velocity_dof_handler.n_dofs(),
-                                pressure_dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(velocity_dof_handler,
-                                    pressure_dof_handler,
-                                    dsp);
-    mixed_sparsity_pattern.copy_from(dsp);
-    std::ofstream out("mixed_sparsity_pattern.gpl");
-    mixed_sparsity_pattern.print_gnuplot(out);
-  }
-  pressure_gradient_matrix.reinit(mixed_sparsity_pattern);
-}
-
-template <int dim>
-void NavierStokesProjection<dim>::
 initialize()
 {
   phi_n         = 0.;
@@ -139,7 +120,5 @@ template void Step35::NavierStokesProjection<2>::setup_velocity_matrices();
 template void Step35::NavierStokesProjection<3>::setup_velocity_matrices();
 template void Step35::NavierStokesProjection<2>::setup_pressure_matrices();
 template void Step35::NavierStokesProjection<3>::setup_pressure_matrices();
-template void Step35::NavierStokesProjection<2>::setup_pressure_gradient_matrix();
-template void Step35::NavierStokesProjection<3>::setup_pressure_gradient_matrix();
 template void Step35::NavierStokesProjection<2>::initialize();
 template void Step35::NavierStokesProjection<3>::initialize();

@@ -11,13 +11,13 @@ template <int dim>
 void NavierStokesProjection<dim>::
 projection_step(const bool reinit_prec)
 {
-  //SparseMatrix<double>& pressure_system_matrix = pressure_laplace_matrix;
-
+  /* Assemble linear system */
   assemble_projection_step();
-  
+
   /* Update for the next time step */
   phi_n_minus_1 = phi_n;
 
+  /* Solve linear system */
   solve_projection_step(reinit_prec);
 }
 
@@ -25,11 +25,12 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_projection_step()
 {
-  /* Right hand side setup */
-  pressure_rhs = 0.;
-  pressure_gradient_matrix.Tvmult_add(pressure_rhs, velocity_n);
+  /* System matrix setup */
+  // System matrix is constant and assembled in the
+  // NavierStokesProjection constructor.
 
-  pressure_constraints.condense(pressure_laplace_matrix, pressure_rhs);
+  /* Right hand side setup */
+  assemble_projection_step_rhs();
 }
 
 template <int dim>

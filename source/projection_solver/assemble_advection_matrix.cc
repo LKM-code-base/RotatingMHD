@@ -70,11 +70,10 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_velocity_advection_matrix(
   const AdvectionAssembly::MappingData<dim> &data)
 {
-  for (unsigned int i = 0; i < velocity_fe.dofs_per_cell; ++i)
-    for (unsigned int j = 0; j < velocity_fe.dofs_per_cell; ++j)
-      velocity_advection_matrix.add(data.local_dof_indices[i],
-                                    data.local_dof_indices[j],
-                                    data.local_matrix(i, j));
+  velocity_constraints.distribute_local_to_global(
+                                      data.local_matrix,
+                                      data.local_dof_indices,
+                                      velocity_advection_matrix);
 }
 }
 

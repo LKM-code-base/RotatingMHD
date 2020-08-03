@@ -64,17 +64,18 @@ SET(TARGET_SRC
     source/run_time_parameters.cc
     source/assembly_data.cc
     source/projection_solver.cc
-    source/projection_solver/assemble_mass_and_laplace_matrices.cc
+    source/projection_solver/make_grid.cc
     source/projection_solver/setup_dofs.cc
     source/projection_solver/problem_setup.cc
-    source/projection_solver/make_grid.cc
+    source/projection_solver/assemble_mass_and_laplace_matrices.cc
+    source/projection_solver/assemble_advection_matrix.cc
+    source/projection_solver/assemble_diffusion_step_rhs.cc
+    source/projection_solver/assemble_projection_step_rhs.cc
     source/projection_solver/diffusion_step.cc
     source/projection_solver/projection_step.cc
     source/projection_solver/correction_step.cc
     source/projection_solver/output_results.cc
     source/projection_solver/time_stepping.cc
-    source/projection_solver/assemble_advection_matrix.cc
-    source/projection_solver/assemble_pressure_gradient_matrix.cc
 #     source/assembly_data.cc
 #     source/buoyant_fluid_solver.cc
 #     source/gravity_field.cc

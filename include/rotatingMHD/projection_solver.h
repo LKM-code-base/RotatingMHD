@@ -72,8 +72,6 @@ private:
   SparsityPattern                     mixed_sparsity_pattern;
   SparseMatrix<double>                pressure_mass_matrix;
   SparseMatrix<double>                pressure_laplace_matrix;
-  SparseMatrix<double>                pressure_gradient_matrix;
-  //SparseMatrix<double>                pressure_system_matrix;
 
   Vector<double>                      pressure_n;
   Vector<double>                      pressure_n_minus_1;
@@ -142,16 +140,38 @@ private:
 
   void setup_velocity_matrices();
   void setup_pressure_matrices();
-  void setup_pressure_gradient_matrix();
+
   void assemble_velocity_matrices();
+  void assemble_local_velocity_matrices(
+    const typename DoFHandler<dim>::active_cell_iterator  &cell,
+    VelocityMatricesAssembly::LocalCellData<dim>          &scratch,
+    VelocityMatricesAssembly::MappingData<dim>            &data);
+  void copy_local_to_global_velocity_matrices(
+    const VelocityMatricesAssembly::MappingData<dim>      &data);
+
   void assemble_pressure_matrices();
-  void assemble_pressure_gradient_matrix();
-  void assemble_local_pressure_gradient_matrix(
+  void assemble_local_pressure_matrices(
+    const typename DoFHandler<dim>::active_cell_iterator  &cell,
+    PressureMatricesAssembly::LocalCellData<dim>          &scratch,
+    PressureMatricesAssembly::MappingData<dim>            &data);
+  void copy_local_to_global_pressure_matrices(
+    const PressureMatricesAssembly::MappingData<dim>      &data);
+
+  void assemble_diffusion_step_rhs();
+  void assemble_local_diffusion_step_rhs(
     const IteratorPair                                    &SI,
-    PressureGradientAssembly::LocalCellData<dim>          &scratch,
-    PressureGradientAssembly::MappingData<dim>            &data);
-  void copy_loca_to_global_pressure_gradient_matrix(
-    const PressureGradientAssembly::MappingData<dim>      &data);
+    VelocityRightHandSideAssembly::LocalCellData<dim>     &scratch,
+    VelocityRightHandSideAssembly::MappingData<dim>       &data);
+  void copy_local_to_global_diffusion_step_rhs(
+    const VelocityRightHandSideAssembly::MappingData<dim> &data);
+
+  void assemble_projection_step_rhs();
+  void assemble_local_projection_step_rhs(
+    const IteratorPair                                    &SI,
+    PressureRightHandSideAssembly::LocalCellData<dim>     &scratch,
+    PressureRightHandSideAssembly::MappingData<dim>       &data);
+  void copy_local_to_global_projection_step_rhs(
+    const PressureRightHandSideAssembly::MappingData<dim> &data);
 
   void assemble_velocity_advection_matrix();
   void assemble_local_velocity_advection_matrix(
