@@ -10,7 +10,8 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/discrete_time.h>
 #include <deal.II/numerics/vector_tools.h>
-
+#include <deal.II/fe/mapping_q1.h>
+#include <deal.II/grid/grid_tools.h>
 #include <iostream>
 
 namespace Step35
@@ -27,6 +28,10 @@ NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
     T(data.T),
     Re(data.Re),
     inflow_boundary_condition(data.t_0),
+    triangulation(mpi_communicator,
+                  typename Triangulation<dim>::MeshSmoothing(
+                    Triangulation<dim>::smoothing_on_refinement |
+                    Triangulation<dim>::smoothing_on_coarsening)),
     pressure_fe_degree(data.p_fe_degree),
     pressure_fe(pressure_fe_degree),
     pressure_dof_handler(triangulation),
@@ -103,7 +108,13 @@ run(const bool  flag_verbose_output,
     Point<dim> evaluation_point;
     evaluation_point(0) = 2.0;
     evaluation_point(1) = 3.0;
-
+    const std::pair<typename DoFHandler<dim>::active_cell_iterator,
+                    Point<dim>> cell_point =
+      GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping, 
+                                               velocity_dof_handler, 
+                                               evaluation_point);
+    if (cell_point.first->is_locally_owned())
+    {
     Vector<double> point_value_velocity(dim);
     VectorTools::point_value(velocity_dof_handler,
                             velocity_n,
@@ -132,6 +143,7 @@ run(const bool  flag_verbose_output,
               << " Time step = " 
               << std::showpos << std::scientific
               << dt_n << std::endl;
+    }
 
     time.set_desired_next_step_size(dt_n);
     inflow_boundary_condition.advance_time(dt_n);
