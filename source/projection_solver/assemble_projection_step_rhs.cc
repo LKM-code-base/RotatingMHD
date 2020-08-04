@@ -46,6 +46,7 @@ assemble_projection_step_rhs()
                                           update_values),
                   PressureRightHandSideAssembly::MappingData<dim>(
                                             pressure_fe.dofs_per_cell));
+  pressure_rhs.compress(VectorOperation::add);
 }
 
 template <int dim>

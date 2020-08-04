@@ -42,6 +42,8 @@ assemble_velocity_matrices()
                                             update_JxW_values),
                   VelocityMatricesAssembly::MappingData<dim>(
                                             velocity_fe.dofs_per_cell));
+  velocity_mass_matrix.compress(VectorOperation::add);
+  velocity_laplace_matrix.compress(VectorOperation::add);
 }
 
 template <int dim>
@@ -142,6 +144,8 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
                                             update_JxW_values),
                   PressureMatricesAssembly::MappingData<dim>(
                                             pressure_fe.dofs_per_cell));
+  pressure_mass_matrix.compress(VectorOperation::add);
+  pressure_laplace_matrix.compress(VectorOperation::add);
 }
 
 template <int dim>

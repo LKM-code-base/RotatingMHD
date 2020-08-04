@@ -42,6 +42,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
                                             update_gradients),
                   AdvectionAssembly::MappingData<dim>(
                                             velocity_fe.dofs_per_cell));
+  velocity_advection_matrix.compress(VectorOperation::add);
 }
 
 template <int dim>
