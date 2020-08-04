@@ -12,13 +12,22 @@ template <int dim>
 void NavierStokesProjection<dim>::
 setup_dofs()
 {
+  /* Cuthill McKee algorithm does not seem to work in parallel */
   velocity_dof_handler.distribute_dofs(velocity_fe);
-  DoFRenumbering::boost::Cuthill_McKee(velocity_dof_handler);
+  //DoFRenumbering::boost::Cuthill_McKee(velocity_dof_handler);
+  locally_owned_velocity_dofs = velocity_dof_handler.locally_owned_dofs();
+  DoFTools::extract_locally_relevant_dofs(velocity_dof_handler,
+                                          locally_relevant_velocity_dofs);
+
   pressure_dof_handler.distribute_dofs(pressure_fe);
-  DoFRenumbering::boost::Cuthill_McKee(pressure_dof_handler);
+  //DoFRenumbering::boost::Cuthill_McKee(pressure_dof_handler);
+  locally_owned_pressure_dofs = pressure_dof_handler.locally_owned_dofs();
+  DoFTools::extract_locally_relevant_dofs(pressure_dof_handler,
+                                          locally_relevant_pressure_dofs);
 
   {
     velocity_constraints.clear();
+    velocity_constraints.reinit(locally_relevant_velocity_dofs);
     DoFTools::make_hanging_node_constraints(velocity_dof_handler,
                                             velocity_constraints);
     for (const auto &boundary_id : boundary_ids)
@@ -67,6 +76,7 @@ setup_dofs()
 
   {
     pressure_constraints.clear();
+    pressure_constraints.reinit(locally_relevant_pressure_dofs);
     DoFTools::make_hanging_node_constraints(pressure_dof_handler,
                                             pressure_constraints);
     VectorTools::interpolate_boundary_values(

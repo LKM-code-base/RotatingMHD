@@ -12,17 +12,25 @@ setup_matrices_and_vectors()
   setup_velocity_matrices();
   setup_pressure_matrices();
 
-  pressure_n.reinit(pressure_dof_handler.n_dofs());
-  pressure_n_minus_1.reinit(pressure_dof_handler.n_dofs());
-  pressure_rhs.reinit(pressure_dof_handler.n_dofs());
-  pressure_tmp.reinit(pressure_dof_handler.n_dofs());
-  phi_n.reinit(pressure_dof_handler.n_dofs());
-  phi_n_minus_1.reinit(pressure_dof_handler.n_dofs());
-  velocity_n.reinit(velocity_dof_handler.n_dofs());
-  velocity_n_minus_1.reinit(velocity_dof_handler.n_dofs());
-  extrapolated_velocity.reinit(velocity_dof_handler.n_dofs());
-  velocity_rhs.reinit(velocity_dof_handler.n_dofs());
-  velocity_tmp.reinit(velocity_dof_handler.n_dofs());
+  pressure_n.reinit(locally_relevant_pressure_dofs,
+                    mpi_communicator);
+  pressure_n_minus_1.reinit(pressure_n);
+  pressure_rhs.reinit(locally_owned_pressure_dofs,
+                      locally_relevant_pressure_dofs,
+                      mpi_communicator,
+                      true);
+  pressure_tmp.reinit(pressure_n);
+  phi_n.reinit(pressure_n);
+  phi_n_minus_1.reinit(pressure_n);
+  velocity_n.reinit(locally_relevant_velocity_dofs,
+                    mpi_communicator);
+  velocity_n_minus_1.reinit(velocity_n);
+  extrapolated_velocity.reinit(velocity_n);
+  velocity_rhs.reinit(locally_owned_velocity_dofs,
+                      locally_relevant_velocity_dofs,
+                      mpi_communicator,
+                      true);
+  velocity_tmp.reinit(velocity_n);
 }
 
 template <int dim>
@@ -46,41 +54,50 @@ template <int dim>
 void NavierStokesProjection<dim>::
 setup_velocity_matrices()
 {
-  {
-    DynamicSparsityPattern dsp(velocity_dof_handler.n_dofs(),
-                                velocity_dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(velocity_dof_handler, 
-                                    dsp,
-                                    velocity_constraints);
-    velocity_sparsity_pattern.copy_from(dsp);
-    std::ofstream out ("velocity_sparsity_pattern.gpl");
-    velocity_sparsity_pattern.print_gnuplot(out);
-  }
-  velocity_mass_plus_laplace_matrix.reinit(velocity_sparsity_pattern);
-  velocity_system_matrix.reinit(velocity_sparsity_pattern);
-  velocity_mass_matrix.reinit(velocity_sparsity_pattern);
-  velocity_laplace_matrix.reinit(velocity_sparsity_pattern);
-  velocity_advection_matrix.reinit(velocity_sparsity_pattern);
+  velocity_mass_matrix.clear();
+  velocity_laplace_matrix.clear();
+  velocity_mass_plus_laplace_matrix.clear();
+  velocity_advection_matrix.clear();
+  velocity_system_matrix.clear();
+
+  TrilinosWrappers::SparsityPattern sp(locally_owned_velocity_dofs,
+                                       locally_owned_velocity_dofs,
+                                       locally_relevant_velocity_dofs,
+                                       mpi_communicator);
+  DoFTools::make_sparsity_pattern(velocity_dof_handler, 
+                                  sp,
+                                  velocity_constraints,
+                                  false,
+                                  Utilities::MPI::this_mpi_process(
+                                    mpi_communicator));
+  sp.compress();
+
+  velocity_mass_plus_laplace_matrix.reinit(sp);
+  velocity_system_matrix.reinit(sp);
+  velocity_mass_matrix.reinit(sp);
+  velocity_laplace_matrix.reinit(sp);
+  velocity_advection_matrix.reinit(sp);
 }
 
 template <int dim>
 void NavierStokesProjection<dim>::
 setup_pressure_matrices()
 {
-  {
-    DynamicSparsityPattern dsp(pressure_dof_handler.n_dofs(),
-                                pressure_dof_handler.n_dofs());
-    DoFTools::make_sparsity_pattern(pressure_dof_handler, 
-                                    dsp,
-                                    pressure_constraints);
-    pressure_sparsity_pattern.copy_from(dsp);
-    std::ofstream out ("pressure_sparsity_pattern.gpl");
-    pressure_sparsity_pattern.print_gnuplot(out);
-  }
-
-  pressure_laplace_matrix.reinit(pressure_sparsity_pattern);
-  //pressure_system_matrix.reinit(pressure_sparsity_pattern);
-  pressure_mass_matrix.reinit(pressure_sparsity_pattern);
+  pressure_mass_matrix.clear();
+  pressure_laplace_matrix.clear();
+  TrilinosWrappers::SparsityPattern sp(locally_owned_pressure_dofs,
+                                       locally_owned_pressure_dofs,
+                                       locally_relevant_pressure_dofs,
+                                       mpi_communicator);
+  DoFTools::make_sparsity_pattern(pressure_dof_handler, 
+                                  sp,
+                                  pressure_constraints,
+                                  false,
+                                  Utilities::MPI::this_mpi_process(
+                                    mpi_communicator));
+  sp.compress();
+  pressure_laplace_matrix.reinit(sp);
+  pressure_mass_matrix.reinit(sp);
 }
 
 template <int dim>
@@ -89,24 +106,47 @@ initialize()
 {
   phi_n         = 0.;
   phi_n_minus_1 = 0.;
+ {
+    TrilinosWrappers::MPI::Vector interpolation(locally_owned_velocity_dofs);
+    VectorTools::project(velocity_dof_handler,
+                         velocity_constraints,
+                         QGauss<dim>(velocity_fe_degree + 2),
+                         velocity_initial_conditions,
+                         interpolation);
+    velocity_n_minus_1  = interpolation;
+    velocity_n          = interpolation;
+ }
 
+ {
+    TrilinosWrappers::MPI::Vector interpolation(locally_owned_pressure_dofs);
+    VectorTools::project(pressure_dof_handler,
+                         pressure_constraints,
+                         QGauss<dim>(pressure_fe_degree + 2),
+                         pressure_initial_conditions,
+                         interpolation);
+    pressure_n_minus_1  = interpolation;
+    pressure_n          = interpolation;
+ }
+
+/*
   pressure_initial_conditions.set_time(t_0);    
   VectorTools::interpolate(pressure_dof_handler, 
-                            pressure_initial_conditions, 
-                            pressure_n_minus_1);
+                           pressure_initial_conditions, 
+                           pressure_n_minus_1);
   pressure_initial_conditions.advance_time(dt_n);
   VectorTools::interpolate(pressure_dof_handler, 
-                            pressure_initial_conditions, 
-                            pressure_n);
+                           pressure_initial_conditions, 
+                           pressure_n);
 
   velocity_initial_conditions.set_time(t_0);    
   VectorTools::interpolate(velocity_dof_handler,
-                            velocity_initial_conditions,
-                            velocity_n_minus_1);
+                           velocity_initial_conditions,
+                           velocity_n_minus_1);
   velocity_initial_conditions.advance_time(dt_n);
   VectorTools::interpolate(velocity_dof_handler,
-                            velocity_initial_conditions,
-                            velocity_n);
+                           velocity_initial_conditions,
+                           velocity_n);
+*/
 }
 
 }
