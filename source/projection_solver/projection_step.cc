@@ -37,22 +37,26 @@ template <int dim>
 void NavierStokesProjection<dim>::
 solve_projection_step(const bool reinit_prec)
 {
+  pcout << "Projection step" << std::endl;
+  TrilinosWrappers::MPI::Vector distributed_phi_n(pressure_rhs);
+  distributed_phi_n = phi_n;
   if (reinit_prec)
-    projection_step_preconditioner.initialize(pressure_laplace_matrix,
+    projection_step_preconditioner.initialize(pressure_laplace_matrix/*,
                                   SparseILU<double>::AdditionalData(
                                     solver_diag_strength, 
-                                    solver_off_diagonals));
+                                    solver_off_diagonals)*/);
 
-  SolverControl solvercontrol(solver_max_iterations, 
+  SolverControl solvercontrol(pressure_laplace_matrix.m(), 
                               solver_tolerance * pressure_rhs.l2_norm());
-  SolverCG<>    cg(solvercontrol);
+  SolverCG<TrilinosWrappers::MPI::Vector>    cg(solvercontrol);
   cg.solve(pressure_laplace_matrix, 
-           phi_n, 
+           distributed_phi_n, 
            pressure_rhs, 
            projection_step_preconditioner);
-  pressure_constraints.distribute(phi_n);
-  phi_n *= ((2.0 * dt_n + dt_n_minus_1) /     //
+  pressure_constraints.distribute(distributed_phi_n);
+  distributed_phi_n *= ((2.0 * dt_n + dt_n_minus_1) /     //
             (dt_n * (dt_n + dt_n_minus_1)));
+  phi_n = distributed_phi_n;
 }
 }
 
