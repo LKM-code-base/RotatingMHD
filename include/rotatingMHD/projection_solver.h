@@ -13,6 +13,7 @@
 #include <rotatingMHD/assembly_data.h>
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/index_set.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/utilities.h>
 
@@ -28,6 +29,11 @@
 #include <deal.II/lac/sparse_direct.h>
 #include <deal.II/lac/sparse_ilu.h>
 #include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/trilinos_parallel_block_vector.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
+#include <deal.II/lac/trilinos_precondition.h>
+#include <deal.II/lac/trilinos_solver.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 namespace Step35
 {
@@ -62,7 +68,8 @@ private:
                                       boundary_values;
   std::vector<types::boundary_id>     boundary_ids;
 
-  Triangulation<dim>                  triangulation;
+  parallel::distributed::Triangulation<dim>          
+                                      triangulation;
 
   const unsigned int                  pressure_fe_degree;
   FE_Q<dim>                           pressure_fe;
@@ -70,17 +77,20 @@ private:
   AffineConstraints<double>           pressure_constraints;
   QGauss<dim>                         pressure_quadrature_formula;
 
+  IndexSet                            locally_owned_pressure_dofs;
+  IndexSet                            locally_relevant_pressure_dofs;
+
   SparsityPattern                     pressure_sparsity_pattern;
   SparsityPattern                     mixed_sparsity_pattern;
-  SparseMatrix<double>                pressure_mass_matrix;
-  SparseMatrix<double>                pressure_laplace_matrix;
+  TrilinosWrappers::SparseMatrix      pressure_mass_matrix;
+  TrilinosWrappers::SparseMatrix      pressure_laplace_matrix;
 
-  Vector<double>                      pressure_n;
-  Vector<double>                      pressure_n_minus_1;
-  Vector<double>                      pressure_tmp;
-  Vector<double>                      pressure_rhs;
-  Vector<double>                      phi_n;
-  Vector<double>                      phi_n_minus_1;
+  TrilinosWrappers::MPI::Vector       pressure_n;
+  TrilinosWrappers::MPI::Vector       pressure_n_minus_1;
+  TrilinosWrappers::MPI::Vector       pressure_tmp;
+  TrilinosWrappers::MPI::Vector       pressure_rhs;
+  TrilinosWrappers::MPI::Vector       phi_n;
+  TrilinosWrappers::MPI::Vector       phi_n_minus_1;
 
   const unsigned int                  velocity_fe_degree;
   FESystem<dim>                       velocity_fe;
@@ -88,22 +98,26 @@ private:
   AffineConstraints<double>           velocity_constraints;
   QGauss<dim>                         velocity_quadrature_formula;
 
+  IndexSet                            locally_owned_velocity_dofs;
+  IndexSet                            locally_relevant_velocity_dofs;
+
   SparsityPattern                     velocity_sparsity_pattern;
-  SparseMatrix<double>                velocity_system_matrix;
-  SparseMatrix<double>                velocity_mass_matrix;
-  SparseMatrix<double>                velocity_laplace_matrix;
-  SparseMatrix<double>                velocity_mass_plus_laplace_matrix;
-  SparseMatrix<double>                velocity_advection_matrix;
+  TrilinosWrappers::SparseMatrix      velocity_system_matrix;
+  TrilinosWrappers::SparseMatrix      velocity_mass_matrix;
+  TrilinosWrappers::SparseMatrix      velocity_laplace_matrix;
+  TrilinosWrappers::SparseMatrix      velocity_mass_plus_laplace_matrix;
+  TrilinosWrappers::SparseMatrix      velocity_advection_matrix;
 
-  Vector<double>                      velocity_n;
-  Vector<double>                      velocity_n_minus_1;
-  Vector<double>                      extrapolated_velocity;
-  Vector<double>                      velocity_tmp;
-  Vector<double>                      velocity_rhs;
+  TrilinosWrappers::MPI::Vector       velocity_n;
+  TrilinosWrappers::MPI::Vector       velocity_n_minus_1;
+  TrilinosWrappers::MPI::Vector       extrapolated_velocity;
+  TrilinosWrappers::MPI::Vector       velocity_tmp;
+  TrilinosWrappers::MPI::Vector       velocity_rhs;
 
-  SparseILU<double>                   diffusion_step_preconditioner;
-  SparseILU<double>                   projection_step_preconditioner;
-  SparseDirectUMFPACK                 pressure_correction_solver;
+  TrilinosWrappers::PreconditionILU   diffusion_step_preconditioner;
+  TrilinosWrappers::PreconditionILU   projection_step_preconditioner;
+  TrilinosWrappers::PreconditionJacobi correction_step_preconditioner;
+  //TrilinosWrappers::SolverDirect      pressure_correction_solver;
 
   DeclException2(ExcInvalidTimeStep,
                  double,
