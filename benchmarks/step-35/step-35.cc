@@ -868,7 +868,6 @@ namespace Step35
             verbose_cout << "Plotting Solution" << std::endl;
             output_results(n);
           }
-        std::cout << "Step = " << n << " Time = " << (n * dt) << std::endl;
         verbose_cout << "  Interpolating the velocity " << std::endl;
 
         interpolate_velocity();
@@ -881,37 +880,43 @@ namespace Step35
         projection_step((n == 2));
         verbose_cout << "  Updating the Pressure" << std::endl;
         update_pressure((n == 2));
+
+
+        Point<dim> evaluation_point;
+        evaluation_point(0) = 2.0;
+        evaluation_point(1) = 3.0;
+
+        Vector<double> point_value_velocity(dim);
+        for (unsigned int d = 0; d < dim; ++d)
+          {
+            point_value_velocity[d] =
+            VectorTools::point_value(dof_handler_velocity,
+                                    u_n[d],
+                                    evaluation_point);
+          }
+        const double point_value_pressure
+        = VectorTools::point_value(dof_handler_pressure,
+                                  pres_n,
+                                  evaluation_point);
+        std::cout << "Step = " 
+                  << std::setw(2) 
+                  << n 
+                  << " Time = " 
+                  << std::noshowpos << std::scientific
+                  << n * dt
+                  << " Velocity = (" 
+                  << std::showpos << std::scientific
+                  << point_value_velocity[0] 
+                  << ", "
+                  << std::showpos << std::scientific
+                  << point_value_velocity[1] 
+                  << ") Pressure = "
+                  << std::showpos << std::scientific
+                  << point_value_pressure << std::endl;
+
         vel_exact.advance_time(dt);
       }
     output_results(n_steps);
-
-    Point<dim> evaluation_point;
-    evaluation_point(0) = 2.0;
-    evaluation_point(1) = 3.0;
-
-    Vector<double> point_value_velocity(dim);
-    for (unsigned int d = 0; d < dim; ++d)
-      {
-        point_value_velocity[d] =
-        VectorTools::point_value(dof_handler_velocity,
-                                 u_n[d],
-                                 evaluation_point);
-      }
-    const double point_value_pressure
-    = VectorTools::point_value(dof_handler_pressure,
-                               pres_n,
-                               evaluation_point);
-    std::cout << "Velocity = (";
-    for (unsigned int d = 0; d < dim; ++d)
-      {
-         std::cout << std::showpos << std::scientific
-                   << point_value_velocity[d] 
-                   << ", ";
-      }
-    std::cout << ") Pressure = "
-              << std::showpos << std::scientific
-              << point_value_pressure 
-              << std::endl;
   }
 
 
