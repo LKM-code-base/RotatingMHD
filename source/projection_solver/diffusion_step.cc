@@ -46,8 +46,9 @@ diffusion_step(const bool reinit_prec)
     TrilinosWrappers::MPI::Vector distributed_velocity_n_minus_1(velocity_rhs);
     distributed_velocity_n = velocity_n;
     distributed_velocity_n_minus_1 = velocity_n_minus_1;
-    /*Define the auxiliary velocity as the sum from the velocities at
-    previous time steps weighted accordingly to the VSIMEX method */
+    /*Define the auxiliary velocity as the weighted sum from the 
+      velocities product of the VSIMEX method time discretization that 
+      belong to the right hand side*/
     distributed_velocity_n.sadd(- (dt_n + dt_n_minus_1) / (dt_n * dt_n_minus_1),
                                 (dt_n * dt_n) / (dt_n * dt_n_minus_1 *
                                 (dt_n + dt_n_minus_1)),
@@ -75,7 +76,7 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix = 0.;
     velocity_mass_plus_laplace_matrix.add(1.0 / Re, 
                                           velocity_laplace_matrix);
-    velocity_mass_plus_laplace_matrix.add((2.0 * dt_n + dt_n_minus_1) /  //
+    velocity_mass_plus_laplace_matrix.add((2.0 * dt_n + dt_n_minus_1) /
                                           (dt_n * (dt_n + dt_n_minus_1)), 
                                           velocity_mass_matrix);
   }
@@ -91,21 +92,19 @@ void
 NavierStokesProjection<dim>::
 solve_diffusion_step(const bool reinit_prec)
 {
-  pcout << "Diffusion step" << std::endl;
   TrilinosWrappers::MPI::Vector distributed_velocity_n(velocity_rhs);
   distributed_velocity_n = velocity_n;
 
   if (reinit_prec)
     diffusion_step_preconditioner.initialize(
-                                      velocity_system_matrix/*,
-                                      SparseILU<double>::AdditionalData(
-                                        solver_diag_strength, 
-                                        solver_off_diagonals)*/);
+                                      velocity_system_matrix);
 
   SolverControl solver_control(solver_max_iterations, 
                                solver_tolerance * velocity_rhs.l2_norm());
-  SolverGMRES<TrilinosWrappers::MPI::Vector> gmres(solver_control,
-                      SolverGMRES<TrilinosWrappers::MPI::Vector>::AdditionalData(solver_krylov_size));
+  SolverGMRES<TrilinosWrappers::MPI::Vector> gmres(
+                            solver_control,
+                            SolverGMRES<TrilinosWrappers::MPI::Vector>::
+                              AdditionalData(solver_krylov_size));
   gmres.solve(velocity_system_matrix, 
               distributed_velocity_n, 
               velocity_rhs, 

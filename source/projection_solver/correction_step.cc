@@ -8,7 +8,6 @@ template <int dim>
 void NavierStokesProjection<dim>::
 pressure_correction(const bool reinit_prec)
 {
-  pcout << "Correction step" << std::endl;
   /* Update for the next time step */
   pressure_n_minus_1 = pressure_n;
   switch (projection_method)
@@ -17,16 +16,10 @@ pressure_correction(const bool reinit_prec)
         pressure_n += phi_n;
         break;
       case RunTimeParameters::ProjectionMethod::rotational:
-        /*
-        if (reinit_prec)
-          pressure_correction_preconditioner.initialize(pressure_mass_matrix);
-        pressure_n = pressure_rhs;
-        pressure_correction_preconditioner.solve(pressure_n);
-        pressure_n.sadd(1. / Re, 1., pressure_n_minus_1);
-        pressure_n += phi_n;
-        */
-        static TrilinosWrappers::SolverDirect::AdditionalData data (false, "Amesos_Klu");
-        static SolverControl solver_control (1, 0);
+        static TrilinosWrappers::SolverDirect::AdditionalData data(
+                                                          false, 
+                                                          "Amesos_Klu");
+        static SolverControl solver_control(1, 0);
         {
           TrilinosWrappers::MPI::Vector distributed_pressure_n(pressure_rhs);
           TrilinosWrappers::MPI::Vector distributed_pressure_n_minus_1(pressure_rhs);
@@ -37,22 +30,20 @@ pressure_correction(const bool reinit_prec)
           distributed_phi_n = phi_n;
 
           /* Using a direct solver */
-          TrilinosWrappers::SolverDirect solver (solver_control, data);
-          solver.initialize(pressure_mass_matrix);
-          solver.solve(pressure_mass_matrix, distributed_pressure_n, pressure_rhs);
+          TrilinosWrappers::SolverDirect solver(solver_control, data);
+          solver.solve(pressure_mass_matrix,
+                       distributed_pressure_n, 
+                       pressure_rhs);
 
           /* Using CG */
           /*if (reinit_prec)
             correction_step_preconditioner.initialize(
-                                              pressure_mass_matrix/*,
-                                              SparseILU<double>::AdditionalData(
-                                                solver_diag_strength, 
-                                               solver_off_diagonals)*///);
+                                              pressure_mass_matrix);
 
-          /*SolverControl solver__control(solver_max_iterations, 
-                                solver_tolerance * pressure_rhs.l2_norm());*/
+          SolverControl solver__control(solver_max_iterations, 
+                                solver_tolerance * pressure_rhs.l2_norm());
           
-          /*SolverCG<TrilinosWrappers::MPI::Vector>    cg_solver(solver__control);
+          SolverCG<TrilinosWrappers::MPI::Vector>    cg_solver(solver__control);
           cg_solver.solve(pressure_mass_matrix, 
                   distributed_pressure_n, 
                   pressure_rhs, 
