@@ -13,6 +13,7 @@
 #include <rotatingMHD/assembly_data.h>
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/discrete_time.h>
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/utilities.h>
@@ -50,6 +51,8 @@ public:
 
 private:
   MPI_Comm                            mpi_communicator;
+  ConditionalOStream                  pcout;
+
   RunTimeParameters::ProjectionMethod projection_method;
   double                              dt_n;
   double                              dt_n_minus_1;
@@ -80,8 +83,6 @@ private:
   IndexSet                            locally_owned_pressure_dofs;
   IndexSet                            locally_relevant_pressure_dofs;
 
-  SparsityPattern                     pressure_sparsity_pattern;
-  SparsityPattern                     mixed_sparsity_pattern;
   TrilinosWrappers::SparseMatrix      pressure_mass_matrix;
   TrilinosWrappers::SparseMatrix      pressure_laplace_matrix;
 
@@ -101,7 +102,6 @@ private:
   IndexSet                            locally_owned_velocity_dofs;
   IndexSet                            locally_relevant_velocity_dofs;
 
-  SparsityPattern                     velocity_sparsity_pattern;
   TrilinosWrappers::SparseMatrix      velocity_system_matrix;
   TrilinosWrappers::SparseMatrix      velocity_mass_matrix;
   TrilinosWrappers::SparseMatrix      velocity_laplace_matrix;
@@ -114,22 +114,9 @@ private:
   TrilinosWrappers::MPI::Vector       velocity_tmp;
   TrilinosWrappers::MPI::Vector       velocity_rhs;
 
-  TrilinosWrappers::PreconditionILU   diffusion_step_preconditioner;
-  TrilinosWrappers::PreconditionILU   projection_step_preconditioner;
-  TrilinosWrappers::PreconditionJacobi correction_step_preconditioner;
-  //TrilinosWrappers::SolverDirect      pressure_correction_solver;
-
-  DeclException2(ExcInvalidTimeStep,
-                 double,
-                 double,
-                 << " The time step " << arg1 << " is out of range."
-                 << std::endl
-                 << " The permitted range is (0," << arg2 << "]");
-
-  using IteratorTuple =
-    std::tuple<typename DoFHandler<dim>::active_cell_iterator,
-               typename DoFHandler<dim>::active_cell_iterator>;
-  using IteratorPair = SynchronousIterators<IteratorTuple>;
+  TrilinosWrappers::PreconditionILU     diffusion_step_preconditioner;
+  TrilinosWrappers::PreconditionILU     projection_step_preconditioner;
+  TrilinosWrappers::PreconditionJacobi  correction_step_preconditioner;
 
   unsigned int                        solver_max_iterations;
   unsigned int                        solver_krylov_size;
@@ -139,7 +126,12 @@ private:
   double                              solver_diag_strength;
   bool                                flag_adpative_time_step;
 
-  ConditionalOStream                  pcout;
+  DeclException2(ExcInvalidTimeStep,
+                 double,
+                 double,
+                 << " The time step " << arg1 << " is out of range."
+                 << std::endl
+                 << " The permitted range is (0," << arg2 << "]");
 
   void make_grid(const unsigned int n_global_refinements);
   void setup_dofs();
@@ -200,6 +192,9 @@ private:
     const AdvectionAssembly::MappingData<dim>             &data);
   
   double compute_max_velocity();
+  void point_evaluation(const Point<dim>  &point,
+                        unsigned int      time_step,
+                        DiscreteTime      time) const;
 };
 
 } // namespace Step35

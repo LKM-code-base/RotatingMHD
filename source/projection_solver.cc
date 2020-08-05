@@ -21,6 +21,8 @@ template <int dim>
 NavierStokesProjection<dim>::
 NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
   : mpi_communicator(MPI_COMM_WORLD),
+    pcout(std::cout, 
+          (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
     projection_method(data.projection_method),
     dt_n(data.dt),
     dt_n_minus_1(data.dt),
@@ -46,9 +48,7 @@ NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
     solver_update_preconditioner(data.solver_update_preconditioner),
     solver_tolerance(data.solver_tolerance),
     solver_diag_strength(data.solver_diag_strength),
-    flag_adpative_time_step(data.flag_adaptive_time_step),
-    pcout(std::cout, 
-          (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))
+    flag_adpative_time_step(data.flag_adaptive_time_step)
 {
   if (pressure_fe_degree < 1)
     pcout
@@ -76,6 +76,8 @@ run(const bool  flag_verbose_output,
     ((flag_verbose_output) && 
       (Utilities::MPI::this_mpi_process(mpi_communicator) == 0) ));
 
+  Point<dim> evaluation_point(2.0, 3.0);
+  
   inflow_boundary_condition.set_time(2. * dt_n);
   output_results(1);
   unsigned int n = 2;
@@ -105,45 +107,7 @@ run(const bool  flag_verbose_output,
     if ((flag_adpative_time_step) && (n > 20))
       update_time_step();
 
-    Point<dim> evaluation_point;
-    evaluation_point(0) = 2.0;
-    evaluation_point(1) = 3.0;
-    const std::pair<typename DoFHandler<dim>::active_cell_iterator,
-                    Point<dim>> cell_point =
-      GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping, 
-                                               velocity_dof_handler, 
-                                               evaluation_point);
-    if (cell_point.first->is_locally_owned())
-    {
-    Vector<double> point_value_velocity(dim);
-    VectorTools::point_value(velocity_dof_handler,
-                            velocity_n,
-                            evaluation_point,
-                            point_value_velocity);
-
-    const double point_value_pressure
-    = VectorTools::point_value(pressure_dof_handler,
-                              pressure_n,
-                              evaluation_point);
-    std::cout     << "Step = " 
-              << std::setw(2) 
-              << n 
-              << " Time = " 
-              << std::noshowpos << std::scientific
-              << time.get_current_time()
-              << " Velocity = (" 
-              << std::showpos << std::scientific
-              << point_value_velocity[0] 
-              << ", "
-              << std::showpos << std::scientific
-              << point_value_velocity[1] 
-              << ") Pressure = "
-              << std::showpos << std::scientific
-              << point_value_pressure 
-              << " Time step = " 
-              << std::showpos << std::scientific
-              << dt_n << std::endl;
-    }
+    point_evaluation(evaluation_point, n, time);
 
     time.set_desired_next_step_size(dt_n);
     inflow_boundary_condition.advance_time(dt_n);
@@ -152,6 +116,51 @@ run(const bool  flag_verbose_output,
       break;
   }
 }
+
+template <int dim>
+void NavierStokesProjection<dim>::
+point_evaluation(const Point<dim>   &point,
+                 unsigned int       time_step,
+                 DiscreteTime       time) const
+{
+const std::pair<typename DoFHandler<dim>::active_cell_iterator,
+                  Point<dim>> cell_point =
+    GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping, 
+                                              velocity_dof_handler, 
+                                              point);
+if (cell_point.first->is_locally_owned())
+{
+  Vector<double> point_value_velocity(dim);
+  VectorTools::point_value(velocity_dof_handler,
+                          velocity_n,
+                          point,
+                          point_value_velocity);
+
+  const double point_value_pressure
+  = VectorTools::point_value(pressure_dof_handler,
+                            pressure_n,
+                            point);
+  std::cout << "Step = " 
+            << std::setw(2) 
+            << time_step 
+            << " Time = " 
+            << std::noshowpos << std::scientific
+            << time.get_current_time()
+            << " Velocity = (" 
+            << std::showpos << std::scientific
+            << point_value_velocity[0] 
+            << ", "
+            << std::showpos << std::scientific
+            << point_value_velocity[1] 
+            << ") Pressure = "
+            << std::showpos << std::scientific
+            << point_value_pressure 
+            << " Time step = " 
+            << std::showpos << std::scientific
+            << dt_n << std::endl;
+}
+}
+
 }  // namespace Step35
 
 // explicit instantiations
