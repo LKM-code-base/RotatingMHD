@@ -12,24 +12,26 @@ setup_matrices_and_vectors()
   setup_velocity_matrices();
   setup_pressure_matrices();
 
-  pressure_n.reinit(locally_relevant_pressure_dofs,
-                    mpi_communicator);
-  pressure_n_minus_1.reinit(pressure_n);
   pressure_rhs.reinit(locally_owned_pressure_dofs,
                       locally_relevant_pressure_dofs,
                       mpi_communicator,
                       true);
+  pressure_n.reinit(locally_relevant_pressure_dofs,
+                    mpi_communicator);
+  pressure_n_minus_1.reinit(pressure_n);
   pressure_tmp.reinit(pressure_n);
+  
   phi_n.reinit(pressure_n);
   phi_n_minus_1.reinit(pressure_n);
-  velocity_n.reinit(locally_relevant_velocity_dofs,
-                    mpi_communicator);
-  velocity_n_minus_1.reinit(velocity_n);
-  extrapolated_velocity.reinit(velocity_n);
+
   velocity_rhs.reinit(locally_owned_velocity_dofs,
                       locally_relevant_velocity_dofs,
                       mpi_communicator,
                       true);
+  velocity_n.reinit(locally_relevant_velocity_dofs,
+                    mpi_communicator);
+  velocity_n_minus_1.reinit(velocity_n);
+  extrapolated_velocity.reinit(velocity_n);
   velocity_tmp.reinit(velocity_n);
 }
 
@@ -107,46 +109,52 @@ initialize()
   phi_n         = 0.;
   phi_n_minus_1 = 0.;
  {
-    TrilinosWrappers::MPI::Vector interpolation(locally_owned_velocity_dofs);
+    TrilinosWrappers::MPI::Vector tmp_velocity_n_minus_1(
+                                          locally_owned_velocity_dofs);
+    TrilinosWrappers::MPI::Vector tmp_velocity_n(
+                                          locally_owned_velocity_dofs);
+    
+    velocity_initial_conditions.set_time(t_0);    
     VectorTools::project(velocity_dof_handler,
                          velocity_constraints,
                          QGauss<dim>(velocity_fe_degree + 2),
                          velocity_initial_conditions,
-                         interpolation);
-    velocity_n_minus_1  = interpolation;
-    velocity_n          = interpolation;
+                         tmp_velocity_n_minus_1);
+
+    velocity_initial_conditions.advance_time(dt_n);
+    VectorTools::project(velocity_dof_handler,
+                         velocity_constraints,
+                         QGauss<dim>(velocity_fe_degree + 2),
+                         velocity_initial_conditions,
+                         tmp_velocity_n);
+
+    velocity_n_minus_1  = tmp_velocity_n_minus_1;
+    velocity_n          = tmp_velocity_n;
  }
 
  {
-    TrilinosWrappers::MPI::Vector interpolation(locally_owned_pressure_dofs);
+    TrilinosWrappers::MPI::Vector tmp_pressure_n_minus_1(
+                                          locally_owned_pressure_dofs);
+    TrilinosWrappers::MPI::Vector tmp_pressure_n(
+                                          locally_owned_pressure_dofs);
+    
+    velocity_initial_conditions.set_time(t_0);    
     VectorTools::project(pressure_dof_handler,
                          pressure_constraints,
                          QGauss<dim>(pressure_fe_degree + 2),
                          pressure_initial_conditions,
-                         interpolation);
-    pressure_n_minus_1  = interpolation;
-    pressure_n          = interpolation;
+                         tmp_pressure_n_minus_1);
+
+    pressure_initial_conditions.advance_time(dt_n);
+    VectorTools::project(pressure_dof_handler,
+                         pressure_constraints,
+                         QGauss<dim>(pressure_fe_degree + 2),
+                         pressure_initial_conditions,
+                         tmp_pressure_n);
+
+    pressure_n_minus_1  = tmp_pressure_n_minus_1;
+    pressure_n          = tmp_pressure_n;
  }
-
-/*
-  pressure_initial_conditions.set_time(t_0);    
-  VectorTools::interpolate(pressure_dof_handler, 
-                           pressure_initial_conditions, 
-                           pressure_n_minus_1);
-  pressure_initial_conditions.advance_time(dt_n);
-  VectorTools::interpolate(pressure_dof_handler, 
-                           pressure_initial_conditions, 
-                           pressure_n);
-
-  velocity_initial_conditions.set_time(t_0);    
-  VectorTools::interpolate(velocity_dof_handler,
-                           velocity_initial_conditions,
-                           velocity_n_minus_1);
-  velocity_initial_conditions.advance_time(dt_n);
-  VectorTools::interpolate(velocity_dof_handler,
-                           velocity_initial_conditions,
-                           velocity_n);
-*/
 }
 
 }
