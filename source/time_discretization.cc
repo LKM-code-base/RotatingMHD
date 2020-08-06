@@ -111,7 +111,7 @@ void VSIMEXMethod::update_coefficients()
      Assert(false,
       ExcMessage("Only VSIMEX of first and second order are currently implemented"));
   }
-  coefficients.output();
+  //coefficients.output();
 }
 
 } // namespace TimeDiscretiation
