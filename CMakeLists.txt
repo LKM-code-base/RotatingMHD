@@ -63,6 +63,7 @@ SET(TARGET_SRC
     source/equation_data.cc
     source/run_time_parameters.cc
     source/assembly_data.cc
+    source/time_discretization.cc
     source/projection_solver.cc
     source/projection_solver/make_grid.cc
     source/projection_solver/setup_dofs.cc
