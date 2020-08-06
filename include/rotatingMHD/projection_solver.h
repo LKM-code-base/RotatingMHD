@@ -11,6 +11,7 @@
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/assembly_data.h>
+#include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/discrete_time.h>
@@ -59,7 +60,10 @@ private:
   const double                        t_0;
   const double                        T;
   const double                        Re;
-
+  
+  TimeDiscretization::VSIMEXCoefficients                  
+                                      VSIMEX;
+  TimeDiscretization::VSIMEXMethod    time_stepping;
   EquationData::VelocityInflowBoundaryCondition<dim>  
                                       inflow_boundary_condition;
   EquationData::VelocityInitialCondition<dim>         

@@ -6,7 +6,7 @@
  */
 
 #include <rotatingMHD/projection_solver.h>
-
+#include <rotatingMHD/time_discretization.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/discrete_time.h>
 #include <deal.II/numerics/vector_tools.h>
@@ -29,6 +29,12 @@ NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
     t_0(data.t_0),
     T(data.T),
     Re(data.Re),
+    VSIMEX(2),
+    time_stepping(2, 
+                  {data.vsimex_input_gamma, data.vsimex_input_c}, 
+                  dt_n, 
+                  T, 
+                  dt_n),
     inflow_boundary_condition(data.t_0),
     triangulation(mpi_communicator,
                   typename Triangulation<dim>::MeshSmoothing(
@@ -58,7 +64,12 @@ NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
 
   AssertThrow(!((dt_n <= 0.) || (dt_n > .5 * T)), 
               ExcInvalidTimeStep(dt_n, .5 * T));
-
+  /* Time is started one time step earlier and advance in order to
+     populate a private entity of the DiscreteTime class */
+  time_stepping.advance_time();
+  time_stepping.update_coefficients();
+  time_stepping.get_coefficients(VSIMEX);
+  //VSIMEX.output();
   make_grid(data.n_global_refinements);
   setup_dofs();
   setup_matrices_and_vectors();
@@ -82,9 +93,8 @@ run(const bool  flag_verbose_output,
   output_results(1);
   unsigned int n = 2;
   
-  for (DiscreteTime time(2 * dt_n, T, dt_n);
-        time.get_current_time() <= time.get_end_time();
-        time.advance_time())
+  for (;time_stepping.get_current_time() <= time_stepping.get_end_time();
+        time_stepping.advance_time())
   {
     verbose_cout << "  Diffusion Step" << std::endl;
     if (n % solver_update_preconditioner == 0)
@@ -98,7 +108,7 @@ run(const bool  flag_verbose_output,
     verbose_cout << "  Updating the Pressure" << std::endl;
     pressure_correction((n == 2));
 
-    if ((n % output_interval == 0) || time.is_at_end())
+    if ((n % output_interval == 0) || time_stepping.is_at_end())
       {
         verbose_cout << "Plotting Solution" << std::endl;
         output_results(n);
@@ -107,12 +117,15 @@ run(const bool  flag_verbose_output,
     if ((flag_adpative_time_step) && (n > 20))
       update_time_step();
 
-    point_evaluation(evaluation_point, n, time);
+    point_evaluation(evaluation_point, n, time_stepping);
 
-    time.set_desired_next_step_size(dt_n);
+    time_stepping.set_desired_next_step_size(dt_n);
+    time_stepping.update_coefficients();
+    time_stepping.get_coefficients(VSIMEX);
+    //VSIMEX.output();
     inflow_boundary_condition.advance_time(dt_n);
     ++n;
-    if (time.is_at_end())
+    if (time_stepping.is_at_end())
       break;
   }
 }
