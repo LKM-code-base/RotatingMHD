@@ -29,6 +29,8 @@ public:
   double            dt;
   double            t_0;
   double            T;
+  double            vsimex_input_gamma;
+  double            vsimex_input_c;
   double            Re;
   unsigned int      n_global_refinements;
   unsigned int      p_fe_degree;

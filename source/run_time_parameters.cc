@@ -25,6 +25,8 @@ ParameterSet::ParameterSet()
     dt(5e-4),
     t_0(0.0),
     T(1.0),
+    vsimex_input_gamma(1.0),
+    vsimex_input_c(0.0),
     Re(1.0),
     n_global_refinements(0),
     p_fe_degree(1),
@@ -65,6 +67,14 @@ ParameterSet::ParameterSet()
                       "1.",
                       Patterns::Double(0.),
                       " The final time of the simulation. ");
+    prm.declare_entry("vsimex_input_gamma",
+                      "1.",
+                      Patterns::Double(0.),
+                      " Input parameter gamma of the VSIMEX method. ");
+    prm.declare_entry("vsimex_input_c",
+                      "0.",
+                      Patterns::Double(0.),
+                      " Input parameter c of the VSIMEX method. ");
   }
   prm.leave_subsection();
 
@@ -156,6 +166,8 @@ read_data_from_file(const std::string &filename)
     dt  = prm.get_double("dt");
     t_0 = prm.get_double("t_0");
     T   = prm.get_double("T");
+    vsimex_input_gamma = prm.get_double("vsimex_input_gamma");
+    vsimex_input_c     = prm.get_double("vsimex_input_c");
   }
   prm.leave_subsection();
 
