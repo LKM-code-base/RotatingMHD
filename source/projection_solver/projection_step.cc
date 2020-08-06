@@ -51,8 +51,7 @@ solve_projection_step(const bool reinit_prec)
            pressure_rhs, 
            projection_step_preconditioner);
   pressure_constraints.distribute(distributed_phi_n);
-  distributed_phi_n *= ((2.0 * dt_n + dt_n_minus_1) /
-                        (dt_n * (dt_n + dt_n_minus_1)));
+  distributed_phi_n *= VSIMEX.alpha[2];
   phi_n = distributed_phi_n;
 }
 }

@@ -47,7 +47,7 @@ assemble_constant_matrices()
     velocity_mass_plus_laplace_matrix = 0.;
     velocity_mass_plus_laplace_matrix.add(1.0 / Re, 
                                           velocity_laplace_matrix);
-    velocity_mass_plus_laplace_matrix.add(1.5 / dt_n, 
+    velocity_mass_plus_laplace_matrix.add(VSIMEX.alpha[2], 
                                           velocity_mass_matrix);
   }
 }

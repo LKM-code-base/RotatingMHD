@@ -16,6 +16,8 @@ diffusion_step(const bool reinit_prec)
     distributed_velocity_n_minus_1 = velocity_n_minus_1;
     /*Extrapolate velocity by a Taylor expansion
       v^{\textrm{k}+1} \approx 2 * v^\textrm{k} - v^{\textrm{k}-1 */
+    /* NOTE: This is left hard coded for the time being since this 
+       extrapolation is not considered in the VSIMEX method */
     distributed_velocity_n.sadd(1.0 + dt_n / dt_n_minus_1, 
                                 -dt_n / dt_n_minus_1,
                                 distributed_velocity_n_minus_1);
@@ -49,9 +51,8 @@ diffusion_step(const bool reinit_prec)
     /*Define the auxiliary velocity as the weighted sum from the 
       velocities product of the VSIMEX method time discretization that 
       belong to the right hand side*/
-    distributed_velocity_n.sadd(- (dt_n + dt_n_minus_1) / (dt_n * dt_n_minus_1),
-                                (dt_n * dt_n) / (dt_n * dt_n_minus_1 *
-                                (dt_n + dt_n_minus_1)),
+    distributed_velocity_n.sadd(VSIMEX.alpha[1],
+                                VSIMEX.alpha[0],
                                 distributed_velocity_n_minus_1);
     velocity_tmp = distributed_velocity_n;
   }
@@ -76,8 +77,7 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix = 0.;
     velocity_mass_plus_laplace_matrix.add(1.0 / Re, 
                                           velocity_laplace_matrix);
-    velocity_mass_plus_laplace_matrix.add((2.0 * dt_n + dt_n_minus_1) /
-                                          (dt_n * (dt_n + dt_n_minus_1)), 
+    velocity_mass_plus_laplace_matrix.add(VSIMEX.alpha[2], 
                                           velocity_mass_matrix);
   }
   velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
