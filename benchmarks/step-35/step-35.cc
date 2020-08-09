@@ -881,7 +881,8 @@ namespace Step35
         verbose_cout << "  Updating the Pressure" << std::endl;
         update_pressure((n == 2));
 
-
+        if (n % output_interval == 0)
+        {
         Point<dim> evaluation_point;
         evaluation_point(0) = 2.0;
         evaluation_point(1) = 3.0;
@@ -913,7 +914,7 @@ namespace Step35
                   << ") Pressure = "
                   << std::showpos << std::scientific
                   << point_value_pressure << std::endl;
-
+        }
         vel_exact.advance_time(dt);
       }
     output_results(n_steps);
