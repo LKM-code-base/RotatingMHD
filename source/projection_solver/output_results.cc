@@ -32,12 +32,11 @@ output_results(const unsigned int step)
                            pressure_n, 
                            "Pressure");
   data_out.build_patches(pressure_fe_degree+1);
-
-  std::ofstream       output_file("solution-" 
-                                  + Utilities::int_to_string(step, 5)
-                                  + ".vtk");
-
-  data_out.write_vtk(output_file);
+  
+  static int out_index = 0;
+  data_out.write_vtu_with_pvtu_record(
+    "./", "solution", out_index, MPI_COMM_WORLD, 5);
+  out_index++;
 }
 
 }  // namespace Step35

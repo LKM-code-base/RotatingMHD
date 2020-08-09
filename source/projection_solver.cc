@@ -117,7 +117,8 @@ run(const bool  flag_verbose_output,
     if ((flag_adpative_time_step) && (n > 20))
       update_time_step();
 
-    point_evaluation(evaluation_point, n, time_stepping);
+    if (n % output_interval == 0)
+      point_evaluation(evaluation_point, n, time_stepping);
 
     time_stepping.set_desired_next_step_size(dt_n);
     time_stepping.update_coefficients();
@@ -167,7 +168,7 @@ if (cell_point.first->is_locally_owned())
             << point_value_velocity[1] 
             << ") Pressure = "
             << std::showpos << std::scientific
-            << point_value_pressure 
+            << point_value_pressure
             << " Time step = " 
             << std::showpos << std::scientific
             << dt_n << std::endl;
