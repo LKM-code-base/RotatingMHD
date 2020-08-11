@@ -8,7 +8,8 @@ namespace TimeDiscretization
 VSIMEXCoefficients::VSIMEXCoefficients(const unsigned int &order)
   : alpha(order+1),
     beta(order),
-    gamma(order+1)
+    gamma(order+1),
+    phi(2)
 {
   Assert( ( ( order == 1) || ( order == 2 )),
     ExcMessage("Only VSIMEX of first and second order are currently implemented"));
@@ -17,7 +18,8 @@ VSIMEXCoefficients::VSIMEXCoefficients(const unsigned int &order)
 VSIMEXCoefficients::VSIMEXCoefficients(const VSIMEXCoefficients &data)
   : alpha(data.alpha),
     beta(data.beta),
-    gamma(data.gamma)
+    gamma(data.gamma),
+    phi(data.phi)
 {}
 
 VSIMEXCoefficients VSIMEXCoefficients::operator=(const VSIMEXCoefficients &data_to_copy)
@@ -25,6 +27,7 @@ VSIMEXCoefficients VSIMEXCoefficients::operator=(const VSIMEXCoefficients &data_
   this->alpha = data_to_copy.alpha;
   this->beta  = data_to_copy.beta;
   this->gamma = data_to_copy.gamma;
+  this->phi = data_to_copy.phi;
   return *this;
 }
 
@@ -89,6 +92,8 @@ void VSIMEXMethod::update_coefficients()
       coefficients.beta[0]  = 1.0;
       coefficients.gamma[0] = ( 1.0 - gamma);
       coefficients.gamma[1] = gamma;
+      coefficients.phi[0]   = -1.0;
+      coefficients.phi[1]   = 2.0;
       break;
       }
     case 2 :
@@ -105,6 +110,8 @@ void VSIMEXMethod::update_coefficients()
       coefficients.gamma[0] = c / 2.0;
       coefficients.gamma[1] = 1.0 - gamma - (1.0 + 1.0 / omega) * c / 2.0; 
       coefficients.gamma[2] = gamma + c / (2.0 * omega); 
+      coefficients.phi[0]   = - omega;
+      coefficients.phi[1]   = 1.0 + omega;
       break;
       }
     default :

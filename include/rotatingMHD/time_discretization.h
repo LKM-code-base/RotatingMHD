@@ -18,6 +18,12 @@ struct VSIMEXCoefficients
   std::vector<double> beta;
   std::vector<double> gamma;
 
+  /* Forward projection parameters, where
+      u_\textrm{n+1} = phi_1 * u_\textrm{n} + phi_0 * u_\textrm{n-1}
+    for the variable time step case. For the constant time step
+    case the parameters reduce to phi_1 = 2 and phi_0 = -1 */
+  std::vector<double> phi;
+
   VSIMEXCoefficients(const unsigned int                 &order);
   VSIMEXCoefficients(const VSIMEXCoefficients           &data);
   VSIMEXCoefficients operator=(const VSIMEXCoefficients &data_to_copy);
