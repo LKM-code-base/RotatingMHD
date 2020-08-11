@@ -16,10 +16,10 @@ diffusion_step(const bool reinit_prec)
     distributed_velocity_n_minus_1 = velocity_n_minus_1;
     /*Extrapolate velocity by a Taylor expansion
       v^{\textrm{k}+1} \approx 2 * v^\textrm{k} - v^{\textrm{k}-1 */
-    /* NOTE: This is left hard coded for the time being since this 
-       extrapolation is not considered in the VSIMEX method */
-    distributed_velocity_n.sadd(1.0 + dt_n / dt_n_minus_1, 
-                                -dt_n / dt_n_minus_1,
+    /* The VSIMEXMethod class considers a variable time steps and 
+       modifies the weights accordingly with the phi parameters */
+    distributed_velocity_n.sadd(VSIMEX.phi[1], 
+                                VSIMEX.phi[0],
                                 distributed_velocity_n_minus_1);
     extrapolated_velocity = distributed_velocity_n;
   }

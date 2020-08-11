@@ -19,7 +19,7 @@ end
 
 subsection Parameters of the diffusion-step solver
   set solver_max_iterations         = 1000  
-  set solver_tolerance              = 1e-8  
+  set solver_tolerance              = 1e-10  
   set solver_krylov_size            = 30    
   set solver_off_diagonals          = 70
   set solver_diag_strength          = 0.1

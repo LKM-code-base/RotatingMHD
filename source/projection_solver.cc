@@ -117,15 +117,18 @@ run(const bool  flag_verbose_output,
     if ((flag_adpative_time_step) && (n > 20))
       update_time_step();
 
-    if (n % output_interval == 0)
-      point_evaluation(evaluation_point, n, time_stepping);
-
     time_stepping.set_desired_next_step_size(dt_n);
     time_stepping.update_coefficients();
     time_stepping.get_coefficients(VSIMEX);
     //VSIMEX.output();
-    inflow_boundary_condition.advance_time(dt_n);
+    inflow_boundary_condition.advance_time(
+                                    time_stepping.get_next_step_size());
+
+    if ((n % output_interval == 0)
+      point_evaluation(evaluation_point, n, time_stepping);
+
     ++n;
+
     if (time_stepping.is_at_end())
       break;
   }

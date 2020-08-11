@@ -13,7 +13,9 @@ void NavierStokesProjection<dim>::
 update_time_step()
 {
   dt_n_minus_1             = dt_n;
-  const double v_max  = compute_max_velocity();
+  // Method compute_max_velocity still has to be updated to work in
+  // parallel.
+  /*const double v_max  = compute_max_velocity();
 
   if (v_max >= 0.01)
     dt_n = 1.0 / (1.7 * dim * std::sqrt(1. * dim )) 
@@ -22,7 +24,7 @@ update_time_step()
   else
     dt_n = 1.0 / (1.7 * dim * std::sqrt(1. * dim )) 
           * GridTools::minimal_cell_diameter(triangulation)
-          / 0.01;
+          / 0.01;*/
 }
 
 template <int dim>
