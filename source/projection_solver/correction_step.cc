@@ -8,6 +8,8 @@ template <int dim>
 void NavierStokesProjection<dim>::
 pressure_correction(const bool reinit_prec)
 {
+  // This boolean will be used later when a proper solver is chosen
+  (void)reinit_prec;
   /* Update for the next time step */
   pressure_n_minus_1 = pressure_n;
   switch (projection_method)
