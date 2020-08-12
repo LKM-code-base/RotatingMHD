@@ -16,7 +16,7 @@ namespace Step35
 
 template <int dim>
 void NavierStokesProjection<dim>::
-output_results(const unsigned int step)
+output_results()
 {
   std::vector<std::string> names(dim, "velocity");
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
@@ -43,5 +43,5 @@ output_results(const unsigned int step)
 
 // explicit instantiations
 
-template void Step35::NavierStokesProjection<2>::output_results(const unsigned int);
-template void Step35::NavierStokesProjection<3>::output_results(const unsigned int);
+template void Step35::NavierStokesProjection<2>::output_results();
+template void Step35::NavierStokesProjection<3>::output_results();

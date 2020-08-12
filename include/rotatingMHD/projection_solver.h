@@ -50,8 +50,9 @@ class NavierStokesProjection
 {
 public:
   NavierStokesProjection(const RunTimeParameters::ParameterSet &data);
-  void run(const bool flag_verbose_output = false, 
-           const unsigned int n_plots = 10);
+  void run(const bool         flag_verbose_output       = false, 
+           const unsigned int graphical_output_interval = 10,
+           const unsigned int terminal_output_interval  = 10);
 
 private:
   MPI_Comm                            mpi_communicator;
@@ -130,6 +131,7 @@ private:
   double                              solver_tolerance;
   double                              solver_diag_strength;
   bool                                flag_adpative_time_step;
+  bool                                flag_DFG_benchmark;
 
   DeclException2(ExcInvalidTimeStep,
                  double,
@@ -151,7 +153,7 @@ private:
   void solve_projection_step(const bool reinit_prec);
   void pressure_correction(const bool reinit_prec);
   void update_time_step();
-  void output_results(const unsigned int step);
+  void output_results();
 
   void setup_velocity_matrices();
   void setup_pressure_matrices();

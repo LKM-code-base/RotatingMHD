@@ -27,7 +27,8 @@ int main(int argc, char *argv[])
 
       NavierStokesProjection<2> simulation(parameter_set);
       simulation.run(parameter_set.flag_verbose_output, 
-                     parameter_set.output_interval);
+                     parameter_set.graphical_output_interval,
+                     parameter_set.terminal_output_interval);
   }
   catch (std::exception &exc)
   {

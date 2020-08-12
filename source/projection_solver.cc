@@ -35,7 +35,9 @@ NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
                   dt_n, 
                   T, 
                   dt_n),
-    inflow_boundary_condition(data.t_0),
+    inflow_boundary_condition(data.flag_DFG_benchmark, data.t_0),
+    velocity_initial_conditions(data.t_0),
+    pressure_initial_conditions(data.flag_DFG_benchmark, data.t_0),
     triangulation(mpi_communicator,
                   typename Triangulation<dim>::MeshSmoothing(
                     Triangulation<dim>::smoothing_on_refinement |
@@ -54,7 +56,8 @@ NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
     solver_update_preconditioner(data.solver_update_preconditioner),
     solver_tolerance(data.solver_tolerance),
     solver_diag_strength(data.solver_diag_strength),
-    flag_adpative_time_step(data.flag_adaptive_time_step)
+    flag_adpative_time_step(data.flag_adaptive_time_step),
+    flag_DFG_benchmark(data.flag_DFG_benchmark)
 {
   if (pressure_fe_degree < 1)
     pcout
@@ -80,17 +83,19 @@ NavierStokesProjection(const RunTimeParameters::ParameterSet &data)
 template <int dim>
 void NavierStokesProjection<dim>::
 run(const bool  flag_verbose_output,
-    const unsigned int output_interval)
+    const unsigned int graphical_output_interval,
+    const unsigned int terminal_output_interval)
 {
   ConditionalOStream verbose_cout(
     std::cout, 
     ((flag_verbose_output) && 
       (Utilities::MPI::this_mpi_process(mpi_communicator) == 0) ));
 
-  Point<dim> evaluation_point(2.0, 3.0);
+  Point<dim> evaluation_point( (flag_DFG_benchmark) ? 0.2 : 2.0, 
+                               (flag_DFG_benchmark) ? 0.3 : 3.0);
   
   inflow_boundary_condition.set_time(2. * dt_n);
-  output_results(1);
+  output_results();
   unsigned int n = 2;
   
   for (;time_stepping.get_current_time() <= time_stepping.get_end_time();
@@ -108,10 +113,10 @@ run(const bool  flag_verbose_output,
     verbose_cout << "  Updating the Pressure" << std::endl;
     pressure_correction((n == 2));
 
-    if ((n % output_interval == 0) || time_stepping.is_at_end())
+    if ((n % graphical_output_interval == 0) || time_stepping.is_at_end())
       {
         verbose_cout << "Plotting Solution" << std::endl;
-        output_results(n);
+        output_results();
       }
 
     if ((flag_adpative_time_step) && (n > 20))
@@ -124,7 +129,7 @@ run(const bool  flag_verbose_output,
     inflow_boundary_condition.advance_time(
                                     time_stepping.get_next_step_size());
 
-    if ((n % output_interval == 0) || time_stepping.is_at_end())
+    if ((n % terminal_output_interval == 0) || time_stepping.is_at_end())
       point_evaluation(evaluation_point, n, time_stepping);
 
     ++n;
@@ -142,9 +147,10 @@ point_evaluation(const Point<dim>   &point,
 {
 const std::pair<typename DoFHandler<dim>::active_cell_iterator,
                   Point<dim>> cell_point =
-    GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping, 
-                                              velocity_dof_handler, 
-                                              point);
+    GridTools::find_active_cell_around_point(
+                                    StaticMappingQ1<dim, dim>::mapping,
+                                    velocity_dof_handler, 
+                                    point);
 if (cell_point.first->is_locally_owned())
 {
   Vector<double> point_value_velocity(dim);
