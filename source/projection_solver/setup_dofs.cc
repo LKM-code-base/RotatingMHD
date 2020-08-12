@@ -32,43 +32,74 @@ setup_dofs()
                                             velocity_constraints);
     for (const auto &boundary_id : boundary_ids)
     {
-      switch (boundary_id)
-      {
-        case 1:
-          VectorTools::interpolate_boundary_values(
-                                      velocity_dof_handler,
-                                      boundary_id,
-                                      Functions::ZeroFunction<dim>(dim),
-                                      velocity_constraints);
-          break;
-        case 2:
-          VectorTools::interpolate_boundary_values(
-                                      velocity_dof_handler,
-                                      boundary_id,
-                                      inflow_boundary_condition,
-                                      velocity_constraints);
-          break;
-        case 3:
+      if (flag_DFG_benchmark)
+        switch (boundary_id)
         {
-          std::set<types::boundary_id> no_normal_flux_boundaries;
-          no_normal_flux_boundaries.insert(boundary_id);
-          VectorTools::compute_normal_flux_constraints(
-                                      velocity_dof_handler,
-                                      0,
-                                      no_normal_flux_boundaries,
-                                      velocity_constraints);
-          break;
+          case 0:
+            VectorTools::interpolate_boundary_values(
+                                        velocity_dof_handler,
+                                        boundary_id,
+                                        inflow_boundary_condition,
+                                        velocity_constraints);
+            break;
+          case 1:
+            break;
+          case 2:
+            VectorTools::interpolate_boundary_values(
+                                        velocity_dof_handler,
+                                        boundary_id,
+                                        Functions::ZeroFunction<dim>(dim),
+                                        velocity_constraints);
+            break;
+          case 3:
+            VectorTools::interpolate_boundary_values(
+                                        velocity_dof_handler,
+                                        boundary_id,
+                                        Functions::ZeroFunction<dim>(dim),
+                                        velocity_constraints);
+            break;
+          default:
+            Assert(false, ExcNotImplemented());
+
         }
-        case 4:
-          VectorTools::interpolate_boundary_values(
-                                      velocity_dof_handler,
-                                      boundary_id,
-                                      Functions::ZeroFunction<dim>(dim),
-                                      velocity_constraints);
-          break;
-        default:
-          Assert(false, ExcNotImplemented());
-      }
+      else
+        switch (boundary_id)
+        {
+          case 1:
+            VectorTools::interpolate_boundary_values(
+                                        velocity_dof_handler,
+                                        boundary_id,
+                                        Functions::ZeroFunction<dim>(dim),
+                                        velocity_constraints);
+            break;
+          case 2:
+            VectorTools::interpolate_boundary_values(
+                                        velocity_dof_handler,
+                                        boundary_id,
+                                        inflow_boundary_condition,
+                                        velocity_constraints);
+            break;
+          case 3:
+          {
+            std::set<types::boundary_id> no_normal_flux_boundaries;
+            no_normal_flux_boundaries.insert(boundary_id);
+            VectorTools::compute_normal_flux_constraints(
+                                        velocity_dof_handler,
+                                        0,
+                                        no_normal_flux_boundaries,
+                                        velocity_constraints);
+            break;
+          }
+          case 4:
+            VectorTools::interpolate_boundary_values(
+                                        velocity_dof_handler,
+                                        boundary_id,
+                                        Functions::ZeroFunction<dim>(dim),
+                                        velocity_constraints);
+            break;
+          default:
+            Assert(false, ExcNotImplemented());
+        }
     }
     velocity_constraints.close();
   }
@@ -80,7 +111,7 @@ setup_dofs()
                                             pressure_constraints);
     VectorTools::interpolate_boundary_values(
                                         pressure_dof_handler,
-                                        3,
+                                        (flag_DFG_benchmark) ? 1 : 3,
                                         Functions::ZeroFunction<dim>(),
                                         pressure_constraints);
     pressure_constraints.close();

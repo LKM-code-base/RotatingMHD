@@ -22,12 +22,14 @@ make_grid(const unsigned int n_global_refinements)
   grid_in.attach_triangulation(triangulation);
 
   {
-    std::string   filename = "nsbench2.inp";
+    std::string   filename = (flag_DFG_benchmark) ? "dfg.inp" : "nsbench2.inp";
     std::ifstream file(filename);
     Assert(file, ExcFileNotOpen(filename.c_str()));
     grid_in.read_ucd(file);
   }
-  triangulation.refine_global(n_global_refinements);
+  if (!flag_DFG_benchmark)
+    triangulation.refine_global(n_global_refinements);
+
   boundary_ids = triangulation.get_boundary_ids();
 
   pcout     << "Number of refines                     = " 
