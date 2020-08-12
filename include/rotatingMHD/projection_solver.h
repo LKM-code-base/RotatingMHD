@@ -37,6 +37,9 @@
 #include <deal.II/lac/trilinos_solver.h>
 #include <deal.II/lac/trilinos_vector.h>
 
+#include <deal.II/distributed/tria.h>
+#include <deal.II/distributed/grid_refinement.h>
+
 namespace Step35
 {
 
@@ -71,8 +74,6 @@ private:
   EquationData::PressureInitialCondition<dim>         
                                       pressure_initial_conditions;
   
-  std::map<types::global_dof_index, double> 
-                                      boundary_values;
   std::vector<types::boundary_id>     boundary_ids;
 
   parallel::distributed::Triangulation<dim>          
