@@ -42,7 +42,9 @@ public:
   double            solver_diag_strength;
   bool              flag_verbose_output;
   bool              flag_adaptive_time_step;
-  unsigned int      output_interval;
+  bool              flag_DFG_benchmark;
+  unsigned int      graphical_output_interval;
+  unsigned int      terminal_output_interval;
 
   ParameterSet();
   void read_data_from_file(const std::string &filename);
