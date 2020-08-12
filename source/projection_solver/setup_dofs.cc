@@ -50,14 +50,13 @@ setup_dofs()
           break;
         case 3:
         {
-          ComponentMask   component_mask(dim, true);
-          component_mask.set(0, false);
-          VectorTools::interpolate_boundary_values(
+          std::set<types::boundary_id> no_normal_flux_boundaries;
+          no_normal_flux_boundaries.insert(boundary_id);
+          VectorTools::compute_normal_flux_constraints(
                                       velocity_dof_handler,
-                                      boundary_id,
-                                      Functions::ZeroFunction<dim>(dim),
-                                      velocity_constraints,
-                                      component_mask);
+                                      0,
+                                      no_normal_flux_boundaries,
+                                      velocity_constraints);
           break;
         }
         case 4:
