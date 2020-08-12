@@ -34,7 +34,10 @@ template <int dim>
 class VelocityInflowBoundaryCondition : public Function<dim>
 {
 public:
-  VelocityInflowBoundaryCondition(const double time = 0);
+  bool  flag_DFG_benchmark;
+
+  VelocityInflowBoundaryCondition(const bool flag_DFG_benchmark,
+                                  const double time = 0);
 
   virtual void vector_value(const Point<dim>  &p,
                             Vector<double>    &values) const override;
@@ -44,7 +47,10 @@ template <int dim>
 class PressureInitialCondition : public Function<dim>
 {
 public:
-  PressureInitialCondition(const double time = 0);
+  bool  flag_DFG_benchmark;
+
+  PressureInitialCondition(const bool flag_DFG_benchmark,
+                           const double time = 0);
 
   virtual double value(const Point<dim> &p,
                       const unsigned int component = 0) const override;

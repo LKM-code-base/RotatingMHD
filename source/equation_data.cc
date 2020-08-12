@@ -15,7 +15,8 @@ namespace EquationData
 {
 
 template <int dim>
-VelocityInitialCondition<dim>::VelocityInitialCondition(const double time)
+VelocityInitialCondition<dim>::VelocityInitialCondition(
+                                                      const double time)
   : Function<dim>(dim, time)
 {}
 
@@ -31,8 +32,10 @@ void VelocityInitialCondition<dim>::vector_value(
 
 template <int dim>
 VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition(
-                                                      const double time)
-: Function<dim>(dim, time)
+                                          const bool flag_DFG_benchmark,
+                                          const double time)
+: Function<dim>(dim, time),
+  flag_DFG_benchmark(flag_DFG_benchmark)
 {}
 
 template <int dim>
@@ -41,15 +44,18 @@ void VelocityInflowBoundaryCondition<dim>::vector_value(
                                         Vector<double>    &values) const
 {
   const double Um = 1.5;
-  const double H  = 4.1;
+  const double H  = (flag_DFG_benchmark) ? 0.41 : 4.1;
 
   values[0] = 4.0 * Um * p(1) * ( H - p(1) ) / ( H * H );
   values[1] = 0.0;
 }
 
 template <int dim>
-PressureInitialCondition<dim>::PressureInitialCondition(const double time)
-: Function<dim>(1, time)
+PressureInitialCondition<dim>::PressureInitialCondition(
+                                          const bool flag_DFG_benchmark,
+                                          const double time)
+: Function<dim>(1, time),
+  flag_DFG_benchmark(flag_DFG_benchmark)
 {}
 
 template<int dim>
@@ -58,7 +64,7 @@ double PressureInitialCondition<dim>::value(
                                     const unsigned int component) const
 {
   (void)component;
-  return 25.0 - p(0);
+  return ((flag_DFG_benchmark) ? 2.2 : 25.0) - p(0);
 }
 
 } // namespace EquationData
