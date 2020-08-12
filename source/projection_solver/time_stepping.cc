@@ -13,18 +13,20 @@ void NavierStokesProjection<dim>::
 update_time_step()
 {
   dt_n_minus_1             = dt_n;
-  // Method compute_max_velocity still has to be updated to work in
-  // parallel.
-  /*const double v_max  = compute_max_velocity();
-
+  
+  const double v_max  = compute_max_velocity();
+  double       h_min  =   Utilities::MPI::max(
+                        GridTools::minimal_cell_diameter(triangulation), 
+                        mpi_communicator);
+  
   if (v_max >= 0.01)
     dt_n = 1.0 / (1.7 * dim * std::sqrt(1. * dim )) 
-          * GridTools::minimal_cell_diameter(triangulation)
+          * h_min
           / v_max;
   else
     dt_n = 1.0 / (1.7 * dim * std::sqrt(1. * dim )) 
-          * GridTools::minimal_cell_diameter(triangulation)
-          / 0.01;*/
+          * h_min
+          / 0.01;
 }
 
 template <int dim>
@@ -43,14 +45,15 @@ compute_max_velocity()
   const FEValuesExtractors::Vector  velocity(0);
 
   for (const auto &cell : velocity_dof_handler.active_cell_iterators())
-  {
-    fe_values.reinit(cell);
-    fe_values[velocity].get_function_values(velocity_n,
-                                            velocity_values);
-    for (unsigned int q = 0; q < n_q_points; ++q)
-      max_velocity = std::max(max_velocity, velocity_values[q].norm());
-  }
-  return max_velocity;
+    if (cell->is_locally_owned())
+    {
+      fe_values.reinit(cell);
+      fe_values[velocity].get_function_values(velocity_n,
+                                              velocity_values);
+      for (unsigned int q = 0; q < n_q_points; ++q)
+        max_velocity = std::max(max_velocity, velocity_values[q].norm());
+    }
+  return  Utilities::MPI::max(max_velocity, mpi_communicator);
 }
 }
 

@@ -7,7 +7,7 @@ end
 subsection Time discretization parameters
   set dt                              = 5e-3
   set t_0                             = 0.
-  set T                               = 5e-2
+  set T                               = 10.0
   set vsimex_input_gamma              = 1.0
   set vsimex_input_c                  = 0.0
 end
@@ -28,4 +28,4 @@ end
 
 set flag_verbose_output               = false
 set flag_adaptive_time_step           = false
-set output_interval                   = 10
+set output_interval                   = 50
