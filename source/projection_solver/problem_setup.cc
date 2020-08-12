@@ -138,7 +138,7 @@ initialize()
     TrilinosWrappers::MPI::Vector tmp_pressure_n(
                                           locally_owned_pressure_dofs);
     
-    velocity_initial_conditions.set_time(t_0);    
+    pressure_initial_conditions.set_time(t_0);    
     VectorTools::project(pressure_dof_handler,
                          pressure_constraints,
                          QGauss<dim>(pressure_fe_degree + 2),
