@@ -132,6 +132,8 @@ run(const bool  flag_verbose_output,
     if ((n % terminal_output_interval == 0) || time_stepping.is_at_end())
       point_evaluation(evaluation_point, n, time_stepping);
 
+    postprocessing();
+
     ++n;
 
     if (time_stepping.is_at_end())

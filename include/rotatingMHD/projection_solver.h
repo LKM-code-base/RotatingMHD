@@ -12,11 +12,13 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/benchmark_data.h>
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/discrete_time.h>
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/table_handler.h>
 #include <deal.II/base/utilities.h>
 
 #include <deal.II/dofs/dof_handler.h>
@@ -36,7 +38,6 @@
 #include <deal.II/lac/trilinos_precondition.h>
 #include <deal.II/lac/trilinos_solver.h>
 #include <deal.II/lac/trilinos_vector.h>
-
 #include <deal.II/distributed/tria.h>
 #include <deal.II/distributed/grid_refinement.h>
 
@@ -133,6 +134,8 @@ private:
   bool                                flag_adpative_time_step;
   bool                                flag_DFG_benchmark;
 
+  BenchmarkData::DFG<dim>             dfg_benchmark;
+
   DeclException2(ExcInvalidTimeStep,
                  double,
                  double,
@@ -154,6 +157,7 @@ private:
   void pressure_correction(const bool reinit_prec);
   void update_time_step();
   void output_results();
+  void postprocessing();
 
   void setup_velocity_matrices();
   void setup_pressure_matrices();

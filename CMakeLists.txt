@@ -64,6 +64,7 @@ SET(TARGET_SRC
     source/run_time_parameters.cc
     source/assembly_data.cc
     source/time_discretization.cc
+    source/benchmark_data.cc
     source/projection_solver.cc
     source/projection_solver/make_grid.cc
     source/projection_solver/setup_dofs.cc
@@ -76,6 +77,7 @@ SET(TARGET_SRC
     source/projection_solver/projection_step.cc
     source/projection_solver/correction_step.cc
     source/projection_solver/output_results.cc
+    source/projection_solver/postprocessing.cc
     source/projection_solver/time_stepping.cc
 #     source/assembly_data.cc
 #     source/buoyant_fluid_solver.cc
