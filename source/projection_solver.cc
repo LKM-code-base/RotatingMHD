@@ -129,10 +129,12 @@ run(const bool  flag_verbose_output,
     inflow_boundary_condition.advance_time(
                                     time_stepping.get_next_step_size());
 
-    if ((n % terminal_output_interval == 0) || time_stepping.is_at_end())
+    if (!flag_DFG_benchmark && 
+        ((n % terminal_output_interval == 0) || 
+          time_stepping.is_at_end()))
       point_evaluation(evaluation_point, n, time_stepping);
 
-    postprocessing();
+    postprocessing(n, terminal_output_interval);
 
     ++n;
 

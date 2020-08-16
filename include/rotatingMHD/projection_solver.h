@@ -157,7 +157,8 @@ private:
   void pressure_correction(const bool reinit_prec);
   void update_time_step();
   void output_results();
-  void postprocessing();
+  void postprocessing(const unsigned int &step,
+                      const unsigned int &terminal_output_interval);
 
   void setup_velocity_matrices();
   void setup_pressure_matrices();
