@@ -15,7 +15,7 @@ update_time_step()
   dt_n_minus_1             = dt_n;
   
   const double v_max  = compute_max_velocity();
-  double       h_min  =   Utilities::MPI::max(
+  double       h_min  =   Utilities::MPI::min(
                         GridTools::minimal_cell_diameter(triangulation), 
                         mpi_communicator);
   
