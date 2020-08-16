@@ -52,7 +52,7 @@ pressure_correction(const bool reinit_prec)
                   correction_step_preconditioner);*/
 
           pressure_constraints.distribute(distributed_pressure_n);
-          distributed_pressure_n.sadd(1.0 / Re, 1., distributed_pressure_n_minus_1);
+          distributed_pressure_n.sadd(((flag_DFG_benchmark) ? 0.001 : 1.0 / Re), 1., distributed_pressure_n_minus_1);
           distributed_pressure_n += distributed_phi_n;
           pressure_n = distributed_pressure_n;
         }

@@ -64,7 +64,7 @@ double PressureInitialCondition<dim>::value(
                                     const unsigned int component) const
 {
   (void)component;
-  return ((flag_DFG_benchmark) ? 2.2 : 25.0) - p(0);
+  return ((flag_DFG_benchmark) ? 0.0 : 25.0 - p(0)) ;
 }
 
 } // namespace EquationData

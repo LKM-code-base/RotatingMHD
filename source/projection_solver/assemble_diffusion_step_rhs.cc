@@ -120,7 +120,7 @@ assemble_local_diffusion_step_rhs(
                             scratch.phi_velocity[j] *
                             scratch.phi_velocity[i]
                             +
-                            1.0 / Re *
+                            ((flag_DFG_benchmark) ? 0.001 : 1.0 / Re) *
                             scalar_product(
                               scratch.grad_phi_velocity[j],
                               scratch.grad_phi_velocity[i])
