@@ -1,6 +1,6 @@
 #include <rotatingMHD/time_discretization.h>
 #include <deal.II/base/exceptions.h>
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 namespace TimeDiscretization
@@ -122,4 +122,4 @@ void VSIMEXMethod::update_coefficients()
 }
 
 } // namespace TimeDiscretiation
-} // namespace Step35
+} // namespace RMHD

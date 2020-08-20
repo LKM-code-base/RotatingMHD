@@ -7,7 +7,7 @@
 
 #include <rotatingMHD/equation_data.h>
 
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 
@@ -74,11 +74,11 @@ double PressureInitialCondition<dim>::value(
 
 // explicit instantiation
 
-template class Step35::EquationData::VelocityInitialCondition<2>;
-template class Step35::EquationData::VelocityInitialCondition<3>;
+template class RMHD::EquationData::VelocityInitialCondition<2>;
+template class RMHD::EquationData::VelocityInitialCondition<3>;
 
-template class Step35::EquationData::VelocityInflowBoundaryCondition<2>;
-template class Step35::EquationData::VelocityInflowBoundaryCondition<3>;
+template class RMHD::EquationData::VelocityInflowBoundaryCondition<2>;
+template class RMHD::EquationData::VelocityInflowBoundaryCondition<3>;
 
-template class Step35::EquationData::PressureInitialCondition<2>;
-template class Step35::EquationData::PressureInitialCondition<3>;
+template class RMHD::EquationData::PressureInitialCondition<2>;
+template class RMHD::EquationData::PressureInitialCondition<3>;

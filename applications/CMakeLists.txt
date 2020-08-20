@@ -6,7 +6,8 @@ INCLUDE_DIRECTORIES(
     )
 
 SET(SOURCE_FILES
-    main.cc
+    # main.cc
+    step-35.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})

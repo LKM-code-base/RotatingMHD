@@ -13,7 +13,7 @@
 
 #include <deal.II/lac/vector.h>
 
-namespace Step35
+namespace RMHD
 {
 
   using namespace dealii;
@@ -58,6 +58,6 @@ public:
 
 } // namespace EquationData
 
-} // namespace Step35
+} // namespace RMHD
 
 #endif /* INCLUDE_ROTATINGMHD_EQUATION_DATA_H_ */

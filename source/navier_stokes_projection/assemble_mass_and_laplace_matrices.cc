@@ -1,8 +1,8 @@
-#include <rotatingMHD/projection_solver.h>
+#include <rotatingMHD/navier_stokes_projection.h>
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/grid/filtered_iterator.h>
-namespace Step35
+namespace RMHD
 {
 
 template <int dim>
@@ -29,19 +29,19 @@ assemble_velocity_matrices()
     };
 
   WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             velocity_dof_handler.begin_active()),
+                             velocity.dof_handler.begin_active()),
                   CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             velocity_dof_handler.end()),
+                             velocity.dof_handler.end()),
                   worker,
                   copier,
                   VelocityMatricesAssembly::LocalCellData<dim>(
-                                            velocity_fe,
-                                            velocity_quadrature_formula,
+                                            velocity.fe,
+                                            velocity.quadrature_formula,
                                             update_values |
                                             update_gradients |
                                             update_JxW_values),
                   VelocityMatricesAssembly::MappingData<dim>(
-                                            velocity_fe.dofs_per_cell));
+                                            velocity.fe.dofs_per_cell));
   velocity_mass_matrix.compress(VectorOperation::add);
   velocity_laplace_matrix.compress(VectorOperation::add);
 }
@@ -50,12 +50,12 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_local_velocity_matrices(
   const typename DoFHandler<dim>::active_cell_iterator  &cell, 
-  VelocityMatricesAssembly::LocalCellData<dim>       &scratch, 
-  VelocityMatricesAssembly::MappingData<dim>         &data)
+  VelocityMatricesAssembly::LocalCellData<dim>          &scratch, 
+  VelocityMatricesAssembly::MappingData<dim>            &data)
 {
   scratch.velocity_fe_values.reinit(cell);
   cell->get_dof_indices(data.local_velocity_dof_indices);
-  const FEValuesExtractors::Vector  velocity(0);
+  const FEValuesExtractors::Vector  velocities(0);
 
   data.local_velocity_mass_matrix = 0.;
   data.local_velocity_laplace_matrix = 0.;
@@ -65,9 +65,9 @@ assemble_local_velocity_matrices(
     for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
     {
       scratch.phi_velocity[i] = 
-                    scratch.velocity_fe_values[velocity].value(i, q);
+                    scratch.velocity_fe_values[velocities].value(i, q);
       scratch.grad_phi_velocity[i] =
-                    scratch.velocity_fe_values[velocity].gradient(i, q);
+                    scratch.velocity_fe_values[velocities].gradient(i, q);
     }
     for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
       for (unsigned int j = 0; j <= i; ++j)
@@ -98,11 +98,11 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_velocity_matrices(
   const VelocityMatricesAssembly::MappingData<dim> &data)
 {
-  velocity_constraints.distribute_local_to_global(
+  velocity.constraints.distribute_local_to_global(
                                       data.local_velocity_mass_matrix,
                                       data.local_velocity_dof_indices,
                                       velocity_mass_matrix);
-  velocity_constraints.distribute_local_to_global(
+  velocity.constraints.distribute_local_to_global(
                                       data.local_velocity_laplace_matrix,
                                       data.local_velocity_dof_indices,
                                       velocity_laplace_matrix);
@@ -131,19 +131,19 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
     };
 
   WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure_dof_handler.begin_active()),
+                             pressure.dof_handler.begin_active()),
                   CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure_dof_handler.end()),
+                             pressure.dof_handler.end()),
                   worker,
                   copier,
                   PressureMatricesAssembly::LocalCellData<dim>(
-                                            pressure_fe,
-                                            pressure_quadrature_formula,
+                                            pressure.fe,
+                                            pressure.quadrature_formula,
                                             update_values |
                                             update_gradients |
                                             update_JxW_values),
                   PressureMatricesAssembly::MappingData<dim>(
-                                            pressure_fe.dofs_per_cell));
+                                            pressure.fe.dofs_per_cell));
   pressure_mass_matrix.compress(VectorOperation::add);
   pressure_laplace_matrix.compress(VectorOperation::add);
 }
@@ -205,11 +205,11 @@ copy_local_to_global_pressure_matrices(
                                data.local_pressure_dof_indices[j],
                                data.local_pressure_mass_matrix(i, j));
     }*/
-  pressure_constraints.distribute_local_to_global(
+  pressure.constraints.distribute_local_to_global(
                                       data.local_pressure_mass_matrix,
                                       data.local_pressure_dof_indices,
                                       pressure_mass_matrix);
-  pressure_constraints.distribute_local_to_global(
+  pressure.constraints.distribute_local_to_global(
                                       data.local_pressure_laplace_matrix,
                                       data.local_pressure_dof_indices,
                                       pressure_laplace_matrix);
@@ -217,36 +217,36 @@ copy_local_to_global_pressure_matrices(
 } // namespace Step35
 
 // explicit instantiations
-template void Step35::NavierStokesProjection<2>::assemble_velocity_matrices();
-template void Step35::NavierStokesProjection<3>::assemble_velocity_matrices();
+template void RMHD::NavierStokesProjection<2>::assemble_velocity_matrices();
+template void RMHD::NavierStokesProjection<3>::assemble_velocity_matrices();
 
-template void Step35::NavierStokesProjection<2>::assemble_local_velocity_matrices(
-    const typename DoFHandler<2>::active_cell_iterator      &,
-    Step35::VelocityMatricesAssembly::LocalCellData<2>   &,
-    Step35::VelocityMatricesAssembly::MappingData<2>     &);
-template void Step35::NavierStokesProjection<3>::assemble_local_velocity_matrices(
-    const typename DoFHandler<3>::active_cell_iterator      &,
-    Step35::VelocityMatricesAssembly::LocalCellData<3>   &,
-    Step35::VelocityMatricesAssembly::MappingData<3>     &);
+template void RMHD::NavierStokesProjection<2>::assemble_local_velocity_matrices(
+    const typename DoFHandler<2>::active_cell_iterator  &,
+    RMHD::VelocityMatricesAssembly::LocalCellData<2>    &,
+    RMHD::VelocityMatricesAssembly::MappingData<2>      &);
+template void RMHD::NavierStokesProjection<3>::assemble_local_velocity_matrices(
+    const typename DoFHandler<3>::active_cell_iterator  &,
+    RMHD::VelocityMatricesAssembly::LocalCellData<3>    &,
+    RMHD::VelocityMatricesAssembly::MappingData<3>      &);
 
-template void Step35::NavierStokesProjection<2>::copy_local_to_global_velocity_matrices(
-  const Step35::VelocityMatricesAssembly::MappingData<2> &);
-template void Step35::NavierStokesProjection<3>::copy_local_to_global_velocity_matrices(
-  const Step35::VelocityMatricesAssembly::MappingData<3> &);
+template void RMHD::NavierStokesProjection<2>::copy_local_to_global_velocity_matrices(
+  const RMHD::VelocityMatricesAssembly::MappingData<2>  &);
+template void RMHD::NavierStokesProjection<3>::copy_local_to_global_velocity_matrices(
+  const RMHD::VelocityMatricesAssembly::MappingData<3>  &);
 
-template void Step35::NavierStokesProjection<2>::assemble_pressure_matrices();
-template void Step35::NavierStokesProjection<3>::assemble_pressure_matrices();
+template void RMHD::NavierStokesProjection<2>::assemble_pressure_matrices();
+template void RMHD::NavierStokesProjection<3>::assemble_pressure_matrices();
 
-template void Step35::NavierStokesProjection<2>::assemble_local_pressure_matrices(
-    const typename DoFHandler<2>::active_cell_iterator      &,
-    Step35::PressureMatricesAssembly::LocalCellData<2>   &,
-    Step35::PressureMatricesAssembly::MappingData<2>     &);
-template void Step35::NavierStokesProjection<3>::assemble_local_pressure_matrices(
-    const typename DoFHandler<3>::active_cell_iterator      &,
-    Step35::PressureMatricesAssembly::LocalCellData<3>   &,
-    Step35::PressureMatricesAssembly::MappingData<3>     &);
+template void RMHD::NavierStokesProjection<2>::assemble_local_pressure_matrices(
+    const typename DoFHandler<2>::active_cell_iterator  &,
+    RMHD::PressureMatricesAssembly::LocalCellData<2>    &,
+    RMHD::PressureMatricesAssembly::MappingData<2>      &);
+template void RMHD::NavierStokesProjection<3>::assemble_local_pressure_matrices(
+    const typename DoFHandler<3>::active_cell_iterator  &,
+    RMHD::PressureMatricesAssembly::LocalCellData<3>    &,
+    RMHD::PressureMatricesAssembly::MappingData<3>      &);
 
-template void Step35::NavierStokesProjection<2>::copy_local_to_global_pressure_matrices(
-  const Step35::PressureMatricesAssembly::MappingData<2> &);
-template void Step35::NavierStokesProjection<3>::copy_local_to_global_pressure_matrices(
-  const Step35::PressureMatricesAssembly::MappingData<3> &);
+template void RMHD::NavierStokesProjection<2>::copy_local_to_global_pressure_matrices(
+  const RMHD::PressureMatricesAssembly::MappingData<2>  &);
+template void RMHD::NavierStokesProjection<3>::copy_local_to_global_pressure_matrices(
+  const RMHD::PressureMatricesAssembly::MappingData<3>  &);

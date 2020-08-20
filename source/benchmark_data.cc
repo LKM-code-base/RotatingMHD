@@ -6,7 +6,7 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <limits>
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 namespace BenchmarkData
@@ -250,8 +250,8 @@ void DFG<dim>::write_table_to_file(const std::string &file)
 }
 
 } // namespace BenchmarkData
-} // namespace Step35
+} // namespace RMHD
 
 // explicit instantiations
-template struct Step35::BenchmarkData::DFG<2>;
-template struct Step35::BenchmarkData::DFG<3>;
+template struct RMHD::BenchmarkData::DFG<2>;
+template struct RMHD::BenchmarkData::DFG<3>;

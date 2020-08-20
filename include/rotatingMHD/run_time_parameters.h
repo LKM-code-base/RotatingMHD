@@ -10,7 +10,7 @@
 
 #include <deal.II/base/parameter_handler.h>
 
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 
@@ -55,6 +55,6 @@ protected:
 
 } // namespace RunTimeParameters
 
-} // namespace Step35
+} // namespace RMHD
 
 #endif /* INCLUDE_ROTATINGMHD_RUN_TIME_PARAMETERS_H_ */

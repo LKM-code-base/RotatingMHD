@@ -3,11 +3,11 @@
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/numerics/matrix_tools.h>
-#include <deal.II/fe/fe_q.h>
 
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 namespace AdvectionAssembly
@@ -173,6 +173,6 @@ struct LocalCellData
 };
 } // namespace PressureRightHandSideAssembly
 
-} // namespace Step35
+} // namespace RMHD
 
 #endif /* INCLUDE_ROTATINGMHD_ASSEMBLY_DATA_H_ */

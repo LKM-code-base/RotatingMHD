@@ -10,7 +10,7 @@
 
 #include <fstream>
 
-namespace Step35
+namespace RMHD
 {
 
   using namespace dealii;
@@ -210,4 +210,4 @@ read_data_from_file(const std::string &filename)
 
 } // namespace RunTimeParameters
   
-} // namespace Step35
+} // namespace RMHD

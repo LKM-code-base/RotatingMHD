@@ -5,7 +5,7 @@
 #include <deal.II/base/discrete_time.h>
 #include <iostream>
 #include <vector>
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 
@@ -58,6 +58,6 @@ private:
 };
 
 } // namespace TimeDiscretization
-} // namespace Step35
+} // namespace RMHD
 
 #endif /* INCLUDE_ROTATINGMHD_TIME_DISCRETIZATION_H_ */
