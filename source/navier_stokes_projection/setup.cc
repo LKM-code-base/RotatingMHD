@@ -13,6 +13,7 @@ setup()
   setup_matrices();
   setup_vectors();
   assemble_constant_matrices();
+  initialize();
 }
 
 template <int dim>
@@ -101,62 +102,15 @@ assemble_constant_matrices()
                                           velocity_mass_matrix);
   }
 }
-/*
+
 template <int dim>
 void NavierStokesProjection<dim>::
 initialize()
 {
   phi_n         = 0.;
   phi_n_minus_1 = 0.;
- {
-    TrilinosWrappers::MPI::Vector tmp_velocity_n_minus_1(
-                                          locally_owned_velocity_dofs);
-    TrilinosWrappers::MPI::Vector tmp_velocity_n(
-                                          locally_owned_velocity_dofs);
-    
-    velocity_initial_conditions.set_time(t_0);    
-    VectorTools::project(velocity.dof_handler,
-                         velocity.constraints,
-                         QGauss<dim>(velocity_fe_degree + 2),
-                         velocity_initial_conditions,
-                         tmp_velocity_n_minus_1);
-
-    velocity_initial_conditions.advance_time(dt_n);
-    VectorTools::project(velocity.dof_handler,
-                         velocity.constraints,
-                         QGauss<dim>(velocity_fe_degree + 2),
-                         velocity_initial_conditions,
-                         tmp_velocity_n);
-
-    velocity_n_minus_1  = tmp_velocity_n_minus_1;
-    velocity_n          = tmp_velocity_n;
- }
-
- {
-    TrilinosWrappers::MPI::Vector tmp_pressure_n_minus_1(
-                                          pressure.locally_owned_dofs);
-    TrilinosWrappers::MPI::Vector tmp_pressure_n(
-                                          pressure.locally_owned_dofs);
-    
-    pressure_initial_conditions.set_time(t_0);    
-    VectorTools::project(pressure.dof_handler,
-                          pressure.constraints,
-                          QGauss<dim>(pressure_fe_degree + 2),
-                          pressure_initial_conditions,
-                          tmp_pressure_n_minus_1);
-
-    pressure_initial_conditions.advance_time(dt_n);
-    VectorTools::project(pressure.dof_handler,
-                          pressure.constraints,
-                          QGauss<dim>(pressure_fe_degree + 2),
-                          pressure_initial_conditions,
-                          tmp_pressure_n);
-
-    pressure_n_minus_1  = tmp_pressure_n_minus_1;
-    pressure_n          = tmp_pressure_n;
- }
 }
-*/
+
 }
 
 // explicit instantiations
@@ -168,5 +122,5 @@ template void RMHD::NavierStokesProjection<2>::setup_vectors();
 template void RMHD::NavierStokesProjection<3>::setup_vectors();
 template void RMHD::NavierStokesProjection<2>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
-/*template void RMHD::NavierStokesProjection<2>::initialize();
-template void RMHD::NavierStokesProjection<3>::initialize();*/
+template void RMHD::NavierStokesProjection<2>::initialize();
+template void RMHD::NavierStokesProjection<3>::initialize();

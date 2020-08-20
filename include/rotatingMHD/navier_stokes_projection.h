@@ -29,11 +29,13 @@ public:
                 TimeDiscretization::VSIMEXCoefficients  &VSIMEX,
                 TimeDiscretization::VSIMEXMethod        &time_stepping);
   void setup();
-  void solve();
+  void solve(const unsigned int step);
   
 private:
+  RunTimeParameters::ProjectionMethod     projection_method;
   const double                            Re;
-
+  double                                  dt_n;
+  double                                  dt_n_minus_1;
   Entities::Velocity<dim>                 &velocity;
   Entities::Pressure<dim>                 &pressure;
 
@@ -73,6 +75,15 @@ private:
   void setup_matrices();
   void setup_vectors();
   void assemble_constant_matrices();
+  void initialize();
+
+  void diffusion_step(const bool reinit_prec);
+  void assemble_diffusion_step();
+  void solve_diffusion_step(const bool reinit_prec);
+  void projection_step(const bool reinit_prec);
+  void assemble_projection_step();
+  void solve_projection_step(const bool reinit_prec);
+  void pressure_correction(const bool reinit_prec);
 
   void assemble_velocity_matrices();
   void assemble_local_velocity_matrices(
@@ -89,6 +100,30 @@ private:
     PressureMatricesAssembly::MappingData<dim>            &data);
   void copy_local_to_global_pressure_matrices(
     const PressureMatricesAssembly::MappingData<dim>      &data);
+
+  void assemble_diffusion_step_rhs();
+  void assemble_local_diffusion_step_rhs(
+    const typename DoFHandler<dim>::active_cell_iterator  &cell,
+    VelocityRightHandSideAssembly::LocalCellData<dim>     &scratch,
+    VelocityRightHandSideAssembly::MappingData<dim>       &data);
+  void copy_local_to_global_diffusion_step_rhs(
+    const VelocityRightHandSideAssembly::MappingData<dim> &data);
+
+  void assemble_projection_step_rhs();
+  void assemble_local_projection_step_rhs(
+    const typename DoFHandler<dim>::active_cell_iterator  &cell,
+    PressureRightHandSideAssembly::LocalCellData<dim>     &scratch,
+    PressureRightHandSideAssembly::MappingData<dim>       &data);
+  void copy_local_to_global_projection_step_rhs(
+    const PressureRightHandSideAssembly::MappingData<dim> &data);
+
+  void assemble_velocity_advection_matrix();
+  void assemble_local_velocity_advection_matrix(
+    const typename DoFHandler<dim>::active_cell_iterator  &cell,
+    AdvectionAssembly::LocalCellData<dim>                 &scratch,
+    AdvectionAssembly::MappingData<dim>                   &data);
+  void copy_local_to_global_velocity_advection_matrix(
+    const AdvectionAssembly::MappingData<dim>             &data);
 };
 
 } // namespace RMHD
