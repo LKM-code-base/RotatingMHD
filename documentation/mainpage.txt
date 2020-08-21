@@ -1,0 +1,61 @@
+/**
+@mainpage Documentation of the Rotating MHD solver
+@author Jose Lara and Sebastian Glane
+\tableofcontents
+
+This github repository contains a suite of solvers for incompressible flow problems. The solvers apply an implcit-explicit timestepping scheme and a pressure correction scheme. The following types of problems can be solved with the current version of the library
+  - Convection-diffusion equation (with a prescribed velocity field),
+  - Incompessible Navier-Stokes equations.
+
+
+The objective is to finally implement a solver which is capable of solving dynamo problem inside spherical annulus. Solvers of the Navier-Stokes equation, the heat conduction equation and the magnetic induction equation are the building blocks to achieve this and are coupled in order to solve the dynamo problem.
+
+@section Introduction
+
+In the following, the equations which are governing the different problems stated above will be presented.
+
+@subsection ConvectionDiffusion Convection diffusion equation
+
+The initial boundary value problem of the convection-diffusion equation reads
+\f[
+\begin{equation*}
+\begin{aligned}
+    \pd{c}{t} + \bs{v} \cdot \nabla c &= \nabla\cdot\left( D \nabla c \right) + r\,, \quad & &\forall \left( \bs{x}, t\right) \in \Omega \times \left[ 0, T \right]\,, \\
+    c(\bs{x}, t) &= c_\mathrm{D}(\bs{x}, t)\,, \quad & &\forall \left( \bs{x}, t\right) \in \Gamma_\mathrm{D} \times \left[ 0, T \right]\,, \\
+    \bs{n} \cdot D\nabla c &= j(\bs{x}, t)\,, \quad & &\forall \left( \bs{x}, t\right) \in \Gamma_\mathrm{N} \times \left[ 0, T \right]\,, \\
+    \bs{n} \cdot D\nabla c + f(\bs{x}, t) c(\bs{x}, t) &= g(\bs{x}, t)\,, \quad & &\forall \left( \bs{x}, t\right) \in \Gamma_\mathrm{R} \times \left[ 0, T \right]\,, \\
+    c(\bs{x}, t=0)&=c_0(\bs{x})\,, \quad & & \forall \bs{x} \in \Omega\,,
+\end{aligned}
+\end{equation*}
+\f]
+
+where \f$c\f$ is a scalar field, for example, the temperature \f$T\f$, the entropy \f$s\f$, or a concentration of a chemical species. Moreover, \f$D\f$ denotes a diffusion coefficient and \f$r\f$ a source term.
+
+@subsection NavierStokes Navier Stokes equation
+
+The initial boundary value problem of the Navier Stokes equation reads
+\f[
+\begin{equation*}
+\begin{aligned}
+    \nabla\cdot\bs{v}&=0\,, \quad & &\forall \left( \bs{x}, t\right) \in \Omega \times \left[ 0, T \right]\,, \\
+    \rho_0\pd{\bs{v}}{t} + \rho_0\bs{v} \cdot \nabla \bs{v} &= -\nabla p + \nu\nabla^2\bs{v}\,\,, \quad & &\forall \left( \bs{x}, t\right) \in \Omega \times \left[ 0, T \right]\,, \\
+    \bs{v}(\bs{x}, t) &= \bs{v}_\mathrm{D}(\bs{x}, t)\,, \quad p(\bs{x},t)=p_\mathrm{D}(x,t)\,, & &\forall \left( \bs{x}, t\right) \in \Gamma_\mathrm{D} \times \left[ 0, T \right]\,, \\
+    -p\bs{n} + \bs{n} \cdot \nu\nabla \bs{v} &= j(\bs{x}, t)\,, \quad & &\forall \left( \bs{x}, t\right) \in \Gamma_\mathrm{N} \times \left[ 0, T \right]\,, \\
+    \bs{v}(\bs{x}, t=0)&=\bs{v}_0(\bs{x})\,, \quad p(\bs{x}, t=0)=p_0(\bs{x})\,, & & \forall \bs{x} \in \Omega\,,
+\end{aligned}
+\end{equation*}
+\f]
+
+where \f$\bs{v}\f$ is the velocity and \f$p\f$ the pressure field. Moreover, \f$\nu\f$ denotes the kinematic viscosity and \f$\rho_0\f$ a constant and homogeneous density. Furthermore, if a boundary condition for the pressure is not specified, the pressure is normalized such that
+
+\f[
+\begin{equation*}
+    \int\limits_\Omega p \dint{V}=0\,.
+\end{equation*}
+\f]
+
+@section PressureProjection Pressure projection scheme
+
+In the following, the incremental pressure projection scheme is explained and discussed. This scheme is used to solve the Navier Stokes equations and decouples the velocity and the pressure in each time step.
+
+*/

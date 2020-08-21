@@ -96,6 +96,11 @@ _deps
 *.gz
 *.iso
 *.jar
+
+# Doxygen
+documentation/html/
+documentation/latex/
+
 *.rar
 *.tar
 *.zip
