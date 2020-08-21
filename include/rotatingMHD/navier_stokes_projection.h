@@ -6,7 +6,6 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/time_discretization.h>
-#include <rotatingMHD/benchmark_data.h>
 
 #include <deal.II/lac/trilinos_precondition.h>
 
