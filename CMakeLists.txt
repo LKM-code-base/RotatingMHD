@@ -60,18 +60,18 @@ ENDIF()
 
 # Set the source files to be compiled
 SET(TARGET_SRC
-    source/assembly_data.cc
     source/entities_structs.cc
-    source/run_time_parameters.cc
     source/time_discretization.cc
     source/equation_data.cc
     source/navier_stokes_projection.cc
     source/navier_stokes_projection/assemble_advection_matrix.cc
-    source/navier_stokes_projection/assemble_diffusion_step_rhs.cc
-    source/navier_stokes_projection/assemble_projection_step_rhs.cc
+    source/navier_stokes_projection/assemble_diffusion_rhs.cc
+    source/navier_stokes_projection/assemble_projection_rhs.cc
     source/navier_stokes_projection/assemble_mass_and_laplace_matrices.cc
+    source/navier_stokes_projection/assembly_data.cc
     source/navier_stokes_projection/diffusion_step_methods.cc
     source/navier_stokes_projection/projection_step_methods.cc
+    source/navier_stokes_projection/run_time_parameters.cc
     source/navier_stokes_projection/setup.cc
     source/navier_stokes_projection/solve.cc
 )
