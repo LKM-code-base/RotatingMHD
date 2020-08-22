@@ -24,6 +24,8 @@ ParameterSet::ParameterSet()
   : projection_method(ProjectionMethod::rotational),
     vsimex_scheme(VSIMEXScheme::BDF2),
     dt(5e-4),
+    timestep_lower_bound(5e-5),
+    timestep_upper_bound(5e-3),
     t_0(0.0),
     T(1.0),
     vsimex_input_gamma(1.0),
@@ -61,6 +63,14 @@ ParameterSet::ParameterSet()
                       "5e-4",
                       Patterns::Double(0.),
                       " Time step size. ");
+    prm.declare_entry("timestep_lower_bound",
+                      "5e-5",
+                      Patterns::Double(0.),
+                      " Time step lower bound. ");
+    prm.declare_entry("timestep_upper_bound",
+                      "5e-3",
+                      Patterns::Double(0.),
+                      " Time step upper bound. ");
     prm.declare_entry("t_0",
                       "0.",
                       Patterns::Double(0.),
@@ -180,6 +190,8 @@ read_data_from_file(const std::string &filename)
   prm.enter_subsection("Time discretization parameters");
   {
     dt  = prm.get_double("dt");
+    timestep_lower_bound  = prm.get_double("timestep_lower_bound");
+    timestep_upper_bound  = prm.get_double("timestep_upper_bound");
     t_0 = prm.get_double("t_0");
     T   = prm.get_double("T");
     if (prm.get("vsimex_scheme") == std::string("FE"))

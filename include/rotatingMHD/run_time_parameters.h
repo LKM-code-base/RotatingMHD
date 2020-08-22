@@ -39,6 +39,8 @@ public:
   ProjectionMethod  projection_method;
   VSIMEXScheme      vsimex_scheme;
   double            dt;
+  double            timestep_lower_bound;
+  double            timestep_upper_bound;
   double            t_0;
   double            T;
   double            vsimex_input_gamma;
