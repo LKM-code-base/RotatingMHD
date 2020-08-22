@@ -64,6 +64,7 @@ SET(TARGET_SRC
     source/time_discretization.cc
     source/equation_data.cc
     source/navier_stokes_projection.cc
+    source/run_time_parameters.cc
     source/navier_stokes_projection/assemble_advection_matrix.cc
     source/navier_stokes_projection/assemble_diffusion_rhs.cc
     source/navier_stokes_projection/assemble_projection_rhs.cc
@@ -71,7 +72,6 @@ SET(TARGET_SRC
     source/navier_stokes_projection/assembly_data.cc
     source/navier_stokes_projection/diffusion_step_methods.cc
     source/navier_stokes_projection/projection_step_methods.cc
-    source/navier_stokes_projection/run_time_parameters.cc
     source/navier_stokes_projection/setup.cc
     source/navier_stokes_projection/solve.cc
 )
