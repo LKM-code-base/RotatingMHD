@@ -37,11 +37,11 @@ private:
   TimeDiscretization::VSIMEXMethod            time_stepping;
   NavierStokesProjection<dim>                 navier_stokes;
   
-  EquationData::VelocityInflowBoundaryCondition<dim>  
+  EquationData::Step35::VelocityInflowBoundaryCondition<dim>  
                                       inflow_boundary_condition;
-  EquationData::VelocityInitialCondition<dim>         
+  EquationData::Step35::VelocityInitialCondition<dim>         
                                       velocity_initial_conditions;
-  EquationData::PressureInitialCondition<dim>         
+  EquationData::Step35::PressureInitialCondition<dim>         
                                       pressure_initial_conditions;
 
   void make_grid(const unsigned int n_global_refinements);
@@ -70,20 +70,17 @@ Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
     velocity(parameters.p_fe_degree + 1, triangulation),
     pressure(parameters.p_fe_degree, triangulation),
     VSIMEX(2),
-    time_stepping(2,
-                  {parameters.vsimex_input_gamma, 
-                    parameters.vsimex_input_c}, 
+    time_stepping((TimeDiscretization::VSIMEXScheme) (int) parameters.vsimex_scheme,
                   -parameters.dt, parameters.T, parameters.dt),
     navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
-    inflow_boundary_condition(false, parameters.t_0),
+    inflow_boundary_condition(parameters.t_0),
     velocity_initial_conditions(parameters.t_0),
-    pressure_initial_conditions(false, parameters.t_0)
+    pressure_initial_conditions(parameters.t_0)
 {
   // The VSIMEXMethod class is initialized with t_0 = -dt and then
   // advanced in order to populate a private member of the class, which
   // is needed to calculate the coefficients for the first step
   time_stepping.advance_time();
-  time_stepping.update_coefficients();
   time_stepping.get_coefficients(VSIMEX);
 
   make_grid(parameters.n_global_refinements);
@@ -295,22 +292,30 @@ void Step35<dim>::run(
               const unsigned int  graphical_output_periodicity)
 {
 (void)flag_verbose_output;
-(void)graphical_output_periodicity;
 
 Point<dim> evaluation_point(2.0, 3.0);
-for (unsigned int i = 0; i < time_stepping.get_order(); ++i)
-time_stepping.advance_time();
+
+if (time_stepping.get_order() == 2)
+  time_stepping.advance_time();
+
 unsigned int step = time_stepping.get_order();
+
 output();
-for (;time_stepping.get_current_time() <= time_stepping.get_end_time();
-        time_stepping.advance_time())
+
+while (!time_stepping.is_at_end())
   {
+    time_stepping.get_coefficients(VSIMEX);
+    time_stepping.advance_time();
     navier_stokes.solve(step);
+
+    if ((step % graphical_output_periodicity == 0) ||
+        time_stepping.is_at_end())
+      output();
+
     if ((step % terminal_output_periodicity == 0) ||
         time_stepping.is_at_end())
       point_evaluation(evaluation_point, step, time_stepping);
-    if (time_stepping.is_at_end())
-      break;
+
     ++step;
   }
 }
