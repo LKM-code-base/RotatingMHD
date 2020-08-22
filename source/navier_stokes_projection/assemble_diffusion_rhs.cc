@@ -115,8 +115,7 @@ assemble_local_diffusion_step_rhs(
 
         for (unsigned int j = 0; j < scratch.velocity_dofs_per_cell; ++j)
           data.local_matrix_for_inhomogeneous_bc(j, i) += (
-                            (2.0 * dt_n + dt_n_minus_1) /
-                            (dt_n * (dt_n + dt_n_minus_1)) *
+                            VSIMEX.alpha[2] *
                             scratch.phi_velocity[j] *
                             scratch.phi_velocity[i]
                             +

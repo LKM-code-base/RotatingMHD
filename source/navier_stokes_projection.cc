@@ -13,8 +13,6 @@ NavierStokesProjection(
                 TimeDiscretization::VSIMEXMethod        &time_stepping)
   : projection_method(parameters.projection_method),
     Re(parameters.Re),
-    dt_n(parameters.dt),
-    dt_n_minus_1(parameters.dt),
     velocity(velocity),
     pressure(pressure),
     VSIMEX(VSIMEX),

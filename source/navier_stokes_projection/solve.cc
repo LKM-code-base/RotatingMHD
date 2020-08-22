@@ -34,20 +34,20 @@ diffusion_step(const bool reinit_prec)
 
   {
     TrilinosWrappers::MPI::Vector distributed_pressure_n(pressure_rhs);
-    TrilinosWrappers::MPI::Vector distributed_phi_n_minus_1(pressure_rhs);
-    TrilinosWrappers::MPI::Vector distributed_phi_n(pressure_rhs);
+    TrilinosWrappers::MPI::Vector distributed_old_phi(pressure_rhs);
+    TrilinosWrappers::MPI::Vector distributed_phi(pressure_rhs);
     distributed_pressure_n = pressure.solution_n;
-    distributed_phi_n_minus_1 = phi_n_minus_1;
-    distributed_phi_n = phi_n;
+    distributed_old_phi = old_phi;
+    distributed_phi = phi;
     /*Define auxiliary pressure
     p^{\#} = p^\textrm{k} + 4/3 * \phi^\textrm{k} 
                 - 1/3 * \phi^{\textrm{k}-1} */
     distributed_pressure_n.sadd(+1.,
                                 +4. / 3., 
-                                distributed_phi_n);
+                                distributed_phi);
     distributed_pressure_n.sadd(+1.,
                                  -1. / 3.,
-                                distributed_phi_n_minus_1);
+                                distributed_old_phi);
     pressure_tmp = distributed_pressure_n;
   }
 
@@ -83,7 +83,7 @@ projection_step(const bool reinit_prec)
   assemble_projection_step();
 
   /* Update for the next time step */
-  phi_n_minus_1 = phi_n;
+  old_phi = phi;
 
   /* Solve linear system */
   solve_projection_step(reinit_prec);
@@ -100,7 +100,7 @@ pressure_correction(const bool reinit_prec)
   switch (projection_method)
     {
       case RunTimeParameters::ProjectionMethod::standard:
-        pressure.solution_n += phi_n;
+        pressure.solution_n += phi;
         break;
       case RunTimeParameters::ProjectionMethod::rotational:
         static TrilinosWrappers::SolverDirect::AdditionalData data(
@@ -110,11 +110,11 @@ pressure_correction(const bool reinit_prec)
         {
           TrilinosWrappers::MPI::Vector distributed_pressure_n(pressure_rhs);
           TrilinosWrappers::MPI::Vector distributed_pressure_n_minus_1(pressure_rhs);
-          TrilinosWrappers::MPI::Vector distributed_phi_n(pressure_rhs);
+          TrilinosWrappers::MPI::Vector distributed_phi(pressure_rhs);
 
           distributed_pressure_n = pressure.solution_n;
           distributed_pressure_n_minus_1 = pressure.solution_n_minus_1;
-          distributed_phi_n = phi_n;
+          distributed_phi = phi;
 
           /* Using a direct solver */
           TrilinosWrappers::SolverDirect solver(solver_control, data);
@@ -138,7 +138,7 @@ pressure_correction(const bool reinit_prec)
 
           pressure.constraints.distribute(distributed_pressure_n);
           distributed_pressure_n.sadd(1.0 / Re, 1., distributed_pressure_n_minus_1);
-          distributed_pressure_n += distributed_phi_n;
+          distributed_pressure_n += distributed_phi;
           pressure.solution_n = distributed_pressure_n;
         }
 

@@ -23,8 +23,8 @@ template <int dim>
 void NavierStokesProjection<dim>::
 solve_projection_step(const bool reinit_prec)
 {
-  TrilinosWrappers::MPI::Vector distributed_phi_n(pressure_rhs);
-  distributed_phi_n = phi_n;
+  TrilinosWrappers::MPI::Vector distributed_phi(pressure_rhs);
+  distributed_phi = phi;
 
   if (reinit_prec)
     projection_step_preconditioner.initialize(pressure_laplace_matrix);
@@ -33,12 +33,12 @@ solve_projection_step(const bool reinit_prec)
                               solver_tolerance * pressure_rhs.l2_norm());
   SolverCG<TrilinosWrappers::MPI::Vector>    cg(solvercontrol);
   cg.solve(pressure_laplace_matrix, 
-           distributed_phi_n, 
+           distributed_phi, 
            pressure_rhs, 
            projection_step_preconditioner);
-  pressure.constraints.distribute(distributed_phi_n);
-  distributed_phi_n *= VSIMEX.alpha[2];
-  phi_n = distributed_phi_n;
+  pressure.constraints.distribute(distributed_phi);
+  distributed_phi *= VSIMEX.alpha[2];
+  phi = distributed_phi;
 }
 }
 
