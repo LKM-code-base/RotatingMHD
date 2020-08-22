@@ -22,10 +22,22 @@ enum class ProjectionMethod
   rotational
 };
 
+enum class VSIMEXScheme
+{
+  FE,
+  CNFE,
+  BEFE,
+  BDF2,
+  CNAB,
+  mCNAB,
+  CNLF
+};
+
 class ParameterSet
 {
 public:
   ProjectionMethod  projection_method;
+  VSIMEXScheme      vsimex_scheme;
   double            dt;
   double            t_0;
   double            T;

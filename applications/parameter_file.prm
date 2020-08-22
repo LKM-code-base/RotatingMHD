@@ -8,6 +8,7 @@ subsection Time discretization parameters
   set dt                              = 5e-3
   set t_0                             = 0.
   set T                               = 5e-2
+  set vsimex_scheme                   = BDF2
   set vsimex_input_gamma              = 1.0
   set vsimex_input_c                  = 0.0
 end

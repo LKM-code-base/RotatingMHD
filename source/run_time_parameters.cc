@@ -22,6 +22,7 @@ namespace RunTimeParameters
 // step-19 and step-29.
 ParameterSet::ParameterSet()
   : projection_method(ProjectionMethod::rotational),
+    vsimex_scheme(VSIMEXScheme::BDF2),
     dt(5e-4),
     t_0(0.0),
     T(1.0),
@@ -68,6 +69,10 @@ ParameterSet::ParameterSet()
                       "1.",
                       Patterns::Double(0.),
                       " The final time of the simulation. ");
+    prm.declare_entry("vsimex_scheme",
+                      "BDF2",
+                      Patterns::Selection("FE|CNFE|BEFE|BDF2|CNAB|mCNAB|CNLF"),
+                      " VSIMEX time discretizatino scheme. ");
     prm.declare_entry("vsimex_input_gamma",
                       "1.",
                       Patterns::Double(0.),
@@ -177,6 +182,20 @@ read_data_from_file(const std::string &filename)
     dt  = prm.get_double("dt");
     t_0 = prm.get_double("t_0");
     T   = prm.get_double("T");
+    if (prm.get("vsimex_scheme") == std::string("FE"))
+      vsimex_scheme = VSIMEXScheme::FE;
+    else if (prm.get("vsimex_scheme") == std::string("CNFE"))
+      vsimex_scheme = VSIMEXScheme::CNFE;
+    else if (prm.get("vsimex_scheme") == std::string("BEFE"))
+      vsimex_scheme = VSIMEXScheme::BEFE;
+    else if (prm.get("vsimex_scheme") == std::string("BDF2"))
+      vsimex_scheme = VSIMEXScheme::BDF2;
+    else if (prm.get("vsimex_scheme") == std::string("CNAB"))
+      vsimex_scheme = VSIMEXScheme::CNAB;
+    else if (prm.get("vsimex_scheme") == std::string("mCNAB"))
+      vsimex_scheme = VSIMEXScheme::mCNAB;
+    else if (prm.get("vsimex_scheme") == std::string("CNLF"))
+      vsimex_scheme = VSIMEXScheme::CNLF;
     vsimex_input_gamma = prm.get_double("vsimex_input_gamma");
     vsimex_input_c     = prm.get_double("vsimex_input_c");
   }
