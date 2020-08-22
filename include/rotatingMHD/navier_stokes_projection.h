@@ -73,16 +73,6 @@ private:
   const double                            Re;
 
   /*!
-   * @brief Size of the current timestep.
-   */
-  double                                  dt_n;
-
-  /*!
-   * @brief Size of the previous timestep.
-   */
-  double                                  dt_n_minus_1;
-
-  /*!
    * @brief A reference to the entity of velocity field.
    */
   Entities::Velocity<dim>                 &velocity;
@@ -151,7 +141,25 @@ private:
    */
   TrilinosWrappers::MPI::Vector         extrapolated_velocity;
 
-  // What is the purpose of this object?
+  /*!
+   * @brief Vector representing the sum of the time discretization terms
+   * that belong to the right hand side of the equation.
+   * @details For example: A BDF2 scheme with a constant time step
+   * expands the time derivative in three terms
+   * \f[
+   * \frac{\partial u}{\partial t} \approx 
+   * \frac{1.5}{\Delta t} u^{n+1} - \frac{2}{\Delta t} u^{n}
+   * + \frac{0.5}{\Delta t} u^{n-1},
+   * \f] 
+   * the last two terms are known quantities so they belong to the 
+   * right hand side of the equation. Therefore, we define
+   * \f[
+   * u_\textrm{tmp} = - \frac{2}{\Delta t} u^{n}
+   * + \frac{0.5}{\Delta t} u^{n-1},
+   * \f].
+   * which we use when assembling the right hand side of the diffusion
+   * step.
+  */
   TrilinosWrappers::MPI::Vector         velocity_tmp;
 
   /*!
@@ -171,7 +179,20 @@ private:
    */
   TrilinosWrappers::SparseMatrix        pressure_laplace_matrix;
 
-  // What is the purpose of this object?
+  /*!
+   * @brief Vector representing the pressure used in the diffusion step.
+   * @details The pressure is given by
+   * \f[
+   * p^{\#} = p^\textrm{k} + \frac{4}{3} \phi^\textrm{k} 
+   *            - \frac{1}{3} \phi^{\textrm{k}-1}. 
+   * \f] 
+   * The notation is taken from the dealii tutorial 
+   * <a href="https://www.dealii.org/current/doxygen/deal.II/step_35.html#Projectionmethods">step-35</a> , 
+   * from which this class is based upon.
+   * @attention In the Guermond paper this is an extrapolated pressure,
+   * and it is also called like that in the step-35 documentation, but 
+   * I do not see how the formula above is an extrapolation.
+   */  
   TrilinosWrappers::MPI::Vector         pressure_tmp;
 
   /*!
@@ -183,13 +204,12 @@ private:
   /*!
    * @brief Vector representing the pressure update of the current timestep.
    */
-  TrilinosWrappers::MPI::Vector         phi_n;
+  TrilinosWrappers::MPI::Vector         phi;
 
   /*!
    * @brief Vector representing the pressure update of the previous timestep.
    */
-  TrilinosWrappers::MPI::Vector         phi_n_minus_1;
-
+  TrilinosWrappers::MPI::Vector         old_phi;
 
   TrilinosWrappers::PreconditionILU     diffusion_step_preconditioner;
   TrilinosWrappers::PreconditionILU     projection_step_preconditioner;
