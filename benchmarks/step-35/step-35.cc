@@ -65,7 +65,7 @@
 #include <cmath>
 #include <iostream>
 
-namespace RMHD
+namespace Step35
 {
   using namespace dealii;
 
@@ -1281,7 +1281,7 @@ namespace RMHD
 
     prec_vel_mass.solve(rot_u);
   }
-} // namespace RMHD
+} // namespace Step35
 
 
 
@@ -1289,7 +1289,7 @@ int main()
 {
   try
     {
-      using namespace RMHD;
+      using namespace Step35;
 
       RunTimeParameters::Data_Storage data;
       data.read_data("parameter-file.prm");
