@@ -14,6 +14,9 @@ namespace RMHD
 namespace EquationData
 {
 
+namespace Step35
+{
+
 template <int dim>
 VelocityInitialCondition<dim>::VelocityInitialCondition(
                                                       const double time)
@@ -32,10 +35,8 @@ void VelocityInitialCondition<dim>::vector_value(
 
 template <int dim>
 VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition(
-                                          const bool flag_DFG_benchmark,
                                           const double time)
-: Function<dim>(dim, time),
-  flag_DFG_benchmark(flag_DFG_benchmark)
+: Function<dim>(dim, time)
 {}
 
 template <int dim>
@@ -44,7 +45,7 @@ void VelocityInflowBoundaryCondition<dim>::vector_value(
                                         Vector<double>    &values) const
 {
   const double Um = 1.5;
-  const double H  = (flag_DFG_benchmark) ? 0.41 : 4.1;
+  const double H  = 4.1;
 
   values[0] = 4.0 * Um * p(1) * ( H - p(1) ) / ( H * H );
   values[1] = 0.0;
@@ -52,10 +53,8 @@ void VelocityInflowBoundaryCondition<dim>::vector_value(
 
 template <int dim>
 PressureInitialCondition<dim>::PressureInitialCondition(
-                                          const bool flag_DFG_benchmark,
                                           const double time)
-: Function<dim>(1, time),
-  flag_DFG_benchmark(flag_DFG_benchmark)
+: Function<dim>(1, time)
 {}
 
 template<int dim>
@@ -64,21 +63,21 @@ double PressureInitialCondition<dim>::value(
                                     const unsigned int component) const
 {
   (void)component;
-  return ((flag_DFG_benchmark) ? 0.0 : 25.0 - p(0)) ;
+  return (25.0 - p(0)) ;
 }
-
+} // namespace Step35
 } // namespace EquationData
 
-} // namespace Step35
+} // namespace RMHD
 
 
 // explicit instantiation
 
-template class RMHD::EquationData::VelocityInitialCondition<2>;
-template class RMHD::EquationData::VelocityInitialCondition<3>;
+template class RMHD::EquationData::Step35::VelocityInitialCondition<2>;
+template class RMHD::EquationData::Step35::VelocityInitialCondition<3>;
 
-template class RMHD::EquationData::VelocityInflowBoundaryCondition<2>;
-template class RMHD::EquationData::VelocityInflowBoundaryCondition<3>;
+template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<2>;
+template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<3>;
 
-template class RMHD::EquationData::PressureInitialCondition<2>;
-template class RMHD::EquationData::PressureInitialCondition<3>;
+template class RMHD::EquationData::Step35::PressureInitialCondition<2>;
+template class RMHD::EquationData::Step35::PressureInitialCondition<3>;
