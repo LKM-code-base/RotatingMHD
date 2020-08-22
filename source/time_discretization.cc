@@ -5,6 +5,9 @@ namespace RMHD
   using namespace dealii;
 namespace TimeDiscretization
 {
+VSIMEXCoefficients::VSIMEXCoefficients()
+{}
+
 VSIMEXCoefficients::VSIMEXCoefficients(const unsigned int &order)
   : alpha(order+1),
     beta(order),
@@ -31,6 +34,11 @@ VSIMEXCoefficients VSIMEXCoefficients::operator=(const VSIMEXCoefficients &data_
   return *this;
 }
 
+void VSIMEXCoefficients::reinit(const unsigned int order)
+{
+  *this = VSIMEXCoefficients(order);
+}
+
 void VSIMEXCoefficients::output()
 {
   /* Hardcoded for VSIMEX of second order */
@@ -44,6 +52,64 @@ void VSIMEXCoefficients::output()
             << ", " << gamma[2] << "}" << std::endl;             
 }
 
+VSIMEXMethod::VSIMEXMethod(const VSIMEXScheme         scheme,
+                           const double               start_time,
+                           const double               end_time,
+                           const double               desired_start_step_size)
+  : DiscreteTime(start_time, end_time, desired_start_step_size),
+    scheme(scheme),
+    omega(1.0),
+    timestep(desired_start_step_size),
+    old_timestep(desired_start_step_size)
+{
+  switch (scheme)
+  {
+    case VSIMEXScheme::FE :
+      order = 1;
+      parameters.resize(order);
+      parameters[0] = 0.;
+      break;
+    case VSIMEXScheme::CNFE :
+      order = 1;
+      parameters.resize(order);
+      parameters[0] = 0.5;
+      break;
+    case VSIMEXScheme::BEFE :
+      order = 1;
+      parameters.resize(order);
+      parameters[0] = 1.0;
+      break;
+    case VSIMEXScheme::BDF2 :
+      order = 2;
+      parameters.resize(order);
+      parameters[0] = 1.0;
+      parameters[1] = 0.0;
+      break;
+    case VSIMEXScheme::CNAB :
+      order = 2;
+      parameters.resize(order);
+      parameters[0] = 0.5;
+      parameters[1] = 0.0;
+      break;
+    case VSIMEXScheme::mCNAB :
+      order = 2;
+      parameters.resize(order);
+      parameters[0] = 0.5;
+      parameters[1] = 1.0/8.0;
+      break;
+    case VSIMEXScheme::CNLF :
+      order = 2;
+      parameters.resize(order);
+      parameters[0] = 0.0;
+      parameters[1] = 1.0;
+      break;
+    default:
+     Assert(false,
+      ExcMessage("Specified scheme is not implemented. See documentation"));
+  };
+  coefficients.reinit(order);
+}
+
 VSIMEXMethod::VSIMEXMethod(const unsigned int         order,
                            const std::vector<double>  parameters,
                            const double               start_time,
@@ -54,8 +120,8 @@ VSIMEXMethod::VSIMEXMethod(const unsigned int         order,
     parameters(parameters),
     coefficients(order),
     omega(1.0),
-    k_n(desired_start_step_size),
-    k_n_minus_1(desired_start_step_size)
+    timestep(desired_start_step_size),
+    old_timestep(desired_start_step_size)
 {
   Assert( ( ( order == 1) || ( order == 2 )),
     ExcMessage("Only VSIMEX of first and second order are currently implemented"));
@@ -73,22 +139,23 @@ std::vector<double> VSIMEXMethod::get_parameters()
 
 void VSIMEXMethod::get_coefficients(VSIMEXCoefficients &output)
 {
+  update_coefficients();
   output = coefficients;
 }
 
 void VSIMEXMethod::update_coefficients()
 {
-  k_n             = get_next_step_size();
-  k_n_minus_1     = get_previous_step_size();
-  omega           = k_n / k_n_minus_1;
+  timestep      = get_next_step_size();
+  old_timestep  = get_previous_step_size();
+  omega         = timestep / old_timestep;
 
   switch (order)
   {
     case 1 :
       {
       static double gamma   = parameters[0];
-      coefficients.alpha[0] = 1.0 / k_n;
-      coefficients.alpha[1] = - 1.0 / k_n;
+      coefficients.alpha[0] = 1.0 / timestep;
+      coefficients.alpha[1] = - 1.0 / timestep;
       coefficients.beta[0]  = 1.0;
       coefficients.gamma[0] = ( 1.0 - gamma);
       coefficients.gamma[1] = gamma;
@@ -101,10 +168,10 @@ void VSIMEXMethod::update_coefficients()
       static double gamma   = parameters[0];
       static double c       = parameters[1];
       coefficients.alpha[0] = (2.0 * gamma - 1.0) * omega * omega / 
-                                (1.0 + omega) / k_n;
-      coefficients.alpha[1] = ((1.0 - 2.0 * gamma) * omega - 1.0) / k_n;
+                                (1.0 + omega) / timestep;
+      coefficients.alpha[1] = ((1.0 - 2.0 * gamma) * omega - 1.0) / timestep;
       coefficients.alpha[2] = (1.0 + 2.0 * gamma * omega) / 
-                                (1.0 + omega) / k_n;
+                                (1.0 + omega) / timestep;
       coefficients.beta[0]  = - gamma * omega;
       coefficients.beta[1]  = 1.0 + gamma * omega;
       coefficients.gamma[0] = c / 2.0;

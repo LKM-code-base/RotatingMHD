@@ -12,6 +12,17 @@ namespace RMHD
 namespace TimeDiscretization
 {
 
+enum class VSIMEXScheme
+{
+  FE,
+  CNFE,
+  BEFE,
+  BDF2,
+  CNAB,
+  mCNAB,
+  CNLF
+};
+
 struct VSIMEXCoefficients
 {
   std::vector<double> alpha;
@@ -24,15 +35,22 @@ struct VSIMEXCoefficients
     case the parameters reduce to phi_1 = 2 and phi_0 = -1 */
   std::vector<double> phi;
 
+  VSIMEXCoefficients();
   VSIMEXCoefficients(const unsigned int                 &order);
   VSIMEXCoefficients(const VSIMEXCoefficients           &data);
   VSIMEXCoefficients operator=(const VSIMEXCoefficients &data_to_copy);
+  void reinit(const unsigned int order);
   void output();
 };
 
 class VSIMEXMethod : public DiscreteTime
 {
 public:
+  VSIMEXMethod(const VSIMEXScheme         scheme,
+               const double               start_time,
+               const double               end_time,
+               const double               desired_start_step_size = 0);
+  // Should I leave this constructor in?
   VSIMEXMethod(const unsigned int         order,
                const std::vector<double>  parameters,
                const double               start_time,
@@ -42,19 +60,17 @@ public:
   unsigned int        get_order();
   std::vector<double> get_parameters();
   void                get_coefficients(VSIMEXCoefficients &output);
-  void                update_coefficients();
-  /* This class is just declared but not defined. Would you prefer to
-     just have get_coefficients and update_coefficients sepparated,
-     together in update_and_get_coefficients, or all three? */
-  void                update_and_get_coefficients(VSIMEXCoefficients 
-                                                              &output);
+
 private:
-  const unsigned int        order;
-  const std::vector<double> parameters;
+  VSIMEXScheme              scheme;
+  unsigned int              order;
+  std::vector<double>       parameters;
   VSIMEXCoefficients        coefficients;
   double                    omega;
-  double                    k_n;
-  double                    k_n_minus_1;
+  double                    timestep;
+  double                    old_timestep;
+
+  void update_coefficients();
 };
 
 } // namespace TimeDiscretization
