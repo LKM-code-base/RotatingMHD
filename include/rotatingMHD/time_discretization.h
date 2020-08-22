@@ -49,8 +49,10 @@ public:
   VSIMEXMethod(const VSIMEXScheme         scheme,
                const double               start_time,
                const double               end_time,
-               const double               desired_start_step_size = 0);
-  // Should I leave this constructor in?
+               const double               desired_start_step_size,
+               const double               timestep_lower_bound,
+               const double               timestep_upper_bound);
+  // Should I update this constructor for a bounded time step or delete it?
   VSIMEXMethod(const unsigned int         order,
                const std::vector<double>  parameters,
                const double               start_time,
@@ -60,6 +62,7 @@ public:
   unsigned int        get_order();
   std::vector<double> get_parameters();
   void                get_coefficients(VSIMEXCoefficients &output);
+  void                set_new_time_step(const double &new_timestep);
 
 private:
   VSIMEXScheme              scheme;
@@ -69,6 +72,8 @@ private:
   double                    omega;
   double                    timestep;
   double                    old_timestep;
+  double                    timestep_lower_bound;
+  double                    timestep_upper_bound;
 
   void update_coefficients();
 };

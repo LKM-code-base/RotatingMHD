@@ -55,13 +55,21 @@ void VSIMEXCoefficients::output()
 VSIMEXMethod::VSIMEXMethod(const VSIMEXScheme         scheme,
                            const double               start_time,
                            const double               end_time,
-                           const double               desired_start_step_size)
+                           const double               desired_start_step_size,
+                           const double               timestep_lower_bound,
+                           const double               timestep_upper_bound)
   : DiscreteTime(start_time, end_time, desired_start_step_size),
     scheme(scheme),
     omega(1.0),
     timestep(desired_start_step_size),
-    old_timestep(desired_start_step_size)
+    old_timestep(desired_start_step_size),
+    timestep_lower_bound(timestep_lower_bound),
+    timestep_upper_bound(timestep_upper_bound)
 {
+  Assert(((timestep > timestep_lower_bound) || 
+          (timestep < timestep_upper_bound)),
+      ExcMessage(
+        "The desired start step is not inside the give bounded range."));
   switch (scheme)
   {
     case VSIMEXScheme::FE :
@@ -143,7 +151,7 @@ void VSIMEXMethod::get_coefficients(VSIMEXCoefficients &output)
   output = coefficients;
 }
 
-void VSIMEXMethod::set_new_time_step(const double &new_timestep);
+void VSIMEXMethod::set_new_time_step(const double &new_timestep)
 {
   if (new_timestep < timestep_lower_bound)
     set_desired_next_step_size(timestep_lower_bound);

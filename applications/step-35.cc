@@ -33,8 +33,8 @@ private:
   std::vector<types::boundary_id>             boundary_ids;
   Entities::Velocity<dim>                     velocity;
   Entities::Pressure<dim>                     pressure;
-  TimeDiscretization::VSIMEXCoefficients      VSIMEX;
   TimeDiscretization::VSIMEXMethod            time_stepping;
+  TimeDiscretization::VSIMEXCoefficients      VSIMEX;
   NavierStokesProjection<dim>                 navier_stokes;
   
   EquationData::Step35::VelocityInflowBoundaryCondition<dim>  
@@ -69,9 +69,11 @@ Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
                   Triangulation<dim>::smoothing_on_coarsening)),
     velocity(parameters.p_fe_degree + 1, triangulation),
     pressure(parameters.p_fe_degree, triangulation),
-    VSIMEX(2),
     time_stepping((TimeDiscretization::VSIMEXScheme) (int) parameters.vsimex_scheme,
-                  -parameters.dt, parameters.T, parameters.dt),
+                  -parameters.dt, parameters.T, parameters.dt,
+                  parameters.timestep_lower_bound,
+                  parameters.timestep_upper_bound),
+    VSIMEX(time_stepping.get_order()),
     navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
     inflow_boundary_condition(parameters.t_0),
     velocity_initial_conditions(parameters.t_0),
