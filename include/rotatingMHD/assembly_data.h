@@ -160,7 +160,7 @@ struct LocalCellData
   FEValues<dim>                         pressure_fe_values;
   unsigned int                          n_q_points;
   unsigned int                          pressure_dofs_per_cell;
-  std::vector<double>                   velocity_n_divergence_values;
+  std::vector<double>                   velocity_divergence_values;
   std::vector<double>                   phi_pressure;
   std::vector<Tensor<1, dim>>           grad_phi_pressure;
 

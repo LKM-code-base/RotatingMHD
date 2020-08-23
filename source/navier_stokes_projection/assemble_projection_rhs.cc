@@ -74,7 +74,7 @@ assemble_local_projection_step_rhs(
 
   scratch.velocity_fe_values[velocities].get_function_divergences(
                               velocity.solution,
-                              scratch.velocity_n_divergence_values);
+                              scratch.velocity_divergence_values);
 
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
   {
@@ -87,7 +87,7 @@ assemble_local_projection_step_rhs(
       data.local_projection_step_rhs(i) += 
                           -1.0 *
                           scratch.pressure_fe_values.JxW(q) *
-                          scratch.velocity_n_divergence_values[q] *
+                          scratch.velocity_divergence_values[q] *
                           scratch.phi_pressure[i];
       if (pressure.constraints.is_inhomogeneously_constrained(
         data.local_pressure_dof_indices[i]))

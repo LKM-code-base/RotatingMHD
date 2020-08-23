@@ -32,8 +32,8 @@ void
 NavierStokesProjection<dim>::
 solve_diffusion_step(const bool reinit_prec)
 {
-  TrilinosWrappers::MPI::Vector distributed_velocity_n(velocity_rhs);
-  distributed_velocity_n = velocity.solution;
+  TrilinosWrappers::MPI::Vector distributed_velocity(velocity_rhs);
+  distributed_velocity = velocity.solution;
 
   if (reinit_prec)
     diffusion_step_preconditioner.initialize(
@@ -46,11 +46,11 @@ solve_diffusion_step(const bool reinit_prec)
                             SolverGMRES<TrilinosWrappers::MPI::Vector>::
                               AdditionalData(solver_krylov_size));
   gmres.solve(velocity_system_matrix, 
-              distributed_velocity_n, 
+              distributed_velocity, 
               velocity_rhs, 
               diffusion_step_preconditioner);
-  velocity.constraints.distribute(distributed_velocity_n);
-  velocity.solution = distributed_velocity_n;
+  velocity.constraints.distribute(distributed_velocity);
+  velocity.solution = distributed_velocity;
 }
 }
 // explicit instantiations

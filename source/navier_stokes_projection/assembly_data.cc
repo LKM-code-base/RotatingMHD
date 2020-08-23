@@ -241,7 +241,7 @@ LocalCellData<dim>::LocalCellData(
                        pressure_update_flags),
     n_q_points(pressure_quadrature_formula.size()),
     pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
-    velocity_n_divergence_values(n_q_points),
+    velocity_divergence_values(n_q_points),
     phi_pressure(pressure_dofs_per_cell),
     grad_phi_pressure(pressure_dofs_per_cell)
 {}
@@ -256,7 +256,7 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
                        data.pressure_fe_values.get_update_flags()),
     n_q_points(data.n_q_points),
     pressure_dofs_per_cell(data.pressure_dofs_per_cell), 
-    velocity_n_divergence_values(n_q_points),
+    velocity_divergence_values(n_q_points),
     phi_pressure(pressure_dofs_per_cell),
     grad_phi_pressure(pressure_dofs_per_cell)
 {}

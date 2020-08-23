@@ -18,51 +18,51 @@ void NavierStokesProjection<dim>::
 diffusion_step(const bool reinit_prec)
 {
   {
-    TrilinosWrappers::MPI::Vector distributed_velocity_n(velocity_rhs);
-    TrilinosWrappers::MPI::Vector distributed_velocity_n_minus_1(velocity_rhs);
-    distributed_velocity_n = velocity.solution;
-    distributed_velocity_n_minus_1 = velocity.old_solution;
+    TrilinosWrappers::MPI::Vector distributed_velocity(velocity_rhs);
+    TrilinosWrappers::MPI::Vector distributed_old_velocity(velocity_rhs);
+    distributed_velocity      = velocity.solution;
+    distributed_old_velocity  = velocity.old_solution;
     /*Extrapolate velocity by a Taylor expansion
       v^{\textrm{k}+1} \approx 2 * v^\textrm{k} - v^{\textrm{k}-1 */
     /* The VSIMEXMethod class considers a variable time steps and 
        modifies the weights accordingly with the phi parameters */
-    distributed_velocity_n.sadd(VSIMEX.phi[1], 
-                                VSIMEX.phi[0],
-                                distributed_velocity_n_minus_1);
-    extrapolated_velocity = distributed_velocity_n;
+    distributed_velocity.sadd(VSIMEX.phi[1], 
+                              VSIMEX.phi[0],
+                              distributed_old_velocity);
+    extrapolated_velocity = distributed_velocity;
   }
 
   {
-    TrilinosWrappers::MPI::Vector distributed_pressure_n(pressure_rhs);
+    TrilinosWrappers::MPI::Vector distributed_pressure(pressure_rhs);
     TrilinosWrappers::MPI::Vector distributed_old_phi(pressure_rhs);
     TrilinosWrappers::MPI::Vector distributed_phi(pressure_rhs);
-    distributed_pressure_n = pressure.solution;
-    distributed_old_phi = old_phi;
-    distributed_phi = phi;
+    distributed_pressure  = pressure.solution;
+    distributed_old_phi   = old_phi;
+    distributed_phi       = phi;
     /*Define auxiliary pressure
     p^{\#} = p^\textrm{k} + 4/3 * \phi^\textrm{k} 
                 - 1/3 * \phi^{\textrm{k}-1} */
-    distributed_pressure_n.sadd(+1.,
-                                +4. / 3., 
-                                distributed_phi);
-    distributed_pressure_n.sadd(+1.,
-                                 -1. / 3.,
-                                distributed_old_phi);
-    pressure_tmp = distributed_pressure_n;
+    distributed_pressure.sadd(+1.,
+                              +4. / 3., 
+                              distributed_phi);
+    distributed_pressure.sadd(+1.,
+                              -1. / 3.,
+                              distributed_old_phi);
+    pressure_tmp = distributed_pressure;
   }
 
   {
-    TrilinosWrappers::MPI::Vector distributed_velocity_n(velocity_rhs);
-    TrilinosWrappers::MPI::Vector distributed_velocity_n_minus_1(velocity_rhs);
-    distributed_velocity_n = velocity.solution;
-    distributed_velocity_n_minus_1 = velocity.old_solution;
+    TrilinosWrappers::MPI::Vector distributed_velocity(velocity_rhs);
+    TrilinosWrappers::MPI::Vector distributed_old_velocity(velocity_rhs);
+    distributed_velocity      = velocity.solution;
+    distributed_old_velocity  = velocity.old_solution;
     /*Define the auxiliary velocity as the weighted sum from the 
       velocities product of the VSIMEX method time discretization that 
       belong to the right hand side*/
-    distributed_velocity_n.sadd(VSIMEX.alpha[1],
-                                VSIMEX.alpha[0],
-                                distributed_velocity_n_minus_1);
-    velocity_tmp = distributed_velocity_n;
+    distributed_velocity.sadd(VSIMEX.alpha[1],
+                              VSIMEX.alpha[0],
+                              distributed_old_velocity);
+    velocity_tmp = distributed_velocity;
   }
 
   /* Assemble linear system */
@@ -108,18 +108,18 @@ pressure_correction(const bool reinit_prec)
                                                           "Amesos_Klu");
         static SolverControl solver_control(1, 0);
         {
-          TrilinosWrappers::MPI::Vector distributed_pressure_n(pressure_rhs);
-          TrilinosWrappers::MPI::Vector distributed_pressure_n_minus_1(pressure_rhs);
+          TrilinosWrappers::MPI::Vector distributed_pressure(pressure_rhs);
+          TrilinosWrappers::MPI::Vector distributed_old_pressure(pressure_rhs);
           TrilinosWrappers::MPI::Vector distributed_phi(pressure_rhs);
 
-          distributed_pressure_n = pressure.solution;
-          distributed_pressure_n_minus_1 = pressure.old_solution;
-          distributed_phi = phi;
+          distributed_pressure      = pressure.solution;
+          distributed_old_pressure  = pressure.old_solution;
+          distributed_phi           = phi;
 
           /* Using a direct solver */
           TrilinosWrappers::SolverDirect solver(solver_control, data);
           solver.solve(pressure_mass_matrix,
-                       distributed_pressure_n, 
+                       distributed_pressure, 
                        pressure_rhs);
 
           /* Using CG */
@@ -132,14 +132,14 @@ pressure_correction(const bool reinit_prec)
           
           SolverCG<TrilinosWrappers::MPI::Vector>    cg_solver(solver__control);
           cg_solver.solve(pressure_mass_matrix, 
-                  distributed_pressure_n, 
+                  distributed_pressure, 
                   pressure_rhs, 
                   correction_step_preconditioner);*/
 
-          pressure.constraints.distribute(distributed_pressure_n);
-          distributed_pressure_n.sadd(1.0 / Re, 1., distributed_pressure_n_minus_1);
-          distributed_pressure_n += distributed_phi;
-          pressure.solution = distributed_pressure_n;
+          pressure.constraints.distribute(distributed_pressure);
+          distributed_pressure.sadd(1.0 / Re, 1., distributed_old_pressure);
+          distributed_pressure += distributed_phi;
+          pressure.solution = distributed_pressure;
         }
 
         break;
