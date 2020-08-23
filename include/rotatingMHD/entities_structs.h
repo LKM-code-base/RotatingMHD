@@ -40,6 +40,7 @@ struct EntityBase
     const unsigned int                              &fe_degree,
     const parallel::distributed::Triangulation<dim> &triangulation);
   void reinit();
+  void update_solution_vectors();
 };
 
 template <int dim>

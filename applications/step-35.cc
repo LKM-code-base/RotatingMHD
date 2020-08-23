@@ -221,7 +221,7 @@ void Step35<dim>::set_initial_conditions(
   {
     case 1 :
       {
-      TrilinosWrappers::MPI::Vector tmp_solution_n(
+      TrilinosWrappers::MPI::Vector tmp_old_solution(
                                             entity.locally_owned_dofs);
       function.set_time(time_stepping.get_start_time() + 
                         time_stepping.get_next_step_size());
@@ -229,16 +229,16 @@ void Step35<dim>::set_initial_conditions(
                            entity.constraints,
                            QGauss<dim>(entity.fe_degree + 2),
                            function,
-                           tmp_solution_n);
+                           tmp_old_solution);
 
-      entity.solution          = tmp_solution_n;
+      entity.old_solution          = tmp_old_solution;
       break;
       }
     case 2 :
       {
-      TrilinosWrappers::MPI::Vector tmp_solution_n_minus_1(
+      TrilinosWrappers::MPI::Vector tmp_old_old_solution(
                                             entity.locally_owned_dofs);
-      TrilinosWrappers::MPI::Vector tmp_solution_n(
+      TrilinosWrappers::MPI::Vector tmp_old_solution(
                                             entity.locally_owned_dofs);
       function.set_time(time_stepping.get_start_time() + 
                         time_stepping.get_next_step_size());
@@ -246,17 +246,17 @@ void Step35<dim>::set_initial_conditions(
                            entity.constraints,
                            QGauss<dim>(entity.fe_degree + 2),
                            function,
-                           tmp_solution_n_minus_1);
+                           tmp_old_old_solution);
 
       function.advance_time(time_stepping.get_next_step_size());
       VectorTools::project(entity.dof_handler,
                            entity.constraints,
                            QGauss<dim>(entity.fe_degree + 2),
                            function,
-                           tmp_solution_n);
+                           tmp_old_solution);
 
-      entity.old_solution = tmp_solution_n_minus_1;
-      entity.solution     = tmp_solution_n;
+      entity.old_old_solution = tmp_old_old_solution;
+      entity.old_solution     = tmp_old_solution;
       break;
       }
     default:
@@ -298,7 +298,8 @@ void Step35<dim>::output()
 template <int dim>
 void Step35<dim>::update_solution_vectors()
 {
-
+  velocity.update_solution_vectors();
+  pressure.update_solution_vectors();
 }
 
 template <int dim>
@@ -334,7 +335,7 @@ while (!time_stepping.is_at_end())
       output();
 
     //time_stepping.set_proposed_step_size(navier_stokes.get_cfl_number());
-    //update_solution_vectors();
+    update_solution_vectors();
     ++step;
   }
 }

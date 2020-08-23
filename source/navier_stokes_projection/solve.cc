@@ -18,58 +18,58 @@ void NavierStokesProjection<dim>::
 diffusion_step(const bool reinit_prec)
 {
   {
-    TrilinosWrappers::MPI::Vector distributed_velocity(velocity_rhs);
     TrilinosWrappers::MPI::Vector distributed_old_velocity(velocity_rhs);
-    distributed_velocity      = velocity.solution;
-    distributed_old_velocity  = velocity.old_solution;
+    TrilinosWrappers::MPI::Vector distributed_old_old_velocity(velocity_rhs);
+    distributed_old_velocity      = velocity.old_solution;
+    distributed_old_old_velocity  = velocity.old_old_solution;
     /*Extrapolate velocity by a Taylor expansion
       v^{\textrm{k}+1} \approx 2 * v^\textrm{k} - v^{\textrm{k}-1 */
     /* The VSIMEXMethod class considers a variable time steps and 
        modifies the weights accordingly with the phi parameters */
-    distributed_velocity.sadd(VSIMEX.phi[1], 
-                              VSIMEX.phi[0],
-                              distributed_old_velocity);
-    extrapolated_velocity = distributed_velocity;
+    distributed_old_velocity.sadd(VSIMEX.phi[1], 
+                                  VSIMEX.phi[0],
+                                  distributed_old_old_velocity);
+    extrapolated_velocity = distributed_old_velocity;
   }
 
   {
-    TrilinosWrappers::MPI::Vector distributed_pressure(pressure_rhs);
+    TrilinosWrappers::MPI::Vector distributed_old_pressure(pressure_rhs);
     TrilinosWrappers::MPI::Vector distributed_old_phi(pressure_rhs);
     TrilinosWrappers::MPI::Vector distributed_phi(pressure_rhs);
-    distributed_pressure  = pressure.solution;
-    distributed_old_phi   = old_phi;
-    distributed_phi       = phi;
+    distributed_old_pressure  = pressure.old_solution;
+    distributed_old_phi       = old_phi;
+    distributed_phi           = phi;
     /*Define auxiliary pressure
     p^{\#} = p^\textrm{k} + 4/3 * \phi^\textrm{k} 
                 - 1/3 * \phi^{\textrm{k}-1} */
-    distributed_pressure.sadd(+1.,
-                              +4. / 3., 
-                              distributed_phi);
-    distributed_pressure.sadd(+1.,
-                              -1. / 3.,
-                              distributed_old_phi);
-    pressure_tmp = distributed_pressure;
+    distributed_old_pressure.sadd(+1.,
+                                  +4. / 3., 
+                                  distributed_phi);
+    distributed_old_pressure.sadd(+1.,
+                                  -1. / 3.,
+                                  distributed_old_phi);
+    pressure_tmp = distributed_old_pressure;
   }
 
   {
-    TrilinosWrappers::MPI::Vector distributed_velocity(velocity_rhs);
     TrilinosWrappers::MPI::Vector distributed_old_velocity(velocity_rhs);
-    distributed_velocity      = velocity.solution;
-    distributed_old_velocity  = velocity.old_solution;
+    TrilinosWrappers::MPI::Vector distributed_old_old_velocity(velocity_rhs);
+    distributed_old_velocity      = velocity.old_solution;
+    distributed_old_old_velocity  = velocity.old_old_solution;
     /*Define the auxiliary velocity as the weighted sum from the 
       velocities product of the VSIMEX method time discretization that 
       belong to the right hand side*/
-    distributed_velocity.sadd(VSIMEX.alpha[1],
+    distributed_old_velocity.sadd(VSIMEX.alpha[1],
                               VSIMEX.alpha[0],
-                              distributed_old_velocity);
-    velocity_tmp = distributed_velocity;
+                              distributed_old_old_velocity);
+    velocity_tmp = distributed_old_velocity;
   }
 
   /* Assemble linear system */
   assemble_diffusion_step();
 
   /* Update for the next time step */
-  velocity.old_solution = velocity.solution;
+  //velocity.old_old_solution = velocity.old_solution;
 
   /* Solve linear system */
   solve_diffusion_step(reinit_prec);
@@ -96,7 +96,7 @@ pressure_correction(const bool reinit_prec)
   // This boolean will be used later when a proper solver is chosen
   (void)reinit_prec;
   /* Update for the next time step */
-  pressure.old_solution = pressure.solution;
+  //pressure.old_old_solution = pressure.old_solution;
   switch (projection_method)
     {
       case RunTimeParameters::ProjectionMethod::standard:

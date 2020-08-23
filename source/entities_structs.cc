@@ -25,6 +25,13 @@ void EntityBase<dim>::reinit()
 }
 
 template <int dim>
+void EntityBase<dim>::update_solution_vectors()
+{
+  old_old_solution  = old_solution;
+  old_solution      = solution;
+}
+
+template <int dim>
 VectorEntity<dim>::VectorEntity(
   const unsigned int                              &fe_degree,
   const parallel::distributed::Triangulation<dim> &triangulation)
