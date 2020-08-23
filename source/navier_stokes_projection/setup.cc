@@ -77,6 +77,7 @@ setup_vectors()
   
   phi.reinit(pressure.solution);
   old_phi.reinit(pressure.solution);
+  old_old_phi.reinit(pressure.solution);
 
   velocity_rhs.reinit(velocity.locally_owned_dofs,
                       velocity.locally_relevant_dofs,
@@ -107,8 +108,9 @@ template <int dim>
 void NavierStokesProjection<dim>::
 initialize()
 {
-  phi     = 0.;
-  old_phi = 0.;
+  phi         = 0.;
+  old_phi     = 0.;
+  old_old_phi = 0.;
 }
 
 }

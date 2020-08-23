@@ -32,6 +32,9 @@ void
 NavierStokesProjection<dim>::
 solve_diffusion_step(const bool reinit_prec)
 {
+  // In this method we create temporal non ghosted copies
+  // of the pertinent vectors to be able to perform the solve()
+  // operation.
   TrilinosWrappers::MPI::Vector distributed_velocity(velocity_rhs);
   distributed_velocity = velocity.solution;
 

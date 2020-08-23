@@ -300,6 +300,7 @@ void Step35<dim>::update_solution_vectors()
 {
   velocity.update_solution_vectors();
   pressure.update_solution_vectors();
+  navier_stokes.update_internal_entities();
 }
 
 template <int dim>

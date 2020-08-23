@@ -23,6 +23,9 @@ template <int dim>
 void NavierStokesProjection<dim>::
 solve_projection_step(const bool reinit_prec)
 {
+  // In this method we create temporal non ghosted copies
+  // of the pertinent vectors to be able to perform the solve()
+  // operation.
   TrilinosWrappers::MPI::Vector distributed_phi(pressure_rhs);
   distributed_phi = phi;
 

@@ -17,15 +17,14 @@ template <int dim>
 void NavierStokesProjection<dim>::
 diffusion_step(const bool reinit_prec)
 {
+  // In the following scopes we create temporal non ghosted copies
+  // of the pertinent vectors to be able to perform the sadd()
+  // operations.
   {
     TrilinosWrappers::MPI::Vector distributed_old_velocity(velocity_rhs);
     TrilinosWrappers::MPI::Vector distributed_old_old_velocity(velocity_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
-    /*Extrapolate velocity by a Taylor expansion
-      v^{\textrm{k}+1} \approx 2 * v^\textrm{k} - v^{\textrm{k}-1 */
-    /* The VSIMEXMethod class considers a variable time steps and 
-       modifies the weights accordingly with the phi parameters */
     distributed_old_velocity.sadd(VSIMEX.phi[1], 
                                   VSIMEX.phi[0],
                                   distributed_old_old_velocity);
@@ -34,20 +33,17 @@ diffusion_step(const bool reinit_prec)
 
   {
     TrilinosWrappers::MPI::Vector distributed_old_pressure(pressure_rhs);
-    TrilinosWrappers::MPI::Vector distributed_old_phi(pressure_rhs);
+    TrilinosWrappers::MPI::Vector distributed_old_old_phi(pressure_rhs);
     TrilinosWrappers::MPI::Vector distributed_phi(pressure_rhs);
     distributed_old_pressure  = pressure.old_solution;
-    distributed_old_phi       = old_phi;
-    distributed_phi           = phi;
-    /*Define auxiliary pressure
-    p^{\#} = p^\textrm{k} + 4/3 * \phi^\textrm{k} 
-                - 1/3 * \phi^{\textrm{k}-1} */
+    distributed_old_old_phi   = old_old_phi;
+    distributed_phi           = old_phi;
     distributed_old_pressure.sadd(+1.,
                                   +4. / 3., 
                                   distributed_phi);
     distributed_old_pressure.sadd(+1.,
                                   -1. / 3.,
-                                  distributed_old_phi);
+                                  distributed_old_old_phi);
     pressure_tmp = distributed_old_pressure;
   }
 
@@ -56,9 +52,6 @@ diffusion_step(const bool reinit_prec)
     TrilinosWrappers::MPI::Vector distributed_old_old_velocity(velocity_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
-    /*Define the auxiliary velocity as the weighted sum from the 
-      velocities product of the VSIMEX method time discretization that 
-      belong to the right hand side*/
     distributed_old_velocity.sadd(VSIMEX.alpha[1],
                               VSIMEX.alpha[0],
                               distributed_old_old_velocity);
@@ -83,7 +76,7 @@ projection_step(const bool reinit_prec)
   assemble_projection_step();
 
   /* Update for the next time step */
-  old_phi = phi;
+  //old_old_phi = old_phi;
 
   /* Solve linear system */
   solve_projection_step(reinit_prec);
@@ -107,6 +100,9 @@ pressure_correction(const bool reinit_prec)
                                                           false, 
                                                           "Amesos_Klu");
         static SolverControl solver_control(1, 0);
+        // In the following scope we create temporal non ghosted copies
+        // of the pertinent vectors to be able to perform the solve()
+        // operation.
         {
           TrilinosWrappers::MPI::Vector distributed_pressure(pressure_rhs);
           TrilinosWrappers::MPI::Vector distributed_old_pressure(pressure_rhs);

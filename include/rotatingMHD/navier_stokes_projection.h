@@ -39,8 +39,15 @@ public:
                 TimeDiscretization::VSIMEXCoefficients  &VSIMEX,
                 TimeDiscretization::VSIMEXMethod        &time_stepping);
 
+  /*!
+   *  @brief Setups and initializes all the internal entities for
+   *  the projection method problem.
+   *
+   *  @details Initializes the vector and matrices using the information
+   *  contained in the VectorEntity and ScalarEntity structs passed on
+   *  in the constructor (The velocity and the pressure respectively).
+   */
   void setup();
-
 
   /*!
    *  @brief Solves the problem for one single timestep.
@@ -48,9 +55,21 @@ public:
    *  @details Performs the diffusion and the projection step for one single
    *  time step and updates the member variables at the end.
    */
-
   void solve(const unsigned int step);
-  
+
+  /*!
+   *  @brief Prepares the internal entities for the next time step.
+   *
+   *  @details The internal vectors of the variable \f$ \phi \f$ are
+   *  updated by taking the values from the vector of the next time step
+   *  relative to them, i.e.
+   *  \f{eqnarray*}{
+   *  \phi^{n-2} &=& \phi^{n-1}, \\
+   *  \phi^{n-1} &=& \phi^{n}.
+   *  \f}
+   */
+  void update_internal_entities();
+
 private:
 
 
@@ -136,8 +155,19 @@ private:
 
 
   /*!
-   * @brief Auxiliary vector which represents the velocity field which is
-   * extrapolated to the time of the considered timestep.
+   * @brief A vector representing the extrapolated velocity at the
+   * current timestep using a Taylor expansion
+   * @details The Taylor expansion is given by
+   * \f{eqnarray*}{
+   * u^{n} &\approx& u^{n-1} + \frac{\partial u^{n-1}}{\partial t} \Delta t \\
+   *         &\approx& u^{n-1} + \frac{u^{n-1} - u^{n-2}}{\Delta t} \Delta t \\
+   *         &\approx& 2 u^{n-1} - u^{n-2}.
+   * \f}
+   * In the case of a variable time step the approximation is given by
+   * \f[
+   * u^{n} \approx (1.0 + \omega) u^{n-1} - \omega u^{n-2}
+   * \f] 
+   * where  \f$ \omega = \frac{\Delta t_{n-1}}{\Delta t_{n-2}}.\f$
    */
   TrilinosWrappers::MPI::Vector         extrapolated_velocity;
 
@@ -148,18 +178,18 @@ private:
    * expands the time derivative in three terms
    * \f[
    * \frac{\partial u}{\partial t} \approx 
-   * \frac{1.5}{\Delta t} u^{n+1} - \frac{2}{\Delta t} u^{n}
-   * + \frac{0.5}{\Delta t} u^{n-1},
+   * \frac{1.5}{\Delta t} u^{n} - \frac{2}{\Delta t} u^{n-1}
+   * + \frac{0.5}{\Delta t} u^{n-2},
    * \f] 
    * the last two terms are known quantities so they belong to the 
    * right hand side of the equation. Therefore, we define
    * \f[
-   * u_\textrm{tmp} = - \frac{2}{\Delta t} u^{n}
-   * + \frac{0.5}{\Delta t} u^{n-1},
+   * u_\textrm{tmp} = - \frac{2}{\Delta t} u^{n-1}
+   * + \frac{0.5}{\Delta t} u^{n-2},
    * \f].
    * which we use when assembling the right hand side of the diffusion
    * step.
-  */
+   */
   TrilinosWrappers::MPI::Vector         velocity_tmp;
 
   /*!
@@ -183,10 +213,10 @@ private:
    * @brief Vector representing the pressure used in the diffusion step.
    * @details The pressure is given by
    * \f[
-   * p^{\#} = p^\textrm{k} + \frac{4}{3} \phi^\textrm{k} 
-   *            - \frac{1}{3} \phi^{\textrm{k}-1}. 
+   * p_\textrm{tmp} = p^{n-1} + \frac{4}{3} \phi^\textrm{n-1} 
+   *            - \frac{1}{3} \phi^{n-2}. 
    * \f] 
-   * The notation is taken from the dealii tutorial 
+   * The formula is taken from the dealii tutorial 
    * <a href="https://www.dealii.org/current/doxygen/deal.II/step_35.html#Projectionmethods">step-35</a> , 
    * from which this class is based upon.
    * @attention In the Guermond paper this is an extrapolated pressure,
@@ -210,6 +240,11 @@ private:
    * @brief Vector representing the pressure update of the previous timestep.
    */
   TrilinosWrappers::MPI::Vector         old_phi;
+
+  /*!
+   * @brief Vector representing the pressure update of two timesteps prior.
+   */
+  TrilinosWrappers::MPI::Vector         old_old_phi;
 
   TrilinosWrappers::PreconditionILU     diffusion_step_preconditioner;
   TrilinosWrappers::PreconditionILU     projection_step_preconditioner;
@@ -394,6 +429,7 @@ private:
    */
   void copy_local_to_global_velocity_advection_matrix(
     const AdvectionAssembly::MappingData<dim>             &data);
+  
 };
 
 } // namespace RMHD
