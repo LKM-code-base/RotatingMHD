@@ -34,8 +34,8 @@ class NavierStokesProjection
 public:
   NavierStokesProjection(
                 const RunTimeParameters::ParameterSet   &parameters,
-                Entities::Velocity<dim>                 &velocity,
-                Entities::Pressure<dim>                 &pressure,
+                Entities::VectorEntity<dim>             &velocity,
+                Entities::ScalarEntity<dim>             &pressure,
                 TimeDiscretization::VSIMEXCoefficients  &VSIMEX,
                 TimeDiscretization::VSIMEXMethod        &time_stepping);
 
@@ -75,12 +75,12 @@ private:
   /*!
    * @brief A reference to the entity of velocity field.
    */
-  Entities::Velocity<dim>                 &velocity;
+  Entities::VectorEntity<dim>             &velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  Entities::Pressure<dim>                 &pressure;
+  Entities::ScalarEntity<dim>             &pressure;
 
   TimeDiscretization::VSIMEXCoefficients  &VSIMEX;
 

@@ -33,7 +33,7 @@ NavierStokesProjection<dim>::
 solve_diffusion_step(const bool reinit_prec)
 {
   TrilinosWrappers::MPI::Vector distributed_velocity_n(velocity_rhs);
-  distributed_velocity_n = velocity.solution_n;
+  distributed_velocity_n = velocity.solution;
 
   if (reinit_prec)
     diffusion_step_preconditioner.initialize(
@@ -50,7 +50,7 @@ solve_diffusion_step(const bool reinit_prec)
               velocity_rhs, 
               diffusion_step_preconditioner);
   velocity.constraints.distribute(distributed_velocity_n);
-  velocity.solution_n = distributed_velocity_n;
+  velocity.solution = distributed_velocity_n;
 }
 }
 // explicit instantiations

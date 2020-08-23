@@ -31,8 +31,8 @@ private:
   ConditionalOStream                          pcout;
   parallel::distributed::Triangulation<dim>   triangulation;  
   std::vector<types::boundary_id>             boundary_ids;
-  Entities::Velocity<dim>                     velocity;
-  Entities::Pressure<dim>                     pressure;
+  Entities::VectorEntity<dim>                 velocity;
+  Entities::ScalarEntity<dim>                 pressure;
   TimeDiscretization::VSIMEXMethod            time_stepping;
   TimeDiscretization::VSIMEXCoefficients      VSIMEX;
   NavierStokesProjection<dim>                 navier_stokes;
@@ -54,6 +54,7 @@ private:
                         TimeDiscretization::VSIMEXMethod &time_stepping);
   void postprocessing();
   void output();
+  void update_solution_vectors();
   void point_evaluation(const Point<dim>   &point,
                         unsigned int       time_step,
                         DiscreteTime       time) const;
@@ -81,7 +82,8 @@ Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
 {
   // The VSIMEXMethod class is initialized with t_0 = -dt and then
   // advanced in order to populate a private member of the class, which
-  // is needed to calculate the coefficients for the first step
+  // is needed to calculate the coefficients for the first step. Once
+  // the variable step is properly implemented, this can be changed.
   time_stepping.advance_time();
   time_stepping.get_coefficients(VSIMEX);
 
@@ -229,7 +231,7 @@ void Step35<dim>::set_initial_conditions(
                            function,
                            tmp_solution_n);
 
-      entity.solution_n          = tmp_solution_n;
+      entity.solution          = tmp_solution_n;
       break;
       }
     case 2 :
@@ -253,13 +255,19 @@ void Step35<dim>::set_initial_conditions(
                            function,
                            tmp_solution_n);
 
-      entity.solution_n_minus_1  = tmp_solution_n_minus_1;
-      entity.solution_n          = tmp_solution_n;
+      entity.old_solution = tmp_solution_n_minus_1;
+      entity.solution     = tmp_solution_n;
       break;
       }
     default:
       Assert(false, ExcNotImplemented());
   };
+
+}
+
+template <int dim>
+void Step35<dim>::postprocessing()
+{
 
 }
 
@@ -273,11 +281,11 @@ void Step35<dim>::output()
   DataOut<dim>        data_out;
 
   data_out.add_data_vector(velocity.dof_handler, 
-                           velocity.solution_n, 
+                           velocity.solution, 
                            names, 
                            component_interpretation);
   data_out.add_data_vector(pressure.dof_handler, 
-                           pressure.solution_n, 
+                           pressure.solution, 
                            "Pressure");
   data_out.build_patches(velocity.fe_degree);
   
@@ -285,6 +293,12 @@ void Step35<dim>::output()
   data_out.write_vtu_with_pvtu_record(
     "./", "solution", out_index, MPI_COMM_WORLD, 5);
   out_index++;
+}
+
+template <int dim>
+void Step35<dim>::update_solution_vectors()
+{
+
 }
 
 template <int dim>
@@ -310,14 +324,17 @@ while (!time_stepping.is_at_end())
     time_stepping.advance_time();
     navier_stokes.solve(step);
 
-    if ((step % graphical_output_periodicity == 0) ||
-        time_stepping.is_at_end())
-      output();
-
+    postprocessing();
     if ((step % terminal_output_periodicity == 0) ||
         time_stepping.is_at_end())
       point_evaluation(evaluation_point, step, time_stepping);
 
+    if ((step % graphical_output_periodicity == 0) ||
+        time_stepping.is_at_end())
+      output();
+
+    //time_stepping.set_proposed_step_size(navier_stokes.get_cfl_number());
+    //update_solution_vectors();
     ++step;
   }
 }
@@ -338,13 +355,13 @@ if (cell_point.first->is_locally_owned())
 {
   Vector<double> point_value_velocity(dim);
   VectorTools::point_value(velocity.dof_handler,
-                          velocity.solution_n,
+                          velocity.solution,
                           point,
                           point_value_velocity);
 
   const double point_value_pressure
   = VectorTools::point_value(pressure.dof_handler,
-                            pressure.solution_n,
+                            pressure.solution,
                             point);
   std::cout << "Step = " 
             << std::setw(2) 

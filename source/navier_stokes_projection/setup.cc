@@ -73,17 +73,17 @@ setup_vectors()
                       pressure.locally_relevant_dofs,
                       MPI_COMM_WORLD,
                       true);
-  pressure_tmp.reinit(pressure.solution_n);
+  pressure_tmp.reinit(pressure.solution);
   
-  phi.reinit(pressure.solution_n);
-  old_phi.reinit(pressure.solution_n);
+  phi.reinit(pressure.solution);
+  old_phi.reinit(pressure.solution);
 
   velocity_rhs.reinit(velocity.locally_owned_dofs,
                       velocity.locally_relevant_dofs,
                       MPI_COMM_WORLD,
                       true);
-  extrapolated_velocity.reinit(velocity.solution_n);
-  velocity_tmp.reinit(velocity.solution_n);
+  extrapolated_velocity.reinit(velocity.solution);
+  velocity_tmp.reinit(velocity.solution);
 }
 
 template <int dim>

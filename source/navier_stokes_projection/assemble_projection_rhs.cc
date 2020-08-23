@@ -73,7 +73,7 @@ assemble_local_projection_step_rhs(
   const FEValuesExtractors::Vector  velocities(0);
 
   scratch.velocity_fe_values[velocities].get_function_divergences(
-                              velocity.solution_n,
+                              velocity.solution,
                               scratch.velocity_n_divergence_values);
 
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)

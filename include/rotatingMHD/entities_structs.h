@@ -32,8 +32,9 @@ struct EntityBase
   IndexSet                            locally_owned_dofs;
   IndexSet                            locally_relevant_dofs;
 
-  TrilinosWrappers::MPI::Vector       solution_n;
-  TrilinosWrappers::MPI::Vector       solution_n_minus_1;
+  TrilinosWrappers::MPI::Vector       solution;
+  TrilinosWrappers::MPI::Vector       old_solution;
+  TrilinosWrappers::MPI::Vector       old_old_solution;
 
   EntityBase(
     const unsigned int                              &fe_degree,
@@ -42,21 +43,21 @@ struct EntityBase
 };
 
 template <int dim>
-struct Velocity : EntityBase<dim>
+struct VectorEntity : EntityBase<dim>
 {
   FESystem<dim>                       fe;
 
-  Velocity(    
+  VectorEntity(    
     const unsigned int                              &fe_degree,
     const parallel::distributed::Triangulation<dim> &triangulation);
 };
 
 template <int dim>
-struct Pressure : EntityBase<dim>
+struct ScalarEntity : EntityBase<dim>
 {
   FE_Q<dim>                           fe;
 
-  Pressure(
+  ScalarEntity(
     const unsigned int                              &fe_degree,
     const parallel::distributed::Triangulation<dim> &triangulation);
 };

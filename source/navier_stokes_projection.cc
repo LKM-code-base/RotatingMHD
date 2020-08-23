@@ -7,8 +7,8 @@ template <int dim>
 NavierStokesProjection<dim>::
 NavierStokesProjection(
                 const RunTimeParameters::ParameterSet   &parameters,
-                Entities::Velocity<dim>                 &velocity,
-                Entities::Pressure<dim>                 &pressure,
+                Entities::VectorEntity<dim>             &velocity,
+                Entities::ScalarEntity<dim>             &pressure,
                 TimeDiscretization::VSIMEXCoefficients  &VSIMEX,
                 TimeDiscretization::VSIMEXMethod        &time_stepping)
   : projection_method(parameters.projection_method),

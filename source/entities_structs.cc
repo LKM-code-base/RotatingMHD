@@ -19,12 +19,13 @@ EntityBase<dim>::EntityBase(
 template <int dim>
 void EntityBase<dim>::reinit()
 {
-  solution_n.reinit(locally_relevant_dofs, MPI_COMM_WORLD);
-  solution_n_minus_1.reinit(solution_n);
+  solution.reinit(locally_relevant_dofs, MPI_COMM_WORLD);
+  old_solution.reinit(solution);
+  old_old_solution.reinit(solution);
 }
 
 template <int dim>
-Velocity<dim>::Velocity(
+VectorEntity<dim>::VectorEntity(
   const unsigned int                              &fe_degree,
   const parallel::distributed::Triangulation<dim> &triangulation)
   : EntityBase<dim>(fe_degree, triangulation),
@@ -32,7 +33,7 @@ Velocity<dim>::Velocity(
 {}
 
 template <int dim>
-Pressure<dim>::Pressure(
+ScalarEntity<dim>::ScalarEntity(
   const unsigned int                              &fe_degree,
   const parallel::distributed::Triangulation<dim> &triangulation)
   : EntityBase<dim>(fe_degree, triangulation),
@@ -44,7 +45,7 @@ Pressure<dim>::Pressure(
 
 template struct RMHD::Entities::EntityBase<2>;
 template struct RMHD::Entities::EntityBase<3>;
-template struct RMHD::Entities::Velocity<2>;
-template struct RMHD::Entities::Velocity<3>;
-template struct RMHD::Entities::Pressure<2>;
-template struct RMHD::Entities::Pressure<3>;
+template struct RMHD::Entities::VectorEntity<2>;
+template struct RMHD::Entities::VectorEntity<3>;
+template struct RMHD::Entities::ScalarEntity<2>;
+template struct RMHD::Entities::ScalarEntity<3>;
