@@ -69,7 +69,7 @@ public:
    *  \f}
    */
   void update_internal_entities();
-
+  double compute_next_time_step();
 private:
 
 
