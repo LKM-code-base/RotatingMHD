@@ -151,7 +151,7 @@ void VSIMEXMethod::get_coefficients(VSIMEXCoefficients &output)
   output = coefficients;
 }
 
-void VSIMEXMethod::set_proposed_time_step(const double &timestep)
+void VSIMEXMethod::set_proposed_step_size(const double &timestep)
 {
   if (timestep < timestep_lower_bound)
     set_desired_next_step_size(timestep_lower_bound);

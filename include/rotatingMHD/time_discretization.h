@@ -117,7 +117,7 @@ public:
   * and passes it to the set_desired_time_step() method from the
   * DiscreteTime class which does further modifications if needed.
   */
-  void                set_proposed_time_step(const double &timestep);
+  void                set_proposed_step_size(const double &timestep);
 
 private:
   VSIMEXScheme              scheme;               /**< VSIMEX scheme being used. */
