@@ -93,15 +93,6 @@ assemble_constant_matrices()
 {
   assemble_velocity_matrices();
   assemble_pressure_matrices();
-
-  if (!flag_adpative_time_step)
-  {
-    velocity_mass_plus_laplace_matrix = 0.;
-    velocity_mass_plus_laplace_matrix.add(1.0 / Re, 
-                                          velocity_laplace_matrix);
-    velocity_mass_plus_laplace_matrix.add(VSIMEX.alpha[2], 
-                                          velocity_mass_matrix);
-  }
 }
 
 template <int dim>

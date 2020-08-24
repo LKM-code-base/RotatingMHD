@@ -8,9 +8,9 @@ void NavierStokesProjection<dim>::
 solve(const unsigned int step)
 {
   diffusion_step((step % solver_update_preconditioner == 0) || 
-                 (step == 2));
-  projection_step((step == 2));
-  pressure_correction((step == 2));
+                 (step == time_stepping.get_order()));
+  projection_step((step == time_stepping.get_order()));
+  pressure_correction((step == time_stepping.get_order()));
 }
 
 template <int dim>
