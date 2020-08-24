@@ -61,10 +61,11 @@ ENDIF()
 # Set the source files to be compiled
 SET(TARGET_SRC
     source/entities_structs.cc
-    source/time_discretization.cc
     source/equation_data.cc
-    source/navier_stokes_projection.cc
+    source/problem_class.cc
     source/run_time_parameters.cc
+    source/time_discretization.cc
+    source/navier_stokes_projection.cc
     source/navier_stokes_projection/assemble_advection_matrix.cc
     source/navier_stokes_projection/assemble_diffusion_rhs.cc
     source/navier_stokes_projection/assemble_projection_rhs.cc

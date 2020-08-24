@@ -1,6 +1,7 @@
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
@@ -20,7 +21,7 @@ namespace RMHD
   using namespace dealii;
 
 template <int dim>
-class Step35
+class Step35 : public Problem<dim>
 {
 public:
   Step35(const RunTimeParameters::ParameterSet &parameters);
@@ -48,10 +49,6 @@ private:
   void setup_dofs();
   void setup_constraints();
   void initialize();
-  void set_initial_conditions(
-                        Entities::EntityBase<dim>        &entity,
-                        Function<dim>                    &function,
-                        TimeDiscretization::VSIMEXMethod &time_stepping);
   void postprocessing();
   void output();
   void update_solution_vectors();
@@ -61,7 +58,8 @@ private:
 
 template <int dim>
 Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
-  : pcout(std::cout, 
+  : Problem<dim>(),
+    pcout(std::cout, 
           (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
     triangulation(MPI_COMM_WORLD,
                   typename Triangulation<dim>::MeshSmoothing(
@@ -190,66 +188,12 @@ void Step35<dim>::setup_constraints()
 template <int dim>
 void Step35<dim>::initialize()
 {
-  set_initial_conditions(velocity, 
-                         velocity_initial_conditions, 
-                         time_stepping);
-  set_initial_conditions(pressure,
-                         pressure_initial_conditions, 
-                         time_stepping);
-}
-
-template <int dim>
-void Step35<dim>::set_initial_conditions(
-                        Entities::EntityBase<dim>         &entity,
-                        Function<dim>                     &function,
-                        TimeDiscretization::VSIMEXMethod  &time_stepping)
-{
-  switch (time_stepping.get_order())
-  {
-    case 1 :
-      {
-      TrilinosWrappers::MPI::Vector tmp_old_solution(
-                                            entity.locally_owned_dofs);
-      function.set_time(time_stepping.get_start_time() + 
-                        time_stepping.get_next_step_size());
-      VectorTools::project(entity.dof_handler,
-                           entity.constraints,
-                           QGauss<dim>(entity.fe_degree + 2),
-                           function,
-                           tmp_old_solution);
-
-      entity.old_solution          = tmp_old_solution;
-      break;
-      }
-    case 2 :
-      {
-      TrilinosWrappers::MPI::Vector tmp_old_old_solution(
-                                            entity.locally_owned_dofs);
-      TrilinosWrappers::MPI::Vector tmp_old_solution(
-                                            entity.locally_owned_dofs);
-      function.set_time(time_stepping.get_start_time() + 
-                        time_stepping.get_next_step_size());
-      VectorTools::project(entity.dof_handler,
-                           entity.constraints,
-                           QGauss<dim>(entity.fe_degree + 2),
-                           function,
-                           tmp_old_old_solution);
-
-      function.advance_time(time_stepping.get_next_step_size());
-      VectorTools::project(entity.dof_handler,
-                           entity.constraints,
-                           QGauss<dim>(entity.fe_degree + 2),
-                           function,
-                           tmp_old_solution);
-
-      entity.old_old_solution = tmp_old_old_solution;
-      entity.old_solution     = tmp_old_solution;
-      break;
-      }
-    default:
-      Assert(false, ExcNotImplemented());
-  };
-
+  this->set_initial_conditions(velocity, 
+                               velocity_initial_conditions, 
+                               time_stepping);
+  this->set_initial_conditions(pressure,
+                               pressure_initial_conditions, 
+                               time_stepping);
 }
 
 template <int dim>
