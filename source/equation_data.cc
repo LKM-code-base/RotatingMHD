@@ -7,15 +7,19 @@
 
 #include <rotatingMHD/equation_data.h>
 
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 
 namespace EquationData
 {
 
+namespace Step35
+{
+
 template <int dim>
-VelocityInitialCondition<dim>::VelocityInitialCondition(const double time)
+VelocityInitialCondition<dim>::VelocityInitialCondition(
+                                                      const double time)
   : Function<dim>(dim, time)
 {}
 
@@ -31,7 +35,7 @@ void VelocityInitialCondition<dim>::vector_value(
 
 template <int dim>
 VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition(
-                                                      const double time)
+                                          const double time)
 : Function<dim>(dim, time)
 {}
 
@@ -48,7 +52,8 @@ void VelocityInflowBoundaryCondition<dim>::vector_value(
 }
 
 template <int dim>
-PressureInitialCondition<dim>::PressureInitialCondition(const double time)
+PressureInitialCondition<dim>::PressureInitialCondition(
+                                          const double time)
 : Function<dim>(1, time)
 {}
 
@@ -58,21 +63,21 @@ double PressureInitialCondition<dim>::value(
                                     const unsigned int component) const
 {
   (void)component;
-  return 25.0 - p(0);
+  return (25.0 - p(0)) ;
 }
-
+} // namespace Step35
 } // namespace EquationData
 
-} // namespace Step35
+} // namespace RMHD
 
 
 // explicit instantiation
 
-template class Step35::EquationData::VelocityInitialCondition<2>;
-template class Step35::EquationData::VelocityInitialCondition<3>;
+template class RMHD::EquationData::Step35::VelocityInitialCondition<2>;
+template class RMHD::EquationData::Step35::VelocityInitialCondition<3>;
 
-template class Step35::EquationData::VelocityInflowBoundaryCondition<2>;
-template class Step35::EquationData::VelocityInflowBoundaryCondition<3>;
+template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<2>;
+template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<3>;
 
-template class Step35::EquationData::PressureInitialCondition<2>;
-template class Step35::EquationData::PressureInitialCondition<3>;
+template class RMHD::EquationData::Step35::PressureInitialCondition<2>;
+template class RMHD::EquationData::Step35::PressureInitialCondition<3>;

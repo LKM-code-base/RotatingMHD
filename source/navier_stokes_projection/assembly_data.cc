@@ -7,7 +7,7 @@
 
 #include <rotatingMHD/assembly_data.h>
 
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 namespace AdvectionAssembly
@@ -241,7 +241,7 @@ LocalCellData<dim>::LocalCellData(
                        pressure_update_flags),
     n_q_points(pressure_quadrature_formula.size()),
     pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
-    velocity_n_divergence_values(n_q_points),
+    velocity_divergence_values(n_q_points),
     phi_pressure(pressure_dofs_per_cell),
     grad_phi_pressure(pressure_dofs_per_cell)
 {}
@@ -256,31 +256,31 @@ LocalCellData<dim>::LocalCellData(const LocalCellData &data)
                        data.pressure_fe_values.get_update_flags()),
     n_q_points(data.n_q_points),
     pressure_dofs_per_cell(data.pressure_dofs_per_cell), 
-    velocity_n_divergence_values(n_q_points),
+    velocity_divergence_values(n_q_points),
     phi_pressure(pressure_dofs_per_cell),
     grad_phi_pressure(pressure_dofs_per_cell)
 {}
 } // namespace PressureRightHandSideAssembly
 
-} // namespace Step35
+} // namespace RMHD
 // explicit instantiations
-template struct Step35::AdvectionAssembly::MappingData<2>;
-template struct Step35::AdvectionAssembly::MappingData<3>;
-template struct Step35::AdvectionAssembly::LocalCellData<2>;
-template struct Step35::AdvectionAssembly::LocalCellData<3>;
-template struct Step35::VelocityMatricesAssembly::MappingData<2>;
-template struct Step35::VelocityMatricesAssembly::MappingData<3>;
-template struct Step35::VelocityMatricesAssembly::LocalCellData<2>;
-template struct Step35::VelocityMatricesAssembly::LocalCellData<3>;
-template struct Step35::PressureMatricesAssembly::MappingData<2>;
-template struct Step35::PressureMatricesAssembly::MappingData<3>;
-template struct Step35::PressureMatricesAssembly::LocalCellData<2>;
-template struct Step35::PressureMatricesAssembly::LocalCellData<3>;
-template struct Step35::VelocityRightHandSideAssembly::MappingData<2>;
-template struct Step35::VelocityRightHandSideAssembly::MappingData<3>;
-template struct Step35::VelocityRightHandSideAssembly::LocalCellData<2>;
-template struct Step35::VelocityRightHandSideAssembly::LocalCellData<3>;
-template struct Step35::PressureRightHandSideAssembly::MappingData<2>;
-template struct Step35::PressureRightHandSideAssembly::MappingData<3>;
-template struct Step35::PressureRightHandSideAssembly::LocalCellData<2>;
-template struct Step35::PressureRightHandSideAssembly::LocalCellData<3>;
+template struct RMHD::AdvectionAssembly::MappingData<2>;
+template struct RMHD::AdvectionAssembly::MappingData<3>;
+template struct RMHD::AdvectionAssembly::LocalCellData<2>;
+template struct RMHD::AdvectionAssembly::LocalCellData<3>;
+template struct RMHD::VelocityMatricesAssembly::MappingData<2>;
+template struct RMHD::VelocityMatricesAssembly::MappingData<3>;
+template struct RMHD::VelocityMatricesAssembly::LocalCellData<2>;
+template struct RMHD::VelocityMatricesAssembly::LocalCellData<3>;
+template struct RMHD::PressureMatricesAssembly::MappingData<2>;
+template struct RMHD::PressureMatricesAssembly::MappingData<3>;
+template struct RMHD::PressureMatricesAssembly::LocalCellData<2>;
+template struct RMHD::PressureMatricesAssembly::LocalCellData<3>;
+template struct RMHD::VelocityRightHandSideAssembly::MappingData<2>;
+template struct RMHD::VelocityRightHandSideAssembly::MappingData<3>;
+template struct RMHD::VelocityRightHandSideAssembly::LocalCellData<2>;
+template struct RMHD::VelocityRightHandSideAssembly::LocalCellData<3>;
+template struct RMHD::PressureRightHandSideAssembly::MappingData<2>;
+template struct RMHD::PressureRightHandSideAssembly::MappingData<3>;
+template struct RMHD::PressureRightHandSideAssembly::LocalCellData<2>;
+template struct RMHD::PressureRightHandSideAssembly::LocalCellData<3>;

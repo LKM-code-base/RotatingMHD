@@ -10,7 +10,7 @@
 
 #include <deal.II/base/parameter_handler.h>
 
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 
@@ -22,13 +22,29 @@ enum class ProjectionMethod
   rotational
 };
 
+enum class VSIMEXScheme
+{
+  FE,
+  CNFE,
+  BEFE,
+  BDF2,
+  CNAB,
+  mCNAB,
+  CNLF
+};
+
 class ParameterSet
 {
 public:
   ProjectionMethod  projection_method;
+  VSIMEXScheme      vsimex_scheme;
   double            dt;
+  double            timestep_lower_bound;
+  double            timestep_upper_bound;
   double            t_0;
   double            T;
+  double            vsimex_input_gamma;
+  double            vsimex_input_c;
   double            Re;
   unsigned int      n_global_refinements;
   unsigned int      p_fe_degree;
@@ -40,7 +56,9 @@ public:
   double            solver_diag_strength;
   bool              flag_verbose_output;
   bool              flag_adaptive_time_step;
-  unsigned int      output_interval;
+  bool              flag_DFG_benchmark;
+  unsigned int      graphical_output_interval;
+  unsigned int      terminal_output_interval;
 
   ParameterSet();
   void read_data_from_file(const std::string &filename);
@@ -51,6 +69,6 @@ protected:
 
 } // namespace RunTimeParameters
 
-} // namespace Step35
+} // namespace RMHD
 
 #endif /* INCLUDE_ROTATINGMHD_RUN_TIME_PARAMETERS_H_ */

@@ -3,11 +3,11 @@
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_system.h>
+#include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/numerics/matrix_tools.h>
-#include <deal.II/fe/fe_q.h>
 
-namespace Step35
+namespace RMHD
 {
   using namespace dealii;
 namespace AdvectionAssembly
@@ -160,7 +160,7 @@ struct LocalCellData
   FEValues<dim>                         pressure_fe_values;
   unsigned int                          n_q_points;
   unsigned int                          pressure_dofs_per_cell;
-  std::vector<double>                   velocity_n_divergence_values;
+  std::vector<double>                   velocity_divergence_values;
   std::vector<double>                   phi_pressure;
   std::vector<Tensor<1, dim>>           grad_phi_pressure;
 
@@ -173,6 +173,6 @@ struct LocalCellData
 };
 } // namespace PressureRightHandSideAssembly
 
-} // namespace Step35
+} // namespace RMHD
 
 #endif /* INCLUDE_ROTATINGMHD_ASSEMBLY_DATA_H_ */

@@ -60,38 +60,21 @@ ENDIF()
 
 # Set the source files to be compiled
 SET(TARGET_SRC
+    source/entities_structs.cc
+    source/time_discretization.cc
     source/equation_data.cc
+    source/navier_stokes_projection.cc
     source/run_time_parameters.cc
-    source/assembly_data.cc
-    source/projection_solver.cc
-    source/projection_solver/make_grid.cc
-    source/projection_solver/setup_dofs.cc
-    source/projection_solver/problem_setup.cc
-    source/projection_solver/assemble_mass_and_laplace_matrices.cc
-    source/projection_solver/assemble_advection_matrix.cc
-    source/projection_solver/assemble_diffusion_step_rhs.cc
-    source/projection_solver/assemble_projection_step_rhs.cc
-    source/projection_solver/diffusion_step.cc
-    source/projection_solver/projection_step.cc
-    source/projection_solver/correction_step.cc
-    source/projection_solver/output_results.cc
-    source/projection_solver/time_stepping.cc
-#     source/assembly_data.cc
-#     source/buoyant_fluid_solver.cc
-#     source/gravity_field.cc
-#     source/grid_factory.cc
-#     source/initial_values.cc
-#     source/local_temperature_assemble.cc
-#     source/local_stokes_assemble.cc
-#     source/make_grid.cc
-#     source/parameters.cc
-#     source/postprocessor.cc
-#     source/postprocess_solution.cc
-#     source/postprocess_benchmark.cc
-#     source/setup.cc
-#     source/snapshot_information.cc
-#     source/solve_navier_stokes.cc
-#     source/solve_temperature.cc
+    source/navier_stokes_projection/assemble_advection_matrix.cc
+    source/navier_stokes_projection/assemble_diffusion_rhs.cc
+    source/navier_stokes_projection/assemble_projection_rhs.cc
+    source/navier_stokes_projection/assemble_mass_and_laplace_matrices.cc
+    source/navier_stokes_projection/assembly_data.cc
+    source/navier_stokes_projection/cfl_number.cc
+    source/navier_stokes_projection/diffusion_step_methods.cc
+    source/navier_stokes_projection/projection_step_methods.cc
+    source/navier_stokes_projection/setup.cc
+    source/navier_stokes_projection/solve.cc
 )
 
 # Set the include directory and the name of the project

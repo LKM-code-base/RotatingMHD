@@ -10,7 +10,7 @@
 
 #include <fstream>
 
-namespace Step35
+namespace RMHD
 {
 
   using namespace dealii;
@@ -22,9 +22,14 @@ namespace RunTimeParameters
 // step-19 and step-29.
 ParameterSet::ParameterSet()
   : projection_method(ProjectionMethod::rotational),
+    vsimex_scheme(VSIMEXScheme::BDF2),
     dt(5e-4),
+    timestep_lower_bound(5e-5),
+    timestep_upper_bound(5e-3),
     t_0(0.0),
     T(1.0),
+    vsimex_input_gamma(1.0),
+    vsimex_input_c(0.0),
     Re(1.0),
     n_global_refinements(0),
     p_fe_degree(1),
@@ -36,7 +41,8 @@ ParameterSet::ParameterSet()
     solver_diag_strength(0.01),
     flag_verbose_output(true),
     flag_adaptive_time_step(true),
-    output_interval(15)
+    flag_DFG_benchmark(false),
+    graphical_output_interval(15)
 {
   prm.declare_entry("projection_method",
                     "rotational",
@@ -57,6 +63,14 @@ ParameterSet::ParameterSet()
                       "5e-4",
                       Patterns::Double(0.),
                       " Time step size. ");
+    prm.declare_entry("timestep_lower_bound",
+                      "5e-5",
+                      Patterns::Double(0.),
+                      " Time step lower bound. ");
+    prm.declare_entry("timestep_upper_bound",
+                      "5e-3",
+                      Patterns::Double(0.),
+                      " Time step upper bound. ");
     prm.declare_entry("t_0",
                       "0.",
                       Patterns::Double(0.),
@@ -65,6 +79,18 @@ ParameterSet::ParameterSet()
                       "1.",
                       Patterns::Double(0.),
                       " The final time of the simulation. ");
+    prm.declare_entry("vsimex_scheme",
+                      "BDF2",
+                      Patterns::Selection("FE|CNFE|BEFE|BDF2|CNAB|mCNAB|CNLF"),
+                      " VSIMEX time discretizatino scheme. ");
+    prm.declare_entry("vsimex_input_gamma",
+                      "1.",
+                      Patterns::Double(0.),
+                      " Input parameter gamma of the VSIMEX method. ");
+    prm.declare_entry("vsimex_input_c",
+                      "0.",
+                      Patterns::Double(0.),
+                      " Input parameter c of the VSIMEX method. ");
   }
   prm.leave_subsection();
 
@@ -125,11 +151,21 @@ ParameterSet::ParameterSet()
                     Patterns::Bool(),
                     " This indicates whether the output " 
                       "is fixed or adaptive. ");
-  prm.declare_entry("output_interval",
+  prm.declare_entry("flag_DFG_benchmark",
+                    "false",
+                    Patterns::Bool(),
+                    " This indicates if the problem solves the DFG "
+                    "benchmark or step-35");
+  prm.declare_entry("graphical_output_interval",
                     "1",
                     Patterns::Integer(1),
                     " This indicates between how many time steps" 
-                      "we print the solution. ");
+                      "we output the solution for visualization. ");
+  prm.declare_entry("terminal_output_interval",
+                    "1",
+                    Patterns::Integer(1),
+                    " This indicates between how many time steps" 
+                      "we print the point evaluation to the terminal.");
 }
 
 void ParameterSet::
@@ -154,8 +190,26 @@ read_data_from_file(const std::string &filename)
   prm.enter_subsection("Time discretization parameters");
   {
     dt  = prm.get_double("dt");
+    timestep_lower_bound  = prm.get_double("timestep_lower_bound");
+    timestep_upper_bound  = prm.get_double("timestep_upper_bound");
     t_0 = prm.get_double("t_0");
     T   = prm.get_double("T");
+    if (prm.get("vsimex_scheme") == std::string("FE"))
+      vsimex_scheme = VSIMEXScheme::FE;
+    else if (prm.get("vsimex_scheme") == std::string("CNFE"))
+      vsimex_scheme = VSIMEXScheme::CNFE;
+    else if (prm.get("vsimex_scheme") == std::string("BEFE"))
+      vsimex_scheme = VSIMEXScheme::BEFE;
+    else if (prm.get("vsimex_scheme") == std::string("BDF2"))
+      vsimex_scheme = VSIMEXScheme::BDF2;
+    else if (prm.get("vsimex_scheme") == std::string("CNAB"))
+      vsimex_scheme = VSIMEXScheme::CNAB;
+    else if (prm.get("vsimex_scheme") == std::string("mCNAB"))
+      vsimex_scheme = VSIMEXScheme::mCNAB;
+    else if (prm.get("vsimex_scheme") == std::string("CNLF"))
+      vsimex_scheme = VSIMEXScheme::CNLF;
+    vsimex_input_gamma = prm.get_double("vsimex_input_gamma");
+    vsimex_input_c     = prm.get_double("vsimex_input_c");
   }
   prm.leave_subsection();
 
@@ -178,11 +232,13 @@ read_data_from_file(const std::string &filename)
   }
   prm.leave_subsection();
 
-  flag_verbose_output     = prm.get_bool("flag_verbose_output");
-  flag_adaptive_time_step = prm.get_bool("flag_adaptive_time_step");
-  output_interval         = prm.get_integer("output_interval");
+  flag_verbose_output       = prm.get_bool("flag_verbose_output");
+  flag_adaptive_time_step   = prm.get_bool("flag_adaptive_time_step");
+  flag_DFG_benchmark        = prm.get_bool("flag_DFG_benchmark");
+  graphical_output_interval = prm.get_integer("graphical_output_interval");
+  terminal_output_interval  = prm.get_integer("terminal_output_interval");
 }
 
 } // namespace RunTimeParameters
   
-} // namespace Step35
+} // namespace RMHD
