@@ -70,11 +70,11 @@ SET(TARGET_SRC
     source/navier_stokes_projection/assemble_projection_rhs.cc
     source/navier_stokes_projection/assemble_mass_and_laplace_matrices.cc
     source/navier_stokes_projection/assembly_data.cc
-    source/navier_stokes_projection/cfl_number.cc
     source/navier_stokes_projection/diffusion_step_methods.cc
     source/navier_stokes_projection/projection_step_methods.cc
     source/navier_stokes_projection/setup.cc
     source/navier_stokes_projection/solve.cc
+    source/navier_stokes_projection/timestep_update.cc
 )
 
 # Set the include directory and the name of the project
