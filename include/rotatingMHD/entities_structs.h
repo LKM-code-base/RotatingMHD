@@ -11,7 +11,6 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/lac/affine_constraints.h>
-#include <deal.II/lac/trilinos_sparse_matrix.h>
 #include <deal.II/lac/trilinos_vector.h>
 
 namespace RMHD
@@ -51,6 +50,7 @@ struct VectorEntity : EntityBase<dim>
   VectorEntity(    
     const unsigned int                              &fe_degree,
     const parallel::distributed::Triangulation<dim> &triangulation);
+  void setup_dofs();
 };
 
 template <int dim>
@@ -61,6 +61,7 @@ struct ScalarEntity : EntityBase<dim>
   ScalarEntity(
     const unsigned int                              &fe_degree,
     const parallel::distributed::Triangulation<dim> &triangulation);
+  void setup_dofs();
 };
 
 } // namespace Entities

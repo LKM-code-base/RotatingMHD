@@ -1,4 +1,5 @@
 #include <rotatingMHD/entities_structs.h>
+#include <deal.II/dofs/dof_tools.h>
 
 namespace RMHD
 {
@@ -40,12 +41,30 @@ VectorEntity<dim>::VectorEntity(
 {}
 
 template <int dim>
+void VectorEntity<dim>::setup_dofs()
+{
+  this->dof_handler.distribute_dofs(this->fe);
+  this->locally_owned_dofs = this->dof_handler.locally_owned_dofs();
+  DoFTools::extract_locally_relevant_dofs(this->dof_handler,
+                                          this->locally_relevant_dofs);
+}
+
+template <int dim>
 ScalarEntity<dim>::ScalarEntity(
   const unsigned int                              &fe_degree,
   const parallel::distributed::Triangulation<dim> &triangulation)
   : EntityBase<dim>(fe_degree, triangulation),
     fe(fe_degree)
 {}
+
+template <int dim>
+void ScalarEntity<dim>::setup_dofs()
+{
+  this->dof_handler.distribute_dofs(this->fe);
+  this->locally_owned_dofs = this->dof_handler.locally_owned_dofs();
+  DoFTools::extract_locally_relevant_dofs(this->dof_handler,
+                                          this->locally_relevant_dofs);
+}
 
 } // namespace Entities
 } // namespace RMHD

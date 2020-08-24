@@ -117,16 +117,9 @@ make_grid(const unsigned int n_global_refinements)
 template <int dim>
 void Step35<dim>::setup_dofs()
 {
-  velocity.dof_handler.distribute_dofs(velocity.fe);
-  velocity.locally_owned_dofs = velocity.dof_handler.locally_owned_dofs();
-  DoFTools::extract_locally_relevant_dofs(velocity.dof_handler,
-                                          velocity.locally_relevant_dofs);
-
-  pressure.dof_handler.distribute_dofs(pressure.fe);
-  pressure.locally_owned_dofs = pressure.dof_handler.locally_owned_dofs();
-  DoFTools::extract_locally_relevant_dofs(pressure.dof_handler,
-                                          pressure.locally_relevant_dofs);
-
+  velocity.setup_dofs();
+  pressure.setup_dofs();
+  
   pcout     << "Number of velocity degrees of freedom = " 
             << velocity.dof_handler.n_dofs()
             << std::endl

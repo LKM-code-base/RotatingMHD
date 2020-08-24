@@ -8,6 +8,7 @@
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/lac/trilinos_precondition.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
 
 #include <string>
 #include <vector>
