@@ -62,7 +62,7 @@ set_initial_conditions(
   };
 
 }
-
+/*
 template <int dim>
 void Problem<dim>::
 mpi_point_value(const Entities::EntityBase<dim> &entity,
@@ -108,7 +108,7 @@ mpi_point_value(const Entities::EntityBase<dim> &entity,
                       MPI_COMM_WORLD,
                       vector_point_value);
 }
-
+*/
 } // namespace RMHD
 
 template class RMHD::Problem<2>;
