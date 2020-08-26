@@ -193,6 +193,9 @@ void Step35<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_initial_conditions, 
                                time_stepping);
+  velocity.solution = velocity.old_solution;
+  pressure.solution = pressure.old_solution;
+  output();
 }
 
 template <int dim>
@@ -249,8 +252,6 @@ for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
 
 time_stepping.get_coefficients(VSIMEX);
 
-output();
-
 while (time_stepping.get_current_time() <= time_stepping.get_end_time())
   {    
     navier_stokes.solve(time_stepping.get_step_number());
@@ -267,6 +268,7 @@ while (time_stepping.get_current_time() <= time_stepping.get_end_time())
     time_stepping.set_proposed_step_size(
                               navier_stokes.compute_next_time_step());
     update_solution_vectors();
+    
     if (time_stepping.is_at_end())
       break;
     time_stepping.get_coefficients(VSIMEX);
