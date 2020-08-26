@@ -6,7 +6,7 @@ INCLUDE_DIRECTORIES(
     )
 
 SET(SOURCE_FILES
-    # main.cc
+    DFG.cc
     step-35.cc
     )
 

@@ -1,3 +1,4 @@
+#include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
@@ -21,10 +22,10 @@ namespace RMHD
   using namespace dealii;
 
 template <int dim>
-class Step35 : public Problem<dim>
+class DFG : public Problem<dim>
 {
 public:
-  Step35(const RunTimeParameters::ParameterSet &parameters);
+  DFG(const RunTimeParameters::ParameterSet &parameters);
   void run(const bool         flag_verbose_output           = false,
            const unsigned int terminal_output_periodicity   = 10,
            const unsigned int graphical_output_periodicity  = 10);
@@ -37,26 +38,26 @@ private:
   TimeDiscretization::VSIMEXMethod            time_stepping;
   TimeDiscretization::VSIMEXCoefficients      VSIMEX;
   NavierStokesProjection<dim>                 navier_stokes;
-  
-  EquationData::Step35::VelocityInflowBoundaryCondition<dim>  
+  BenchmarkData::DFG<dim>                     dfg_benchmark;
+
+  EquationData::DFG::VelocityInflowBoundaryCondition<dim>  
                                       inflow_boundary_condition;
-  EquationData::Step35::VelocityInitialCondition<dim>         
+  EquationData::DFG::VelocityInitialCondition<dim>         
                                       velocity_initial_conditions;
-  EquationData::Step35::PressureInitialCondition<dim>         
+  EquationData::DFG::PressureInitialCondition<dim>         
                                       pressure_initial_conditions;
 
-  void make_grid(const unsigned int n_global_refinements);
+  void make_grid();
   void setup_dofs();
   void setup_constraints();
   void initialize();
   void postprocessing(const bool flag_point_evaluation);
   void output();
   void update_solution_vectors();
-  void point_evaluation(const Point<dim>   &point) const;
 };
 
 template <int dim>
-Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
+DFG<dim>::DFG(const RunTimeParameters::ParameterSet &parameters)
   : Problem<dim>(),
     pcout(std::cout, 
           (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
@@ -72,13 +73,12 @@ Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
                   parameters.timestep_upper_bound),
     VSIMEX(time_stepping.get_order()),
     navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
+    dfg_benchmark(),
     inflow_boundary_condition(parameters.t_0),
     velocity_initial_conditions(parameters.t_0),
     pressure_initial_conditions(parameters.t_0)
 {
-  // The VSIMEXMethod class is initialized with t_0 = -dt and then
-  // advanced in order to populate a private member of the class.
-  make_grid(parameters.n_global_refinements);
+  make_grid();
   setup_dofs();
   setup_constraints();
   velocity.reinit();
@@ -88,31 +88,27 @@ Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
 }
 
 template <int dim>
-void Step35<dim>::
-make_grid(const unsigned int n_global_refinements)
+void DFG<dim>::
+make_grid()
 {
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(triangulation);
 
   {
-    std::string   filename = "nsbench2.inp";
+    std::string   filename = "dfg.inp";
     std::ifstream file(filename);
     Assert(file, ExcFileNotOpen(filename.c_str()));
     grid_in.read_ucd(file);
   }
 
-  triangulation.refine_global(n_global_refinements);
-
   boundary_ids = triangulation.get_boundary_ids();
 
-  pcout     << "Number of refines                     = " 
-            << n_global_refinements << std::endl;
   pcout     << "Number of active cells                = " 
             << triangulation.n_active_cells() << std::endl;
 }
 
 template <int dim>
-void Step35<dim>::setup_dofs()
+void DFG<dim>::setup_dofs()
 {
   velocity.setup_dofs();
   pressure.setup_dofs();
@@ -126,7 +122,7 @@ void Step35<dim>::setup_dofs()
 }
 
 template <int dim>
-void Step35<dim>::setup_constraints()
+void DFG<dim>::setup_constraints()
 {
   velocity.constraints.clear();
   velocity.constraints.reinit(velocity.locally_relevant_dofs);
@@ -135,32 +131,23 @@ void Step35<dim>::setup_constraints()
   for (const auto &boundary_id : boundary_ids)
     switch (boundary_id)
     {
-      case 1:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    Functions::ZeroFunction<dim>(dim),
-                                    velocity.constraints);
-        break;
-      case 2:
+      case 0:
         VectorTools::interpolate_boundary_values(
                                     velocity.dof_handler,
                                     boundary_id,
                                     inflow_boundary_condition,
                                     velocity.constraints);
         break;
-      case 3:
-      {
-        std::set<types::boundary_id> no_normal_flux_boundaries;
-        no_normal_flux_boundaries.insert(boundary_id);
-        VectorTools::compute_normal_flux_constraints(
+      case 1:
+        break;
+      case 2:
+        VectorTools::interpolate_boundary_values(
                                     velocity.dof_handler,
-                                    0,
-                                    no_normal_flux_boundaries,
+                                    boundary_id,
+                                    Functions::ZeroFunction<dim>(dim),
                                     velocity.constraints);
         break;
-      }
-      case 4:
+      case 3:
         VectorTools::interpolate_boundary_values(
                                     velocity.dof_handler,
                                     boundary_id,
@@ -178,14 +165,14 @@ void Step35<dim>::setup_constraints()
                                           pressure.constraints);
   VectorTools::interpolate_boundary_values(
                                       pressure.dof_handler,
-                                      3,
+                                      1,
                                       Functions::ZeroFunction<dim>(),
                                       pressure.constraints);
   pressure.constraints.close();
 }
 
 template <int dim>
-void Step35<dim>::initialize()
+void DFG<dim>::initialize()
 {
   this->set_initial_conditions(velocity, 
                                velocity_initial_conditions, 
@@ -199,17 +186,18 @@ void Step35<dim>::initialize()
 }
 
 template <int dim>
-void Step35<dim>::postprocessing(const bool flag_point_evaluation)
+void DFG<dim>::postprocessing(const bool flag_point_evaluation)
 {
-  static Point<dim> evaluation_point(2.0, 3.0);
   if (flag_point_evaluation)
   {
-    point_evaluation(evaluation_point);
+    dfg_benchmark.compute_pressure_difference(pressure);
+    dfg_benchmark.print_step_data(time_stepping);
+    dfg_benchmark.update_table(time_stepping);
   }
 }
 
 template <int dim>
-void Step35<dim>::output()
+void DFG<dim>::output()
 {
   std::vector<std::string> names(dim, "velocity");
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
@@ -232,7 +220,7 @@ void Step35<dim>::output()
 }
 
 template <int dim>
-void Step35<dim>::update_solution_vectors()
+void DFG<dim>::update_solution_vectors()
 {
   velocity.update_solution_vectors();
   pressure.update_solution_vectors();
@@ -240,7 +228,7 @@ void Step35<dim>::update_solution_vectors()
 }
 
 template <int dim>
-void Step35<dim>::run(
+void DFG<dim>::run(
               const bool          flag_verbose_output,
               const unsigned int  terminal_output_periodicity,
               const unsigned int  graphical_output_periodicity)
@@ -274,43 +262,7 @@ while (time_stepping.get_current_time() <= time_stepping.get_end_time())
     time_stepping.get_coefficients(VSIMEX);
     time_stepping.advance_time();
   }
-}
-
-template <int dim>
-void Step35<dim>::
-point_evaluation(const Point<dim>   &point) const
-{
-const std::pair<typename DoFHandler<dim>::active_cell_iterator,
-                  Point<dim>> cell_point =
-    GridTools::find_active_cell_around_point(
-                                    StaticMappingQ1<dim, dim>::mapping,
-                                    velocity.dof_handler, 
-                                    point);
-if (cell_point.first->is_locally_owned())
-{
-  Vector<double> point_value_velocity(dim);
-  VectorTools::point_value(velocity.dof_handler,
-                          velocity.solution,
-                          point,
-                          point_value_velocity);
-
-  const double point_value_pressure
-  = VectorTools::point_value(pressure.dof_handler,
-                            pressure.solution,
-                            point);
-  std::cout << "Step = " << std::setw(2) 
-            << time_stepping.get_step_number() 
-            << " Time = " << std::noshowpos << std::scientific
-            << time_stepping.get_current_time()
-            << " Velocity = (" << std::showpos << std::scientific
-            << point_value_velocity[0] 
-            << ", " << std::showpos << std::scientific
-            << point_value_velocity[1] 
-            << ") Pressure = " << std::showpos << std::scientific
-            << point_value_pressure
-            << " Time step = " << std::showpos << std::scientific
-            << time_stepping.get_next_step_size() << std::endl;
-}
+  dfg_benchmark.write_table_to_file("dfg_benchmark.tex");
 }
 
 } // namespace RMHD
@@ -326,11 +278,11 @@ int main(int argc, char *argv[])
         argc, argv, 1);
 
       RunTimeParameters::ParameterSet parameter_set;
-      parameter_set.read_data_from_file("step-35.prm");
+      parameter_set.read_data_from_file("DFG.prm");
 
       deallog.depth_console(parameter_set.flag_verbose_output ? 2 : 0);
 
-      Step35<2> simulation(parameter_set);
+      DFG<2> simulation(parameter_set);
       simulation.run(parameter_set.flag_verbose_output, 
                      parameter_set.terminal_output_interval,
                      parameter_set.graphical_output_interval);

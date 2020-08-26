@@ -1,0 +1,36 @@
+set projection_method                 = rotational
+
+subsection Physical parameters
+  set Re                              = 100
+end
+
+subsection Time discretization parameters
+  set dt                              = 5e-3
+  set timestep_lower_bound            = 1e-3
+  set timestep_upper_bound            = 5e-2
+  set t_0                             = 0.
+  set T                               = 35.
+  set vsimex_scheme                   = BDF2
+  set vsimex_input_gamma              = 1.0
+  set vsimex_input_c                  = 0.0
+end
+
+subsection Space discretization parameters
+  set n_global_refinements            = 3
+  set p_fe_degree                     = 1
+end
+
+subsection Parameters of the diffusion-step solver
+  set solver_max_iterations         = 1000  
+  set solver_tolerance              = 1e-10  
+  set solver_krylov_size            = 30    
+  set solver_off_diagonals          = 70
+  set solver_diag_strength          = 0.1
+  set solver_update_preconditioner  = 10
+end
+
+set flag_verbose_output               = false
+set flag_adaptive_time_step           = false
+set flag_DFG_benchmark                = false
+set graphical_output_interval         = 50
+set terminal_output_interval          = 1
