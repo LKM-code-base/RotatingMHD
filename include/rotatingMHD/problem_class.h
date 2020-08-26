@@ -24,7 +24,14 @@ protected:
                         Entities::EntityBase<dim>         &entity,
                         Function<dim>                     &function,
                         TimeDiscretization::VSIMEXMethod  &time_stepping);
-  void mpi_point_value();
+  void mpi_point_value(
+                  const Entities::EntityBase<dim> &entity,
+                  const Point<dim>                &point,
+                  double                          &scalar_point_value);
+  void mpi_point_value(
+                  const Entities::EntityBase<dim> &entity,
+                  const Point<dim>                &point,
+                  Vector<double>                  &vector_point_value);
 
 };
 

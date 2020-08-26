@@ -49,11 +49,10 @@ private:
   void setup_dofs();
   void setup_constraints();
   void initialize();
-  void postprocessing();
+  void postprocessing(const bool flag_point_evaluation);
   void output();
   void update_solution_vectors();
-  void point_evaluation(const Point<dim>   &point,
-                        DiscreteTime       time) const;
+  void point_evaluation(const Point<dim>   &point) const;
 };
 
 template <int dim>
@@ -197,9 +196,13 @@ void Step35<dim>::initialize()
 }
 
 template <int dim>
-void Step35<dim>::postprocessing()
+void Step35<dim>::postprocessing(const bool flag_point_evaluation)
 {
-
+  static Point<dim> evaluation_point(2.0, 3.0);
+  if (flag_point_evaluation)
+  {
+    point_evaluation(evaluation_point);
+  }
 }
 
 template <int dim>
@@ -241,8 +244,6 @@ void Step35<dim>::run(
 {
 (void)flag_verbose_output;
 
-Point<dim> evaluation_point(2.0, 3.0);
-
 for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
   time_stepping.advance_time();
 
@@ -254,11 +255,9 @@ while (time_stepping.get_current_time() <= time_stepping.get_end_time())
   {    
     navier_stokes.solve(time_stepping.get_step_number());
 
-    postprocessing();
-    if ((time_stepping.get_step_number() % 
-          terminal_output_periodicity == 0) ||
-        time_stepping.is_at_end())
-      point_evaluation(evaluation_point, time_stepping);
+    postprocessing((time_stepping.get_step_number() % 
+                    terminal_output_periodicity == 0) ||
+                   time_stepping.is_at_end());
 
     if ((time_stepping.get_step_number() % 
           graphical_output_periodicity == 0) ||
@@ -277,8 +276,7 @@ while (time_stepping.get_current_time() <= time_stepping.get_end_time())
 
 template <int dim>
 void Step35<dim>::
-point_evaluation(const Point<dim>   &point,
-                 DiscreteTime       time) const
+point_evaluation(const Point<dim>   &point) const
 {
 const std::pair<typename DoFHandler<dim>::active_cell_iterator,
                   Point<dim>> cell_point =
@@ -298,23 +296,17 @@ if (cell_point.first->is_locally_owned())
   = VectorTools::point_value(pressure.dof_handler,
                             pressure.solution,
                             point);
-  std::cout << "Step = " 
-            << std::setw(2) 
+  std::cout << "Step = " << std::setw(2) 
             << time_stepping.get_step_number() 
-            << " Time = " 
-            << std::noshowpos << std::scientific
-            << time.get_current_time()
-            << " Velocity = (" 
-            << std::showpos << std::scientific
+            << " Time = " << std::noshowpos << std::scientific
+            << time_stepping.get_current_time()
+            << " Velocity = (" << std::showpos << std::scientific
             << point_value_velocity[0] 
-            << ", "
-            << std::showpos << std::scientific
+            << ", " << std::showpos << std::scientific
             << point_value_velocity[1] 
-            << ") Pressure = "
-            << std::showpos << std::scientific
+            << ") Pressure = " << std::showpos << std::scientific
             << point_value_pressure
-            << " Time step = " 
-            << std::showpos << std::scientific
+            << " Time step = " << std::showpos << std::scientific
             << time_stepping.get_next_step_size() << std::endl;
 }
 }
