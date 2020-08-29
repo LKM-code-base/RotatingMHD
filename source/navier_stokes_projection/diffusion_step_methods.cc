@@ -43,8 +43,7 @@ solve_diffusion_step(const bool reinit_prec)
   distributed_velocity = velocity.solution;
 
   if (reinit_prec)
-    diffusion_step_preconditioner.initialize(
-                                      velocity_system_matrix);
+    diffusion_step_preconditioner.initialize(velocity_system_matrix);
 
   SolverControl solver_control(solver_max_iterations, 
                                solver_tolerance * velocity_rhs.l2_norm());
@@ -63,5 +62,6 @@ solve_diffusion_step(const bool reinit_prec)
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::assemble_diffusion_step();
 template void RMHD::NavierStokesProjection<3>::assemble_diffusion_step();
+
 template void RMHD::NavierStokesProjection<2>::solve_diffusion_step(const bool);
 template void RMHD::NavierStokesProjection<3>::solve_diffusion_step(const bool);

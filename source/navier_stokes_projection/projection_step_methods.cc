@@ -8,8 +8,7 @@ namespace RMHD
 {
 
 template <int dim>
-void NavierStokesProjection<dim>::
-assemble_projection_step()
+void NavierStokesProjection<dim>::assemble_projection_step()
 {
   /* System matrix setup */
   // System matrix is constant and assembled in the
@@ -20,8 +19,8 @@ assemble_projection_step()
 }
 
 template <int dim>
-void NavierStokesProjection<dim>::
-solve_projection_step(const bool reinit_prec)
+void NavierStokesProjection<dim>::solve_projection_step
+(const bool reinit_prec)
 {
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
@@ -43,10 +42,12 @@ solve_projection_step(const bool reinit_prec)
   distributed_phi *= VSIMEX.alpha[2];
   phi = distributed_phi;
 }
+
 }
 
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::assemble_projection_step();
 template void RMHD::NavierStokesProjection<3>::assemble_projection_step();
+
 template void RMHD::NavierStokesProjection<2>::solve_projection_step(const bool);
 template void RMHD::NavierStokesProjection<3>::solve_projection_step(const bool);
