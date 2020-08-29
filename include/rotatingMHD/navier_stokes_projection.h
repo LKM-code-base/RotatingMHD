@@ -50,6 +50,9 @@ public:
    */
   void setup();
 
+  void initialize();
+
+
   /*!
    *  @brief Solves the problem for one single timestep.
    *
@@ -70,6 +73,8 @@ public:
    *  \f}
    */
   void update_internal_entities();
+  void reinit_internal_entities();
+  
   double compute_next_time_step();
 private:
 
@@ -232,6 +237,8 @@ private:
    */
   TrilinosWrappers::MPI::Vector         pressure_rhs;
 
+  TrilinosWrappers::MPI::Vector         poisson_prestep_rhs;
+
   /*!
    * @brief Vector representing the pressure update of the current timestep.
    */
@@ -283,7 +290,22 @@ private:
    * @brief Currently this method only sets the vector of the two pressure
    * updates @ref phi_n and @ref phi_n_minus_1 to zero.
    */
-  void initialize();
+
+  void poisson_prestep();
+
+  void assemble_poisson_prestep();
+
+  void assemble_poisson_prestep_rhs();
+
+  void solve_poisson_prestep();
+
+  void diffusion_prestep();
+
+  void assemble_diffusion_prestep();
+
+  void projection_prestep();
+
+  void pressure_correction_prestep();
 
   /*!
    * @brief This method performs one complete diffusion step.
@@ -364,6 +386,14 @@ private:
    */
   void copy_local_to_global_pressure_matrices(
     const PressureMatricesAssembly::MappingData<dim>      &data);
+
+  void assemble_local_poisson_prestep_rhs(
+    const typename DoFHandler<dim>::active_cell_iterator        &cell,
+    PoissonPrestepRightHandSideAssembly::LocalCellData<dim>     &scratch,
+    PoissonPrestepRightHandSideAssembly::MappingData<dim>       &data);
+
+  void copy_local_to_global_poisson_prestep_rhs(
+    const PoissonPrestepRightHandSideAssembly::MappingData<dim> &data);
 
   /*!
    * @brief This method assembles the right-hand side of the diffusion step

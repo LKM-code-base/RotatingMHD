@@ -32,8 +32,7 @@ assemble_diffusion_step()
 }
 
 template <int dim>
-void
-NavierStokesProjection<dim>::
+void NavierStokesProjection<dim>::
 solve_diffusion_step(const bool reinit_prec)
 {
   // In this method we create temporal non ghosted copies
