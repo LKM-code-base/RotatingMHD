@@ -30,55 +30,60 @@ assemble_diffusion_step_rhs()
       this->copy_local_to_global_diffusion_step_rhs(data);
     };
 
-  WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             velocity.dof_handler.begin_active()),
-                  CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             velocity.dof_handler.end()),
-                  worker,
-                  copier,
-                  VelocityRightHandSideAssembly::LocalCellData<dim>(
-                                          velocity.fe,
-                                          pressure.fe,
-                                          velocity.quadrature_formula,
-                                          update_values |
-                                          update_gradients |
-                                          update_JxW_values,
-                                          update_values),
-                  VelocityRightHandSideAssembly::MappingData<dim>(
-                                          velocity.fe.dofs_per_cell));
+  WorkStream::run
+  (CellFilter(IteratorFilters::LocallyOwnedCell(),
+              velocity.dof_handler.begin_active()),
+   CellFilter(IteratorFilters::LocallyOwnedCell(),
+              velocity.dof_handler.end()),
+   worker,
+   copier,
+   VelocityRightHandSideAssembly::LocalCellData<dim>(velocity.fe,
+                                                     pressure.fe,
+                                                     velocity.quadrature_formula,
+                                                     update_values|
+                                                     update_gradients|
+                                                     update_JxW_values,
+                                                     update_values),
+   VelocityRightHandSideAssembly::MappingData<dim>(velocity.fe.dofs_per_cell));
+
   velocity_rhs.compress(VectorOperation::add);
 }
 
 template <int dim>
-void NavierStokesProjection<dim>::
-assemble_local_diffusion_step_rhs(
-  const typename DoFHandler<dim>::active_cell_iterator  &cell, 
-  VelocityRightHandSideAssembly::LocalCellData<dim>     &scratch,
-  VelocityRightHandSideAssembly::MappingData<dim>       &data)
+void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
+(const typename DoFHandler<dim>::active_cell_iterator  &cell,
+ VelocityRightHandSideAssembly::LocalCellData<dim>     &scratch,
+ VelocityRightHandSideAssembly::MappingData<dim>       &data)
 {
+  // reset local matrix and vector
   data.local_diffusion_step_rhs = 0.;
   data.local_matrix_for_inhomogeneous_bc = 0.;
 
+  // prepare velocity part
+  const FEValuesExtractors::Vector  velocities(0);
+
   scratch.velocity_fe_values.reinit(cell);
-  
-  typename DoFHandler<dim>::active_cell_iterator pressure_cell(
-                                        &velocity.dof_handler.get_triangulation(), 
-                                        cell->level(), 
-                                        cell->index(), 
-                                        &pressure.dof_handler);
-  scratch.pressure_fe_values.reinit(pressure_cell);
   
   cell->get_dof_indices(data.local_velocity_dof_indices);
 
-  const FEValuesExtractors::Vector  velocities(0);
+  scratch.velocity_fe_values[velocities].get_function_values
+  (velocity_tmp,
+   scratch.velocity_tmp_values);
 
-  scratch.velocity_fe_values[velocities].get_function_values(
-                                          velocity_tmp,
-                                          scratch.velocity_tmp_values);
+  // prepare pressure part
+  typename DoFHandler<dim>::active_cell_iterator
+  pressure_cell(&velocity.dof_handler.get_triangulation(),
+                 cell->level(),
+                 cell->index(),
+                &pressure.dof_handler);
+
+  scratch.pressure_fe_values.reinit(pressure_cell);
+  
   scratch.pressure_fe_values.get_function_values(
                                           pressure_tmp,
                                           scratch.pressure_tmp_values);
 
+  // loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
   {
     for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
@@ -89,6 +94,7 @@ assemble_local_diffusion_step_rhs(
                   scratch.velocity_fe_values[velocities].divergence(i, q);
     }
     
+    // loop over local dofs
     for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
     {
       data.local_diffusion_step_rhs(i) +=
@@ -98,7 +104,8 @@ assemble_local_diffusion_step_rhs(
                                   +
                                   scratch.pressure_tmp_values[q] *
                                   scratch.div_phi_velocity[i]);
-      
+
+      // assemble matrix for inhomogeneous boundary conditions
       if (velocity.constraints.is_inhomogeneously_constrained(
         data.local_velocity_dof_indices[i]))
       {
@@ -134,14 +141,14 @@ assemble_local_diffusion_step_rhs(
                             scratch.phi_velocity[i])  
                             * scratch.velocity_fe_values.JxW(q);
       }
-    }
-  }
+
+    } // loop over local dofs
+  } // loop over quadrature points
 }
 
 template <int dim>
-void NavierStokesProjection<dim>::
-copy_local_to_global_diffusion_step_rhs(
-  const VelocityRightHandSideAssembly::MappingData<dim>  &data)
+void NavierStokesProjection<dim>::copy_local_to_global_diffusion_step_rhs
+(const VelocityRightHandSideAssembly::MappingData<dim>  &data)
 {
   velocity.constraints.distribute_local_to_global(
                                 data.local_diffusion_step_rhs,
@@ -152,19 +159,20 @@ copy_local_to_global_diffusion_step_rhs(
 
 } // namespace Step35
 
-// Explicit instantiations
-
+// explicit instantiations
 template void RMHD::NavierStokesProjection<2>::assemble_diffusion_step_rhs();
 template void RMHD::NavierStokesProjection<3>::assemble_diffusion_step_rhs();
-template void RMHD::NavierStokesProjection<2>::assemble_local_diffusion_step_rhs(
-    const typename DoFHandler<2>::active_cell_iterator          &,
-    RMHD::VelocityRightHandSideAssembly::LocalCellData<2>     &,
-    RMHD::VelocityRightHandSideAssembly::MappingData<2>       &);
-template void RMHD::NavierStokesProjection<3>::assemble_local_diffusion_step_rhs(
-    const typename DoFHandler<3>::active_cell_iterator          &,
-    RMHD::VelocityRightHandSideAssembly::LocalCellData<3>     &,
-    RMHD::VelocityRightHandSideAssembly::MappingData<3>       &);
-template void RMHD::NavierStokesProjection<2>::copy_local_to_global_diffusion_step_rhs(
-    const RMHD::VelocityRightHandSideAssembly::MappingData<2> &);
-template void RMHD::NavierStokesProjection<3>::copy_local_to_global_diffusion_step_rhs(
-    const RMHD::VelocityRightHandSideAssembly::MappingData<3> &);
+
+template void RMHD::NavierStokesProjection<2>::assemble_local_diffusion_step_rhs
+(const typename DoFHandler<2>::active_cell_iterator     &,
+ RMHD::VelocityRightHandSideAssembly::LocalCellData<2>  &,
+ RMHD::VelocityRightHandSideAssembly::MappingData<2>    &);
+template void RMHD::NavierStokesProjection<3>::assemble_local_diffusion_step_rhs
+(const typename DoFHandler<3>::active_cell_iterator     &,
+ RMHD::VelocityRightHandSideAssembly::LocalCellData<3>  &,
+ RMHD::VelocityRightHandSideAssembly::MappingData<3>    &);
+
+template void RMHD::NavierStokesProjection<2>::copy_local_to_global_diffusion_step_rhs
+(const RMHD::VelocityRightHandSideAssembly::MappingData<2>  &);
+template void RMHD::NavierStokesProjection<3>::copy_local_to_global_diffusion_step_rhs
+(const RMHD::VelocityRightHandSideAssembly::MappingData<3>  &);
