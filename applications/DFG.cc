@@ -180,6 +180,9 @@ void DFG<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_initial_conditions, 
                                time_stepping);
+  
+  navier_stokes.initialize();
+
   velocity.solution = velocity.old_solution;
   pressure.solution = pressure.old_solution;
   output();
@@ -191,6 +194,9 @@ void DFG<dim>::postprocessing(const bool flag_point_evaluation)
   if (flag_point_evaluation)
   {
     dfg_benchmark.compute_pressure_difference(pressure);
+    dfg_benchmark.compute_drag_and_lift_forces_and_coefficients(
+                                                            velocity,
+                                                            pressure);
     dfg_benchmark.print_step_data(time_stepping);
     dfg_benchmark.update_table(time_stepping);
   }
