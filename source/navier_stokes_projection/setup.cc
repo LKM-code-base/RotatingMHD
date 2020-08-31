@@ -13,7 +13,7 @@ setup()
   setup_matrices();
   setup_vectors();
   assemble_constant_matrices();
-  reinit_internal_variables();
+  reinit_internal_entities();
 }
 
 template <int dim>
@@ -98,15 +98,14 @@ assemble_constant_matrices()
 
 template <int dim>
 void NavierStokesProjection<dim>::
-reinit_internal_variables()
+reinit_internal_entities()
 {
-  phi         = 0.;
-  old_phi     = 0.;
-  old_old_phi = 0.;
+  phi                             = 0.;
+  old_phi                         = 0.;
+  old_old_phi                     = 0.;
+  flag_diffusion_matrix_assembled = false;
 }
-
 }
-
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::setup();
 template void RMHD::NavierStokesProjection<3>::setup();
@@ -116,5 +115,5 @@ template void RMHD::NavierStokesProjection<2>::setup_vectors();
 template void RMHD::NavierStokesProjection<3>::setup_vectors();
 template void RMHD::NavierStokesProjection<2>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
-template void RMHD::NavierStokesProjection<2>::reinit_internal_variables();
-template void RMHD::NavierStokesProjection<3>::reinit_internal_variables();
+template void RMHD::NavierStokesProjection<2>::reinit_internal_entities();
+template void RMHD::NavierStokesProjection<3>::reinit_internal_entities();
