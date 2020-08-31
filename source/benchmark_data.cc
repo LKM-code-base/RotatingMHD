@@ -2,6 +2,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/exceptions.h>
 #include <deal.II/fe/mapping_q1.h>
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
@@ -77,14 +78,17 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
                           const Entities::VectorEntity<dim> &velocity,
                           const Entities::ScalarEntity<dim> &pressure)
 {
+  const MappingQ<dim>   mapping(3);
   QGauss<dim-1>     face_quadrature_formula(velocity.fe_degree + 1);
-  FEFaceValues<dim> velocity_face_fe_values(velocity.fe,
+  FEFaceValues<dim> velocity_face_fe_values(mapping,
+                                            velocity.fe,
                                             face_quadrature_formula,
                                             update_values |
                                             update_gradients |
                                             update_JxW_values |
                                             update_normal_vectors);
-  FEFaceValues<dim> pressure_face_fe_values(pressure.fe,
+  FEFaceValues<dim> pressure_face_fe_values(mapping,
+                                            pressure.fe,
                                             face_quadrature_formula,
                                             update_values);
 
@@ -179,7 +183,7 @@ void DFG<dim>::print_step_data(DiscreteTime &time)
           (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
 
   pcout << "Step = " 
-        << std::setw(2) 
+        << std::setw(4) 
         << time.get_step_number() 
         << " Time = " 
         << std::noshowpos << std::scientific
