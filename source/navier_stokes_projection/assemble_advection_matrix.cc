@@ -54,12 +54,12 @@ assemble_local_velocity_advection_matrix(
 {
   scratch.fe_values.reinit(cell);
   cell->get_dof_indices(data.local_dof_indices);
-  const FEValuesExtractors::Vector      velocity(0);
+  const FEValuesExtractors::Vector      velocities(0);
 
-  scratch.fe_values[velocity].get_function_values(
+  scratch.fe_values[velocities].get_function_values(
                                   extrapolated_velocity, 
                                   scratch.extrapolated_velocity_values);
-  scratch.fe_values[velocity].get_function_divergences(
+  scratch.fe_values[velocities].get_function_divergences(
                             extrapolated_velocity, 
                             scratch.extrapolated_velocity_divergences);
 
@@ -68,8 +68,8 @@ assemble_local_velocity_advection_matrix(
   {
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
-      scratch.phi_velocity[i] = scratch.fe_values[velocity].value(i,q);
-      scratch.grad_phi_velocity[i] = scratch.fe_values[velocity].gradient(i,q);
+      scratch.phi_velocity[i] = scratch.fe_values[velocities].value(i,q);
+      scratch.grad_phi_velocity[i] = scratch.fe_values[velocities].gradient(i,q);
     }
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
       for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
