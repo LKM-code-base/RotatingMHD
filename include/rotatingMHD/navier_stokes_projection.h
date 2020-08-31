@@ -314,6 +314,15 @@ private:
   /*!
    * @brief This method assembles the system matrix and the right-hand side of
    * the diffusion step.
+   *
+   * The system matrix \f$\mathbf{A}^{(\bs{v})}\f$ is constructed from the mass
+   * \f$\mathbf{M}^{(\bs{v})}\f$, the stiffness \f$\mathbf{K}^{(\bs{v})}\f$ and
+   * the advection matrices \f$\mathbf{C}^{(\bs{v})}\f$ as follows
+   *
+   * \f[
+   * \mathbf{A} = \alpha_2 \mathbf{M}^{(\bs{v})}+ \frac{1}{\Reynolds}
+   * \mathbf{K}^{(\bs{v})} + \mathbf{C}^{(\bs{v})} \,.
+   * \f]
    */
   void assemble_diffusion_step();
 
@@ -343,8 +352,22 @@ private:
   void pressure_correction(const bool reinit_prec);
 
   /*!
-   * @brief This method assembles the mass and the stiffness matrix of the
-   * velocity field using the WorkStream approach.
+   * @brief This method assembles the mass \f$\mathbf{M}^{(\bs{v})}\f$ and the
+   * stiffness matrix \f$\mathbf{K}^{(\bs{v})}\f$ of the velocity field using
+   * the WorkStream approach.
+   *
+   * This method assembles the following weak forms into the two matrices
+   * \f$\mathbf{M}^{(\bs{v})}\f$ and \f$\mathbf{K}^{(\bs{v})}\f$
+   *
+   * \f[
+   * \begin{equation*}
+   * \begin{aligned}
+   * \mathbf{M}^{(\bs{v})}_{ij} &= \int\limits_\Omega \bs{\varphi}_i\cdot\bs{\varphi}_j\dint{V}\,,\\
+   * \mathbf{K}^{(\bs{v})}_{ij} &= \int\limits_\Omega (\nabla\otimes\bs{\varphi}_i)\cdott
+   * (\nabla\otimes\bs{\varphi}_j)\dint{V}\,.
+   * \end{aligned}
+   * \end{equation*}
+   * \f]
    */
   void assemble_velocity_matrices();
 
@@ -365,8 +388,21 @@ private:
     const VelocityMatricesAssembly::MappingData<dim>      &data);
 
   /*!
-   * @brief This method copies the local mass and the local stiffness matrices
-   * of the velocity field into the global matrices.
+   * @brief This method assembles the mass \f$\mathbf{M}^{(p)}\f$ and the
+   * stiffness matrices \f$\mathbf{K}^{(p)}\f$ of the pressure field using the
+   * WorkStream approach.
+   *
+   * This method assembles the following weak forms into the two matrices
+   * \f$\mathbf{M}^{(p)}\f$ and \f$\mathbf{K}^{(p)}\f$
+   *
+   * \f[
+   * \begin{equation*}
+   * \begin{aligned}
+   * \mathbf{M}^{(p)}_{ij} &= \int\limits_\Omega \varphi_i\varphi_j\dint{V}\,,\\
+   * \mathbf{K}^{(p)}_{ij} &= \int\limits_\Omega \nabla\varphi_i\cdot\nabla\varphi_j\dint{V}\,.
+   * \end{aligned}
+   * \end{equation*}
+   * \f]
    */
   void assemble_pressure_matrices();
 
@@ -397,6 +433,17 @@ private:
   /*!
    * @brief This method assembles the right-hand side of the diffusion step
    * using the WorkStream approach.
+   *
+   * This method assembles the following weak form into the vector representing
+   * the right-hand side \f$\mathbf{b}\f$
+   * \f[
+   * \mathbf{b}_i = -\int\limits_\Omega (\alpha_1 \bs{v}^{n-1}
+   * + \alpha_0 \bs{v}^{n-2}) \cdot
+   * \bs{\varphi}_i \dint{V} + \int\limits_\Omega p^\star
+   * (\nabla\cdot\bs{\varphi}_i) \dint{V}\,,
+   * \f]
+   * where \f$\bs{\varphi}_i\f$ is a test function of the velocity space.
+   * Furthermore, \f$p^\star\f$ denotes the extrapolated pressure.
    */
   void assemble_diffusion_step_rhs();
 
@@ -419,6 +466,13 @@ private:
   /*!
    * @brief This method assembles the right-hand side of the projection step
    * using the WorkStream approach.
+   *
+   * This method assembles the following weak form into the vector representing
+   * the right-hand side \f$\mathbf{b}\f$
+   * \f[
+   * \mathbf{b}_i = -\int\limits_\Omega (\nabla\cdot\bs{v}) \varphi_i \dint{V}\,,
+   * \f]
+   * where \f$\varphi_i\f$ is a test function of the pressure space.
    */
   void assemble_projection_step_rhs();
 
@@ -441,6 +495,18 @@ private:
   /*!
    * @brief This method assembles the velocity advection matrix using the
    * WorkStream approach.
+   *
+   * This method assembles the following skew-symmetric weak form into the
+   * advection matrix \f$\mathbf{C}^{(\bs{v})}\f$
+   * \f[
+   * \mathbf{C}^{(\bs{v})}_{ij} = \int\limits_\Omega
+   * \bs{v}^\star\cdot(\nabla\otimes\bs{\varphi}_j)\cdot \bs{\varphi}_i \dint{V} +
+   * \int\limits_\Omega \tfrac{1}{2}(\nabla\cdot\bs{v}^\star)
+   * \bs{\varphi}_j\cdot\bs{\varphi}_i \dint{V}\,,
+   * \f]
+   * where \f$\varphi_j\f$ and \f$\varphi_i\f$ are the trial and test functions
+   * of the velocity space. Furthermore, \f$\bs{v}^\star\f$ denotes
+   * the extrapolated velocity.
    */
   void assemble_velocity_advection_matrix();
 
