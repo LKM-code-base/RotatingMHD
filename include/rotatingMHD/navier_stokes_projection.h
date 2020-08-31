@@ -50,6 +50,10 @@ public:
    */
   void setup();
 
+  /*!
+   * @brief Currently this method only sets the vector of the two pressure
+   * updates @ref phi_n and @ref phi_n_minus_1 to zero.
+   */
   void initialize();
 
 
@@ -266,7 +270,7 @@ private:
   double                                solver_tolerance;
   double                                solver_diag_strength;
   bool                                  flag_adpative_time_step;
-
+  bool                                  flag_diffusion_matrix_assembled;
 
   /*!
    * @brief Setup of the sparsity spatterns of the matrices of the diffusion and
@@ -285,11 +289,6 @@ private:
    * refined or coarsened.
    */
   void assemble_constant_matrices();
-
-  /*!
-   * @brief Currently this method only sets the vector of the two pressure
-   * updates @ref phi_n and @ref phi_n_minus_1 to zero.
-   */
 
   void poisson_prestep();
 
