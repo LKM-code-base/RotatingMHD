@@ -23,7 +23,8 @@ NavierStokesProjection(
     solver_update_preconditioner(parameters.solver_update_preconditioner),
     solver_tolerance(parameters.solver_tolerance),
     solver_diag_strength(parameters.solver_diag_strength),
-    flag_adpative_time_step(parameters.flag_adaptive_time_step)
+    flag_adpative_time_step(parameters.flag_adaptive_time_step),
+    flag_diffusion_matrix_assembled(false)
 {}
 
 }  // namespace Step35

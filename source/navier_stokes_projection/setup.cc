@@ -13,7 +13,7 @@ setup()
   setup_matrices();
   setup_vectors();
   assemble_constant_matrices();
-  initialize();
+  reinit_internal_entities();
 }
 
 template <int dim>
@@ -73,6 +73,7 @@ setup_vectors()
                       pressure.locally_relevant_dofs,
                       MPI_COMM_WORLD,
                       true);
+  poisson_prestep_rhs.reinit(pressure_rhs);
   pressure_tmp.reinit(pressure.solution);
   
   phi.reinit(pressure.solution);
@@ -97,15 +98,14 @@ assemble_constant_matrices()
 
 template <int dim>
 void NavierStokesProjection<dim>::
-initialize()
+reinit_internal_entities()
 {
-  phi         = 0.;
-  old_phi     = 0.;
-  old_old_phi = 0.;
+  phi                             = 0.;
+  old_phi                         = 0.;
+  old_old_phi                     = 0.;
+  flag_diffusion_matrix_assembled = false;
 }
-
 }
-
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::setup();
 template void RMHD::NavierStokesProjection<3>::setup();
@@ -115,5 +115,5 @@ template void RMHD::NavierStokesProjection<2>::setup_vectors();
 template void RMHD::NavierStokesProjection<3>::setup_vectors();
 template void RMHD::NavierStokesProjection<2>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
-template void RMHD::NavierStokesProjection<2>::initialize();
-template void RMHD::NavierStokesProjection<3>::initialize();
+template void RMHD::NavierStokesProjection<2>::reinit_internal_entities();
+template void RMHD::NavierStokesProjection<3>::reinit_internal_entities();

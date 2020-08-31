@@ -61,9 +61,6 @@ diffusion_step(const bool reinit_prec)
   /* Assemble linear system */
   assemble_diffusion_step();
 
-  /* Update for the next time step */
-  //velocity.old_old_solution = velocity.old_solution;
-
   /* Solve linear system */
   solve_diffusion_step(reinit_prec);
 }
@@ -75,9 +72,6 @@ projection_step(const bool reinit_prec)
   /* Assemble linear system */
   assemble_projection_step();
 
-  /* Update for the next time step */
-  //old_old_phi = old_phi;
-
   /* Solve linear system */
   solve_projection_step(reinit_prec);
 }
@@ -88,8 +82,7 @@ pressure_correction(const bool reinit_prec)
 {
   // This boolean will be used later when a proper solver is chosen
   (void)reinit_prec;
-  /* Update for the next time step */
-  //pressure.old_old_solution = pressure.old_solution;
+  
   switch (projection_method)
     {
       case RunTimeParameters::ProjectionMethod::standard:

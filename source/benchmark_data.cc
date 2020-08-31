@@ -2,6 +2,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/exceptions.h>
 #include <deal.II/fe/mapping_q1.h>
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
@@ -32,6 +33,7 @@ DFG<dim>::DFG()
     mean_drag_coefficient(0),
     lift_force(0),
     lift_coefficient(0),
+    old_lift_coefficient(0),
     max_lift_coefficient(-std::numeric_limits<double>::max()),
     min_lift_coefficient(std::numeric_limits<double>::max()),
     amp_lift_coefficient(0),
@@ -76,14 +78,17 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
                           const Entities::VectorEntity<dim> &velocity,
                           const Entities::ScalarEntity<dim> &pressure)
 {
+  const MappingQ<dim>   mapping(3);
   QGauss<dim-1>     face_quadrature_formula(velocity.fe_degree + 1);
-  FEFaceValues<dim> velocity_face_fe_values(velocity.fe,
+  FEFaceValues<dim> velocity_face_fe_values(mapping,
+                                            velocity.fe,
                                             face_quadrature_formula,
                                             update_values |
                                             update_gradients |
                                             update_JxW_values |
                                             update_normal_vectors);
-  FEFaceValues<dim> pressure_face_fe_values(pressure.fe,
+  FEFaceValues<dim> pressure_face_fe_values(mapping,
+                                            pressure.fe,
                                             face_quadrature_formula,
                                             update_values);
 
@@ -126,39 +131,43 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
             normal_vectors = velocity_face_fe_values.get_normal_vectors();
 
             for (unsigned int q = 0; q < n_face_q_points; ++q)
-              {
-                /* The sign inversion here is due to how the normal
-                vector is defined in the benchmark */
-                forces += (-kinematic_viscosity *
-                          mean_velocity *
-                          normal_vectors[q] * 
-                          velocity_gradients[q]
-                          +
-                          1.0 / characteristic_length *
-                          pressure_values[q] *
-                          normal_vectors[q]) *
-                          velocity_face_fe_values.JxW(q);
-              }
+            {
+              /* The sign inversion here is due to how the normal
+              vector is defined in the benchmark */
+              forces += (-kinematic_viscosity *
+                        mean_velocity *
+                        normal_vectors[q] * 
+                        velocity_gradients[q]
+                        +
+                        characteristic_length *
+                        pressure_values[q] *
+                        normal_vectors[q]) *
+                        velocity_face_fe_values.JxW(q);
+            }
           }
 
   forces = Utilities::MPI::sum(forces, MPI_COMM_WORLD);
 
-  drag_force        = forces[0];
-  drag_coefficient  = 2.0 / 
-                      (mean_velocity * 
-                      mean_velocity * 
-                      characteristic_length) *
-                      drag_force;
-  lift_force        = forces[1];
-  lift_coefficient  = 2.0 / 
-                      (mean_velocity * 
-                      mean_velocity * 
-                      characteristic_length) *
-                      lift_force;
+  drag_force            = forces[0];
+  drag_coefficient      = 2.0 / 
+                          (mean_velocity * 
+                          mean_velocity * 
+                          characteristic_length) *
+                          drag_force;
+  lift_force            = forces[1];
+  old_lift_coefficient  = lift_coefficient;
+  lift_coefficient      = 2.0 / 
+                          (mean_velocity * 
+                          mean_velocity * 
+                          characteristic_length) *
+                          lift_force;
+
+  if ((lift_coefficient - old_lift_coefficient) > 0.)
+    flag_min_reached = true;
 }
 
 template <int dim>
-void DFG<dim>::update_table(DiscreteTime        &time)
+void DFG<dim>::update_table(DiscreteTime  &time)
 {
   data_table.add_value("n", time.get_step_number());
   data_table.add_value("t", time.get_current_time());
@@ -168,13 +177,13 @@ void DFG<dim>::update_table(DiscreteTime        &time)
 }
 
 template <int dim>
-void DFG<dim>::print_step_data(DiscreteTime       &time)
+void DFG<dim>::print_step_data(DiscreteTime &time)
 {
   ConditionalOStream    pcout(std::cout, 
           (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
 
   pcout << "Step = " 
-        << std::setw(2) 
+        << std::setw(4) 
         << time.get_step_number() 
         << " Time = " 
         << std::noshowpos << std::scientific
@@ -203,7 +212,7 @@ void DFG<dim>::print_table()
 }
 
 template <int dim>
-void DFG<dim>::write_table_to_file(const std::string &file)
+void DFG<dim>::write_table_to_file(const std::string  &file)
 {
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
