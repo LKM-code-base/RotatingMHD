@@ -1,12 +1,14 @@
 #ifndef INCLUDE_ROTATINGMHD_NAVIER_STOKES_PROJECTION_H_
 #define INCLUDE_ROTATINGMHD_NAVIER_STOKES_PROJECTION_H_
 
-#include <rotatingMHD/assembly_data.h>
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
-#include <rotatingMHD/global.h>
+#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/run_time_parameters.h>
+#include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/time_discretization.h>
+
+#include <deal.II/lac/trilinos_precondition.h>
+#include <deal.II/lac/trilinos_sparse_matrix.h>
 
 #include <string>
 #include <vector>
@@ -15,6 +17,7 @@ namespace RMHD
 {
 
 using namespace dealii;
+
 
 /*!
  * @brief Solves the Navier Stokes equations with the incremental pressure
@@ -77,8 +80,8 @@ public:
   void reinit_internal_entities();
   
   double compute_next_time_step();
-
 private:
+
 
   /*!
    *  @brief A parameter which determines the type of the pressure update.
@@ -121,7 +124,7 @@ private:
    * matrix is assembled in every timestep but only the part due to the
    * convective term.
    */
-  LinearAlgebra::MPI::SparseMatrix  velocity_system_matrix;
+  TrilinosWrappers::SparseMatrix        velocity_system_matrix;
 
   /*!
    * @brief Mass matrix of the velocity.
@@ -130,7 +133,7 @@ private:
    * memory because otherwise an assembly would be required if the timestep
    * changes.
    */
-  LinearAlgebra::MPI::SparseMatrix  velocity_mass_matrix;
+  TrilinosWrappers::SparseMatrix        velocity_mass_matrix;
 
   /*!
    * @brief Stiffness matrix of the velocity. Assembly of  the weak of the
@@ -140,7 +143,7 @@ private:
    * memory because otherwise an assembly would be required if the timestep
    * changes.
    */
-  LinearAlgebra::MPI::SparseMatrix  velocity_laplace_matrix;
+  TrilinosWrappers::SparseMatrix        velocity_laplace_matrix;
 
   /*!
    * @brief Sum of the mass and the stiffness matrix of the velocity.
@@ -149,7 +152,7 @@ private:
    * memory because otherwise an assembly would be required if the timestep
    * changes.
    */
-  LinearAlgebra::MPI::SparseMatrix  velocity_mass_plus_laplace_matrix;
+  TrilinosWrappers::SparseMatrix        velocity_mass_plus_laplace_matrix;
 
   /*!
    * @brief Matrix representing the assembly of the skew-symmetric formm of the
@@ -158,7 +161,7 @@ private:
    * @details This matrix changes in every timestep and is therefore also
    * assembled in every timestep.
    */
-  LinearAlgebra::MPI::SparseMatrix  velocity_advection_matrix;
+  TrilinosWrappers::SparseMatrix        velocity_advection_matrix;
 
 
   /*!
@@ -172,11 +175,11 @@ private:
    * \f}
    * In the case of a variable time step the approximation is given by
    * \f[
-   * u^{n} \approx (1 + \omega) u^{n-1} - \omega u^{n-2}
+   * u^{n} \approx (1.0 + \omega) u^{n-1} - \omega u^{n-2}
    * \f] 
    * where  \f$ \omega = \frac{\Delta t_{n-1}}{\Delta t_{n-2}}.\f$
    */
-  LinearAlgebra::MPI::Vector        extrapolated_velocity;
+  TrilinosWrappers::MPI::Vector         extrapolated_velocity;
 
   /*!
    * @brief Vector representing the sum of the time discretization terms
@@ -197,24 +200,24 @@ private:
    * which we use when assembling the right hand side of the diffusion
    * step.
    */
-  LinearAlgebra::MPI::Vector        velocity_tmp;
+  TrilinosWrappers::MPI::Vector         velocity_tmp;
 
   /*!
    * @brief Vector representing the right-hand side of the linear system of the
    * diffusion step.
    */
-  LinearAlgebra::MPI::Vector        velocity_rhs;
+  TrilinosWrappers::MPI::Vector         velocity_rhs;
 
   /*!
    * @brief Mass matrix of the pressure field.
    */
-  LinearAlgebra::MPI::SparseMatrix  pressure_mass_matrix;
+  TrilinosWrappers::SparseMatrix        pressure_mass_matrix;
 
   /*!
    * @brief Stiffness matrix of the pressure field. Assembly of  the weak of the
    * Laplace operator.
    */
-  LinearAlgebra::MPI::SparseMatrix  pressure_laplace_matrix;
+  TrilinosWrappers::SparseMatrix        pressure_laplace_matrix;
 
   /*!
    * @brief Vector representing the pressure used in the diffusion step.
@@ -230,42 +233,41 @@ private:
    * and it is also called like that in the step-35 documentation, but 
    * I do not see how the formula above is an extrapolation.
    */  
-  LinearAlgebra::MPI::Vector        pressure_tmp;
+  TrilinosWrappers::MPI::Vector         pressure_tmp;
 
   /*!
    * @brief Vector representing the right-hand side of the linear system of the
    * projection step.
    */
-  LinearAlgebra::MPI::Vector        pressure_rhs;
+  TrilinosWrappers::MPI::Vector         pressure_rhs;
 
   TrilinosWrappers::MPI::Vector         poisson_prestep_rhs;
 
   /*!
    * @brief Vector representing the pressure update of the current timestep.
    */
-  LinearAlgebra::MPI::Vector        phi;
+  TrilinosWrappers::MPI::Vector         phi;
 
   /*!
    * @brief Vector representing the pressure update of the previous timestep.
    */
-  LinearAlgebra::MPI::Vector        old_phi;
+  TrilinosWrappers::MPI::Vector         old_phi;
 
   /*!
    * @brief Vector representing the pressure update of two timesteps prior.
    */
-  LinearAlgebra::MPI::Vector        old_old_phi;
+  TrilinosWrappers::MPI::Vector         old_old_phi;
 
-  LinearAlgebra::MPI::PreconditionILU     diffusion_step_preconditioner;
-  LinearAlgebra::MPI::PreconditionILU     projection_step_preconditioner;
-  LinearAlgebra::MPI::PreconditionJacobi  correction_step_preconditioner;
+  TrilinosWrappers::PreconditionILU     diffusion_step_preconditioner;
+  TrilinosWrappers::PreconditionILU     projection_step_preconditioner;
+  TrilinosWrappers::PreconditionJacobi  correction_step_preconditioner;
 
   // SG thinks that all of these parameters can go into a parameter structure.
   unsigned int                          solver_max_iterations;
   unsigned int                          solver_krylov_size;
   unsigned int                          solver_off_diagonals;
   unsigned int                          solver_update_preconditioner;
-  double                                relative_tolerance;
-  const double                          absolute_tolerance = 1.0e-9;
+  double                                solver_tolerance;
   double                                solver_diag_strength;
   bool                                  flag_adpative_time_step;
   bool                                  flag_diffusion_matrix_assembled;

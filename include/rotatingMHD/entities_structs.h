@@ -2,7 +2,6 @@
 #ifndef INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
 #define INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
 
-#include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/index_set.h>
@@ -12,11 +11,11 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/trilinos_vector.h>
 
 namespace RMHD
 {
-
-using namespace dealii;
+  using namespace dealii;
 
 namespace Entities
 {
@@ -24,26 +23,22 @@ namespace Entities
 template <int dim>
 struct EntityBase
 {
-  const unsigned int          fe_degree;
+  const unsigned int                  fe_degree;
+  DoFHandler<dim>                     dof_handler;
+  AffineConstraints<double>           constraints;
+  QGauss<dim>                         quadrature_formula;
 
-  DoFHandler<dim>             dof_handler;
+  IndexSet                            locally_owned_dofs;
+  IndexSet                            locally_relevant_dofs;
 
-  AffineConstraints<double>   constraints;
+  TrilinosWrappers::MPI::Vector       solution;
+  TrilinosWrappers::MPI::Vector       old_solution;
+  TrilinosWrappers::MPI::Vector       old_old_solution;
 
-  QGauss<dim>                 quadrature_formula;
-
-  IndexSet                    locally_owned_dofs;
-  IndexSet                    locally_relevant_dofs;
-
-  LinearAlgebra::MPI::Vector  solution;
-  LinearAlgebra::MPI::Vector  old_solution;
-  LinearAlgebra::MPI::Vector  old_old_solution;
-
-  EntityBase(const unsigned int                              &fe_degree,
-             const parallel::distributed::Triangulation<dim> &triangulation);
-
+  EntityBase(
+    const unsigned int                              &fe_degree,
+    const parallel::distributed::Triangulation<dim> &triangulation);
   void reinit();
-
   void update_solution_vectors();
 };
 
@@ -52,9 +47,9 @@ struct VectorEntity : EntityBase<dim>
 {
   FESystem<dim>                       fe;
 
-  VectorEntity(const unsigned int                              &fe_degree,
-               const parallel::distributed::Triangulation<dim> &triangulation);
-
+  VectorEntity(    
+    const unsigned int                              &fe_degree,
+    const parallel::distributed::Triangulation<dim> &triangulation);
   void setup_dofs();
 };
 
@@ -63,9 +58,9 @@ struct ScalarEntity : EntityBase<dim>
 {
   FE_Q<dim>                           fe;
 
-  ScalarEntity(const unsigned int                              &fe_degree,
-               const parallel::distributed::Triangulation<dim> &triangulation);
-
+  ScalarEntity(
+    const unsigned int                              &fe_degree,
+    const parallel::distributed::Triangulation<dim> &triangulation);
   void setup_dofs();
 };
 

@@ -1,4 +1,7 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/sparse_ilu.h>
 
 namespace RMHD
 {
@@ -34,62 +37,29 @@ solve_diffusion_step(const bool reinit_prec)
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_velocity(velocity_rhs);
+  TrilinosWrappers::MPI::Vector distributed_velocity(velocity_rhs);
   distributed_velocity = velocity.solution;
 
   if (reinit_prec)
-    diffusion_step_preconditioner.initialize(velocity_system_matrix);
+    diffusion_step_preconditioner.initialize(
+                                      velocity_system_matrix);
 
-  SolverControl solver_control(solver_max_iterations,
-                               std::max(relative_tolerance * velocity_rhs.l2_norm(),
-                                        absolute_tolerance));
-
-  #ifdef USE_PETSC_LA
-    LinearAlgebra::SolverGMRES solver(solver_control,
-                                      MPI_COMM_WORLD);
-  #else
-    LinearAlgebra::SolverGMRES solver(solver_control);
-  #endif
-
-  try
-  {
-    solver.solve(velocity_system_matrix,
-                 distributed_velocity,
-                 velocity_rhs,
-                 diffusion_step_preconditioner);
-  }
-  catch (std::exception &exc)
-  {
-    std::cerr << std::endl << std::endl
-              << "----------------------------------------------------"
-              << std::endl;
-    std::cerr << "Exception in the solve method of the diffusion step: " << std::endl
-              << exc.what() << std::endl
-              << "Aborting!" << std::endl
-              << "----------------------------------------------------"
-              << std::endl;
-    std::abort();
-  }
-  catch (...)
-  {
-    std::cerr << std::endl << std::endl
-              << "----------------------------------------------------"
-              << std::endl;
-    std::cerr << "Unknown exception in the solve method of the diffusion step!" << std::endl
-              << "Aborting!" << std::endl
-              << "----------------------------------------------------"
-              << std::endl;
-    std::abort();
-  }
-
+  SolverControl solver_control(solver_max_iterations, 
+                               solver_tolerance * velocity_rhs.l2_norm());
+  SolverGMRES<TrilinosWrappers::MPI::Vector> gmres(
+                            solver_control,
+                            SolverGMRES<TrilinosWrappers::MPI::Vector>::
+                              AdditionalData(solver_krylov_size));
+  gmres.solve(velocity_system_matrix, 
+              distributed_velocity, 
+              velocity_rhs, 
+              diffusion_step_preconditioner);
   velocity.constraints.distribute(distributed_velocity);
-
   velocity.solution = distributed_velocity;
 }
 }
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::assemble_diffusion_step();
 template void RMHD::NavierStokesProjection<3>::assemble_diffusion_step();
-
 template void RMHD::NavierStokesProjection<2>::solve_diffusion_step(const bool);
 template void RMHD::NavierStokesProjection<3>::solve_diffusion_step(const bool);
