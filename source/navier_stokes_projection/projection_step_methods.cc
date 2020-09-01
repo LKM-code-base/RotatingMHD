@@ -1,8 +1,6 @@
 #include <rotatingMHD/navier_stokes_projection.h>
-#include <deal.II/lac/precondition.h>
+
 #include <deal.II/lac/solver_cg.h>
-#include <deal.II/lac/sparse_ilu.h>
-#include <deal.II/numerics/vector_tools.h>
 
 namespace RMHD
 {
@@ -25,21 +23,58 @@ void NavierStokesProjection<dim>::solve_projection_step
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  TrilinosWrappers::MPI::Vector distributed_phi(pressure_rhs);
+  LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
   distributed_phi = phi;
 
   if (reinit_prec)
     projection_step_preconditioner.initialize(pressure_laplace_matrix);
 
-  SolverControl solvercontrol(pressure_laplace_matrix.m(), 
-                              solver_tolerance * pressure_rhs.l2_norm());
-  SolverCG<TrilinosWrappers::MPI::Vector>    cg(solvercontrol);
-  cg.solve(pressure_laplace_matrix, 
-           distributed_phi, 
-           pressure_rhs, 
-           projection_step_preconditioner);
+  SolverControl solver_control(pressure_laplace_matrix.m(),
+                               std::max(relative_tolerance * pressure_rhs.l2_norm(),
+                                        absolute_tolerance));
+
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::SolverCG solver(solver_control,
+                                   MPI_COMM_WORLD);
+  #else
+    LinearAlgebra::SolverCG solver(solver_control);
+  #endif
+
+  try
+  {
+    solver.solve(pressure_laplace_matrix,
+                 distributed_phi,
+                 pressure_rhs,
+                 projection_step_preconditioner);
+  }
+  catch (std::exception &exc)
+  {
+    std::cerr << std::endl << std::endl
+              << "----------------------------------------------------"
+              << std::endl;
+    std::cerr << "Exception in the solve method of the projection step: " << std::endl
+              << exc.what() << std::endl
+              << "Aborting!" << std::endl
+              << "----------------------------------------------------"
+              << std::endl;
+    std::abort();
+  }
+  catch (...)
+  {
+    std::cerr << std::endl << std::endl
+              << "----------------------------------------------------"
+                << std::endl;
+    std::cerr << "Unknown exception in the solve method of the projection step!" << std::endl
+              << "Aborting!" << std::endl
+              << "----------------------------------------------------"
+              << std::endl;
+    std::abort();
+  }
+
   pressure.constraints.distribute(distributed_phi);
+
   distributed_phi *= VSIMEX.alpha[2];
+
   phi = distributed_phi;
 }
 

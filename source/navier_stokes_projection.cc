@@ -21,7 +21,7 @@ solver_max_iterations(parameters.solver_max_iterations),
 solver_krylov_size(parameters.solver_krylov_size),
 solver_off_diagonals(parameters.solver_off_diagonals),
 solver_update_preconditioner(parameters.solver_update_preconditioner),
-solver_tolerance(parameters.solver_tolerance),
+relative_tolerance(parameters.solver_tolerance),
 solver_diag_strength(parameters.solver_diag_strength),
 flag_adpative_time_step(parameters.flag_adaptive_time_step)
 {}
