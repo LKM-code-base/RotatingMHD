@@ -294,6 +294,83 @@ grad_phi_pressure(pressure_dofs_per_cell)
 
 } // namespace PressureRightHandSideAssembly
 
+
+namespace PoissonPrestepRightHandSideAssembly
+{
+template <int dim>
+MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
+  : pressure_dofs_per_cell(pressure_dofs_per_cell),
+    local_poisson_prestep_rhs(pressure_dofs_per_cell),
+    local_matrix_for_inhomogeneous_bc(pressure_dofs_per_cell,
+                                      pressure_dofs_per_cell),
+    local_pressure_dof_indices(pressure_dofs_per_cell)
+{}
+
+template <int dim>
+MappingData<dim>::MappingData(const MappingData &data)
+  : pressure_dofs_per_cell(data.pressure_dofs_per_cell),
+    local_poisson_prestep_rhs(data.local_poisson_prestep_rhs),
+    local_matrix_for_inhomogeneous_bc(data.local_matrix_for_inhomogeneous_bc),
+    local_pressure_dof_indices(data.local_pressure_dof_indices)
+{}
+
+template <int dim>
+LocalCellData<dim>::LocalCellData(
+                      const FESystem<dim> &velocity_fe,
+                      const FE_Q<dim>     &pressure_fe,
+                      const QGauss<dim>   &pressure_quadrature_formula,
+                      const QGauss<dim-1> &pressure_face_quadrature_formula,
+                      const UpdateFlags   velocity_face_update_flags,
+                      const UpdateFlags   pressure_update_flags,
+                      const UpdateFlags   pressure_face_update_flags)
+  : pressure_fe_values(pressure_fe,
+                       pressure_quadrature_formula,
+                       pressure_update_flags),
+    velocity_fe_face_values(velocity_fe,
+                            pressure_face_quadrature_formula,
+                            velocity_face_update_flags),
+    pressure_fe_face_values(pressure_fe,
+                            pressure_face_quadrature_formula,
+                            pressure_face_update_flags),
+    n_q_points(pressure_quadrature_formula.size()),
+    n_face_q_points(pressure_face_quadrature_formula.size()),
+    pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
+    force_divergence_values(n_q_points),
+    velocity_laplacian_values(n_face_q_points),
+    force_values(n_face_q_points),
+    normal_vectors(n_face_q_points),
+    phi_pressure(pressure_dofs_per_cell),
+    face_phi_pressure(pressure_dofs_per_cell),
+    grad_phi_pressure(pressure_dofs_per_cell)
+{}
+
+template <int dim>
+LocalCellData<dim>::LocalCellData(const LocalCellData &data)
+  : pressure_fe_values(
+                      data.pressure_fe_values.get_fe(),
+                      data.pressure_fe_values.get_quadrature(),
+                      data.pressure_fe_values.get_update_flags()),
+    velocity_fe_face_values(
+                      data.velocity_fe_face_values.get_fe(),
+                      data.velocity_fe_face_values.get_quadrature(),
+                      data.velocity_fe_face_values.get_update_flags()),
+    pressure_fe_face_values(
+                      data.pressure_fe_face_values.get_fe(),
+                      data.pressure_fe_face_values.get_quadrature(),
+                      data.pressure_fe_face_values.get_update_flags()),
+    n_q_points(data.n_q_points),
+    n_face_q_points(data.n_face_q_points),
+    pressure_dofs_per_cell(data.pressure_dofs_per_cell),
+    force_divergence_values(n_q_points),
+    velocity_laplacian_values(n_face_q_points),
+    force_values(n_face_q_points),
+    normal_vectors(n_face_q_points),
+    phi_pressure(pressure_dofs_per_cell),
+    face_phi_pressure(pressure_dofs_per_cell),
+    grad_phi_pressure(pressure_dofs_per_cell)
+{}
+} // PoissonPrestepRightHandSideAssembly
+
 } // namespace RMHD
 
 // explicit instantiations
@@ -326,3 +403,8 @@ template struct RMHD::PressureRightHandSideAssembly::MappingData<3>;
 
 template struct RMHD::PressureRightHandSideAssembly::LocalCellData<2>;
 template struct RMHD::PressureRightHandSideAssembly::LocalCellData<3>;
+template struct RMHD::PoissonPrestepRightHandSideAssembly::MappingData<2>;
+template struct RMHD::PoissonPrestepRightHandSideAssembly::MappingData<3>;
+
+template struct RMHD::PoissonPrestepRightHandSideAssembly::LocalCellData<2>;
+template struct RMHD::PoissonPrestepRightHandSideAssembly::LocalCellData<3>;

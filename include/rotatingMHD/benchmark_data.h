@@ -45,14 +45,17 @@ struct DFG
   double        mean_drag_coefficient;
   double        lift_force;
   double        lift_coefficient;
+  double        old_lift_coefficient;
   double        max_lift_coefficient;
   double        min_lift_coefficient;
   double        amp_lift_coefficient;
   double        mean_lift_coefficient;
   double        frequency;
   double        strouhal_number;
-  TableHandler  data_table;
   bool          flag_min_reached;
+
+  TableHandler  data_table;
+
 
   DFG();
   void compute_pressure_difference(
