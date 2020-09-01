@@ -18,7 +18,7 @@ compute_next_time_step()
 
   const unsigned int  n_q_points    = quadrature_formula.size();
   std::vector<Tensor<1, dim>>       velocity_values(n_q_points);
-  double min_local_timestep         = 0.0;
+  double min_local_timestep         = 1e+10;
   double scaling_parameter          = 1.0;
 
   const FEValuesExtractors::Vector  velocities(0);
@@ -39,7 +39,6 @@ compute_next_time_step()
       }
   min_local_timestep = 
                 Utilities::MPI::min(min_local_timestep, MPI_COMM_WORLD);
-
   return scaling_parameter * min_local_timestep;
 }
 

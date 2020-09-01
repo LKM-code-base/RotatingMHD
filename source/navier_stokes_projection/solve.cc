@@ -59,9 +59,6 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   /* Assemble linear system */
   assemble_diffusion_step();
 
-  /* Update for the next time step */
-  //velocity.old_old_solution = velocity.old_solution;
-
   /* Solve linear system */
   solve_diffusion_step(reinit_prec);
 }
@@ -72,9 +69,6 @@ void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
   /* Assemble linear system */
   assemble_projection_step();
 
-  /* Update for the next time step */
-  //old_old_phi = old_phi;
-
   /* Solve linear system */
   solve_projection_step(reinit_prec);
 }
@@ -82,8 +76,9 @@ void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
 template <int dim>
 void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 {
-  /* Update for the next time step */
-  //pressure.old_old_solution = pressure.old_solution;
+  // This boolean will be used later when a proper solver is chosen
+  (void)reinit_prec;
+
   switch (projection_method)
     {
       case RunTimeParameters::ProjectionMethod::standard:
@@ -156,11 +151,13 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           pressure.solution = distributed_pressure;
         }
+
         break;
       default:
         Assert(false, ExcNotImplemented());
     };
 }
+
 
 } // namespace RMHD
 

@@ -10,8 +10,7 @@ assemble_diffusion_step()
   /* System matrix setup */
   assemble_velocity_advection_matrix();
 
-  static bool initialized(false);
-  if (!initialized)
+  if (!flag_diffusion_matrix_assembled)
   {
     velocity_mass_plus_laplace_matrix = 0.;
     velocity_mass_plus_laplace_matrix.add(1.0 / Re, 
@@ -19,7 +18,7 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix.add(VSIMEX.alpha[2], 
                                           velocity_mass_matrix);
     if (!flag_adpative_time_step)
-      initialized = true; 
+      flag_diffusion_matrix_assembled = true; 
   }
   velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
   velocity_system_matrix.add(1., velocity_advection_matrix);
@@ -29,8 +28,7 @@ assemble_diffusion_step()
 }
 
 template <int dim>
-void
-NavierStokesProjection<dim>::
+void NavierStokesProjection<dim>::
 solve_diffusion_step(const bool reinit_prec)
 {
   // In this method we create temporal non ghosted copies

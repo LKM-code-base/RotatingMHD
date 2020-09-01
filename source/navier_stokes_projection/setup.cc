@@ -18,7 +18,7 @@ void NavierStokesProjection<dim>::setup()
   setup_matrices();
   setup_vectors();
   assemble_constant_matrices();
-  initialize();
+  reinit_internal_entities();
 }
 
 template <int dim>
@@ -29,6 +29,7 @@ void NavierStokesProjection<dim>::setup_matrices()
   velocity_mass_plus_laplace_matrix.clear();
   velocity_advection_matrix.clear();
   velocity_system_matrix.clear();
+
   {
 
     #ifdef USE_PETSC_LA
@@ -159,7 +160,9 @@ setup_vectors()
                         MPI_COMM_WORLD,
                         true);
   #endif
+  poisson_prestep_rhs.reinit(pressure_rhs);
   pressure_tmp.reinit(pressure.solution);
+  
   phi.reinit(pressure.solution);
   old_phi.reinit(pressure.solution);
   old_old_phi.reinit(pressure.solution);
@@ -187,12 +190,12 @@ assemble_constant_matrices()
 }
 
 template <int dim>
-void NavierStokesProjection<dim>::
-initialize()
+void NavierStokesProjection<dim>::reinit_internal_entities()
 {
   phi         = 0.;
   old_phi     = 0.;
   old_old_phi = 0.;
+  flag_diffusion_matrix_assembled = false;
 }
 
 }
@@ -210,5 +213,5 @@ template void RMHD::NavierStokesProjection<3>::setup_vectors();
 template void RMHD::NavierStokesProjection<2>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
 
-template void RMHD::NavierStokesProjection<2>::initialize();
-template void RMHD::NavierStokesProjection<3>::initialize();
+template void RMHD::NavierStokesProjection<2>::reinit_internal_entities();
+template void RMHD::NavierStokesProjection<3>::reinit_internal_entities();

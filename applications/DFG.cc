@@ -11,9 +11,9 @@
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-
 #include <iostream>
 #include <string>
 
@@ -103,6 +103,10 @@ make_grid()
 
   boundary_ids = triangulation.get_boundary_ids();
 
+  const PolarManifold<dim> inner_boundary;
+  triangulation.set_all_manifold_ids_on_boundary(2, 1);
+  triangulation.set_manifold(1, inner_boundary);
+
   pcout     << "Number of active cells                = " 
             << triangulation.n_active_cells() << std::endl;
 }
@@ -180,9 +184,8 @@ void DFG<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_initial_conditions, 
                                time_stepping);
-  velocity.solution = velocity.old_solution;
-  pressure.solution = pressure.old_solution;
-  output();
+  
+  navier_stokes.initialize();
 }
 
 template <int dim>
@@ -191,6 +194,9 @@ void DFG<dim>::postprocessing(const bool flag_point_evaluation)
   if (flag_point_evaluation)
   {
     dfg_benchmark.compute_pressure_difference(pressure);
+    dfg_benchmark.compute_drag_and_lift_forces_and_coefficients(
+                                                            velocity,
+                                                            pressure);
     dfg_benchmark.print_step_data(time_stepping);
     dfg_benchmark.update_table(time_stepping);
   }
@@ -240,29 +246,62 @@ for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
 
 time_stepping.get_coefficients(VSIMEX);
 
+pcout << "Solving until t = 3.5..." << std::endl;
+while (time_stepping.get_current_time() <= 3.5)
+{
+  navier_stokes.solve(time_stepping.get_step_number());
+
+  postprocessing((time_stepping.get_step_number() % 
+                  terminal_output_periodicity == 0) ||
+                  time_stepping.is_at_end());
+
+  time_stepping.set_proposed_step_size(
+                            navier_stokes.compute_next_time_step());
+  update_solution_vectors();
+
+  time_stepping.get_coefficients(VSIMEX);
+  time_stepping.advance_time();
+}
+
+pcout << "Restarting..." << std::endl;
+time_stepping.restart();
+velocity.old_old_solution = velocity.solution;
+navier_stokes.reinit_internal_entities();
+navier_stokes.initialize();
+velocity.solution = velocity.old_solution;
+pressure.solution = pressure.old_solution;
+output();
+
+for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
+  time_stepping.advance_time();
+
+time_stepping.get_coefficients(VSIMEX);
+
+pcout << "Solving until t = 40..." << std::endl;
+
 while (time_stepping.get_current_time() <= time_stepping.get_end_time())
-  {    
-    navier_stokes.solve(time_stepping.get_step_number());
+{    
+  navier_stokes.solve(time_stepping.get_step_number());
 
-    postprocessing((time_stepping.get_step_number() % 
-                    terminal_output_periodicity == 0) ||
-                   time_stepping.is_at_end());
+  postprocessing((time_stepping.get_step_number() % 
+                  terminal_output_periodicity == 0) ||
+                  time_stepping.is_at_end());
 
-    if ((time_stepping.get_step_number() % 
-          graphical_output_periodicity == 0) ||
-        time_stepping.is_at_end())
-      output();
+  if ((time_stepping.get_step_number() % 
+        graphical_output_periodicity == 0) ||
+      time_stepping.is_at_end())
+    output();
 
-    time_stepping.set_proposed_step_size(
-                              navier_stokes.compute_next_time_step());
-    update_solution_vectors();
-    
-    if (time_stepping.is_at_end())
-      break;
-    time_stepping.get_coefficients(VSIMEX);
-    time_stepping.advance_time();
-  }
-  dfg_benchmark.write_table_to_file("dfg_benchmark.tex");
+  time_stepping.set_proposed_step_size(
+                            navier_stokes.compute_next_time_step());
+  update_solution_vectors();
+  
+  if (time_stepping.is_at_end())
+    break;
+  time_stepping.get_coefficients(VSIMEX);
+  time_stepping.advance_time();
+}
+dfg_benchmark.write_table_to_file("dfg_benchmark.tex");
 }
 
 } // namespace RMHD

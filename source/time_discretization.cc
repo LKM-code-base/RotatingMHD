@@ -66,7 +66,7 @@ VSIMEXMethod::VSIMEXMethod(const VSIMEXScheme         scheme,
     timestep_lower_bound(timestep_lower_bound),
     timestep_upper_bound(timestep_upper_bound)
 {
-  Assert(((timestep > timestep_lower_bound) || 
+  Assert(((timestep > timestep_lower_bound) && 
           (timestep < timestep_upper_bound)),
       ExcMessage(
         "The desired start step is not inside the give bounded range."));
@@ -172,8 +172,8 @@ void VSIMEXMethod::update_coefficients()
     case 1 :
       {
       static double gamma   = parameters[0];
-      coefficients.alpha[0] = 1.0 / timestep;
-      coefficients.alpha[1] = - 1.0 / timestep;
+      coefficients.alpha[0] = - 1.0 / timestep;
+      coefficients.alpha[1] = 1.0 / timestep;
       coefficients.beta[0]  = 1.0;
       coefficients.gamma[0] = ( 1.0 - gamma);
       coefficients.gamma[1] = gamma;

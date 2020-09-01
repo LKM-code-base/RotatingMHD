@@ -326,3 +326,9 @@ template struct RMHD::PressureRightHandSideAssembly::MappingData<3>;
 
 template struct RMHD::PressureRightHandSideAssembly::LocalCellData<2>;
 template struct RMHD::PressureRightHandSideAssembly::LocalCellData<3>;
+
+template struct RMHD::PoissonPrestepRightHandSideAssembly::MappingData<2>;
+template struct RMHD::PoissonPrestepRightHandSideAssembly::MappingData<3>;
+
+template struct RMHD::PoissonPrestepRightHandSideAssembly::LocalCellData<2>;
+template struct RMHD::PoissonPrestepRightHandSideAssembly::LocalCellData<3>;
