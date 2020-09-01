@@ -41,11 +41,11 @@ assemble_poisson_prestep_rhs()
                                   pressure.quadrature_formula,
                                   QGauss<dim-1>(pressure.fe_degree + 1),
                                   update_hessians,
-                                  update_values |
-                                  update_gradients |
+                                  update_values|
+                                  update_gradients|
                                   update_JxW_values,
-                                  update_values |
-                                  update_JxW_values |
+                                  update_values|
+                                  update_JxW_values|
                                   update_normal_vectors),
                   PoissonPrestepRightHandSideAssembly::MappingData<dim>(
                                           pressure.fe.dofs_per_cell));
@@ -53,13 +53,13 @@ assemble_poisson_prestep_rhs()
 }
 
 template <int dim>
-void NavierStokesProjection<dim>::
-assemble_local_poisson_prestep_rhs(
-  const typename DoFHandler<dim>::active_cell_iterator        &cell, 
-  PoissonPrestepRightHandSideAssembly::LocalCellData<dim>     &scratch,
-  PoissonPrestepRightHandSideAssembly::MappingData<dim>       &data)
+void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
+(const typename DoFHandler<dim>::active_cell_iterator        &cell,
+ PoissonPrestepRightHandSideAssembly::LocalCellData<dim>     &scratch,
+ PoissonPrestepRightHandSideAssembly::MappingData<dim>       &data)
 {
   data.local_poisson_prestep_rhs = 0.;
+
   data.local_matrix_for_inhomogeneous_bc = 0.;
 
   scratch.pressure_fe_values.reinit(cell);
@@ -103,17 +103,17 @@ assemble_local_poisson_prestep_rhs(
     {
       scratch.pressure_fe_face_values.reinit(cell, face);
 
-      typename DoFHandler<dim>::active_cell_iterator velocity_cell(
-                            &velocity.dof_handler.get_triangulation(), 
-                            cell->level(), 
-                            cell->index(), 
-                            &velocity.dof_handler);
+      typename DoFHandler<dim>::active_cell_iterator
+      velocity_cell(&velocity.dof_handler.get_triangulation(),
+                     cell->level(),
+                     cell->index(),
+                    &velocity.dof_handler);
 
-      typename DoFHandler<dim>::active_face_iterator velocity_face(
-                            &velocity.dof_handler.get_triangulation(), 
-                            face->level(), 
-                            face->index(), 
-                            &velocity.dof_handler);
+      typename DoFHandler<dim>::active_face_iterator
+      velocity_face(&velocity.dof_handler.get_triangulation(),
+                     face->level(),
+                     face->index(),
+                    &velocity.dof_handler);
 
       scratch.velocity_fe_face_values.reinit(velocity_cell, velocity_face);
 
@@ -125,7 +125,6 @@ assemble_local_poisson_prestep_rhs(
 
       scratch.normal_vectors = 
                     scratch.pressure_fe_face_values.get_normal_vectors();
-
 
       for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
         {
