@@ -3,6 +3,7 @@
 #define INCLUDE_ROTATINGMHD_TIME_DISCRETIZATION_H_
 
 #include <deal.II/base/discrete_time.h>
+#include <deal.II/base/parameter_handler.h>
 
 #include <iostream>
 #include <vector>
@@ -31,6 +32,89 @@ enum class VSIMEXScheme
   CNAB,   /**< Applies Crank-Nicolson to \f$ g(u) \f$ and Adams-Bashforth to \f$ f(u) \f$. */
   mCNAB,  /**< Applies the modified CNAB method. */
   CNLF    /**< Applies Crank-Nicolson to \f$ g(u) \f$ and Leap-Frog to \f$ f(u) \f$. */
+};
+
+/*!
+ *
+ * @struct TimeSteppingParameters
+ * @brief This structure manages the parameters of the timestepping scheme and
+ * is used to control the behavior of VSIMEXMethod.
+ *
+ */
+struct TimeSteppingParameters
+{
+    TimeSteppingParameters();
+    TimeSteppingParameters(const std::string &parameter_filename);
+
+    /*!
+     * @brief Static method which the associated parameter to the
+     * ParameterHandler object.
+     */
+    static void declare_parameters(ParameterHandler &prm);
+
+    /*!
+     * @brief Method which parses the parameters of the timestepping scheme from
+     * the ParameterHandler object.
+     */
+    void parse_parameters(ParameterHandler &prm);
+
+    /*!
+     * @brief Method forwarding parameters to a stream object.
+     */
+    template<typename Stream>
+    void write(Stream &stream) const;
+
+    /*!
+     * @brief Type of variable step-size IMEX scheme which is applied.
+     */
+    VSIMEXScheme  vsimex_scheme;
+
+    /*!
+     * @brief Maximum number of timesteps to be performed.
+     */
+    unsigned int  n_maximum_steps;
+
+    /*!
+     * @brief Boolean flag to enable an adaptive adjustment of the size of the
+     * timestep.
+     */
+    bool          adaptive_timestep;
+
+    /*!
+     * @brief Number of the timestep from which the adaptive adjustment of the
+     * size of the timestep is enabled.
+     */
+    unsigned int  adaptive_timestep_barrier;
+
+    /*!
+     * @brief Size of the initial timestep.
+     */
+    double        initial_timestep;
+
+    /*!
+     * @brief Size of the maximum timestep.
+     */
+    double        minimum_timestep;
+
+    /*!
+     * @brief Size of the minimum timestep.
+     */
+    double        maximum_timestep;
+
+    /*!
+     * @brief Time at which the simulation starts.
+     */
+    double        start_time;
+
+    /*!
+     * @brief Time at which the simulation should terminate.
+     */
+    double        final_time;
+
+    /*!
+     * @brief Boolean flag to enable verbose output of VSIMEXMethod.
+     */
+    bool          verbose;
 };
 
 /*!

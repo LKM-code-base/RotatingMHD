@@ -3,6 +3,7 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/conditional_ostream.h>
 
+#include <fstream>
 #include <ostream>
 
 namespace RMHD
@@ -12,6 +13,217 @@ using namespace dealii;
 
 namespace TimeDiscretization
 {
+
+TimeSteppingParameters::TimeSteppingParameters()
+:
+vsimex_scheme(VSIMEXScheme::CNAB),
+n_maximum_steps(100),
+adaptive_timestep(true),
+adaptive_timestep_barrier(2),
+initial_timestep(1e-3),
+minimum_timestep(1e-9),
+maximum_timestep(1e-3),
+start_time(0.0),
+final_time(1.0),
+verbose(false)
+{}
+
+TimeSteppingParameters::TimeSteppingParameters(const std::string &parameter_filename)
+:
+TimeSteppingParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+void TimeSteppingParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.enter_subsection("Time stepping settings");
+  {
+    prm.declare_entry("time_stepping_scheme",
+                      "CNAB",
+                      Patterns::Selection("Euler|CNAB|mCNAB|CNLF|BDF2"),
+                      "Time stepping scheme applied.");
+
+    prm.declare_entry("n_maximum_steps",
+                      "10",
+                      Patterns::Integer(),
+                      "Maximum number of time steps to be computed.");
+
+    prm.declare_entry("adaptive_timestep",
+                      "true",
+                      Patterns::Bool(),
+                      "Turn adaptive time stepping on or off");
+
+    prm.declare_entry("adaptive_timestep_barrier",
+                      "2",
+                      Patterns::Integer(),
+                      "Time step after which adaptive time stepping is applied.");
+
+    prm.declare_entry("initial_timestep",
+                      "1e-6",
+                      Patterns::Double(),
+                      "Size of the initial time step.");
+
+    prm.declare_entry("minimum_timestep",
+                      "1e-6",
+                      Patterns::Double(),
+                      "Size of the minimum time step.");
+
+    prm.declare_entry("maximum_timestep",
+                      "1e-3",
+                      Patterns::Double(),
+                      "Size of the maximum time step.");
+
+    prm.declare_entry("start_time",
+                      "0.0",
+                      Patterns::Double(0.),
+                      "Start time of the simulation.");
+
+    prm.declare_entry("final_time",
+                      "1.0",
+                      Patterns::Double(0.),
+                      "Final time of the simulation.");
+
+    prm.declare_entry("verbose",
+                      "false",
+                      Patterns::Bool(),
+                      "Activate verbose output.");
+}
+prm.leave_subsection();
+}
+
+void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
+{
+  prm.enter_subsection("Time stepping settings");
+  {
+    std::string vsimex_type_str;
+    vsimex_type_str = prm.get("time_stepping_scheme");
+
+    if (vsimex_type_str == "CNAB")
+      vsimex_scheme = VSIMEXScheme::CNAB;
+    else if (vsimex_type_str == "MCNAB")
+      vsimex_scheme = VSIMEXScheme::mCNAB;
+    else if (vsimex_type_str == "CNLF")
+      vsimex_scheme = VSIMEXScheme::CNLF;
+    else if (vsimex_type_str == "SBDF")
+      vsimex_scheme = VSIMEXScheme::BDF2;
+    else if (vsimex_type_str == "Euler")
+      vsimex_scheme = VSIMEXScheme::ForwardEuler;
+    else
+      AssertThrow(false,
+                  ExcMessage("Unexpected string for variable step size "
+                             "IMEX scheme."));
+
+    adaptive_timestep = prm.get_bool("adaptive_timestep");
+    if (adaptive_timestep)
+      adaptive_timestep_barrier = prm.get_integer("adaptive_timestep_barrier");
+    Assert(adaptive_timestep_barrier > 0,
+           ExcLowerRange(adaptive_timestep_barrier, 0));
+
+    n_maximum_steps = prm.get_integer("n_maximum_steps");
+    Assert(n_maximum_steps > 0, ExcLowerRange(n_maximum_steps, 0));
+
+    initial_timestep = prm.get_double("initial_timestep");
+    Assert(initial_timestep > 0,
+           ExcLowerRangeType<double>(initial_timestep, 0));
+
+    if (adaptive_timestep)
+    {
+        minimum_timestep = prm.get_double("minimum_timestep");
+        Assert(minimum_timestep > 0,
+               ExcLowerRangeType<double>(minimum_timestep, 0));
+
+        maximum_timestep = prm.get_double("maximum_timestep");
+        Assert(maximum_timestep > 0,
+               ExcLowerRangeType<double>(maximum_timestep, 0));
+
+        Assert(minimum_timestep < maximum_timestep,
+               ExcLowerRangeType<double>(minimum_timestep, maximum_timestep));
+        Assert(minimum_timestep <= initial_timestep,
+               ExcLowerRangeType<double>(minimum_timestep, initial_timestep));
+        Assert(initial_timestep <= maximum_timestep,
+               ExcLowerRangeType<double>(initial_timestep, maximum_timestep));
+    }
+
+    start_time = prm.get_double("start_time");
+    Assert(start_time >= 0.0, ExcLowerRangeType<double>(start_time, 0.0));
+
+    final_time = prm.get_double("final_time");
+    Assert(final_time > 0.0, ExcLowerRangeType<double>(final_time, 0.0));
+    Assert(final_time > start_time, ExcLowerRangeType<double>(final_time, start_time));
+    Assert(initial_timestep <= final_time,
+           ExcLowerRangeType<double>(initial_timestep, final_time));
+
+    verbose = prm.get_bool("verbose");
+  }
+  prm.leave_subsection();
+
+}
+
+template<typename Stream>
+void TimeSteppingParameters::write(Stream &stream) const
+{
+  stream << "Time stepping parameters" << std::endl
+         << "   imex_scheme: ";
+  switch (vsimex_scheme)
+  {
+  case VSIMEXScheme::ForwardEuler:
+       stream << "Euler" << std::endl;
+      break;
+  case VSIMEXScheme::CNAB:
+      stream << "CNAB" << std::endl;
+      break;
+  case VSIMEXScheme::mCNAB:
+      stream << "MCNAB" << std::endl;
+      break;
+  case VSIMEXScheme::CNLF:
+      stream << "CNLF" << std::endl;
+      break;
+  case VSIMEXScheme::BDF2:
+      stream << "BDF2" << std::endl;
+      break;
+  default:
+    AssertThrow(false,
+                ExcMessage("Given VSIMEXScheme is not known or cannot be "
+                           "interpreted."));
+    break;
+  }
+  stream << "   n_maximum_steps: " << n_maximum_steps << std::endl
+         << "   adaptive_timestep: " << (adaptive_timestep? "true": "false") << std::endl
+         << "   adaptive_timestep_barrier: " << adaptive_timestep_barrier << std::endl
+         << "   initial_timestep: " << initial_timestep << std::endl
+         << "   minimum_timestep: " << minimum_timestep << std::endl
+         << "   maximum_timestep: " << maximum_timestep << std::endl
+         << "   start_time: " << start_time << std::endl
+         << "   final_time: " << final_time << std::endl
+         << "   verbose: " << (verbose? "true": "false") << std::endl;
+}
+
 VSIMEXCoefficients::VSIMEXCoefficients()
 {}
 
@@ -302,5 +514,8 @@ void VSIMEXMethod::update_coefficients()
 } // namespace RMHD
 
 // explicit instantiations
+template void RMHD::TimeDiscretization::TimeSteppingParameters::write(std::ostream &) const;
+template void RMHD::TimeDiscretization::TimeSteppingParameters::write(dealii::ConditionalOStream &) const;
+
 template void RMHD::TimeDiscretization::VSIMEXCoefficients::output(std::ostream &) const;
 template void RMHD::TimeDiscretization::VSIMEXCoefficients::output(dealii::ConditionalOStream &) const;
