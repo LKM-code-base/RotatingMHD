@@ -41,7 +41,6 @@ ParameterSet::ParameterSet()
     solver_diag_strength(0.01),
     flag_verbose_output(true),
     flag_adaptive_time_step(true),
-    flag_DFG_benchmark(false),
     graphical_output_interval(15)
 {
   prm.declare_entry("projection_method",
@@ -151,11 +150,6 @@ ParameterSet::ParameterSet()
                     Patterns::Bool(),
                     " This indicates whether the output " 
                       "is fixed or adaptive. ");
-  prm.declare_entry("flag_DFG_benchmark",
-                    "false",
-                    Patterns::Bool(),
-                    " This indicates if the problem solves the DFG "
-                    "benchmark or step-35");
   prm.declare_entry("graphical_output_interval",
                     "1",
                     Patterns::Integer(1),
@@ -234,7 +228,6 @@ read_data_from_file(const std::string &filename)
 
   flag_verbose_output       = prm.get_bool("flag_verbose_output");
   flag_adaptive_time_step   = prm.get_bool("flag_adaptive_time_step");
-  flag_DFG_benchmark        = prm.get_bool("flag_DFG_benchmark");
   graphical_output_interval = prm.get_integer("graphical_output_interval");
   terminal_output_interval  = prm.get_integer("terminal_output_interval");
 }

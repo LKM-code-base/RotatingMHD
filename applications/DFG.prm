@@ -5,11 +5,11 @@ subsection Physical parameters
 end
 
 subsection Time discretization parameters
-  set dt                              = 5e-3
-  set timestep_lower_bound            = 2e-3
-  set timestep_upper_bound            = 8e-3
+  set dt                              = 1e-2
+  set timestep_lower_bound            = 8e-3
+  set timestep_upper_bound            = 3e-2
   set t_0                             = 0.
-  set T                               = 40.
+  set T                               = 300.
   set vsimex_scheme                   = BDF2
   set vsimex_input_gamma              = 1.0
   set vsimex_input_c                  = 0.0
@@ -31,6 +31,5 @@ end
 
 set flag_verbose_output               = false
 set flag_adaptive_time_step           = false
-set flag_DFG_benchmark                = false
 set graphical_output_interval         = 100
 set terminal_output_interval          = 1

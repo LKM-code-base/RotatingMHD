@@ -56,7 +56,6 @@ public:
   double            solver_diag_strength;
   bool              flag_verbose_output;
   bool              flag_adaptive_time_step;
-  bool              flag_DFG_benchmark;
   unsigned int      graphical_output_interval;
   unsigned int      terminal_output_interval;
 
