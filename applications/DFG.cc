@@ -246,14 +246,14 @@ for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
 
 time_stepping.get_coefficients(VSIMEX);
 
-pcout << "Solving until t = 3.5..." << std::endl;
-while (time_stepping.get_current_time() <= 3.5)
+pcout << "Solving until t = 35..." << std::endl;
+while (time_stepping.get_current_time() <= 35)
 {
   navier_stokes.solve(time_stepping.get_step_number());
 
-  postprocessing((time_stepping.get_step_number() % 
+  /*postprocessing((time_stepping.get_step_number() % 
                   terminal_output_periodicity == 0) ||
-                  time_stepping.is_at_end());
+                  time_stepping.is_at_end());*/
 
   time_stepping.set_proposed_step_size(
                             navier_stokes.compute_next_time_step());
@@ -277,7 +277,8 @@ for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
 
 time_stepping.get_coefficients(VSIMEX);
 
-pcout << "Solving until t = 40..." << std::endl;
+pcout << "Solving until t = " << time_stepping.get_end_time()
+      << "..." << std::endl;
 
 while (time_stepping.get_current_time() <= time_stepping.get_end_time())
 {    
