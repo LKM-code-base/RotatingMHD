@@ -1,28 +1,38 @@
 #include <rotatingMHD/time_discretization.h>
+
 #include <deal.II/base/exceptions.h>
+#include <deal.II/base/conditional_ostream.h>
+
+#include <ostream>
+
 namespace RMHD
 {
-  using namespace dealii;
+
+using namespace dealii;
+
 namespace TimeDiscretization
 {
 VSIMEXCoefficients::VSIMEXCoefficients()
 {}
 
 VSIMEXCoefficients::VSIMEXCoefficients(const unsigned int &order)
-  : alpha(order+1),
-    beta(order),
-    gamma(order+1),
-    phi(2)
+:
+alpha(order+1),
+beta(order),
+gamma(order+1),
+phi(2)
 {
-  Assert( ( ( order == 1) || ( order == 2 )),
-    ExcMessage("Only VSIMEX of first and second order are currently implemented"));
+  Assert( ( ( order == 1) || ( order == 2 ) ),
+         ExcMessage("Only VSIMEX of first and second order are currently "
+                    "implemented"));
 }
 
 VSIMEXCoefficients::VSIMEXCoefficients(const VSIMEXCoefficients &data)
-  : alpha(data.alpha),
-    beta(data.beta),
-    gamma(data.gamma),
-    phi(data.phi)
+:
+alpha(data.alpha),
+beta(data.beta),
+gamma(data.gamma),
+phi(data.phi)
 {}
 
 VSIMEXCoefficients VSIMEXCoefficients::operator=(const VSIMEXCoefficients &data_to_copy)
@@ -39,32 +49,110 @@ void VSIMEXCoefficients::reinit(const unsigned int order)
   *this = VSIMEXCoefficients(order);
 }
 
-void VSIMEXCoefficients::output()
+
+
+template<typename Stream>
+void VSIMEXCoefficients::output(Stream &stream) const
 {
-  /* Hardcoded for VSIMEX of second order */
-  std::cout << "Parameter set for a VSIMEX method of " 
-            << beta.size()
-            << "order" << std::endl;
-  std::cout << "alpha = {" << alpha[0] << ", " << alpha[1] 
-            << ", " << alpha[2] << "}" << std::endl;
-  std::cout << "beta = {" << beta[0] << ", " << beta[1] << "}" << std::endl;
-  std::cout << "gamma = {" << gamma[0] << ", " << gamma[1] 
-            << ", " << gamma[2] << "}" << std::endl;             
+  switch (beta.size())
+  {
+    case 1:
+      stream << "+-------------+------------+------------+\n"
+             << "|    Index    |     n      |    n-1     |\n"
+             << "+-------------+------------+------------+\n"
+             << "|    alpha    | ";
+      break;
+    case 2:
+      stream << "+-------------+------------+------------+------------+\n"
+             << "|    Index    |     n      |    n-1     |     n-2    |\n"
+             << "+-------------+------------+------------+------------+\n"
+             << "|    alpha    | ";
+      break;
+    default:
+      Assert(false,
+             ExcMessage("Size of the vector beta does not match the expected "
+                        "values."));
+      break;
+  }
+
+  for (const auto it: alpha)
+  {
+    stream << std::setw(10)
+           << std::setprecision(2)
+           << std::scientific
+           << std::right
+           << it;
+    stream << " | ";
+  }
+
+  stream << std::endl << "|    beta     |     -      | ";
+  for (const auto it: beta)
+  {
+    stream << std::setw(10)
+           << std::setprecision(2)
+           << std::scientific
+           << std::right
+           << it;
+    stream << " | ";
+  }
+
+  stream << std::endl << "|    gamma    | ";
+  for (const auto it: gamma)
+  {
+    stream << std::setw(10)
+           << std::setprecision(2)
+           << std::scientific
+           << std::right
+           << it;
+    stream << " | ";
+  }
+
+  stream << std::endl << "|  extra_pol  |     -      | ";
+  for (const auto it: phi)
+  {
+    stream << std::setw(10)
+           << std::setprecision(2)
+           << std::scientific
+           << std::right
+           << it;
+    stream << " | ";
+  }
+  stream << std::endl;
+
+  switch (beta.size())
+  {
+    case 1:
+      stream << "+-------------+------------+------------+\n";
+      break;
+    case 2:
+      stream << "+-------------+------------+------------+------------+\n";
+      break;
+
+    default:
+      Assert(false,
+             ExcMessage("Size of the vector beta does not match the expected "
+                        "values."));
+      break;
+  }
+
+  stream << std::fixed << std::setprecision(0);
 }
 
-VSIMEXMethod::VSIMEXMethod(const VSIMEXScheme         scheme,
-                           const double               start_time,
-                           const double               end_time,
-                           const double               desired_start_step_size,
-                           const double               timestep_lower_bound,
-                           const double               timestep_upper_bound)
-  : DiscreteTime(start_time, end_time, desired_start_step_size),
-    scheme(scheme),
-    omega(1.0),
-    timestep(desired_start_step_size),
-    old_timestep(desired_start_step_size),
-    timestep_lower_bound(timestep_lower_bound),
-    timestep_upper_bound(timestep_upper_bound)
+VSIMEXMethod::VSIMEXMethod
+(const VSIMEXScheme         scheme,
+ const double               start_time,
+ const double               end_time,
+ const double               desired_start_step_size,
+ const double               timestep_lower_bound,
+ const double               timestep_upper_bound)
+:
+DiscreteTime(start_time, end_time, desired_start_step_size),
+scheme(scheme),
+omega(1.0),
+timestep(desired_start_step_size),
+old_timestep(desired_start_step_size),
+timestep_lower_bound(timestep_lower_bound),
+timestep_upper_bound(timestep_upper_bound)
 {
   Assert(((timestep > timestep_lower_bound) && 
           (timestep < timestep_upper_bound)),
@@ -72,7 +160,7 @@ VSIMEXMethod::VSIMEXMethod(const VSIMEXScheme         scheme,
         "The desired start step is not inside the give bounded range."));
   switch (scheme)
   {
-    case VSIMEXScheme::FE :
+    case VSIMEXScheme::ForwardEuler :
       order = 1;
       parameters.resize(order);
       parameters[0] = 0.;
@@ -118,18 +206,20 @@ VSIMEXMethod::VSIMEXMethod(const VSIMEXScheme         scheme,
   coefficients.reinit(order);
 }
 
-VSIMEXMethod::VSIMEXMethod(const unsigned int         order,
-                           const std::vector<double>  parameters,
-                           const double               start_time,
-                           const double               end_time,
-                           const double               desired_start_step_size)
-  : DiscreteTime(start_time, end_time, desired_start_step_size),
-    order(order),
-    parameters(parameters),
-    coefficients(order),
-    omega(1.0),
-    timestep(desired_start_step_size),
-    old_timestep(desired_start_step_size)
+VSIMEXMethod::VSIMEXMethod
+(const unsigned int         order,
+ const std::vector<double>  parameters,
+ const double               start_time,
+ const double               end_time,
+ const double               desired_start_step_size)
+:
+DiscreteTime(start_time, end_time, desired_start_step_size),
+order(order),
+parameters(parameters),
+coefficients(order),
+omega(1.0),
+timestep(desired_start_step_size),
+old_timestep(desired_start_step_size)
 {
   Assert( ( ( order == 1) || ( order == 2 )),
     ExcMessage("Only VSIMEX of first and second order are currently implemented"));
@@ -170,8 +260,8 @@ void VSIMEXMethod::update_coefficients()
   switch (order)
   {
     case 1 :
-      {
-      static double gamma   = parameters[0];
+    {
+      static const double gamma   = parameters[0];
       coefficients.alpha[0] = - 1.0 / timestep;
       coefficients.alpha[1] = 1.0 / timestep;
       coefficients.beta[0]  = 1.0;
@@ -180,11 +270,11 @@ void VSIMEXMethod::update_coefficients()
       coefficients.phi[0]   = -1.0;
       coefficients.phi[1]   = 2.0;
       break;
-      }
+    }
     case 2 :
-      {
-      static double gamma   = parameters[0];
-      static double c       = parameters[1];
+    {
+      static const double gamma   = parameters[0];
+      static const double c       = parameters[1];
       coefficients.alpha[0] = (2.0 * gamma - 1.0) * omega * omega / 
                                 (1.0 + omega) / timestep;
       coefficients.alpha[1] = ((1.0 - 2.0 * gamma) * omega - 1.0) / timestep;
@@ -198,13 +288,19 @@ void VSIMEXMethod::update_coefficients()
       coefficients.phi[0]   = - omega;
       coefficients.phi[1]   = 1.0 + omega;
       break;
-      }
+    }
     default :
      Assert(false,
-      ExcMessage("Only VSIMEX of first and second order are currently implemented"));
+            ExcMessage("Only VSIMEX of first and second order are currently implemented"));
+     break;
   }
   //coefficients.output();
 }
 
 } // namespace TimeDiscretiation
+
 } // namespace RMHD
+
+// explicit instantiations
+template void RMHD::TimeDiscretization::VSIMEXCoefficients::output(std::ostream &) const;
+template void RMHD::TimeDiscretization::VSIMEXCoefficients::output(dealii::ConditionalOStream &) const;

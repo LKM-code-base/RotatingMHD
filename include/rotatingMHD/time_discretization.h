@@ -3,11 +3,14 @@
 #define INCLUDE_ROTATINGMHD_TIME_DISCRETIZATION_H_
 
 #include <deal.II/base/discrete_time.h>
+
 #include <iostream>
 #include <vector>
+
 namespace RMHD
 {
-  using namespace dealii;
+
+using namespace dealii;
 
 namespace TimeDiscretization
 {
@@ -18,8 +21,11 @@ namespace TimeDiscretization
  */
 enum class VSIMEXScheme
 {
-  FE,     /**< Applies forward euler. */
+  ForwardEuler,     /**< Applies the explicit Euler method. */
   CNFE,   /**< Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$.*/
+  /*
+   * The following enum is duplicate!?
+   */
   BEFE,   /**< Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$. */
   BDF2,   /**< Applies the backward differentiation formula of second order. */
   CNAB,   /**< Applies Crank-Nicolson to \f$ g(u) \f$ and Adams-Bashforth to \f$ f(u) \f$. */
@@ -36,37 +42,44 @@ enum class VSIMEXScheme
 struct VSIMEXCoefficients
 {
   std::vector<double> alpha;  /**< A vector with the \f$ \alpha \f$ coefficients. */
+
   std::vector<double> beta;   /**< A vector with the \f$ \beta \f$ coefficients. */
+
   std::vector<double> gamma;  /**< A vector with the \f$ \gamma \f$ coefficients. */
+
   std::vector<double> phi;    /**< A vector with the Taylor expansion coefficients. */
 
   /*!
   *  @brief The default constructor of the struct.
   */
   VSIMEXCoefficients();
+
   /*!
   *  @brief A constructor taking the order of the scheme as input.
   */
   VSIMEXCoefficients(const unsigned int                 &order);
+
   /*!
   *  @brief A copy constructor.
   */
   VSIMEXCoefficients(const VSIMEXCoefficients           &data);
+
   /*!
   *  @brief Overloaded operator used in the copy constructor.
   */
   VSIMEXCoefficients operator=(const VSIMEXCoefficients &data_to_copy);
+
   /*!
-  *  @brief An reinitializing method.
+  *  @brief A reinitializing method.
   *  @details Passes the order to the respective constructor.
   */
   void reinit(const unsigned int order);
+
   /*!
   *  @brief A method to output the coefficients to the terminal.
-  *  @attention This is only a WIP, as is it hardcoded for second order
-  *  schemes at the moment.
   */
-  void output();
+  template<typename Stream>
+  void output(Stream &stream) const;
 };
 
 /*!
@@ -77,6 +90,7 @@ struct VSIMEXCoefficients
 */
 class VSIMEXMethod : public DiscreteTime
 {
+
 public:
   /*!
   * @brief The constructor of the class.
@@ -93,14 +107,17 @@ public:
                const double               start_time,
                const double               end_time,
                const double               desired_start_step_size = 0);
+
   /*!
   * @brief A method returning the order of the VSIMEX scheme.
   */
   unsigned int        get_order();
+
   /*!
   * @brief A method returning the parameters of the VSIMEX scheme.
   */
   std::vector<double> get_parameters();
+
   /*!
   * @brief A method to get the updated coefficients.
   * @details This method calls a private method which computes the
@@ -110,6 +127,7 @@ public:
   * it to calculate the correct parameters.
   */ 
   void                get_coefficients(VSIMEXCoefficients &output);
+
   /*!
   * @brief A method passing the proposed new timestep to the class.
   * @details The method checks if the the timestep is inside the bounds
@@ -120,10 +138,15 @@ public:
   void                set_proposed_step_size(const double &timestep);
 
 private:
+
   VSIMEXScheme              scheme;               /**< VSIMEX scheme being used. */
+
   unsigned int              order;                /**< Order of the VSIMEX scheme. */
+
   std::vector<double>       parameters;           /**< Parameters of the VSIMEX scheme. */
+
   VSIMEXCoefficients        coefficients;         /**< Coefficients of the VSIMEX scheme. */
+
   double                    omega;                /**< Step-size ratio. */
   double                    timestep;             /**< Current timestep. */
   double                    old_timestep;         /**< Previous timestep. */
@@ -131,7 +154,6 @@ private:
   double                    timestep_upper_bound; /**< Upper bound of the timestep. */
 
   /*!
-  * @
   * @brief A method that updates the coefficients.
   * @details Here goes a longer explination with the formulas
   */
