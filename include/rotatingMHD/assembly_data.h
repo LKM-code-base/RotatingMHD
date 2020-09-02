@@ -9,10 +9,12 @@
 
 namespace RMHD
 {
-  using namespace dealii;
+using namespace dealii;
+
 namespace AdvectionAssembly
 {
-template <int dim>
+
+  template <int dim>
 struct MappingData
 {
   FullMatrix<double>                   local_matrix;
@@ -33,10 +35,10 @@ struct LocalCellData
   std::vector<Tensor<1,dim>>  phi_velocity;
   std::vector<Tensor<2,dim>>  grad_phi_velocity;
 
-  LocalCellData(const FESystem<dim> &fe,
-                const QGauss<dim>   &quadrature_formula,
-                const UpdateFlags   flags);
-  LocalCellData(const LocalCellData &data);
+  LocalCellData(const FESystem<dim>  &fe,
+                const Quadrature<dim>&quadrature_formula,
+                const UpdateFlags     flags);
+  LocalCellData(const LocalCellData  &data);
 };
 }// namespace AdvectionAssembly
 
@@ -63,10 +65,10 @@ struct LocalCellData
   std::vector<Tensor<1,dim>>  phi_velocity;
   std::vector<Tensor<2,dim>>  grad_phi_velocity;
 
-  LocalCellData(const FESystem<dim> &velocity_fe,
-                const QGauss<dim>   &velocity_quadrature_formula,
-                const UpdateFlags   velocity_update_flags);
-  LocalCellData(const LocalCellData &data);
+  LocalCellData(const FESystem<dim>  &velocity_fe,
+                const Quadrature<dim>&velocity_quadrature_formula,
+                const UpdateFlags     velocity_update_flags);
+  LocalCellData(const LocalCellData  &data);
 };
 } // namespace VelocityMatricesAssembly
 
@@ -93,10 +95,10 @@ struct LocalCellData
   std::vector<double>         phi_pressure;
   std::vector<Tensor<1,dim>>  grad_phi_pressure;
 
-  LocalCellData(const FE_Q<dim>     &pressure_fe,
-                const QGauss<dim>   &pressure_quadrature_formula,
-                const UpdateFlags   pressure_update_flags);
-  LocalCellData(const LocalCellData &data);
+  LocalCellData(const FE_Q<dim>      &pressure_fe,
+                const Quadrature<dim>&pressure_quadrature_formula,
+                const UpdateFlags     pressure_update_flags);
+  LocalCellData(const LocalCellData  &data);
 };
 } // namespace PressureMatricesAssembly
 
@@ -130,12 +132,12 @@ struct LocalCellData
   std::vector<Tensor<2,dim>>            grad_phi_velocity;
 
 
-  LocalCellData(const FESystem<dim>     &velocity_fe,
-                const FE_Q<dim>         &pressure_fe,
-                const QGauss<dim>       &velocity_quadrature_formula,
-                const UpdateFlags       velocity_update_flags,
-                const UpdateFlags       pressure_update_flags);
-  LocalCellData(const LocalCellData     &data);
+  LocalCellData(const FESystem<dim>  &velocity_fe,
+                const FE_Q<dim>      &pressure_fe,
+                const Quadrature<dim>&velocity_quadrature_formula,
+                const UpdateFlags     velocity_update_flags,
+                const UpdateFlags     pressure_update_flags);
+  LocalCellData(const LocalCellData  &data);
 };
 } // namespace VelocityRightHandSideAssembly
 
@@ -164,54 +166,68 @@ struct LocalCellData
   std::vector<double>                   phi_pressure;
   std::vector<Tensor<1, dim>>           grad_phi_pressure;
 
-  LocalCellData(const FESystem<dim>     &velocity_fe,
-                const FE_Q<dim>         &pressure_fe,
-                const QGauss<dim>       &pressure_quadrature_formula,
-                const UpdateFlags       velocity_update_flags,
-                const UpdateFlags       pressure_update_flags);
-  LocalCellData(const LocalCellData     &data);
+  LocalCellData(const FESystem<dim>  &velocity_fe,
+                const FE_Q<dim>      &pressure_fe,
+                const Quadrature<dim>&pressure_quadrature_formula,
+                const UpdateFlags     velocity_update_flags,
+                const UpdateFlags     pressure_update_flags);
+  LocalCellData(const LocalCellData  &data);
 };
 } // namespace PressureRightHandSideAssembly
 
 namespace PoissonPrestepRightHandSideAssembly
 {
+
 template <int dim>
 struct MappingData
 {
-  unsigned int                          pressure_dofs_per_cell;
-  Vector<double>                        local_poisson_prestep_rhs;
-  FullMatrix<double>                    local_matrix_for_inhomogeneous_bc;
-  std::vector<types::global_dof_index>  local_pressure_dof_indices;
-
   MappingData(const unsigned int pressure_dofs_per_cell);
+
   MappingData(const MappingData &data);
+
+  unsigned int                          pressure_dofs_per_cell;
+
+  Vector<double>                        local_poisson_prestep_rhs;
+
+  FullMatrix<double>                    local_matrix_for_inhomogeneous_bc;
+
+  std::vector<types::global_dof_index>  local_pressure_dof_indices;
 };
 
 template <int dim>
 struct LocalCellData
 {
+  LocalCellData(const FESystem<dim>     &velocity_fe,
+                const FE_Q<dim>         &pressure_fe,
+                const Quadrature<dim>   &pressure_quadrature_formula,
+                const Quadrature<dim-1> &pressure_face_quadrature_formula,
+                const UpdateFlags        velocity_face_update_flags,
+                const UpdateFlags        pressure_update_flags,
+                const UpdateFlags        pressure_face_update_flags);
+
+  LocalCellData(const LocalCellData     &data);
+
   FEValues<dim>                         pressure_fe_values;
+
   FEFaceValues<dim>                     velocity_fe_face_values;
+
   FEFaceValues<dim>                     pressure_fe_face_values;
+
   unsigned int                          n_q_points;
   unsigned int                          n_face_q_points;
   unsigned int                          pressure_dofs_per_cell;
+
   std::vector<double>                   force_divergence_values;
+
   std::vector<Tensor<1, dim>>           velocity_laplacian_values;
+
   std::vector<Tensor<1, dim>>           force_values;
+
   std::vector<Tensor<1, dim>>           normal_vectors;
+
   std::vector<double>                   phi_pressure;
   std::vector<double>                   face_phi_pressure;
   std::vector<Tensor<1, dim>>           grad_phi_pressure;
-
-  LocalCellData(const FESystem<dim>     &velocity_fe,
-                const FE_Q<dim>         &pressure_fe,
-                const QGauss<dim>       &pressure_quadrature_formula,
-                const QGauss<dim-1>     &pressure_face_quadrature_formula,
-                const UpdateFlags       velocity_face_update_flags,
-                const UpdateFlags       pressure_update_flags,
-                const UpdateFlags       pressure_face_update_flags);
-  LocalCellData(const LocalCellData     &data);
 };
 
 }
