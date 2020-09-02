@@ -52,7 +52,9 @@ update_internal_entities()
 
 } // namespace RMHD
 
+// explicit instantiations
 template double RMHD::NavierStokesProjection<2>::compute_next_time_step();
 template double RMHD::NavierStokesProjection<3>::compute_next_time_step();
+
 template void RMHD::NavierStokesProjection<2>::update_internal_entities();
 template void RMHD::NavierStokesProjection<3>::update_internal_entities();
