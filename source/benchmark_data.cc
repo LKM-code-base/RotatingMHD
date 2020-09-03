@@ -29,8 +29,22 @@ DFG<dim>::DFG()
     drag_force(0),
     drag_coefficient(0),
     lift_force(0),
-    lift_coefficient(0),
-{}
+    lift_coefficient(0)
+{
+  data_table.declare_column("n");
+  data_table.declare_column("t");
+  data_table.declare_column("dp");
+  data_table.declare_column("C_d");
+  data_table.declare_column("C_l");
+  data_table.set_scientific("t", true);
+  data_table.set_scientific("dp", true);
+  data_table.set_scientific("C_d", true);
+  data_table.set_scientific("C_l", true);
+  data_table.set_precision("t", 6);
+  data_table.set_precision("dp", 6);
+  data_table.set_precision("C_d", 6);
+  data_table.set_precision("C_l", 6);
+}
 
 template <int dim>
 void DFG<dim>::compute_pressure_difference(
@@ -170,7 +184,9 @@ void DFG<dim>::write_table_to_file(const std::string  &file)
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
     std::ofstream out_file(file);
-    data_table.write_text(out_file, org_mode_table);
+    data_table.write_text(
+      out_file, 
+      TableHandler::TextOutputFormat::org_mode_table);
     out_file.close();
   }
 }
