@@ -22,99 +22,134 @@ namespace TimeDiscretization
  */
 enum class VSIMEXScheme
 {
-  ForwardEuler,     /**< Applies the explicit Euler method. */
-  CNFE,   /**< Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$.*/
-  /*
-   * The following enum is duplicate!?
+  /*!
+   * Forward Euler method.
    */
-  BEFE,   /**< Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$. */
-  BDF2,   /**< Applies the backward differentiation formula of second order. */
-  CNAB,   /**< Applies Crank-Nicolson to \f$ g(u) \f$ and Adams-Bashforth to \f$ f(u) \f$. */
-  mCNAB,  /**< Applies the modified CNAB method. */
-  CNLF    /**< Applies Crank-Nicolson to \f$ g(u) \f$ and Leap-Frog to \f$ f(u) \f$. */
+  ForwardEuler,
+  /*!
+   * @brief Combination of the Crank-Nicolson and forward Euler method.
+   * @details Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$.
+   * @attention SG: What is meant by \f$ f(u) \f$ and \f$ g(u) \f$? What is the
+   * wealth of combining both schemes?
+   */
+  CNFE,
+  /*!
+   * @brief Combination of the Crank-Nicolson and forward (backward?) Euler method.
+   * @details Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$.
+   * @attention SG: The following enum is duplicate!? What is the difference to
+   * the previous one?
+   */
+  BEFE,
+  /*!
+   * @brief Applies the backward differentiation formula of second order.
+   */
+  BDF2,
+  /*!
+   * @brief The classical Crank-Nicolson-Adams-Bashforth scheme.
+   * @details Applies Crank-Nicolson to \f$ g(u) \f$ and Adams-Bashforth extrapolation
+   * to \f$ f(u) \f$.
+   */
+  CNAB,
+  /*!
+   * @brief The modified Crank-Nicolson-Adams-Bashforth scheme.
+   */
+  mCNAB,
+  /*!
+   * @brief The Crank-Nicolson-Leap-Frog scheme.
+   * @details Applies Crank-Nicolson to \f$ g(u) \f$ and Leap-Frog to
+   * \f$f(u)\f$.
+   */
+  CNLF
 };
 
 /*!
- *
  * @struct TimeSteppingParameters
- * @brief This structure manages the parameters of the timestepping scheme and
+ * @brief This structure manages the parameters of the time stepping scheme and
  * is used to control the behavior of VSIMEXMethod.
- *
  */
 struct TimeSteppingParameters
 {
-    TimeSteppingParameters();
-    TimeSteppingParameters(const std::string &parameter_filename);
 
-    /*!
-     * @brief Static method which the associated parameter to the
-     * ParameterHandler object.
-     */
-    static void declare_parameters(ParameterHandler &prm);
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  TimeSteppingParameters();
 
-    /*!
-     * @brief Method which parses the parameters of the timestepping scheme from
-     * the ParameterHandler object.
-     */
-    void parse_parameters(ParameterHandler &prm);
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  TimeSteppingParameters(const std::string &parameter_filename);
 
-    /*!
-     * @brief Method forwarding parameters to a stream object.
-     */
-    template<typename Stream>
-    void write(Stream &stream) const;
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
 
-    /*!
-     * @brief Type of variable step-size IMEX scheme which is applied.
-     */
-    VSIMEXScheme  vsimex_scheme;
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
 
-    /*!
-     * @brief Maximum number of timesteps to be performed.
-     */
-    unsigned int  n_maximum_steps;
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  void write(Stream &stream) const;
 
-    /*!
-     * @brief Boolean flag to enable an adaptive adjustment of the size of the
-     * timestep.
-     */
-    bool          adaptive_timestep;
+  /*!
+   * @brief Type of variable step-size IMEX scheme which is applied.
+   */
+  VSIMEXScheme  vsimex_scheme;
 
-    /*!
-     * @brief Number of the timestep from which the adaptive adjustment of the
-     * size of the timestep is enabled.
-     */
-    unsigned int  adaptive_timestep_barrier;
+  /*!
+   * @brief Maximum number of timesteps to be performed.
+   */
+  unsigned int  n_maximum_steps;
 
-    /*!
-     * @brief Size of the initial timestep.
-     */
-    double        initial_timestep;
+  /*!
+   * @brief Boolean flag to enable an adaptive adjustment of the size of the
+   * time step.
+   */
+  bool          adaptive_time_step;
 
-    /*!
-     * @brief Size of the maximum timestep.
-     */
-    double        minimum_timestep;
+  /*!
+   * @brief Number of the time step from which the adaptive adjustment of the
+   * size of the time step is enabled.
+   */
+  unsigned int  adaptive_time_step_barrier;
 
-    /*!
-     * @brief Size of the minimum timestep.
-     */
-    double        maximum_timestep;
+  /*!
+   * @brief Size of the initial time step.
+   */
+  double        initial_time_step;
 
-    /*!
-     * @brief Time at which the simulation starts.
-     */
-    double        start_time;
+  /*!
+   * @brief Size of the maximum time step.
+   */
+  double        minimum_time_step;
 
-    /*!
-     * @brief Time at which the simulation should terminate.
-     */
-    double        final_time;
+  /*!
+   * @brief Size of the minimum time step.
+   */
+  double        maximum_time_step;
 
-    /*!
-     * @brief Boolean flag to enable verbose output of VSIMEXMethod.
-     */
-    bool          verbose;
+  /*!
+   * @brief Time at which the simulation starts.
+   */
+  double        start_time;
+
+  /*!
+   * @brief Time at which the simulation should terminate.
+   */
+  double        final_time;
+
+  /*!
+   * @brief Boolean flag to enable verbose output of VSIMEXMethod.
+   */
+  bool          verbose;
 };
 
 /*!
@@ -160,7 +195,7 @@ struct VSIMEXCoefficients
   void reinit(const unsigned int order);
 
   /*!
-  *  @brief A method to output the coefficients to the terminal.
+  *  A method to output the coefficients to the terminal.
   */
   template<typename Stream>
   void output(Stream &stream) const;
@@ -169,13 +204,14 @@ struct VSIMEXCoefficients
 /*!
 * @class VSIMEXMethod
 * @brief A time stepping class implementing the VSIMEX coefficients.
-* @details Here goes a longer explination with formulas of the VSIMEX
+* @details Here goes a longer explanation with formulas of the VSIMEX
 * general scheme.
 */
 class VSIMEXMethod : public DiscreteTime
 {
 
 public:
+
   /*!
   * @brief The constructor of the class.
   */
@@ -195,12 +231,12 @@ public:
   /*!
   * @brief A method returning the order of the VSIMEX scheme.
   */
-  unsigned int        get_order();
+  unsigned int get_order() const;
 
   /*!
   * @brief A method returning the parameters of the VSIMEX scheme.
   */
-  std::vector<double> get_parameters();
+  std::vector<double> get_parameters() const;
 
   /*!
   * @brief A method to get the updated coefficients.
@@ -209,42 +245,88 @@ public:
   * @attention The method has to be called between 
   * the set_new_time_step() and the advance_time() methods in order for
   * it to calculate the correct parameters.
+  * @attention In the final version of VSIMEXMethod, we must make sure that the
+  * method is called in the right place and otherwise an error is thrown.The
+  * *stupid user* might be aware of this constraint!
   */ 
-  void                get_coefficients(VSIMEXCoefficients &output);
+  void get_coefficients(VSIMEXCoefficients &output);
 
   /*!
-  * @brief A method passing the proposed new timestep to the class.
-  * @details The method checks if the the timestep is inside the bounds
-  * set in the constructor. If not, it adjust the timestep accordingly
+  * @brief A method passing the *desired* size of the next time step to the
+  * class.
+  * @details The method checks if the the time step is inside the bounds
+  * set in the constructor. If not, it adjusts the time step accordingly
   * and passes it to the set_desired_time_step() method from the
   * DiscreteTime class which does further modifications if needed.
   */
-  void                set_proposed_step_size(const double &timestep);
+  void set_desired_next_step_size(const double time_step_size);
 
 private:
 
-  VSIMEXScheme              scheme;               /**< VSIMEX scheme being used. */
-
-  unsigned int              order;                /**< Order of the VSIMEX scheme. */
-
-  std::vector<double>       parameters;           /**< Parameters of the VSIMEX scheme. */
-
-  VSIMEXCoefficients        coefficients;         /**< Coefficients of the VSIMEX scheme. */
-
-  double                    omega;                /**< Step-size ratio. */
-  double                    timestep;             /**< Current timestep. */
-  double                    old_timestep;         /**< Previous timestep. */
-  double                    timestep_lower_bound; /**< Lower bound of the timestep. */
-  double                    timestep_upper_bound; /**< Upper bound of the timestep. */
+  /*!
+   * @brief VSIMEX scheme being used.
+   */
+  VSIMEXScheme        scheme;
 
   /*!
-  * @brief A method that updates the coefficients.
-  * @details Here goes a longer explination with the formulas
+   * @brief Order of the VSIMEX scheme.
+   */
+  unsigned int        order;
+
+  /*!
+   * @brief Parameters of the VSIMEX scheme.
+   * @attention This designation is very misleading w.r.t. the
+   * TimeSteppingParameters!
+   */
+  std::vector<double> parameters;
+
+  /*!
+   * @brief Coefficients of the VSIMEX scheme.
+   */
+  VSIMEXCoefficients  coefficients;
+
+  /*!
+   * @brief Ratio of the sizes of the current and the old time step. Denoted by
+   * \f$\omega\f$.
+   * @details The ratio is given by \f$\omega=\frac{\Delta t_n}{\Delta t_{n-1}}\f$.
+   */
+  double              omega;
+
+  /*!
+   * @brief Size of the current time step \f$\Delta t_n\f$.
+   * @attention Is duplicate because this variable exist the parent class DiscreteTime!
+   */
+  double              time_step;
+
+  /*!
+   * @brief Size of the previous time step \f$ \Delta t_{n-1}\f$.
+   * @attention Is duplicate because this variable exist the parent class DiscreteTime!
+   */
+  double              old_time_step;
+
+  double              timestep_lower_bound; /**< Lower bound of the timestep. */
+  double              timestep_upper_bound; /**< Upper bound of the timestep. */
+
+  /*!
+  *  @brief A method that updates the coefficients.
+  *  @details Here goes a longer explanation with the formulas.
   */
   void update_coefficients();
 };
 
+// inline functions
+inline unsigned int VSIMEXMethod::get_order() const
+{
+  return order;
+}
+
+inline std::vector<double> VSIMEXMethod::get_parameters() const
+{
+  return parameters;
+}
+
 } // namespace TimeDiscretization
+
 } // namespace RMHD
 
 #endif /* INCLUDE_ROTATINGMHD_TIME_DISCRETIZATION_H_ */

@@ -265,7 +265,7 @@ while (time_stepping.get_current_time() <= time_stepping.get_end_time())
         time_stepping.is_at_end())
       output();
 
-    time_stepping.set_proposed_step_size(
+    time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());
     update_solution_vectors();
     

@@ -18,11 +18,11 @@ TimeSteppingParameters::TimeSteppingParameters()
 :
 vsimex_scheme(VSIMEXScheme::CNAB),
 n_maximum_steps(100),
-adaptive_timestep(true),
-adaptive_timestep_barrier(2),
-initial_timestep(1e-3),
-minimum_timestep(1e-9),
-maximum_timestep(1e-3),
+adaptive_time_step(true),
+adaptive_time_step_barrier(2),
+initial_time_step(1e-3),
+minimum_time_step(1e-9),
+maximum_time_step(1e-3),
 start_time(0.0),
 final_time(1.0),
 verbose(false)
@@ -84,17 +84,17 @@ void TimeSteppingParameters::declare_parameters(ParameterHandler &prm)
                       Patterns::Integer(),
                       "Time step after which adaptive time stepping is applied.");
 
-    prm.declare_entry("initial_timestep",
+    prm.declare_entry("initial_time_step",
                       "1e-6",
                       Patterns::Double(),
                       "Size of the initial time step.");
 
-    prm.declare_entry("minimum_timestep",
+    prm.declare_entry("minimum_time_step",
                       "1e-6",
                       Patterns::Double(),
                       "Size of the minimum time step.");
 
-    prm.declare_entry("maximum_timestep",
+    prm.declare_entry("maximum_time_step",
                       "1e-3",
                       Patterns::Double(),
                       "Size of the maximum time step.");
@@ -139,35 +139,35 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
                   ExcMessage("Unexpected string for variable step size "
                              "IMEX scheme."));
 
-    adaptive_timestep = prm.get_bool("adaptive_timestep");
-    if (adaptive_timestep)
-      adaptive_timestep_barrier = prm.get_integer("adaptive_timestep_barrier");
-    Assert(adaptive_timestep_barrier > 0,
-           ExcLowerRange(adaptive_timestep_barrier, 0));
+    adaptive_time_step = prm.get_bool("adaptive_time_step");
+    if (adaptive_time_step)
+      adaptive_time_step_barrier = prm.get_integer("adaptive_timestep_barrier");
+    Assert(adaptive_time_step_barrier > 0,
+           ExcLowerRange(adaptive_time_step_barrier, 0));
 
     n_maximum_steps = prm.get_integer("n_maximum_steps");
     Assert(n_maximum_steps > 0, ExcLowerRange(n_maximum_steps, 0));
 
-    initial_timestep = prm.get_double("initial_timestep");
-    Assert(initial_timestep > 0,
-           ExcLowerRangeType<double>(initial_timestep, 0));
+    initial_time_step = prm.get_double("initial_time_step");
+    Assert(initial_time_step > 0,
+           ExcLowerRangeType<double>(initial_time_step, 0));
 
-    if (adaptive_timestep)
+    if (adaptive_time_step)
     {
-        minimum_timestep = prm.get_double("minimum_timestep");
-        Assert(minimum_timestep > 0,
-               ExcLowerRangeType<double>(minimum_timestep, 0));
+        minimum_time_step = prm.get_double("minimum_time_step");
+        Assert(minimum_time_step > 0,
+               ExcLowerRangeType<double>(minimum_time_step, 0));
 
-        maximum_timestep = prm.get_double("maximum_timestep");
-        Assert(maximum_timestep > 0,
-               ExcLowerRangeType<double>(maximum_timestep, 0));
+        maximum_time_step = prm.get_double("maximum_time_step");
+        Assert(maximum_time_step > 0,
+               ExcLowerRangeType<double>(maximum_time_step, 0));
 
-        Assert(minimum_timestep < maximum_timestep,
-               ExcLowerRangeType<double>(minimum_timestep, maximum_timestep));
-        Assert(minimum_timestep <= initial_timestep,
-               ExcLowerRangeType<double>(minimum_timestep, initial_timestep));
-        Assert(initial_timestep <= maximum_timestep,
-               ExcLowerRangeType<double>(initial_timestep, maximum_timestep));
+        Assert(minimum_time_step < maximum_time_step,
+               ExcLowerRangeType<double>(minimum_time_step, maximum_time_step));
+        Assert(minimum_time_step <= initial_time_step,
+               ExcLowerRangeType<double>(minimum_time_step, initial_time_step));
+        Assert(initial_time_step <= maximum_time_step,
+               ExcLowerRangeType<double>(initial_time_step, maximum_time_step));
     }
 
     start_time = prm.get_double("start_time");
@@ -176,8 +176,8 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
     final_time = prm.get_double("final_time");
     Assert(final_time > 0.0, ExcLowerRangeType<double>(final_time, 0.0));
     Assert(final_time > start_time, ExcLowerRangeType<double>(final_time, start_time));
-    Assert(initial_timestep <= final_time,
-           ExcLowerRangeType<double>(initial_timestep, final_time));
+    Assert(initial_time_step <= final_time,
+           ExcLowerRangeType<double>(initial_time_step, final_time));
 
     verbose = prm.get_bool("verbose");
   }
@@ -214,11 +214,11 @@ void TimeSteppingParameters::write(Stream &stream) const
     break;
   }
   stream << "   n_maximum_steps: " << n_maximum_steps << std::endl
-         << "   adaptive_timestep: " << (adaptive_timestep? "true": "false") << std::endl
-         << "   adaptive_timestep_barrier: " << adaptive_timestep_barrier << std::endl
-         << "   initial_timestep: " << initial_timestep << std::endl
-         << "   minimum_timestep: " << minimum_timestep << std::endl
-         << "   maximum_timestep: " << maximum_timestep << std::endl
+         << "   adaptive_timestep: " << (adaptive_time_step? "true": "false") << std::endl
+         << "   adaptive_timestep_barrier: " << adaptive_time_step_barrier << std::endl
+         << "   initial_timestep: " << initial_time_step << std::endl
+         << "   minimum_timestep: " << minimum_time_step << std::endl
+         << "   maximum_timestep: " << maximum_time_step << std::endl
          << "   start_time: " << start_time << std::endl
          << "   final_time: " << final_time << std::endl
          << "   verbose: " << (verbose? "true": "false") << std::endl;
@@ -361,15 +361,15 @@ VSIMEXMethod::VSIMEXMethod
 DiscreteTime(start_time, end_time, desired_start_step_size),
 scheme(scheme),
 omega(1.0),
-timestep(desired_start_step_size),
-old_timestep(desired_start_step_size),
+time_step(desired_start_step_size),
+old_time_step(desired_start_step_size),
 timestep_lower_bound(timestep_lower_bound),
 timestep_upper_bound(timestep_upper_bound)
 {
-  Assert(((timestep > timestep_lower_bound) && 
-          (timestep < timestep_upper_bound)),
-      ExcMessage(
-        "The desired start step is not inside the give bounded range."));
+  Assert(((time_step > timestep_lower_bound) &&
+          (time_step < timestep_upper_bound)),
+         ExcMessage("The desired start step is not inside the given bonded range."));
+
   switch (scheme)
   {
     case VSIMEXScheme::ForwardEuler :
@@ -413,8 +413,10 @@ timestep_upper_bound(timestep_upper_bound)
       break;
     default:
      Assert(false,
-      ExcMessage("Specified scheme is not implemented. See documentation"));
+            ExcMessage("Specified scheme is not implemented. See documentation"));
+     break;
   };
+
   coefficients.reinit(order);
 }
 
@@ -430,21 +432,12 @@ order(order),
 parameters(parameters),
 coefficients(order),
 omega(1.0),
-timestep(desired_start_step_size),
-old_timestep(desired_start_step_size)
+time_step(desired_start_step_size),
+old_time_step(desired_start_step_size)
 {
-  Assert( ( ( order == 1) || ( order == 2 )),
-    ExcMessage("Only VSIMEX of first and second order are currently implemented"));
-}
-
-unsigned int VSIMEXMethod::get_order()
-{
-  return order;
-}
-
-std::vector<double> VSIMEXMethod::get_parameters()
-{
-  return parameters;
+  Assert(((order == 1)||(order == 2)),
+         ExcMessage("Only VSIMEX of first and second order are currently "
+                    "implemented"));
 }
 
 void VSIMEXMethod::get_coefficients(VSIMEXCoefficients &output)
@@ -453,29 +446,29 @@ void VSIMEXMethod::get_coefficients(VSIMEXCoefficients &output)
   output = coefficients;
 }
 
-void VSIMEXMethod::set_proposed_step_size(const double &timestep)
+void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 {
-  if (timestep < timestep_lower_bound)
-    set_desired_next_step_size(timestep_lower_bound);
-  else if (timestep > timestep_upper_bound)
-    set_desired_next_step_size(timestep_upper_bound);
+  if (time_step_size < timestep_lower_bound)
+    DiscreteTime::set_desired_next_step_size(timestep_lower_bound);
+  else if (time_step_size > timestep_upper_bound)
+    DiscreteTime::set_desired_next_step_size(timestep_upper_bound);
   else
-    set_desired_next_step_size(timestep);
+    DiscreteTime::set_desired_next_step_size(time_step);
 }
 
 void VSIMEXMethod::update_coefficients()
 {
-  timestep      = get_next_step_size();
-  old_timestep  = get_previous_step_size();
-  omega         = timestep / old_timestep;
+  time_step      = get_next_step_size();
+  old_time_step  = get_previous_step_size();
+  omega         = time_step / old_time_step;
 
   switch (order)
   {
     case 1 :
     {
       static const double gamma   = parameters[0];
-      coefficients.alpha[0] = - 1.0 / timestep;
-      coefficients.alpha[1] = 1.0 / timestep;
+      coefficients.alpha[0] = - 1.0 / time_step;
+      coefficients.alpha[1] = 1.0 / time_step;
       coefficients.beta[0]  = 1.0;
       coefficients.gamma[0] = ( 1.0 - gamma);
       coefficients.gamma[1] = gamma;
@@ -488,10 +481,10 @@ void VSIMEXMethod::update_coefficients()
       static const double gamma   = parameters[0];
       static const double c       = parameters[1];
       coefficients.alpha[0] = (2.0 * gamma - 1.0) * omega * omega / 
-                                (1.0 + omega) / timestep;
-      coefficients.alpha[1] = ((1.0 - 2.0 * gamma) * omega - 1.0) / timestep;
+                                (1.0 + omega) / time_step;
+      coefficients.alpha[1] = ((1.0 - 2.0 * gamma) * omega - 1.0) / time_step;
       coefficients.alpha[2] = (1.0 + 2.0 * gamma * omega) / 
-                                (1.0 + omega) / timestep;
+                                (1.0 + omega) / time_step;
       coefficients.beta[0]  = - gamma * omega;
       coefficients.beta[1]  = 1.0 + gamma * omega;
       coefficients.gamma[0] = c / 2.0;
