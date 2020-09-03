@@ -1,3 +1,7 @@
+/*!
+ *@file DFG
+ *@brief The .cc file solving the DFG benchmark.
+ */
 #include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
@@ -20,7 +24,190 @@
 namespace RMHD
 {
   using namespace dealii;
-
+/*!
+ * @class DFG
+ * @brief This class solves the DFG flow around cylinder benchmark 2D-2, 
+ * time-periodic case Re=100
+ * @details The DFG benchmark models the flow inside a pipe with a 
+ * circular cylinder as obstacle (See Fig ). The field equations for the 
+ * problem are given by
+ * \f[
+ * \begin{equation*}
+ * \begin{aligned}
+ * \dfrac{ \partial \mathbf{v}}{ \partial t} + \mathbf{v} \cdot 
+ * (\nabla \otimes \mathbf{v})&=  - \dfrac{1}{\rho}\nabla p + \nu 
+ * \Delta \mathbf{v} + \mathbf{b}, &\forall (\mathbf{x}, t) \in \Omega 
+ * \times \left[0, T \right] \\
+ * \nabla \cdot \mathbf{v}&= 0, &\forall (\mathbf{x}, t) \in \Omega 
+ * \times  \left[0, T \right]
+ * \end{aligned}
+ * \end{equation*}
+ * \f]
+ *   with boundary conditions
+ * \f[
+ *   \begin{equation*}
+ * \begin{aligned}
+ *   \mathbf{v} &= \mathbf{v}_\textrm{in},  &\forall(\mathbf{x}, t) 
+ *    &\in \Gamma_0 \times [0, T] \\
+ *   \mathbf{v} &= \mathbf{0}, &\forall(\mathbf{x}, t) 
+ *    &\in \Gamma_2 \times [0,T]\\
+ *   \mathbf{v} &= \mathbf{0}, &\forall(\mathbf{x}, t) 
+ *    &\in \Gamma_3 \times [0, T] \\
+ *    [-p\mathbf{I} + \mu \nabla \otimes \mathbf{v}] \cdot \mathbf{n} 
+ *    &=0, &\forall(\mathbf{x}, t) &\in \Gamma_1 \times [0, T] \\
+ *   \end{aligned}
+ *   \end{equation*}
+ * \f]
+ *   where the inflow velocity is given by
+ * \f[
+ *   \begin{equation*}
+ *     \mathbf{v}_\textrm{in} = 4v_\textrm{max}\dfrac{y(H-y)}
+ *      {H^2}\mathbf{e}_\textrm{x},
+ *     \qquad
+ *     v_\textrm{max} =1.5
+ *   \end{equation*}
+ * \f]
+ * Furthermore is \f$\rho = 1.0\f$ and \f$\nu = 0.001\f$. Taking the mean
+ * velocity \f$\bar{v} = \tfrac{2}{3} \mathbf{v}_\textrm{in}|_{(0,0.5H)}
+ * \cdot \mathbf{e}_\textrm{x} =  1.0\f$ and the 
+ * cylinder diameter \f$ D=0.1\f$ as reference velocity and length, the 
+ * Reynolds number is
+ * \f[
+ * \begin{equation*}
+ *	\textrm{Re} = \dfrac{\bar{v}D}{\nu} = 100.
+ * \end{equation*}
+ * \f]
+ * The benchmarks to reach are the pressure difference
+ * \f[
+ * \begin{equation*}
+ *	\Delta p = p|_{(0.15,0.2)} - p|_{(0.25,0.2)}
+ * \end{equation*}
+ * \f]
+ * the lift and drag coefficients,
+ * \f[
+ * \begin{equation*}
+ *	c_\textrm{drag} = \dfrac{2}{\rho\bar{v}^2D} f_\textrm{drag}
+ *	\qquad
+ *	c_\textrm{lift} = \dfrac{2}{\rho\bar{v}^2D} f_\textrm{lift}
+ * \end{equation*}
+ * \f]
+ * where the drag and lift forces are given by
+ * \f[
+ * \begin{equation*}
+ *	 \boldsymbol{\mathfrak{f}} = \mathfrak{f}_\textrm{drag}  
+ *   \mathbf{e}_\textrm{x} +  \mathfrak{f}_\textrm{lift} 
+ *   \mathbf{e}_\textrm{y} =
+ *	 \int_{\Gamma_3} [-p\mathbf{I} + \mu \nabla \otimes \mathbf{v}] 
+ *   \cdot \mathbf{n} \mathrm{d} \ell
+ * \end{equation*}
+ * \f]
+ * Defining a cycle by the time between two consecutive 
+ * \f$\max(c_\textrm{lift})\f$ values and denoting it by 
+ * \f$[t_\textrm{start}, t_\textrm{end}]\f$, where the frequency \f$ f =
+ * \tfrac{1}{(t_\textrm{end} - t_\textrm{start})}\f$, Strouhal number is 
+ * given by
+ * \f[
+ * \begin{equation*}
+ *	\textrm{St} = \dfrac{fD}{\bar{v}}
+ * \end{equation*}
+ * \f]
+ * Additionally the minimum, average and amplitude of the 
+ * coefficients are to be computed for whole cycle.
+ * The NavierStokesProjection classs is based on the dimensionless 
+ * form of the Navier-Stokes equations. Therefore the benchmark has to 
+ * be reformulated into its dimensionless form:
+ * \f[
+ * \begin{equation*}
+ * 	\begin{aligned}
+ * 		\frac{\partial \mathbf{\tilde{v}}}{\partial \tilde{t}} + 
+ *    \mathbf{\tilde{v}} \cdot
+ *    (\tilde{\nabla} \otimes \mathbf{\tilde{v}})&=  -\tilde{\nabla} 
+ *    \tilde{p}+ \dfrac{1}{\mathrm{Re}}\tilde{\Delta} \mathbf{\tilde{v}} 
+ *    + \mathbf{\tilde{b}}, &\forall (\mathbf{\tilde{x}}, \tilde{t}) 
+ *    \in \tilde{\Omega} \times [0, \tilde{T} ] \\
+ * 		\tilde{\nabla} \cdot \mathbf{\tilde{v}}&= 0, &\forall 
+ *  (\mathbf{\tilde{x}}, \tilde{t}) \in\tilde{ \Omega} \times  
+ *  [0, \tilde{T} ]
+ * 	\end{aligned}
+ * \end{equation*}
+ * \f]
+ * with boundary conditions
+ * \f[
+ * \begin{equation*}
+ * 	\begin{aligned}
+ * 		\mathbf{\tilde{v}} &= \mathbf{\tilde{v}}_\textrm{in},  
+ *    &\forall(\mathbf{x}, t) &\in \Gamma_0 \times [0, T] \\
+ * 		\mathbf{\tilde{v}} &= \mathbf{0}, &\forall(\mathbf{x}, t) 
+ *    &\in \Gamma_2 \times [0,T]\\
+ * 		\mathbf{\tilde{v}} &= \mathbf{0}, &\forall(\mathbf{x}, t) 
+ *    &\in \Gamma_3 \times [0, T] \\
+ * 		[-\tilde{p}\mathbf{I} + (\rho\textrm{Re})^{-1}\tilde{ \nabla} 
+ *    \otimes \mathbf{\tilde{v}}] \cdot \mathbf{n} &=0, 
+ *    &\forall(\mathbf{x}, t) &\in \Gamma_1 \times [0, T] \\
+ * 	\end{aligned}
+ * \end{equation*}
+ * \f]
+ * The inflow velocity is given by
+ * \f[
+ * \begin{equation*}
+ * 	\mathbf{\tilde{v}}_\textrm{in} = 4\dfrac{v_\textrm{max}}{\bar{v}}
+ *  \dfrac{\tilde{y}(\tilde{H}-\tilde{y})}{\tilde{H}^2}
+ *  \mathbf{e}_\textrm{x},
+ * 	\qquad
+ * 	v_\textrm{max} = 1.5
+ * \end{equation*}
+ * \f]
+ * The computed variables need to be scaled back in order for them to 
+ * be compared with those from the benchmark. The pressure difference
+ * is scaled by
+ * \f[
+ * \begin{equation*}
+ * 	\Delta p = \hat{p} \Delta \tilde{p},
+ * \end{equation*}
+ * \f]
+ * but since \f$\hat{p} =1\f$, they are interchangeable. 
+ * The dimensionless form of the force is given by
+ * \f[
+ * \begin{equation*}
+ * 	\boldsymbol{\tilde{\mathfrak{f}}} = \dfrac{\hat{p}D}
+ *  {\hat{\mathfrak{f}}} \int_{\tilde{\Gamma}_3} [-\tilde{p}\mathbf{I} 
+ *  + (\rho\textrm{Re})^{-1} \tilde{\nabla} \otimes \mathbf{\tilde{v}}] 
+ *  \cdot \mathbf{n} \mathrm{d} \tilde{\ell}
+ * \end{equation*}
+ * \f]
+ * from which it is easy to see that the coefficients are equivalent to
+ * \f[
+ * \begin{equation*}
+ * 	c_\textrm{drag} = 2 \hat{\mathfrak{f}}_\textrm{drag}
+ * 	\qquad
+ * 	c_\textrm{lift} = 2 \hat{\mathfrak{f}}_\textrm{lift}.
+ * \end{equation*}
+ * \f]
+ * The frequency is scaled back with
+ * \f[
+ * \begin{equation*}
+ * 	f = \hat{t}^{-1} \tilde{f}
+ * \end{equation*}
+ * \f]
+ * from which it is easy to see that 
+ * \f[
+ * \begin{equation*}
+ * 	\textrm{St} = \tilde{f}
+ * \end{equation*}
+ * \f]
+ * @attention Due to the formulation of the NavierStokesProjection class
+ * the force around the cylinder is computed by @ref BenchmarkData::DFG 
+ * as
+ * \f[
+ * \begin{equation*}
+ * 	\boldsymbol{\tilde{\mathfrak{f}}} = 
+ *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\mathbf{I} 
+ *  + (\rho\textrm{Re})^{-1} (\tilde{\nabla} \otimes \mathbf{\tilde{v}} 
+ *  + \mathbf{\tilde{v}} \otimes \tilde{\nabla})]
+ *  \cdot \mathbf{n} \mathrm{d} \tilde{\ell}
+ * \end{equation*}
+ * \f]
+ */  
 template <int dim>
 class DFG : public Problem<dim>
 {
@@ -247,13 +434,13 @@ for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
 time_stepping.get_coefficients(VSIMEX);
 
 pcout << "Solving until t = 35..." << std::endl;
-while (time_stepping.get_current_time() <= 35)
+while (time_stepping.get_current_time() <= 35.0)
 {
   navier_stokes.solve(time_stepping.get_step_number());
 
-  postprocessing((time_stepping.get_step_number() % 
+  /*postprocessing((time_stepping.get_step_number() % 
                   terminal_output_periodicity == 0) ||
-                  time_stepping.is_at_end());
+                  time_stepping.is_at_end());*/
 
   time_stepping.set_proposed_step_size(
                             navier_stokes.compute_next_time_step());

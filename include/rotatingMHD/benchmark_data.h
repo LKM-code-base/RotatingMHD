@@ -114,20 +114,22 @@ struct DFG
    * @details Defined as the \f$ x \f$ component of the total force
    * exorted on the cylinder. The total force is given by
    * \f[
-	 * \bs{\mathfrak{f}} = \mathfrak{f}_\textrm{drag}  \mathbf{e}_\textrm{x} 
+	 * \boldsymbol{\mathfrak{f}} = \mathfrak{f}_\textrm{drag}  \mathbf{e}_\textrm{x} 
    * +  \mathfrak{f}_\textrm{lift} \mathbf{e}_\textrm{y} = 
    * \int_{\Gamma_3} [-p\mathbf{I} + \mu \nabla \otimes \mathbf{v}] 
-   * \cdot \mathbf{n} \d \ell
+   * \cdot \mathbf{n} \mathrm{d} \ell
    * \f]
-   * It dimensionless form, which is what it is actually computed and
+   * Its dimensionless form, which is what it is actually computed and
    * stored in this member by the 
-   * @ref compute_drag_and_lift_forces_and_coefficients method,
+   * @ref compute_drag_and_lift_forces_and_coefficients method and 
+   * considering the formulation of the NavierStokesProjection class,
    * is given then by
    * \f[
-   * \bs{\tilde{\mathfrak{f}}} = 
+   * \boldsymbol{\tilde{\mathfrak{f}}} = 
    *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\mathbf{I} +
-   *  (\rho\textrm{Re})^{-1} \tilde{\nabla} \otimes 
-   *  \mathbf{\tilde{v}} ] \cdot \mathbf{n} \d{\tilde{\ell}}
+   *  (\rho\textrm{Re})^{-1} (\tilde{\nabla} \otimes 
+   *  \mathbf{\tilde{v}} + \mathbf{\tilde{v}} \otimes \tilde{\nabla}) 
+   *  ] \cdot \mathbf{n} \mathrm{d}{\tilde{\ell}}
    * \f]
    */
   double        drag_force;
@@ -135,11 +137,11 @@ struct DFG
    * @brief The drag coefficient.
    * @details Defined as 
    * \f[
-   * c_\textrm{drag} = \dfrac{2}{\rho\bar{v}^2D} \bs{\mathfrak{f}} \cdot 
+   * c_\textrm{drag} = \dfrac{2}{\rho\bar{v}^2D} \boldsymbol{\mathfrak{f}} \cdot 
    * \mathbf{e}_\textrm{x}
    * \f]
    * which is equivalent to \f$ c_\textrm{drag} = 2
-   * \bs{\tilde{\mathfrak{f}}} \cdot \mathbf{e}_\textrm{x} \f$, 
+   * \boldsymbol{\tilde{\mathfrak{f}}} \cdot \mathbf{e}_\textrm{x} \f$, 
    * what is actually computed by the by the 
    * @ref compute_drag_and_lift_forces_and_coefficients method.
    */
@@ -149,20 +151,22 @@ struct DFG
    * @details Defined as the \f$ y \f$ component of the total force
    * exorted on the cylinder. The total force is given by
    * \f[
-	 * \bs{\mathfrak{f}} = \mathfrak{f}_\textrm{drag}  \mathbf{e}_\textrm{x} 
+	 * \boldsymbol{\mathfrak{f}} = \mathfrak{f}_\textrm{drag}  \mathbf{e}_\textrm{x} 
    * +  \mathfrak{f}_\textrm{lift} \mathbf{e}_\textrm{y} = 
    * \int_{\Gamma_3} [-p\mathbf{I} + \mu \nabla \otimes \mathbf{v}] 
-   * \cdot \mathbf{n} \d \ell
+   * \cdot \mathbf{n} \mathrm{d} \ell
    * \f]
    * It dimensionless form, which is what it is actually computed and
    * stored in this member by the 
-   * @ref compute_drag_and_lift_forces_and_coefficients method,
+   * @ref compute_drag_and_lift_forces_and_coefficients method and 
+   * considering the formulation of the NavierStokesProjection class,
    * is given then by
    * \f[
-   * \bs{\tilde{\mathfrak{f}}} = 
+   * \boldsymbol{\tilde{\mathfrak{f}}} = 
    *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\mathbf{I} +
-   *  (\rho\textrm{Re})^{-1} \tilde{\nabla} \otimes 
-   *  \mathbf{\tilde{v}} ] \cdot \mathbf{n} \d{\tilde{\ell}}
+   *  (\rho\textrm{Re})^{-1} (\tilde{\nabla} \otimes 
+   *  \mathbf{\tilde{v}} + \mathbf{\tilde{v}} \otimes \tilde{\nabla}) 
+   *  ] \cdot \mathbf{n} \mathrm{d}{\tilde{\ell}}
    * \f]
    */
   double        lift_force;
@@ -170,11 +174,11 @@ struct DFG
    * @brief The lift coefficient.
    * @details Defined as 
    * \f[
-   * c_\textrm{lift} = \dfrac{2}{\rho\bar{v}^2D} \bs{\mathfrak{f}} \cdot 
+   * c_\textrm{lift} = \dfrac{2}{\rho\bar{v}^2D} \boldsymbol{\mathfrak{f}} \cdot 
    * \mathbf{e}_\textrm{y}
    * \f]
    * which is equivalent to \f$ c_\textrm{lift} = 2
-   * \bs{\tilde{\mathfrak{f}}} \cdot \mathbf{e}_\textrm{y} \f$, 
+   * \boldsymbol{\tilde{\mathfrak{f}}} \cdot \mathbf{e}_\textrm{y} \f$, 
    * what is actually computed by the 
    * @ref compute_drag_and_lift_forces_and_coefficients method.
    */
@@ -201,19 +205,17 @@ struct DFG
    * @details It computes the dimensionless force around the cylinder
    * given by
    * \f[
-   * \bs{\tilde{\mathfrak{f}}} = \mathfrak{\tilde{f}}_\textrm{drag}
-   *  \mathbf{e}_\textrm{x} 
-   * +  \mathfrak{\tilde{f}}_\textrm{lift} \mathbf{e}_\textrm{y} =
-   *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\mathbf{I} +
-   *  (\rho\textrm{Re})^{-1} \tilde{\nabla} \otimes 
-   *  \mathbf{\tilde{v}} ] \cdot \mathbf{n} \d{\tilde{\ell}}
+   * \boldsymbol{\tilde{\mathfrak{f}}} = \int_{\tilde{\Gamma}_3} [-\tilde{p}\mathbf{I} +
+   *  (\rho\textrm{Re})^{-1} (\tilde{\nabla} \otimes 
+   *  \mathbf{\tilde{v}} + \mathbf{\tilde{v}} \otimes \tilde{\nabla}) 
+   *  ] \cdot \mathbf{n} \mathrm{d}{\tilde{\ell}}
    * \f]
    * and the @ref drag_coefficient and @ref lift_coefficient as
    * \f[
-   * c_\textrm{drag} = 2 \bs{\tilde{\mathfrak{f}}} \cdot 
+   * c_\textrm{drag} = 2 \boldsymbol{\tilde{\mathfrak{f}}} \cdot 
    * \mathbf{e}_\textrm{x},
    * \qquad
-   * c_\textrm{lift} = 2 \bs{\tilde{\mathfrak{f}}} \cdot 
+   * c_\textrm{lift} = 2 \boldsymbol{\tilde{\mathfrak{f}}} \cdot 
    * \mathbf{e}_\textrm{y}
    * \f]
    */
