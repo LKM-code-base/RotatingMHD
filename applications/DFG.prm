@@ -5,7 +5,7 @@ subsection Physical parameters
 end
 
 subsection Time discretization parameters
-  set dt                              = 1e-2
+  set dt                              = 2.5e-2
   set timestep_lower_bound            = 8e-3
   set timestep_upper_bound            = 3e-2
   set t_0                             = 0.

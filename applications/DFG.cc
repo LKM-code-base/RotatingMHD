@@ -251,9 +251,9 @@ while (time_stepping.get_current_time() <= 35)
 {
   navier_stokes.solve(time_stepping.get_step_number());
 
-  /*postprocessing((time_stepping.get_step_number() % 
+  postprocessing((time_stepping.get_step_number() % 
                   terminal_output_periodicity == 0) ||
-                  time_stepping.is_at_end());*/
+                  time_stepping.is_at_end());
 
   time_stepping.set_proposed_step_size(
                             navier_stokes.compute_next_time_step());
@@ -302,7 +302,7 @@ while (time_stepping.get_current_time() <= time_stepping.get_end_time())
   time_stepping.get_coefficients(VSIMEX);
   time_stepping.advance_time();
 }
-dfg_benchmark.write_table_to_file("dfg_benchmark.tex");
+dfg_benchmark.write_table_to_file("dfg_benchmark.txt");
 }
 
 } // namespace RMHD
