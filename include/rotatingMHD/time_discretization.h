@@ -113,7 +113,7 @@ struct TimeSteppingParameters
    * @brief Boolean flag to enable an adaptive adjustment of the size of the
    * time step.
    */
-  bool          adaptive_time_step;
+  bool          adaptive_time_stepping;
 
   /*!
    * @brief Number of the time step from which the adaptive adjustment of the

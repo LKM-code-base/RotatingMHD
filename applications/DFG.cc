@@ -31,52 +31,66 @@ public:
            const unsigned int graphical_output_periodicity  = 10);
 private:
   ConditionalOStream                          pcout;
-  parallel::distributed::Triangulation<dim>   triangulation;  
+
+  parallel::distributed::Triangulation<dim>   triangulation;
+
   std::vector<types::boundary_id>             boundary_ids;
+
   Entities::VectorEntity<dim>                 velocity;
+
   Entities::ScalarEntity<dim>                 pressure;
+
   TimeDiscretization::VSIMEXMethod            time_stepping;
+
   TimeDiscretization::VSIMEXCoefficients      VSIMEX;
+
   NavierStokesProjection<dim>                 navier_stokes;
+
   BenchmarkData::DFG<dim>                     dfg_benchmark;
 
   EquationData::DFG::VelocityInflowBoundaryCondition<dim>  
                                       inflow_boundary_condition;
+
   EquationData::DFG::VelocityInitialCondition<dim>         
                                       velocity_initial_conditions;
+
   EquationData::DFG::PressureInitialCondition<dim>         
                                       pressure_initial_conditions;
 
   void make_grid();
+
   void setup_dofs();
+
   void setup_constraints();
+
   void initialize();
+
   void postprocessing(const bool flag_point_evaluation);
+
   void output();
+
   void update_solution_vectors();
 };
 
 template <int dim>
 DFG<dim>::DFG(const RunTimeParameters::ParameterSet &parameters)
-  : Problem<dim>(),
-    pcout(std::cout, 
-          (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
-    triangulation(MPI_COMM_WORLD,
-                  typename Triangulation<dim>::MeshSmoothing(
-                  Triangulation<dim>::smoothing_on_refinement |
-                  Triangulation<dim>::smoothing_on_coarsening)),
-    velocity(parameters.p_fe_degree + 1, triangulation),
-    pressure(parameters.p_fe_degree, triangulation),
-    time_stepping((TimeDiscretization::VSIMEXScheme) (int) parameters.vsimex_scheme,
-                  parameters.t_0, parameters.T, parameters.dt,
-                  parameters.timestep_lower_bound,
-                  parameters.timestep_upper_bound),
-    VSIMEX(time_stepping.get_order()),
-    navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
-    dfg_benchmark(),
-    inflow_boundary_condition(parameters.t_0),
-    velocity_initial_conditions(parameters.t_0),
-    pressure_initial_conditions(parameters.t_0)
+:
+Problem<dim>(),
+pcout(std::cout,
+      (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
+triangulation(MPI_COMM_WORLD,
+              typename Triangulation<dim>::MeshSmoothing(
+              Triangulation<dim>::smoothing_on_refinement |
+              Triangulation<dim>::smoothing_on_coarsening)),
+velocity(parameters.p_fe_degree + 1, triangulation),
+pressure(parameters.p_fe_degree, triangulation),
+time_stepping(parameters.time_stepping_parameters),
+VSIMEX(time_stepping.get_order()),
+navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
+dfg_benchmark(),
+inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
+velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
+pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
 {
   make_grid();
   setup_dofs();
@@ -292,7 +306,7 @@ while (time_stepping.get_current_time() <= time_stepping.get_end_time())
       time_stepping.is_at_end())
     output();
 
-  time_stepping.set_proposed_step_size(
+  time_stepping.set_desired_next_step_size(
                             navier_stokes.compute_next_time_step());
   update_solution_vectors();
   
@@ -301,6 +315,7 @@ while (time_stepping.get_current_time() <= time_stepping.get_end_time())
   time_stepping.get_coefficients(VSIMEX);
   time_stepping.advance_time();
 }
+
 dfg_benchmark.write_table_to_file("dfg_benchmark.tex");
 }
 
@@ -316,8 +331,7 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ParameterSet parameter_set;
-      parameter_set.read_data_from_file("DFG.prm");
+      RunTimeParameters::ParameterSet parameter_set("DFG.prm");
 
       deallog.depth_console(parameter_set.flag_verbose_output ? 2 : 0);
 

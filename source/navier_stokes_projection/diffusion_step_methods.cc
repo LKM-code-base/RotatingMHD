@@ -17,7 +17,7 @@ assemble_diffusion_step()
                                           velocity_laplace_matrix);
     velocity_mass_plus_laplace_matrix.add(VSIMEX.alpha[2], 
                                           velocity_mass_matrix);
-    if (!parameters.time_stepping_parameters.adaptive_time_step)
+    if (!parameters.time_stepping_parameters.adaptive_time_stepping)
       flag_diffusion_matrix_assembled = true; 
   }
   velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);

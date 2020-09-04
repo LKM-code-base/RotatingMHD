@@ -25,17 +25,25 @@ class Step35 : public Problem<dim>
 {
 public:
   Step35(const RunTimeParameters::ParameterSet &parameters);
+
   void run(const bool         flag_verbose_output           = false,
            const unsigned int terminal_output_periodicity   = 10,
            const unsigned int graphical_output_periodicity  = 10);
 private:
   ConditionalOStream                          pcout;
+
   parallel::distributed::Triangulation<dim>   triangulation;  
+
   std::vector<types::boundary_id>             boundary_ids;
+
   Entities::VectorEntity<dim>                 velocity;
+
   Entities::ScalarEntity<dim>                 pressure;
+
   TimeDiscretization::VSIMEXMethod            time_stepping;
+
   TimeDiscretization::VSIMEXCoefficients      VSIMEX;
+
   NavierStokesProjection<dim>                 navier_stokes;
   
   EquationData::Step35::VelocityInflowBoundaryCondition<dim>  
@@ -46,8 +54,11 @@ private:
                                       pressure_initial_conditions;
 
   void make_grid(const unsigned int n_global_refinements);
+
   void setup_dofs();
+
   void setup_constraints();
+
   void initialize();
   void postprocessing(const bool flag_point_evaluation);
   void output();
@@ -57,24 +68,22 @@ private:
 
 template <int dim>
 Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
-  : Problem<dim>(),
-    pcout(std::cout, 
-          (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
-    triangulation(MPI_COMM_WORLD,
-                  typename Triangulation<dim>::MeshSmoothing(
-                  Triangulation<dim>::smoothing_on_refinement |
-                  Triangulation<dim>::smoothing_on_coarsening)),
-    velocity(parameters.p_fe_degree + 1, triangulation),
-    pressure(parameters.p_fe_degree, triangulation),
-    time_stepping((TimeDiscretization::VSIMEXScheme) (int) parameters.vsimex_scheme,
-                  parameters.t_0, parameters.T, parameters.dt,
-                  parameters.timestep_lower_bound,
-                  parameters.timestep_upper_bound),
-    VSIMEX(time_stepping.get_order()),
-    navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
-    inflow_boundary_condition(parameters.t_0),
-    velocity_initial_conditions(parameters.t_0),
-    pressure_initial_conditions(parameters.t_0)
+:
+Problem<dim>(),
+pcout(std::cout,
+      (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
+triangulation(MPI_COMM_WORLD,
+              typename Triangulation<dim>::MeshSmoothing(
+              Triangulation<dim>::smoothing_on_refinement |
+              Triangulation<dim>::smoothing_on_coarsening)),
+velocity(parameters.p_fe_degree + 1, triangulation),
+pressure(parameters.p_fe_degree, triangulation),
+time_stepping(parameters.time_stepping_parameters),
+VSIMEX(time_stepping.get_order()),
+navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
+inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
+velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
+pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
 {
   // The VSIMEXMethod class is initialized with t_0 = -dt and then
   // advanced in order to populate a private member of the class.
@@ -325,8 +334,7 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ParameterSet parameter_set;
-      parameter_set.read_data_from_file("step-35.prm");
+      RunTimeParameters::ParameterSet parameter_set("step-35.prm");
 
       deallog.depth_console(parameter_set.flag_verbose_output ? 2 : 0);
 

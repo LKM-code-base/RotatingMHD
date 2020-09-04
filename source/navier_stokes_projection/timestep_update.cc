@@ -7,7 +7,7 @@ template <int dim>
 double NavierStokesProjection<dim>::
 compute_next_time_step()
 {
-  if (!parameters.time_stepping_parameters.adaptive_time_step)
+  if (!parameters.time_stepping_parameters.adaptive_time_stepping)
     return time_stepping.get_next_step_size();
 
   const QIterated<dim>  quadrature_formula(QTrapez<1>(),

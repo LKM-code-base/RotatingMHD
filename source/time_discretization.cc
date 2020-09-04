@@ -18,7 +18,7 @@ TimeSteppingParameters::TimeSteppingParameters()
 :
 vsimex_scheme(VSIMEXScheme::CNAB),
 n_maximum_steps(100),
-adaptive_time_step(true),
+adaptive_time_stepping(true),
 adaptive_time_step_barrier(2),
 initial_time_step(1e-3),
 minimum_time_step(1e-9),
@@ -74,7 +74,7 @@ void TimeSteppingParameters::declare_parameters(ParameterHandler &prm)
                       Patterns::Integer(),
                       "Maximum number of time steps to be computed.");
 
-    prm.declare_entry("adaptive_timestep",
+    prm.declare_entry("adaptive_time_stepping",
                       "true",
                       Patterns::Bool(),
                       "Turn adaptive time stepping on or off");
@@ -130,7 +130,7 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
       vsimex_scheme = VSIMEXScheme::mCNAB;
     else if (vsimex_type_str == "CNLF")
       vsimex_scheme = VSIMEXScheme::CNLF;
-    else if (vsimex_type_str == "SBDF")
+    else if (vsimex_type_str == "BDF2")
       vsimex_scheme = VSIMEXScheme::BDF2;
     else if (vsimex_type_str == "Euler")
       vsimex_scheme = VSIMEXScheme::ForwardEuler;
@@ -139,8 +139,8 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
                   ExcMessage("Unexpected string for variable step size "
                              "IMEX scheme."));
 
-    adaptive_time_step = prm.get_bool("adaptive_time_step");
-    if (adaptive_time_step)
+    adaptive_time_stepping = prm.get_bool("adaptive_time_stepping");
+    if (adaptive_time_stepping)
       adaptive_time_step_barrier = prm.get_integer("adaptive_timestep_barrier");
     Assert(adaptive_time_step_barrier > 0,
            ExcLowerRange(adaptive_time_step_barrier, 0));
@@ -152,7 +152,7 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
     Assert(initial_time_step > 0,
            ExcLowerRangeType<double>(initial_time_step, 0));
 
-    if (adaptive_time_step)
+    if (adaptive_time_stepping)
     {
         minimum_time_step = prm.get_double("minimum_time_step");
         Assert(minimum_time_step > 0,
@@ -214,7 +214,7 @@ void TimeSteppingParameters::write(Stream &stream) const
     break;
   }
   stream << "   n_maximum_steps: " << n_maximum_steps << std::endl
-         << "   adaptive_timestep: " << (adaptive_time_step? "true": "false") << std::endl
+         << "   adaptive_timestep: " << (adaptive_time_stepping? "true": "false") << std::endl
          << "   adaptive_timestep_barrier: " << adaptive_time_step_barrier << std::endl
          << "   initial_timestep: " << initial_time_step << std::endl
          << "   minimum_timestep: " << minimum_time_step << std::endl
