@@ -113,8 +113,8 @@ void TimeSteppingParameters::declare_parameters(ParameterHandler &prm)
                       "false",
                       Patterns::Bool(),
                       "Activate verbose output.");
-}
-prm.leave_subsection();
+  }
+  prm.leave_subsection();
 }
 
 void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
@@ -350,21 +350,17 @@ void VSIMEXCoefficients::output(Stream &stream) const
   stream << std::fixed << std::setprecision(0);
 }
 
-VSIMEXMethod::VSIMEXMethod
-(const VSIMEXScheme         scheme,
- const double               start_time,
- const double               end_time,
- const double               desired_start_step_size,
- const double               timestep_lower_bound,
- const double               timestep_upper_bound)
+VSIMEXMethod::VSIMEXMethod(const TimeSteppingParameters &parameters)
 :
-DiscreteTime(start_time, end_time, desired_start_step_size),
-scheme(scheme),
+DiscreteTime(parameters.start_time,
+             parameters.final_time,
+             parameters.initial_time_step),
+scheme(parameters.vsimex_scheme),
 omega(1.0),
-time_step(desired_start_step_size),
-old_time_step(desired_start_step_size),
-timestep_lower_bound(timestep_lower_bound),
-timestep_upper_bound(timestep_upper_bound)
+time_step(parameters.initial_time_step),
+old_time_step(parameters.initial_time_step),
+timestep_lower_bound(parameters.minimum_time_step),
+timestep_upper_bound(parameters.maximum_time_step)
 {
   Assert(((time_step > timestep_lower_bound) &&
           (time_step < timestep_upper_bound)),
@@ -374,42 +370,42 @@ timestep_upper_bound(timestep_upper_bound)
   {
     case VSIMEXScheme::ForwardEuler :
       order = 1;
-      parameters.resize(order);
-      parameters[0] = 0.;
+      imex_constants.resize(order);
+      imex_constants[0] = 0.;
       break;
     case VSIMEXScheme::CNFE :
       order = 1;
-      parameters.resize(order);
-      parameters[0] = 0.5;
+      imex_constants.resize(order);
+      imex_constants[0] = 0.5;
       break;
     case VSIMEXScheme::BEFE :
       order = 1;
-      parameters.resize(order);
-      parameters[0] = 1.0;
+      imex_constants.resize(order);
+      imex_constants[0] = 1.0;
       break;
     case VSIMEXScheme::BDF2 :
       order = 2;
-      parameters.resize(order);
-      parameters[0] = 1.0;
-      parameters[1] = 0.0;
+      imex_constants.resize(order);
+      imex_constants[0] = 1.0;
+      imex_constants[1] = 0.0;
       break;
     case VSIMEXScheme::CNAB :
       order = 2;
-      parameters.resize(order);
-      parameters[0] = 0.5;
-      parameters[1] = 0.0;
+      imex_constants.resize(order);
+      imex_constants[0] = 0.5;
+      imex_constants[1] = 0.0;
       break;
     case VSIMEXScheme::mCNAB :
       order = 2;
-      parameters.resize(order);
-      parameters[0] = 0.5;
-      parameters[1] = 1.0/8.0;
+      imex_constants.resize(order);
+      imex_constants[0] = 0.5;
+      imex_constants[1] = 1.0/8.0;
       break;
     case VSIMEXScheme::CNLF :
       order = 2;
-      parameters.resize(order);
-      parameters[0] = 0.0;
-      parameters[1] = 1.0;
+      imex_constants.resize(order);
+      imex_constants[0] = 0.0;
+      imex_constants[1] = 1.0;
       break;
     default:
      Assert(false,
@@ -418,26 +414,6 @@ timestep_upper_bound(timestep_upper_bound)
   };
 
   coefficients.reinit(order);
-}
-
-VSIMEXMethod::VSIMEXMethod
-(const unsigned int         order,
- const std::vector<double>  parameters,
- const double               start_time,
- const double               end_time,
- const double               desired_start_step_size)
-:
-DiscreteTime(start_time, end_time, desired_start_step_size),
-order(order),
-parameters(parameters),
-coefficients(order),
-omega(1.0),
-time_step(desired_start_step_size),
-old_time_step(desired_start_step_size)
-{
-  Assert(((order == 1)||(order == 2)),
-         ExcMessage("Only VSIMEX of first and second order are currently "
-                    "implemented"));
 }
 
 void VSIMEXMethod::get_coefficients(VSIMEXCoefficients &output)
@@ -466,7 +442,7 @@ void VSIMEXMethod::update_coefficients()
   {
     case 1 :
     {
-      static const double gamma   = parameters[0];
+      static const double gamma   = imex_constants[0];
       coefficients.alpha[0] = - 1.0 / time_step;
       coefficients.alpha[1] = 1.0 / time_step;
       coefficients.beta[0]  = 1.0;
@@ -478,8 +454,8 @@ void VSIMEXMethod::update_coefficients()
     }
     case 2 :
     {
-      static const double gamma   = parameters[0];
-      static const double c       = parameters[1];
+      static const double gamma   = imex_constants[0];
+      static const double c       = imex_constants[1];
       coefficients.alpha[0] = (2.0 * gamma - 1.0) * omega * omega / 
                                 (1.0 + omega) / time_step;
       coefficients.alpha[1] = ((1.0 - 2.0 * gamma) * omega - 1.0) / time_step;

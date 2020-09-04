@@ -30,12 +30,12 @@ class NavierStokesProjection
 {
 
 public:
-  NavierStokesProjection(
-                const RunTimeParameters::ParameterSet   &parameters,
-                Entities::VectorEntity<dim>             &velocity,
-                Entities::ScalarEntity<dim>             &pressure,
-                TimeDiscretization::VSIMEXCoefficients  &VSIMEX,
-                TimeDiscretization::VSIMEXMethod        &time_stepping);
+  NavierStokesProjection
+  (const RunTimeParameters::ParameterSet   &parameters,
+   Entities::VectorEntity<dim>             &velocity,
+   Entities::ScalarEntity<dim>             &pressure,
+   TimeDiscretization::VSIMEXCoefficients  &VSIMEX,
+   TimeDiscretization::VSIMEXMethod        &time_stepping);
 
   /*!
    *  @brief Setups and initializes all the internal entities for
@@ -49,7 +49,7 @@ public:
 
   /*!
    * @brief Currently this method only sets the vector of the two pressure
-   * updates @ref phi_n and @ref phi_n_minus_1 to zero.
+   * updates @ref old_phi and @ref old_old_phi to zero.
    */
   void initialize();
 
@@ -79,38 +79,24 @@ public:
   double compute_next_time_step();
 
 private:
-
   /*!
-   *  @brief A parameter which determines the type of the pressure update.
-   *
-   *  @details For the pressure update after the projection step, this parameter
-   *  determines whether the irrotational form of the pressure update is used or
-   *  not.
+   *  @brief A reference to the parameters which control the solution process.
    */
-  RunTimeParameters::ProjectionMethod     projection_method;
-
-
-  /*!
-   * @brief The Reynolds number.
-   *
-   *  @details A parameter which determines the ratio of convection to viscous
-   *  diffusion.
-   */
-  const double                            Re;
+  const RunTimeParameters::ParameterSet  &parameters;
 
   /*!
    * @brief A reference to the entity of velocity field.
    */
-  Entities::VectorEntity<dim>             &velocity;
+  Entities::VectorEntity<dim>            &velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  Entities::ScalarEntity<dim>             &pressure;
+  Entities::ScalarEntity<dim>            &pressure;
 
-  TimeDiscretization::VSIMEXCoefficients  &VSIMEX;
+  TimeDiscretization::VSIMEXCoefficients &VSIMEX;
 
-  TimeDiscretization::VSIMEXMethod        &time_stepping;
+  TimeDiscretization::VSIMEXMethod       &time_stepping;
 
   /*!
    * @brief System matrix used to solve for the velocity field in the diffusion
@@ -260,14 +246,7 @@ private:
   LinearAlgebra::MPI::PreconditionJacobi  correction_step_preconditioner;
 
   // SG thinks that all of these parameters can go into a parameter structure.
-  unsigned int                          solver_max_iterations;
-  unsigned int                          solver_krylov_size;
-  unsigned int                          solver_off_diagonals;
-  unsigned int                          solver_update_preconditioner;
-  double                                relative_tolerance;
   const double                          absolute_tolerance = 1.0e-9;
-  double                                solver_diag_strength;
-  bool                                  flag_adpative_time_step;
   bool                                  flag_diffusion_matrix_assembled;
 
   /*!

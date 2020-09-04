@@ -215,18 +215,7 @@ public:
   /*!
   * @brief The constructor of the class.
   */
-  VSIMEXMethod(const VSIMEXScheme         scheme,
-               const double               start_time,
-               const double               end_time,
-               const double               desired_start_step_size,
-               const double               timestep_lower_bound,
-               const double               timestep_upper_bound);
-// Should I update this constructor for a bounded time step or delete it?
-  VSIMEXMethod(const unsigned int         order,
-               const std::vector<double>  parameters,
-               const double               start_time,
-               const double               end_time,
-               const double               desired_start_step_size = 0);
+  VSIMEXMethod(const TimeSteppingParameters &parameters);
 
   /*!
   * @brief A method returning the order of the VSIMEX scheme.
@@ -278,7 +267,7 @@ private:
    * @attention This designation is very misleading w.r.t. the
    * TimeSteppingParameters!
    */
-  std::vector<double> parameters;
+  std::vector<double> imex_constants;
 
   /*!
    * @brief Coefficients of the VSIMEX scheme.
@@ -322,7 +311,7 @@ inline unsigned int VSIMEXMethod::get_order() const
 
 inline std::vector<double> VSIMEXMethod::get_parameters() const
 {
-  return parameters;
+  return imex_constants;
 }
 
 } // namespace TimeDiscretization
