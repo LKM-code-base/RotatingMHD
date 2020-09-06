@@ -12,7 +12,7 @@ assemble_diffusion_prestep()
   assemble_velocity_advection_matrix();
 
   velocity_mass_plus_laplace_matrix = 0.;
-  velocity_mass_plus_laplace_matrix.add(1.0 / Re, 
+  velocity_mass_plus_laplace_matrix.add(1.0 / parameters.Re,
                                         velocity_laplace_matrix);
   velocity_mass_plus_laplace_matrix.add(1.0 / 
                                         time_stepping.get_next_step_size(), 

@@ -28,8 +28,8 @@ solve_poisson_prestep()
 
   projection_step_preconditioner.initialize(pressure_laplace_matrix);
 
-  SolverControl solver_control(pressure_laplace_matrix.m(),
-                               std::max(relative_tolerance * pressure_rhs.l2_norm(),
+  SolverControl solver_control(parameters.n_maximum_iterations,
+                               std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
                                         absolute_tolerance));
 
   #ifdef USE_PETSC_LA

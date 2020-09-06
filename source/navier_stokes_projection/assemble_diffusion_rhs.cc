@@ -128,7 +128,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                             scratch.phi_velocity[j] *
                             scratch.phi_velocity[i]
                             +
-                            1.0 / Re *
+                            1.0 / parameters.Re *
                             scalar_product(
                               scratch.grad_phi_velocity[j],
                               scratch.grad_phi_velocity[i])

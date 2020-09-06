@@ -13,11 +13,11 @@ assemble_diffusion_step()
   if (!flag_diffusion_matrix_assembled)
   {
     velocity_mass_plus_laplace_matrix = 0.;
-    velocity_mass_plus_laplace_matrix.add(1.0 / Re, 
+    velocity_mass_plus_laplace_matrix.add(1.0 / parameters.Re,
                                           velocity_laplace_matrix);
     velocity_mass_plus_laplace_matrix.add(VSIMEX.alpha[2], 
                                           velocity_mass_matrix);
-    if (!flag_adpative_time_step)
+    if (!parameters.time_stepping_parameters.adaptive_time_stepping)
       flag_diffusion_matrix_assembled = true; 
   }
   velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
@@ -40,8 +40,8 @@ solve_diffusion_step(const bool reinit_prec)
   if (reinit_prec)
     diffusion_step_preconditioner.initialize(velocity_system_matrix);
 
-  SolverControl solver_control(solver_max_iterations,
-                               std::max(relative_tolerance * velocity_rhs.l2_norm(),
+  SolverControl solver_control(parameters.n_maximum_iterations,
+                               std::max(parameters.relative_tolerance * velocity_rhs.l2_norm(),
                                         absolute_tolerance));
 
   #ifdef USE_PETSC_LA

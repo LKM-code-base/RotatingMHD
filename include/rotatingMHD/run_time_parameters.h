@@ -10,60 +10,72 @@
 
 #include <deal.II/base/parameter_handler.h>
 
+#include <rotatingMHD/time_discretization.h>
+
 namespace RMHD
 {
-  using namespace dealii;
 
 namespace RunTimeParameters
 {
+
 enum class ProjectionMethod
 {
   standard,
   rotational
 };
 
-enum class VSIMEXScheme
+struct ParameterSet
 {
-  FE,
-  CNFE,
-  BEFE,
-  BDF2,
-  CNAB,
-  mCNAB,
-  CNLF
-};
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  ParameterSet();
 
-class ParameterSet
-{
-public:
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  ParameterSet(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * Member variable which contains all parameters related to the time
+   * discretization.
+   */
+  TimeDiscretization::TimeSteppingParameters  time_stepping_parameters;
+
   ProjectionMethod  projection_method;
-  VSIMEXScheme      vsimex_scheme;
-  double            dt;
-  double            timestep_lower_bound;
-  double            timestep_upper_bound;
-  double            t_0;
-  double            T;
-  double            vsimex_input_gamma;
-  double            vsimex_input_c;
+
   double            Re;
+
   unsigned int      n_global_refinements;
+
   unsigned int      p_fe_degree;
-  unsigned int      solver_max_iterations;
+
+  unsigned int      n_maximum_iterations;
   unsigned int      solver_krylov_size;
   unsigned int      solver_off_diagonals;
   unsigned int      solver_update_preconditioner;
-  double            solver_tolerance;
+  double            relative_tolerance;
   double            solver_diag_strength;
+
   bool              flag_verbose_output;
-  bool              flag_adaptive_time_step;
+  bool              flag_DFG_benchmark;
+
   unsigned int      graphical_output_interval;
   unsigned int      terminal_output_interval;
 
-  ParameterSet();
-  void read_data_from_file(const std::string &filename);
-
-protected:
-  ParameterHandler  prm;
 };
 
 } // namespace RunTimeParameters

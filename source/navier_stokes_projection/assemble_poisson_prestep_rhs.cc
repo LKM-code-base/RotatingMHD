@@ -135,7 +135,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
             data.local_poisson_prestep_rhs(i) += 
                               (/* scratch.force_values[q]
                                +  */
-                               1.0 / Re *
+                               1.0 / parameters.Re *
                                scratch.velocity_laplacian_values[q]) *
                               scratch.normal_vectors[q] *
                               scratch.pressure_fe_face_values.JxW(q);

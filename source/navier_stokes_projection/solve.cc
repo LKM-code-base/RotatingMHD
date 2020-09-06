@@ -6,7 +6,7 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::solve(const unsigned int step)
 {
-  diffusion_step((step % solver_update_preconditioner == 0) || 
+  diffusion_step((step % parameters.solver_update_preconditioner == 0) ||
                  (step == time_stepping.get_order()));
   projection_step((step == time_stepping.get_order()));
   pressure_correction((step == time_stepping.get_order()));
@@ -79,7 +79,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
   // This boolean will be used later when a proper solver is chosen
   (void)reinit_prec;
 
-  switch (projection_method)
+  switch (parameters.projection_method)
     {
       case RunTimeParameters::ProjectionMethod::standard:
         pressure.solution += phi;
@@ -97,8 +97,8 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           distributed_old_pressure  = pressure.old_solution;
           distributed_phi           = phi;
 
-          SolverControl solver_control(solver_max_iterations,
-                                       std::max(relative_tolerance * pressure_rhs.l2_norm(),
+          SolverControl solver_control(parameters.n_maximum_iterations,
+                                       std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
                                                 absolute_tolerance));
 
           if (reinit_prec)
@@ -146,7 +146,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           pressure.constraints.distribute(distributed_pressure);
 
-          distributed_pressure.sadd(1.0 / Re, 1., distributed_old_pressure);
+          distributed_pressure.sadd(1.0 / parameters.Re, 1., distributed_old_pressure);
           distributed_pressure += distributed_phi;
 
           pressure.solution = distributed_pressure;
