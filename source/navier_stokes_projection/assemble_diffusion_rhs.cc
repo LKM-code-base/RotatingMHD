@@ -107,7 +107,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
       // assemble matrix for inhomogeneous boundary conditions
       if (velocity.constraints.is_inhomogeneously_constrained(
-        data.local_velocity_dof_indices[i]))
+          data.local_velocity_dof_indices[i]))
       {
         scratch.velocity_fe_values[velocities].get_function_values(
                                   extrapolated_velocity, 
@@ -123,7 +123,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
         for (unsigned int j = 0; j < scratch.velocity_dofs_per_cell; ++j)
           data.local_matrix_for_inhomogeneous_bc(j, i) += (
                             ((time_stepping.get_step_number() > 1) ? 
-                              VSIMEX.alpha[2] :
+                              time_stepping.get_alpha()[2] :
                               (1.0 / time_stepping.get_next_step_size())) *
                             scratch.phi_velocity[j] *
                             scratch.phi_velocity[i]

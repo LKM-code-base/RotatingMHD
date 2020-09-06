@@ -34,7 +34,6 @@ public:
   (const RunTimeParameters::ParameterSet   &parameters,
    Entities::VectorEntity<dim>             &velocity,
    Entities::ScalarEntity<dim>             &pressure,
-   TimeDiscretization::VSIMEXCoefficients  &VSIMEX,
    TimeDiscretization::VSIMEXMethod        &time_stepping);
 
   /*!
@@ -94,8 +93,9 @@ private:
    */
   Entities::ScalarEntity<dim>            &pressure;
 
-  TimeDiscretization::VSIMEXCoefficients &VSIMEX;
-
+  /*!
+   * @brief A reference to the class controlling the temporal discretization.
+   */
   TimeDiscretization::VSIMEXMethod       &time_stepping;
 
   /*!

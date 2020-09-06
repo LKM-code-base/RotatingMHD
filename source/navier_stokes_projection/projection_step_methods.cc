@@ -74,7 +74,7 @@ void NavierStokesProjection<dim>::solve_projection_step
   pressure.constraints.distribute(distributed_phi);
 
   distributed_phi *= (time_stepping.get_step_number() > 1 ?
-                      VSIMEX.alpha[2] :
+                      time_stepping.get_alpha()[2] :
                       1.0 / time_stepping.get_next_step_size());
 
   phi = distributed_phi;

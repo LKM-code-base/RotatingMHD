@@ -224,49 +224,17 @@ void TimeSteppingParameters::write(Stream &stream) const
          << "   verbose: " << (verbose? "true": "false") << std::endl;
 }
 
-VSIMEXCoefficients::VSIMEXCoefficients()
-{}
-
-VSIMEXCoefficients::VSIMEXCoefficients(const unsigned int &order)
-:
-alpha(order+1),
-beta(order),
-gamma(order+1),
-phi(2)
+void VSIMEXMethod::reinit()
 {
-  Assert( ( ( order == 1) || ( order == 2 ) ),
-         ExcMessage("Only VSIMEX of first and second order are currently "
-                    "implemented"));
+  alpha.resize(order+1, 0.0);
+  beta.resize(order, 0.0);
+  gamma.resize(order+1, 0.0);
 }
-
-VSIMEXCoefficients::VSIMEXCoefficients(const VSIMEXCoefficients &data)
-:
-alpha(data.alpha),
-beta(data.beta),
-gamma(data.gamma),
-phi(data.phi)
-{}
-
-VSIMEXCoefficients VSIMEXCoefficients::operator=(const VSIMEXCoefficients &data_to_copy)
-{
-  this->alpha = data_to_copy.alpha;
-  this->beta  = data_to_copy.beta;
-  this->gamma = data_to_copy.gamma;
-  this->phi = data_to_copy.phi;
-  return *this;
-}
-
-void VSIMEXCoefficients::reinit(const unsigned int order)
-{
-  *this = VSIMEXCoefficients(order);
-}
-
-
 
 template<typename Stream>
-void VSIMEXCoefficients::output(Stream &stream) const
+Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
 {
-  switch (beta.size())
+  switch (vsimex.beta.size())
   {
     case 1:
       stream << "+-------------+------------+------------+\n"
@@ -287,7 +255,7 @@ void VSIMEXCoefficients::output(Stream &stream) const
       break;
   }
 
-  for (const auto it: alpha)
+  for (const auto it: vsimex.alpha)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -298,7 +266,7 @@ void VSIMEXCoefficients::output(Stream &stream) const
   }
 
   stream << std::endl << "|    beta     |     -      | ";
-  for (const auto it: beta)
+  for (const auto it: vsimex.beta)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -309,7 +277,7 @@ void VSIMEXCoefficients::output(Stream &stream) const
   }
 
   stream << std::endl << "|    gamma    | ";
-  for (const auto it: gamma)
+  for (const auto it: vsimex.gamma)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -320,7 +288,7 @@ void VSIMEXCoefficients::output(Stream &stream) const
   }
 
   stream << std::endl << "|  extra_pol  |     -      | ";
-  for (const auto it: phi)
+  for (const auto it: vsimex.phi)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -331,7 +299,7 @@ void VSIMEXCoefficients::output(Stream &stream) const
   }
   stream << std::endl;
 
-  switch (beta.size())
+  switch (vsimex.beta.size())
   {
     case 1:
       stream << "+-------------+------------+------------+\n";
@@ -348,25 +316,25 @@ void VSIMEXCoefficients::output(Stream &stream) const
   }
 
   stream << std::fixed << std::setprecision(0);
+
+  return stream;
 }
 
-VSIMEXMethod::VSIMEXMethod(const TimeSteppingParameters &parameters)
+VSIMEXMethod::VSIMEXMethod(const TimeSteppingParameters &params)
 :
-DiscreteTime(parameters.start_time,
-             parameters.final_time,
-             parameters.initial_time_step),
-scheme(parameters.vsimex_scheme),
+DiscreteTime(params.start_time,
+             params.final_time,
+             params.initial_time_step),
+parameters(params),
 omega(1.0),
 time_step(parameters.initial_time_step),
-old_time_step(parameters.initial_time_step),
-timestep_lower_bound(parameters.minimum_time_step),
-timestep_upper_bound(parameters.maximum_time_step)
+old_time_step(parameters.initial_time_step)
 {
-  Assert(((time_step > timestep_lower_bound) &&
-          (time_step < timestep_upper_bound)),
+  Assert(((time_step > parameters.maximum_time_step) &&
+          (time_step < parameters.minimum_time_step)),
          ExcMessage("The desired start step is not inside the given bonded range."));
 
-  switch (scheme)
+  switch (parameters.vsimex_scheme)
   {
     case VSIMEXScheme::ForwardEuler :
       order = 1;
@@ -413,21 +381,15 @@ timestep_upper_bound(parameters.maximum_time_step)
      break;
   };
 
-  coefficients.reinit(order);
-}
-
-void VSIMEXMethod::get_coefficients(VSIMEXCoefficients &output)
-{
-  update_coefficients();
-  output = coefficients;
+  reinit();
 }
 
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 {
-  if (time_step_size < timestep_lower_bound)
-    DiscreteTime::set_desired_next_step_size(timestep_lower_bound);
-  else if (time_step_size > timestep_upper_bound)
-    DiscreteTime::set_desired_next_step_size(timestep_upper_bound);
+  if (time_step_size < parameters.minimum_time_step)
+    DiscreteTime::set_desired_next_step_size(parameters.minimum_time_step);
+  else if (time_step_size > parameters.maximum_time_step)
+    DiscreteTime::set_desired_next_step_size(parameters.maximum_time_step);
   else
     DiscreteTime::set_desired_next_step_size(time_step);
 }
@@ -435,39 +397,59 @@ void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 void VSIMEXMethod::update_coefficients()
 {
   time_step      = get_next_step_size();
+
   old_time_step  = get_previous_step_size();
+
   omega         = time_step / old_time_step;
 
   switch (order)
   {
     case 1 :
     {
-      static const double gamma   = imex_constants[0];
-      coefficients.alpha[0] = - 1.0 / time_step;
-      coefficients.alpha[1] = 1.0 / time_step;
-      coefficients.beta[0]  = 1.0;
-      coefficients.gamma[0] = ( 1.0 - gamma);
-      coefficients.gamma[1] = gamma;
-      coefficients.phi[0]   = -1.0;
-      coefficients.phi[1]   = 2.0;
+      const double a   = imex_constants[0];
+
+      alpha[0] = - 1.0 / time_step;
+      alpha[1] = 1.0 / time_step;
+
+      beta[0]  = 1.0;
+
+      gamma[0] = ( 1.0 - a);
+      gamma[1] = a;
+
+      /*
+       * These values are definitely wrong in case of variable size
+       * of the time step!
+       */
+      phi[0]   = -1.0;
+      phi[1]   = 2.0;
+
       break;
     }
     case 2 :
     {
-      static const double gamma   = imex_constants[0];
-      static const double c       = imex_constants[1];
-      coefficients.alpha[0] = (2.0 * gamma - 1.0) * omega * omega / 
-                                (1.0 + omega) / time_step;
-      coefficients.alpha[1] = ((1.0 - 2.0 * gamma) * omega - 1.0) / time_step;
-      coefficients.alpha[2] = (1.0 + 2.0 * gamma * omega) / 
-                                (1.0 + omega) / time_step;
-      coefficients.beta[0]  = - gamma * omega;
-      coefficients.beta[1]  = 1.0 + gamma * omega;
-      coefficients.gamma[0] = c / 2.0;
-      coefficients.gamma[1] = 1.0 - gamma - (1.0 + 1.0 / omega) * c / 2.0; 
-      coefficients.gamma[2] = gamma + c / (2.0 * omega); 
-      coefficients.phi[0]   = - omega;
-      coefficients.phi[1]   = 1.0 + omega;
+      const double a = imex_constants[0];
+      const double b = imex_constants[1];
+
+      alpha[0] = (2.0 * a - 1.0) * omega * omega /
+                 (1.0 + omega) / time_step;
+      alpha[1] = ((1.0 - 2.0 * a) * omega - 1.0) / time_step;
+      alpha[2] = (1.0 + 2.0 * a * omega) /
+                 (1.0 + omega) / time_step;
+
+      beta[0]  = - a * omega;
+      beta[1]  = 1.0 + a * omega;
+
+      gamma[0] = b / 2.0;
+      gamma[1] = 1.0 - a - (1.0 + 1.0 / omega) * b / 2.0;
+      gamma[2] = a + b / (2.0 * omega);
+
+      /*
+       * These values seem to be correct in case of variable size
+       * of the time step!
+       */
+      phi[0]   = - omega;
+      phi[1]   = 1.0 + omega;
+
       break;
     }
     default :
@@ -475,7 +457,6 @@ void VSIMEXMethod::update_coefficients()
             ExcMessage("Only VSIMEX of first and second order are currently implemented"));
      break;
   }
-  //coefficients.output();
 }
 
 } // namespace TimeDiscretiation
@@ -486,5 +467,7 @@ void VSIMEXMethod::update_coefficients()
 template void RMHD::TimeDiscretization::TimeSteppingParameters::write(std::ostream &) const;
 template void RMHD::TimeDiscretization::TimeSteppingParameters::write(dealii::ConditionalOStream &) const;
 
-template void RMHD::TimeDiscretization::VSIMEXCoefficients::output(std::ostream &) const;
-template void RMHD::TimeDiscretization::VSIMEXCoefficients::output(dealii::ConditionalOStream &) const;
+template std::ostream & RMHD::TimeDiscretization::operator<<
+(std::ostream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
+template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
+(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::VSIMEXMethod &);

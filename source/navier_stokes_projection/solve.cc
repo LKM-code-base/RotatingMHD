@@ -19,12 +19,14 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   // of the pertinent vectors to be able to perform the sadd()
   // operations.
   {
+    const std::vector<double> phi = time_stepping.get_phi();
+
     LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
-    distributed_old_velocity.sadd(VSIMEX.phi[1], 
-                                  VSIMEX.phi[0],
+    distributed_old_velocity.sadd(phi[1],
+                                  phi[0],
                                   distributed_old_old_velocity);
     extrapolated_velocity = distributed_old_velocity;
   }
@@ -36,6 +38,9 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     distributed_old_pressure  = pressure.old_solution;
     distributed_old_old_phi   = old_old_phi;
     distributed_phi           = old_phi;
+    /*
+     * These coefficients are wrong in case of a variable size of the time step.
+     */
     distributed_old_pressure.sadd(1.,
                                   4. / 3.,
                                   distributed_phi);
@@ -46,12 +51,15 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   }
 
   {
+
+    const std::vector<double> alpha = time_stepping.get_alpha();
+
     LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
-    distributed_old_velocity.sadd(VSIMEX.alpha[1],
-                                  VSIMEX.alpha[0],
+    distributed_old_velocity.sadd(alpha[1],
+                                  alpha[0],
                                   distributed_old_old_velocity);
     velocity_tmp = distributed_old_velocity;
   }
