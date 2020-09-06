@@ -184,7 +184,6 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-
   prm.enter_subsection("Spatial discretization parameters");
   {
     /*

@@ -6,7 +6,6 @@
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <limits>
 namespace RMHD
 {
   using namespace dealii;
@@ -15,9 +14,11 @@ namespace BenchmarkData
 
 template <int dim>
 DFG<dim>::DFG()
-  : characteristic_length(0.1),
+  : density(1.0),
+    characteristic_length(0.1),
     mean_velocity(1.0),
     kinematic_viscosity(0.001),
+    Re(characteristic_length*mean_velocity/kinematic_viscosity),
     front_evaluation_point(0.15 / characteristic_length, 
                            0.20 / characteristic_length),
     rear_evaluation_point(0.25 / characteristic_length, 
@@ -27,21 +28,23 @@ DFG<dim>::DFG()
     rear_point_pressure_value(0),
     drag_force(0),
     drag_coefficient(0),
-    max_drag_coefficient(-std::numeric_limits<double>::max()),
-    min_drag_coefficient(std::numeric_limits<double>::max()),
-    amp_drag_coefficient(0),
-    mean_drag_coefficient(0),
     lift_force(0),
-    lift_coefficient(0),
-    old_lift_coefficient(0),
-    max_lift_coefficient(-std::numeric_limits<double>::max()),
-    min_lift_coefficient(std::numeric_limits<double>::max()),
-    amp_lift_coefficient(0),
-    mean_lift_coefficient(0),
-    frequency(0),
-    strouhal_number(0),
-    flag_min_reached(false)
-  {}
+    lift_coefficient(0)
+{
+  data_table.declare_column("n");
+  data_table.declare_column("t");
+  data_table.declare_column("dp");
+  data_table.declare_column("C_d");
+  data_table.declare_column("C_l");
+  data_table.set_scientific("t", true);
+  data_table.set_scientific("dp", true);
+  data_table.set_scientific("C_d", true);
+  data_table.set_scientific("C_l", true);
+  data_table.set_precision("t", 6);
+  data_table.set_precision("dp", 6);
+  data_table.set_precision("C_d", 6);
+  data_table.set_precision("C_l", 6);
+}
 
 template <int dim>
 void DFG<dim>::compute_pressure_difference(
@@ -57,20 +60,6 @@ void DFG<dim>::compute_pressure_difference(
                   rear_point_pressure_value); 
   pressure_difference = front_point_pressure_value - 
                                               rear_point_pressure_value;
-}
-
-template <int dim>
-void DFG<dim>::compute_periodic_parameters()
-{
-  amp_drag_coefficient = max_drag_coefficient - min_drag_coefficient;
-  mean_drag_coefficient = 0.5 * 
-                          (max_drag_coefficient + min_drag_coefficient);
-
-  amp_lift_coefficient = max_lift_coefficient - min_lift_coefficient;
-  mean_lift_coefficient = 0.5 * 
-                          (max_lift_coefficient + min_lift_coefficient);
-
-  strouhal_number = characteristic_length * frequency / mean_velocity;
 }
 
 template <int dim>
@@ -134,12 +123,14 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
             {
               /* The sign inversion here is due to how the normal
               vector is defined in the benchmark */
-              forces += (-kinematic_viscosity *
-                        mean_velocity *
-                        normal_vectors[q] * 
+              forces += (- 1.0 /
+                        (density * Re) *
+                        (normal_vectors[q] * 
                         velocity_gradients[q]
                         +
-                        characteristic_length *
+                        velocity_gradients[q] *
+                        normal_vectors[q])
+                        +
                         pressure_values[q] *
                         normal_vectors[q]) *
                         velocity_face_fe_values.JxW(q);
@@ -149,29 +140,17 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
   forces = Utilities::MPI::sum(forces, MPI_COMM_WORLD);
 
   drag_force            = forces[0];
-  drag_coefficient      = 2.0 / 
-                          (mean_velocity * 
-                          mean_velocity * 
-                          characteristic_length) *
-                          drag_force;
+  drag_coefficient      = 2.0 * drag_force;
   lift_force            = forces[1];
-  old_lift_coefficient  = lift_coefficient;
-  lift_coefficient      = 2.0 / 
-                          (mean_velocity * 
-                          mean_velocity * 
-                          characteristic_length) *
-                          lift_force;
-
-  if ((lift_coefficient - old_lift_coefficient) > 0.)
-    flag_min_reached = true;
+  lift_coefficient      = 2.0 * lift_force;
 }
 
 template <int dim>
 void DFG<dim>::update_table(DiscreteTime  &time)
 {
-  data_table.add_value("n", time.get_step_number());
-  data_table.add_value("t", time.get_current_time());
-  data_table.add_value("dp", pressure_difference);
+  data_table.add_value("n",   time.get_step_number());
+  data_table.add_value("t",   time.get_current_time());
+  data_table.add_value("dp",  pressure_difference);
   data_table.add_value("C_d", drag_coefficient);
   data_table.add_value("C_l", lift_coefficient);
 }
@@ -200,24 +179,14 @@ void DFG<dim>::print_step_data(DiscreteTime &time)
 }
 
 template <int dim>
-void DFG<dim>::print_table()
-{
-  ConditionalOStream    pcout(std::cout, 
-          (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
-
-  pcout << std::endl;
-  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
-    data_table.write_text(std::cout);
-  pcout << std::endl;
-}
-
-template <int dim>
 void DFG<dim>::write_table_to_file(const std::string  &file)
 {
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
     std::ofstream out_file(file);
-    data_table.write_tex(out_file);
+    data_table.write_text(
+      out_file, 
+      TableHandler::TextOutputFormat::org_mode_table);
     out_file.close();
   }
 }
