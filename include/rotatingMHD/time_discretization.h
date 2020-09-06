@@ -207,18 +207,18 @@ public:
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex);
 
+  /*!
+  *  @brief A method that updates the coefficients.
+  *  @details Here goes a longer explanation with the formulas.
+  */
+  void update_coefficients();
+
 private:
 
   /*!
    * @brief Method which updates the sizes of the coefficient vectors .
    */
   void reinit();
-
-  /*!
-  *  @brief A method that updates the coefficients.
-  *  @details Here goes a longer explanation with the formulas.
-  */
-  void update_coefficients();
 
   /*!
    * @brief Parameter controlling the behavior of this class.

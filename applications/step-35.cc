@@ -42,8 +42,6 @@ private:
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
-  TimeDiscretization::VSIMEXCoefficients      VSIMEX;
-
   NavierStokesProjection<dim>                 navier_stokes;
   
   EquationData::Step35::VelocityInflowBoundaryCondition<dim>  
@@ -79,14 +77,22 @@ triangulation(MPI_COMM_WORLD,
 velocity(parameters.p_fe_degree + 1, triangulation),
 pressure(parameters.p_fe_degree, triangulation),
 time_stepping(parameters.time_stepping_parameters),
-VSIMEX(time_stepping.get_order()),
-navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
+navier_stokes(parameters, velocity, pressure, time_stepping),
 inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
 velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
 pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
 {
   // The VSIMEXMethod class is initialized with t_0 = -dt and then
   // advanced in order to populate a private member of the class.
+  /*
+   * This does not make much sense to me! The fact that the first time step is
+   * different from the subsequent ones needs to be taken into account in the
+   * time stepping scheme. However, I realize that the initialization in
+   * deal.ii's original step-35 is not correct which might require the
+   * unconventional initialization here. I think that a control parameter, which
+   * controls the behaviour in the first time step, in VSIMEXMethod would be
+   * beneficial.
+   */
   make_grid(parameters.n_global_refinements);
   setup_dofs();
   setup_constraints();
@@ -254,15 +260,19 @@ void Step35<dim>::run(
               const unsigned int  terminal_output_periodicity,
               const unsigned int  graphical_output_periodicity)
 {
-(void)flag_verbose_output;
+  (void)flag_verbose_output;
 
-for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
-  time_stepping.advance_time();
+  /*
+   * What is going on here? The fact that the initial time step is first order
+   * time step
+   */
+  for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
+    time_stepping.advance_time();
 
-time_stepping.get_coefficients(VSIMEX);
+  while (time_stepping.get_current_time() <= time_stepping.get_end_time())
+  {
+    time_stepping.update_coefficients();
 
-while (time_stepping.get_current_time() <= time_stepping.get_end_time())
-  {    
     navier_stokes.solve(time_stepping.get_step_number());
 
     postprocessing((time_stepping.get_step_number() % 
@@ -280,7 +290,6 @@ while (time_stepping.get_current_time() <= time_stepping.get_end_time())
     
     if (time_stepping.is_at_end())
       break;
-    time_stepping.get_coefficients(VSIMEX);
     time_stepping.advance_time();
   }
 }
@@ -289,37 +298,40 @@ template <int dim>
 void Step35<dim>::
 point_evaluation(const Point<dim>   &point) const
 {
-const std::pair<typename DoFHandler<dim>::active_cell_iterator,
-                  Point<dim>> cell_point =
-    GridTools::find_active_cell_around_point(
-                                    StaticMappingQ1<dim, dim>::mapping,
-                                    velocity.dof_handler, 
-                                    point);
-if (cell_point.first->is_locally_owned())
-{
-  Vector<double> point_value_velocity(dim);
-  VectorTools::point_value(velocity.dof_handler,
-                          velocity.solution,
-                          point,
-                          point_value_velocity);
+  /*
+   * Is the point evaluation not duplicate? You have implemented
+   * a function mpi_point_value in auxiliary_functions.cc?
+   */
+  const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
+  cell_point =
+  GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
+                                           velocity.dof_handler,
+                                           point);
+  if (cell_point.first->is_locally_owned())
+  {
+    Vector<double> point_value_velocity(dim);
+    VectorTools::point_value(velocity.dof_handler,
+                            velocity.solution,
+                            point,
+                            point_value_velocity);
 
-  const double point_value_pressure
-  = VectorTools::point_value(pressure.dof_handler,
-                            pressure.solution,
-                            point);
-  std::cout << "Step = " << std::setw(2) 
-            << time_stepping.get_step_number() 
-            << " Time = " << std::noshowpos << std::scientific
-            << time_stepping.get_current_time()
-            << " Velocity = (" << std::showpos << std::scientific
-            << point_value_velocity[0] 
-            << ", " << std::showpos << std::scientific
-            << point_value_velocity[1] 
-            << ") Pressure = " << std::showpos << std::scientific
-            << point_value_pressure
-            << " Time step = " << std::showpos << std::scientific
-            << time_stepping.get_next_step_size() << std::endl;
-}
+    const double point_value_pressure
+    = VectorTools::point_value(pressure.dof_handler,
+                              pressure.solution,
+                              point);
+    std::cout << "Step = " << std::setw(2)
+              << time_stepping.get_step_number()
+              << " Time = " << std::noshowpos << std::scientific
+              << time_stepping.get_current_time()
+              << " Velocity = (" << std::showpos << std::scientific
+              << point_value_velocity[0]
+              << ", " << std::showpos << std::scientific
+              << point_value_velocity[1]
+              << ") Pressure = " << std::showpos << std::scientific
+              << point_value_pressure
+              << " Time step = " << std::showpos << std::scientific
+              << time_stepping.get_next_step_size() << std::endl;
+  }
 }
 
 } // namespace RMHD

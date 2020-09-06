@@ -229,8 +229,6 @@ private:
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
-  TimeDiscretization::VSIMEXCoefficients      VSIMEX;
-
   NavierStokesProjection<dim>                 navier_stokes;
 
   BenchmarkData::DFG<dim>                     dfg_benchmark;
@@ -272,8 +270,7 @@ triangulation(MPI_COMM_WORLD,
 velocity(parameters.p_fe_degree + 1, triangulation),
 pressure(parameters.p_fe_degree, triangulation),
 time_stepping(parameters.time_stepping_parameters),
-VSIMEX(time_stepping.get_order()),
-navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
+navier_stokes(parameters, velocity, pressure, time_stepping),
 dfg_benchmark(),
 inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
 velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
@@ -440,71 +437,71 @@ void DFG<dim>::run(
               const unsigned int  terminal_output_periodicity,
               const unsigned int  graphical_output_periodicity)
 {
-(void)flag_verbose_output;
+  (void)flag_verbose_output;
 
-for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
-  time_stepping.advance_time();
+  for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
+    time_stepping.advance_time();
 
-time_stepping.get_coefficients(VSIMEX);
+  pcout << "Solving until t = 3.5..." << std::endl;
+  while (time_stepping.get_current_time() <= 3.5)
+  {
+    time_stepping.update_coefficients();
 
-pcout << "Solving until t = 3.5..." << std::endl;
-while (time_stepping.get_current_time() <= 3.5)
-{
-  navier_stokes.solve(time_stepping.get_step_number());
+    navier_stokes.solve(time_stepping.get_step_number());
 
-  postprocessing((time_stepping.get_step_number() % 
-                  terminal_output_periodicity == 0) ||
-                  time_stepping.is_at_end());
+    postprocessing((time_stepping.get_step_number() %
+                    terminal_output_periodicity == 0) ||
+                    time_stepping.is_at_end());
 
-  time_stepping.set_desired_next_step_size(
-                            navier_stokes.compute_next_time_step());
-  update_solution_vectors();
+    time_stepping.set_desired_next_step_size(
+                              navier_stokes.compute_next_time_step());
+    update_solution_vectors();
 
-  time_stepping.get_coefficients(VSIMEX);
-  time_stepping.advance_time();
-}
+    time_stepping.advance_time();
+  }
 
-pcout << "Restarting..." << std::endl;
-time_stepping.restart();
-velocity.old_old_solution = velocity.solution;
-navier_stokes.reinit_internal_entities();
-navier_stokes.initialize();
-velocity.solution = velocity.old_solution;
-pressure.solution = pressure.old_solution;
-output();
+  pcout << "Restarting..." << std::endl;
+  time_stepping.restart();
+  velocity.old_old_solution = velocity.solution;
+  navier_stokes.reinit_internal_entities();
+  navier_stokes.initialize();
+  velocity.solution = velocity.old_solution;
+  pressure.solution = pressure.old_solution;
+  output();
 
-for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
-  time_stepping.advance_time();
+  for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
+    time_stepping.advance_time();
 
-time_stepping.get_coefficients(VSIMEX);
+  pcout << "Solving until t = " << time_stepping.get_end_time()
+        << "..." << std::endl;
 
-pcout << "Solving until t = " << time_stepping.get_end_time()
-      << "..." << std::endl;
+  while (time_stepping.get_current_time() <= time_stepping.get_end_time())
+  {
+    time_stepping.update_coefficients();
 
-while (time_stepping.get_current_time() <= time_stepping.get_end_time())
-{    
-  navier_stokes.solve(time_stepping.get_step_number());
+    navier_stokes.solve(time_stepping.get_step_number());
 
-  postprocessing((time_stepping.get_step_number() % 
-                  terminal_output_periodicity == 0) ||
-                  time_stepping.is_at_end());
+    postprocessing((time_stepping.get_step_number() %
+                    terminal_output_periodicity == 0) ||
+                    time_stepping.is_at_end());
 
-  if ((time_stepping.get_step_number() % 
-        graphical_output_periodicity == 0) ||
-      time_stepping.is_at_end())
-    output();
+    if ((time_stepping.get_step_number() %
+          graphical_output_periodicity == 0) ||
+        time_stepping.is_at_end())
+      output();
 
-  time_stepping.set_desired_next_step_size(
-                            navier_stokes.compute_next_time_step());
-  update_solution_vectors();
-  
-  if (time_stepping.is_at_end())
-    break;
-  time_stepping.get_coefficients(VSIMEX);
-  time_stepping.advance_time();
-}
+    time_stepping.set_desired_next_step_size(
+                              navier_stokes.compute_next_time_step());
+    update_solution_vectors();
 
-dfg_benchmark.write_table_to_file("dfg_benchmark.tex");
+    if (time_stepping.is_at_end())
+      break;
+
+    time_stepping.advance_time();
+  }
+
+  dfg_benchmark.write_table_to_file("dfg_benchmark.tex");
+
 }
 
 } // namespace RMHD

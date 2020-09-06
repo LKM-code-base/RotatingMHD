@@ -229,6 +229,7 @@ void VSIMEXMethod::reinit()
   alpha.resize(order+1, 0.0);
   beta.resize(order, 0.0);
   gamma.resize(order+1, 0.0);
+  phi.resize(2, 0.0);
 }
 
 template<typename Stream>
@@ -330,8 +331,8 @@ omega(1.0),
 time_step(parameters.initial_time_step),
 old_time_step(parameters.initial_time_step)
 {
-  Assert(((time_step > parameters.maximum_time_step) &&
-          (time_step < parameters.minimum_time_step)),
+  Assert(((time_step < parameters.maximum_time_step) &&
+          (time_step > parameters.minimum_time_step)),
          ExcMessage("The desired start step is not inside the given bonded range."));
 
   switch (parameters.vsimex_scheme)
