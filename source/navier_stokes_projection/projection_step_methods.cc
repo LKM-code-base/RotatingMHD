@@ -14,6 +14,12 @@ void NavierStokesProjection<dim>::assemble_projection_step()
 
   /* Right hand side setup */
   assemble_projection_step_rhs();
+
+  /* Zeros out the DoFs on the boundary where Dirichlet
+     boundary conditions on the pressure or Neumann boundary
+     conditions on the stress tensor are given
+   */
+  pressure.constraints.set_zero(pressure_rhs);
 }
 
 template <int dim>
