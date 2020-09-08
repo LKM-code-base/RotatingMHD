@@ -142,6 +142,7 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
     adaptive_time_stepping = prm.get_bool("adaptive_time_stepping");
     if (adaptive_time_stepping)
       adaptive_time_step_barrier = prm.get_integer("adaptive_timestep_barrier");
+
     Assert(adaptive_time_step_barrier > 0,
            ExcLowerRange(adaptive_time_step_barrier, 0));
 
@@ -162,12 +163,18 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
         Assert(maximum_time_step > 0,
                ExcLowerRangeType<double>(maximum_time_step, 0));
 
-        Assert(minimum_time_step < maximum_time_step,
+        Assert(minimum_time_step <= maximum_time_step,
                ExcLowerRangeType<double>(minimum_time_step, maximum_time_step));
         Assert(minimum_time_step <= initial_time_step,
                ExcLowerRangeType<double>(minimum_time_step, initial_time_step));
         Assert(initial_time_step <= maximum_time_step,
                ExcLowerRangeType<double>(initial_time_step, maximum_time_step));
+    }
+    else
+    {
+        minimum_time_step = initial_time_step;
+
+        maximum_time_step = initial_time_step;
     }
 
     start_time = prm.get_double("start_time");
@@ -327,54 +334,53 @@ DiscreteTime(params.start_time,
              params.final_time,
              params.initial_time_step),
 parameters(params),
-omega(1.0),
-time_step(parameters.initial_time_step),
-old_time_step(parameters.initial_time_step)
+omega(1.0)
 {
-  Assert(((time_step < parameters.maximum_time_step) &&
-          (time_step > parameters.minimum_time_step)),
+
+  Assert(((parameters.initial_time_step <= parameters.maximum_time_step) &&
+          (parameters.initial_time_step >= parameters.minimum_time_step)),
          ExcMessage("The desired start step is not inside the given bonded range."));
 
   switch (parameters.vsimex_scheme)
   {
     case VSIMEXScheme::ForwardEuler :
       order = 1;
-      imex_constants.resize(order);
-      imex_constants[0] = 0.;
+      vsimex_parameters.resize(order);
+      vsimex_parameters[0] = 0.;
       break;
     case VSIMEXScheme::CNFE :
       order = 1;
-      imex_constants.resize(order);
-      imex_constants[0] = 0.5;
+      vsimex_parameters.resize(order);
+      vsimex_parameters[0] = 0.5;
       break;
     case VSIMEXScheme::BEFE :
       order = 1;
-      imex_constants.resize(order);
-      imex_constants[0] = 1.0;
+      vsimex_parameters.resize(order);
+      vsimex_parameters[0] = 1.0;
       break;
     case VSIMEXScheme::BDF2 :
       order = 2;
-      imex_constants.resize(order);
-      imex_constants[0] = 1.0;
-      imex_constants[1] = 0.0;
+      vsimex_parameters.resize(order);
+      vsimex_parameters[0] = 1.0;
+      vsimex_parameters[1] = 0.0;
       break;
     case VSIMEXScheme::CNAB :
       order = 2;
-      imex_constants.resize(order);
-      imex_constants[0] = 0.5;
-      imex_constants[1] = 0.0;
+      vsimex_parameters.resize(order);
+      vsimex_parameters[0] = 0.5;
+      vsimex_parameters[1] = 0.0;
       break;
     case VSIMEXScheme::mCNAB :
       order = 2;
-      imex_constants.resize(order);
-      imex_constants[0] = 0.5;
-      imex_constants[1] = 1.0/8.0;
+      vsimex_parameters.resize(order);
+      vsimex_parameters[0] = 0.5;
+      vsimex_parameters[1] = 1.0/8.0;
       break;
     case VSIMEXScheme::CNLF :
       order = 2;
-      imex_constants.resize(order);
-      imex_constants[0] = 0.0;
-      imex_constants[1] = 1.0;
+      vsimex_parameters.resize(order);
+      vsimex_parameters[0] = 0.0;
+      vsimex_parameters[1] = 1.0;
       break;
     default:
      Assert(false,
@@ -392,50 +398,43 @@ void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
   else if (time_step_size > parameters.maximum_time_step)
     DiscreteTime::set_desired_next_step_size(parameters.maximum_time_step);
   else
-    DiscreteTime::set_desired_next_step_size(time_step);
+    DiscreteTime::set_desired_next_step_size(time_step_size);
 }
 
 void VSIMEXMethod::update_coefficients()
 {
-  time_step      = get_next_step_size();
+  if (get_step_number() > 1)
+    omega = get_next_step_size() / get_previous_step_size();
 
-  old_time_step  = get_previous_step_size();
-
-  omega         = time_step / old_time_step;
+  AssertIsFinite(omega);
 
   switch (order)
   {
     case 1 :
     {
-      const double a   = imex_constants[0];
+      const double a   = vsimex_parameters[0];
 
-      alpha[0] = - 1.0 / time_step;
-      alpha[1] = 1.0 / time_step;
+      alpha[0] = - 1.0;
+      alpha[1] = 1.0;
 
       beta[0]  = 1.0;
 
-      gamma[0] = ( 1.0 - a);
+      gamma[0] = (1.0 - a);
       gamma[1] = a;
 
-      /*
-       * These values are definitely wrong in case of variable size
-       * of the time step!
-       */
-      phi[0]   = -1.0;
-      phi[1]   = 2.0;
+      phi[0]   = 0.0;
+      phi[1]   = 1.0;
 
       break;
     }
     case 2 :
     {
-      const double a = imex_constants[0];
-      const double b = imex_constants[1];
+      const double a = vsimex_parameters[0];
+      const double b = vsimex_parameters[1];
 
-      alpha[0] = (2.0 * a - 1.0) * omega * omega /
-                 (1.0 + omega) / time_step;
-      alpha[1] = ((1.0 - 2.0 * a) * omega - 1.0) / time_step;
-      alpha[2] = (1.0 + 2.0 * a * omega) /
-                 (1.0 + omega) / time_step;
+      alpha[0] = (2.0 * a - 1.0) * omega * omega / (1.0 + omega);
+      alpha[1] = ((1.0 - 2.0 * a) * omega - 1.0);
+      alpha[2] = (1.0 + 2.0 * a * omega) / (1.0 + omega);
 
       beta[0]  = - a * omega;
       beta[1]  = 1.0 + a * omega;
@@ -444,10 +443,6 @@ void VSIMEXMethod::update_coefficients()
       gamma[1] = 1.0 - a - (1.0 + 1.0 / omega) * b / 2.0;
       gamma[2] = a + b / (2.0 * omega);
 
-      /*
-       * These values seem to be correct in case of variable size
-       * of the time step!
-       */
       phi[0]   = - omega;
       phi[1]   = 1.0 + omega;
 

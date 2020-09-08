@@ -235,7 +235,7 @@ private:
    * @attention This designation is very misleading w.r.t. the
    * TimeSteppingParameters!
    */
-  std::vector<double> imex_constants;
+  std::vector<double> vsimex_parameters;
 
   /*!
    * @brief A vector containing the \f$ \alpha \f$ coefficients.
@@ -267,17 +267,6 @@ private:
    */
   double              omega;
 
-  /*!
-   * @brief Size of the current time step \f$\Delta t_n\f$.
-   * @attention Is duplicate because this variable exist the parent class DiscreteTime!
-   */
-  double              time_step;
-
-  /*!
-   * @brief Size of the previous time step \f$ \Delta t_{n-1}\f$.
-   * @attention Is duplicate because this variable exist the parent class DiscreteTime!
-   */
-  double              old_time_step;
 };
 
 template<typename Stream>

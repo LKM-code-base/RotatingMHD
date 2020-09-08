@@ -100,6 +100,8 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   pressure.reinit();
   navier_stokes.setup();
   initialize();
+
+  pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
 }
 
 template <int dim>
@@ -271,6 +273,8 @@ void Step35<dim>::run(
 
   while (time_stepping.get_current_time() <= time_stepping.get_end_time())
   {
+    pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
+
     time_stepping.update_coefficients();
 
     navier_stokes.solve(time_stepping.get_step_number());
@@ -284,10 +288,14 @@ void Step35<dim>::run(
         time_stepping.is_at_end())
       output();
 
+    pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
+
     time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());
     update_solution_vectors();
     
+    pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
+
     if (time_stepping.is_at_end())
       break;
     time_stepping.advance_time();

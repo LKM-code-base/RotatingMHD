@@ -121,9 +121,12 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                     scratch.velocity_fe_values[velocities].gradient(k, q);
 
         for (unsigned int j = 0; j < scratch.velocity_dofs_per_cell; ++j)
+          /*
+           * Do we need the inline if at all?
+           */
           data.local_matrix_for_inhomogeneous_bc(j, i) += (
                             ((time_stepping.get_step_number() > 1) ? 
-                              time_stepping.get_alpha()[2] :
+                              time_stepping.get_alpha()[2] / time_stepping.get_next_time():
                               (1.0 / time_stepping.get_next_step_size())) *
                             scratch.phi_velocity[j] *
                             scratch.phi_velocity[i]

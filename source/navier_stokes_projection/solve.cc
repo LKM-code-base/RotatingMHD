@@ -20,6 +20,8 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   // operations.
   {
     const std::vector<double> phi = time_stepping.get_phi();
+    AssertIsFinite(phi[0]);
+    AssertIsFinite(phi[1]);
 
     LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
@@ -51,15 +53,19 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   }
 
   {
-
     const std::vector<double> alpha = time_stepping.get_alpha();
+    AssertIsFinite(alpha[0]);
+    AssertIsFinite(alpha[1]);
+    AssertIsFinite(time_stepping.get_next_step_size());
+    AssertIsFinite(alpha[0] / time_stepping.get_next_step_size());
+    AssertIsFinite(alpha[1] / time_stepping.get_next_step_size());
 
     LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
-    distributed_old_velocity.sadd(alpha[1],
-                                  alpha[0],
+    distributed_old_velocity.sadd(alpha[1] / time_stepping.get_next_step_size(),
+                                  alpha[0] / time_stepping.get_next_step_size(),
                                   distributed_old_old_velocity);
     velocity_tmp = distributed_old_velocity;
   }
