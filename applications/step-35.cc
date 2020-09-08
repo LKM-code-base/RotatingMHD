@@ -275,8 +275,6 @@ void Step35<dim>::run(
 
   while (time_stepping.get_current_time() <= time_stepping.get_end_time())
   {
-    pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
-
     navier_stokes.solve(time_stepping.get_step_number());
 
     postprocessing((time_stepping.get_step_number() % 
@@ -294,12 +292,24 @@ void Step35<dim>::run(
                               navier_stokes.compute_next_time_step());
     update_solution_vectors();
     
-    pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
-
+    pcout << "Time step: " << time_stepping.get_old_step_size_values()[1]
+          << ", " << time_stepping.get_old_step_size_values()[0]
+          << ", " << time_stepping.get_next_step_size()
+          << " alpha_0: " << time_stepping.get_old_alpha_0_values()[1]
+          << ", " << time_stepping.get_old_alpha_0_values()[0]
+          << ", " << time_stepping.get_alpha()[2]
+          << std::endl;
     if (time_stepping.is_at_end())
       break;
     
     time_stepping.update_coefficients();
+    pcout << "Time step: " << time_stepping.get_old_step_size_values()[1]
+          << ", " << time_stepping.get_old_step_size_values()[0]
+          << ", " << time_stepping.get_next_step_size()
+          << " alpha_0: " << time_stepping.get_old_alpha_0_values()[1]
+          << ", " << time_stepping.get_old_alpha_0_values()[0]
+          << ", " << time_stepping.get_alpha()[2]
+          << std::endl;
     time_stepping.advance_time();
   }
 }

@@ -236,7 +236,25 @@ void VSIMEXMethod::reinit()
   alpha.resize(order+1, 0.0);
   beta.resize(order, 0.0);
   gamma.resize(order+1, 0.0);
-  phi.resize(2, 0.0);
+  eta.resize(2, 0.0);
+  old_step_size_values.resize(order, this->get_next_step_size());
+  
+  double old_alpha_0_init_value;
+  switch (order)
+  {
+  case 1:
+    old_alpha_0_init_value = 1.0;
+    break;
+  case 2:
+    old_alpha_0_init_value = (1.0 + 2.0 * vsimex_parameters[0])/2.0 ;
+    break;
+  default:
+    Assert(false,
+    ExcMessage("The order is not implemented in the reinit method."));
+    break;
+  } 
+  old_alpha_0_values.resize(order, old_alpha_0_init_value);
+  alpha[2] = old_alpha_0_init_value;
 }
 
 template<typename Stream>
@@ -296,7 +314,7 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
   }
 
   stream << std::endl << "|  extra_pol  |     -      | ";
-  for (const auto it: vsimex.phi)
+  for (const auto it: vsimex.eta)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -408,6 +426,14 @@ void VSIMEXMethod::update_coefficients()
 
   AssertIsFinite(omega);
 
+  for (unsigned int i = order-1; i > 0; --i)
+  {
+    old_alpha_0_values[i]   = old_alpha_0_values[i-1];
+    old_step_size_values[i] = old_step_size_values[i-1];
+  }
+  old_alpha_0_values[0] = alpha[2];
+  old_step_size_values[0] = get_previous_step_size();
+
   switch (order)
   {
     case 1 :
@@ -422,8 +448,8 @@ void VSIMEXMethod::update_coefficients()
       gamma[0] = (1.0 - a);
       gamma[1] = a;
 
-      phi[0]   = 0.0;
-      phi[1]   = 1.0;
+      eta[0]   = 0.0;
+      eta[1]   = 1.0;
 
       break;
     }
@@ -443,8 +469,8 @@ void VSIMEXMethod::update_coefficients()
       gamma[1] = 1.0 - a - (1.0 + 1.0 / omega) * b / 2.0;
       gamma[2] = a + b / (2.0 * omega);
 
-      phi[0]   = - omega;
-      phi[1]   = 1.0 + omega;
+      eta[0]   = - omega;
+      eta[1]   = 1.0 + omega;
 
       break;
     }

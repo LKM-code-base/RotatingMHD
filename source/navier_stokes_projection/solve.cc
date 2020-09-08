@@ -19,16 +19,16 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   // of the pertinent vectors to be able to perform the sadd()
   // operations.
   {
-    const std::vector<double> phi = time_stepping.get_phi();
-    AssertIsFinite(phi[0]);
-    AssertIsFinite(phi[1]);
+    const std::vector<double> eta = time_stepping.get_eta();
+    AssertIsFinite(eta[0]);
+    AssertIsFinite(eta[1]);
 
     LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
-    distributed_old_velocity.sadd(phi[1],
-                                  phi[0],
+    distributed_old_velocity.sadd(eta[1],
+                                  eta[0],
                                   distributed_old_old_velocity);
     extrapolated_velocity = distributed_old_velocity;
   }

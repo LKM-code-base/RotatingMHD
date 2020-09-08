@@ -188,7 +188,14 @@ public:
    */
   const std::vector<double>& get_gamma() const;
 
-  const std::vector<double>& get_phi() const;
+  /*!
+   * @brief A method returning the coefficients \f$\phi_i \f$.
+   */
+  const std::vector<double>& get_eta() const;
+
+  const std::vector<double>& get_old_alpha_0_values() const;
+
+  const std::vector<double>& get_old_step_size_values() const;
 
   /*!
   * @brief A method passing the *desired* size of the next time step to the
@@ -258,7 +265,7 @@ private:
   /*!
    * @brief A vector containing coefficients required for extrapolation.
    */
-  std::vector<double> phi;
+  std::vector<double> eta;
 
   /*!
    * @brief Ratio of the sizes of the current and the old time step. Denoted by
@@ -266,6 +273,23 @@ private:
    * @details The ratio is given by \f$\omega=\frac{\Delta t_n}{\Delta t_{n-1}}\f$.
    */
   double              omega;
+
+  /*!
+   * @brief A vector containing the \f$ \alpha_0 \f$ of previous time steps.
+   * @attention This member is only useful in the NavierStokesProjection
+   * class. 
+   */ 
+  std::vector<double> old_alpha_0_values;
+
+  /*!
+   * @brief A vector containing the previous time steps.
+   * @details The DiscreteTime class stores only the previous time step.
+   * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
+   * is the order of the scheme.
+   * @attention This member is only useful in the NavierStokesProjection
+   * class. 
+   */ 
+  std::vector<double> old_step_size_values;
 
 };
 
@@ -293,9 +317,19 @@ inline const std::vector<double>& VSIMEXMethod::get_gamma() const
   return (gamma);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_phi() const
+inline const std::vector<double>& VSIMEXMethod::get_eta() const
 {
-  return (phi);
+  return (eta);
+}
+
+inline const std::vector<double>& VSIMEXMethod::get_old_alpha_0_values() const
+{
+  return (old_alpha_0_values);
+}
+
+inline const std::vector<double>& VSIMEXMethod::get_old_step_size_values() const
+{
+  return (old_step_size_values);
 }
 
 } // namespace TimeDiscretization
