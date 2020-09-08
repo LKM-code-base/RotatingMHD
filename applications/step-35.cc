@@ -271,11 +271,11 @@ void Step35<dim>::run(
   for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
+  time_stepping.update_coefficients();
+
   while (time_stepping.get_current_time() <= time_stepping.get_end_time())
   {
     pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
-
-    time_stepping.update_coefficients();
 
     navier_stokes.solve(time_stepping.get_step_number());
 
@@ -298,6 +298,8 @@ void Step35<dim>::run(
 
     if (time_stepping.is_at_end())
       break;
+    
+    time_stepping.update_coefficients();
     time_stepping.advance_time();
   }
 }
