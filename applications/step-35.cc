@@ -82,17 +82,6 @@ inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
 velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
 pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
 {
-  // The VSIMEXMethod class is initialized with t_0 = -dt and then
-  // advanced in order to populate a private member of the class.
-  /*
-   * This does not make much sense to me! The fact that the first time step is
-   * different from the subsequent ones needs to be taken into account in the
-   * time stepping scheme. However, I realize that the initialization in
-   * deal.ii's original step-35 is not correct which might require the
-   * unconventional initialization here. I think that a control parameter, which
-   * controls the behaviour in the first time step, in VSIMEXMethod would be
-   * beneficial.
-   */
   make_grid(parameters.n_global_refinements);
   setup_dofs();
   setup_constraints();
@@ -268,48 +257,48 @@ void Step35<dim>::run(
    * What is going on here? The fact that the initial time step is first order
    * time step
    */
-  for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
+  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
-  time_stepping.update_coefficients();
-
-  while (time_stepping.get_current_time() <= time_stepping.get_end_time())
+  while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
-    navier_stokes.solve(time_stepping.get_step_number());
-
-    postprocessing((time_stepping.get_step_number() % 
-                    terminal_output_periodicity == 0) ||
-                   time_stepping.is_at_end());
-
-    if ((time_stepping.get_step_number() % 
-          graphical_output_periodicity == 0) ||
-        time_stepping.is_at_end())
-      output();
-
     pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
 
     time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());
+
+    time_stepping.update_coefficients();
+
+    navier_stokes.solve(time_stepping.get_step_number());
+
+    postprocessing((time_stepping.get_step_number() % 
+                    terminal_output_periodicity == 0) ||
+                   (time_stepping.get_next_time() == 
+                   time_stepping.get_end_time()));
+
+    if ((time_stepping.get_step_number() % 
+          graphical_output_periodicity == 0) ||
+        (time_stepping.get_next_time() == 
+                   time_stepping.get_end_time()))
+      output();
+
     update_solution_vectors();
     
-    pcout << "Time step: " << time_stepping.get_old_step_size_values()[1]
+    /*pcout << "Time step: " << time_stepping.get_old_step_size_values()[1]
           << ", " << time_stepping.get_old_step_size_values()[0]
           << ", " << time_stepping.get_next_step_size()
           << " alpha_0: " << time_stepping.get_old_alpha_0_values()[1]
           << ", " << time_stepping.get_old_alpha_0_values()[0]
           << ", " << time_stepping.get_alpha()[2]
-          << std::endl;
-    if (time_stepping.is_at_end())
-      break;
+          << std::endl;*/
     
-    time_stepping.update_coefficients();
-    pcout << "Time step: " << time_stepping.get_old_step_size_values()[1]
+    /*pcout << "Time step: " << time_stepping.get_old_step_size_values()[1]
           << ", " << time_stepping.get_old_step_size_values()[0]
           << ", " << time_stepping.get_next_step_size()
           << " alpha_0: " << time_stepping.get_old_alpha_0_values()[1]
           << ", " << time_stepping.get_old_alpha_0_values()[0]
           << ", " << time_stepping.get_alpha()[2]
-          << std::endl;
+          << std::endl;*/
     time_stepping.advance_time();
   }
 }
@@ -342,7 +331,7 @@ point_evaluation(const Point<dim>   &point) const
     std::cout << "Step = " << std::setw(2)
               << time_stepping.get_step_number()
               << " Time = " << std::noshowpos << std::scientific
-              << time_stepping.get_current_time()
+              << time_stepping.get_next_time()
               << " Velocity = (" << std::showpos << std::scientific
               << point_value_velocity[0]
               << ", " << std::showpos << std::scientific

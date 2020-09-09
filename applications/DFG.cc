@@ -439,25 +439,26 @@ void DFG<dim>::run(
 {
   (void)flag_verbose_output;
 
-  for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
+  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
-  time_stepping.update_coefficients();
-
-  pcout << "Solving until t = 3.5..." << std::endl;
-  while (time_stepping.get_current_time() <= 3.5)
+  pcout << "Solving until t = 35..." << std::endl;
+  while (time_stepping.get_current_time() <= 35.0)
   {
+    time_stepping.set_desired_next_step_size(
+                          navier_stokes.compute_next_time_step());
+
+    time_stepping.update_coefficients();
+
     navier_stokes.solve(time_stepping.get_step_number());
 
     postprocessing((time_stepping.get_step_number() %
                     terminal_output_periodicity == 0) ||
-                    time_stepping.is_at_end());
+                    (time_stepping.get_next_time() == 
+                   time_stepping.get_end_time()));
 
-    time_stepping.set_desired_next_step_size(
-                              navier_stokes.compute_next_time_step());
     update_solution_vectors();
 
-    time_stepping.update_coefficients();
     time_stepping.advance_time();
   }
 
@@ -470,35 +471,34 @@ void DFG<dim>::run(
   pressure.solution = pressure.old_solution;
   output();
 
-  for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
+  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
-
-  time_stepping.update_coefficients();
 
   pcout << "Solving until t = " << time_stepping.get_end_time()
         << "..." << std::endl;
 
-  while (time_stepping.get_current_time() <= time_stepping.get_end_time())
+  while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
+    time_stepping.set_desired_next_step_size(
+                              navier_stokes.compute_next_time_step());
+
+    time_stepping.update_coefficients();
+
     navier_stokes.solve(time_stepping.get_step_number());
 
     postprocessing((time_stepping.get_step_number() %
                     terminal_output_periodicity == 0) ||
-                    time_stepping.is_at_end());
+                    (time_stepping.get_next_time() == 
+                   time_stepping.get_end_time()));
 
     if ((time_stepping.get_step_number() %
           graphical_output_periodicity == 0) ||
-        time_stepping.is_at_end())
+        (time_stepping.get_next_time() == 
+          time_stepping.get_end_time()))
       output();
 
-    time_stepping.set_desired_next_step_size(
-                              navier_stokes.compute_next_time_step());
     update_solution_vectors();
 
-    if (time_stepping.is_at_end())
-      break;
-    
-    time_stepping.update_coefficients();
     time_stepping.advance_time();
   }
 

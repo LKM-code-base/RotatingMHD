@@ -28,7 +28,7 @@ compute_next_time_step()
       {
         double max_local_velocity = 1e-10;
         fe_values.reinit(cell);
-        fe_values[velocities].get_function_values(velocity.solution,
+        fe_values[velocities].get_function_values(velocity.old_solution,
                                                   velocity_values);
         for (unsigned int q = 0; q < n_q_points; ++q)
           max_local_velocity =
