@@ -126,7 +126,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
            */
           data.local_matrix_for_inhomogeneous_bc(j, i) += (
                             ((time_stepping.get_step_number() > 0) ? 
-                              time_stepping.get_alpha()[2] / time_stepping.get_next_step_size():
+                              time_stepping.get_alpha()[0] / time_stepping.get_next_step_size():
                               (1.0 / time_stepping.get_next_step_size())) *
                             scratch.phi_velocity[j] *
                             scratch.phi_velocity[i]

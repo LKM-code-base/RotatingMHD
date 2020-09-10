@@ -254,7 +254,7 @@ void VSIMEXMethod::reinit()
     break;
   } 
   old_alpha_0_values.resize(order, old_alpha_0_init_value);
-  alpha[2] = old_alpha_0_init_value;
+  alpha[0] = old_alpha_0_init_value;
 }
 
 template<typename Stream>
@@ -431,7 +431,7 @@ void VSIMEXMethod::update_coefficients()
     old_alpha_0_values[i]   = old_alpha_0_values[i-1];
     old_step_size_values[i] = old_step_size_values[i-1];
   }
-  old_alpha_0_values[0] = alpha[2];
+  old_alpha_0_values[0] = alpha[0];
   old_step_size_values[0] = get_previous_step_size();
 
   switch (order)
@@ -440,16 +440,16 @@ void VSIMEXMethod::update_coefficients()
     {
       const double a   = vsimex_parameters[0];
 
-      alpha[0] = - 1.0;
-      alpha[1] = 1.0;
+      alpha[0] = 1.0;
+      alpha[1] = - 1.0;
 
       beta[0]  = 1.0;
 
-      gamma[0] = (1.0 - a);
-      gamma[1] = a;
+      gamma[0] = a;
+      gamma[1] = (1.0 - a);
 
-      eta[0]   = 0.0;
-      eta[1]   = 1.0;
+      eta[0]   = 1.0;
+      eta[1]   = 0.0;
 
       break;
     }
@@ -458,19 +458,19 @@ void VSIMEXMethod::update_coefficients()
       const double a = vsimex_parameters[0];
       const double b = vsimex_parameters[1];
 
-      alpha[0] = (2.0 * a - 1.0) * omega * omega / (1.0 + omega);
+      alpha[0] = (1.0 + 2.0 * a * omega) / (1.0 + omega);
       alpha[1] = ((1.0 - 2.0 * a) * omega - 1.0);
-      alpha[2] = (1.0 + 2.0 * a * omega) / (1.0 + omega);
+      alpha[2] = (2.0 * a - 1.0) * omega * omega / (1.0 + omega);
 
-      beta[0]  = - a * omega;
-      beta[1]  = 1.0 + a * omega;
+      beta[0]  = 1.0 + a * omega;
+      beta[1]  = - a * omega;
 
-      gamma[0] = b / 2.0;
+      gamma[0] = a + b / (2.0 * omega);
       gamma[1] = 1.0 - a - (1.0 + 1.0 / omega) * b / 2.0;
-      gamma[2] = a + b / (2.0 * omega);
+      gamma[2] = b / 2.0;
 
-      eta[0]   = - omega;
-      eta[1]   = 1.0 + omega;
+      eta[0]   = 1.0 + omega;
+      eta[1]   = - omega;
 
       break;
     }

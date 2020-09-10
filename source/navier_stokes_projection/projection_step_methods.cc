@@ -77,7 +77,7 @@ void NavierStokesProjection<dim>::solve_projection_step
    * Do we need the inline if statement at all?
    */
   distributed_phi *= (time_stepping.get_step_number() > 0 ?
-                      time_stepping.get_alpha()[2] / time_stepping.get_next_step_size():
+                      time_stepping.get_alpha()[0] / time_stepping.get_next_step_size():
                       1.0 / time_stepping.get_next_step_size());
 
   phi = distributed_phi;
