@@ -445,13 +445,16 @@ void DFG<dim>::run(
   pcout << "Solving until t = 35..." << std::endl;
   while (time_stepping.get_current_time() <= 35.0)
   {
+    // snapshot stage
     time_stepping.set_desired_next_step_size(
                           navier_stokes.compute_next_time_step());
 
+    // update stage
     time_stepping.update_coefficients();
 
     navier_stokes.solve(time_stepping.get_step_number());
 
+    // snapshot stage
     postprocessing((time_stepping.get_step_number() %
                     terminal_output_periodicity == 0) ||
                     (time_stepping.get_next_time() == 
@@ -486,6 +489,7 @@ void DFG<dim>::run(
 
     navier_stokes.solve(time_stepping.get_step_number());
 
+    // snapshot stage
     postprocessing((time_stepping.get_step_number() %
                     terminal_output_periodicity == 0) ||
                     (time_stepping.get_next_time() == 
