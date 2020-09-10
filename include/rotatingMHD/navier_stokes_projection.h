@@ -40,7 +40,7 @@ using namespace dealii;
  * \begin{equation}
  *  p^\sharp = p^{n-1} + 
  *  \sum_{j=1}^{2} \frac{\Delta t_{n-1-j}}{\Delta t_{n-1}}
- *  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^\textrm{n-j}
+ *  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^{n-j}
  * \end{equation}
  * \f]
  * a projection step given by
@@ -54,7 +54,7 @@ using namespace dealii;
  * and a pressure correction step given by
  * \f[
  * \begin{equation*}
- * p^{1} = p^{n-1} + \phi^{n} - \frac{\chi}{\textrm{Re}} \nabla \cdot \bs{u}^{n}
+ * p^{n} = p^{n-1} + \phi^{n} - \frac{\chi}{\textrm{Re}} \nabla \cdot \bs{u}^{n}
  * \end{equation*}
  * \f]
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
