@@ -55,7 +55,7 @@ end
 
 subsection Time stepping settings
   # Turn adaptive time stepping on or off
-  set adaptive_time_stepping    = true
+  set adaptive_time_stepping    = false
 
   # Time step after which adaptive time stepping is applied.
   set adaptive_timestep_barrier = 2
@@ -67,10 +67,10 @@ subsection Time stepping settings
   set initial_time_step         = 5e-3
 
   # Size of the maximum time step.
-  set maximum_time_step         = 5e-2
+  set maximum_time_step         = 7.5e-3
 
   # Size of the minimum time step.
-  set minimum_time_step         = 1e-3
+  set minimum_time_step         = 2.5e-3
 
   # Maximum number of time steps to be computed.
   set n_maximum_steps           = 10

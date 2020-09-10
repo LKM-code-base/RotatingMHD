@@ -13,10 +13,15 @@ assemble_diffusion_step()
   if (!flag_diffusion_matrix_assembled)
   {
     velocity_mass_plus_laplace_matrix = 0.;
-    velocity_mass_plus_laplace_matrix.add(1.0 / parameters.Re,
-                                          velocity_laplace_matrix);
-    velocity_mass_plus_laplace_matrix.add(VSIMEX.alpha[2], 
-                                          velocity_mass_matrix);
+
+    velocity_mass_plus_laplace_matrix.add
+    (1.0 / parameters.Re,
+     velocity_laplace_matrix);
+
+    velocity_mass_plus_laplace_matrix.add
+    (time_stepping.get_alpha()[0] / time_stepping.get_next_step_size(),
+     velocity_mass_matrix);
+
     if (!parameters.time_stepping_parameters.adaptive_time_stepping)
       flag_diffusion_matrix_assembled = true; 
   }
