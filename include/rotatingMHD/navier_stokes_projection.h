@@ -392,7 +392,6 @@ private:
    * \bs{K}^{(\bs{v})} + \bs{C}^{(\bs{v})} \,.
    * \f]
    */
-   */
   void assemble_diffusion_prestep();
 
   /*!
