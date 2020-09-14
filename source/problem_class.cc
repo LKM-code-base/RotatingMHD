@@ -11,6 +11,22 @@ namespace RMHD
 
 using namespace dealii;
 
+template<int dim>
+Problem<dim>::Problem()
+:
+mpi_communicator(MPI_COMM_WORLD),
+triangulation(mpi_communicator,
+              typename Triangulation<dim>::MeshSmoothing(
+              Triangulation<dim>::smoothing_on_refinement |
+              Triangulation<dim>::smoothing_on_coarsening)),
+pcout(std::cout,
+      (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
+computing_timer(mpi_communicator,
+                pcout,
+                TimerOutput::summary,
+                TimerOutput::wall_times)
+{}
+
 template <int dim>
 void Problem<dim>::set_initial_conditions
 (Entities::EntityBase<dim>        &entity,
