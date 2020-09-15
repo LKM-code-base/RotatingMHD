@@ -138,10 +138,9 @@ void VelocityExactSolution<dim>::vector_value(
                                         const Point<dim>  &p,
                                         Vector<double>    &values) const
 {
-    double L = 1.0;
     double t = this->get_time();
-    values[0] = exp(-2.0/Re*t)*cos(L*p(0))*sin(L*p(1));
-    values[1] = -exp(-2.0/Re*t)*sin(L*p(0))*cos(L*p(1));
+    values[0] = exp(-2.0/Re*t)*cos(p(0))*sin(p(1));
+    values[1] = -exp(-2.0/Re*t)*sin(p(0))*cos(p(1));
 }
 
 template <int dim>
@@ -158,9 +157,8 @@ double PressureExactSolution<dim>::value(
                                     const unsigned int component) const
 {
   (void)component;
-  double L = 1.0;
   double t = this->get_time();
-  return -0.25*exp(-4.0/Re*t)*(cos(2.0*L*p(0))+cos(2.0*L*p(1)));
+  return -0.25*exp(-4.0/Re*t)*(cos(2.0*p(0))+cos(2.0*p(1)));
 }
 } // namespace TGV
 
