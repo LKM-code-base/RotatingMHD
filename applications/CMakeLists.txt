@@ -8,6 +8,7 @@ INCLUDE_DIRECTORIES(
 SET(SOURCE_FILES
     DFG.cc
     step-35.cc
+    TGV.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})
