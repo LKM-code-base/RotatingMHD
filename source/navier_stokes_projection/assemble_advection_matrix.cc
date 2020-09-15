@@ -71,10 +71,11 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
    scratch.extrapolated_velocity_divergences);
 
   /*
-  scratch.velocity_fe_values[velocities].get_function_curls
-  (extrapolated_velocity, 
-  scratch.extrapolated_velocity_curls);
-    */
+  // The curl only exists in dim == 3
+  if (parameters.convection_term_form == 
+        RunTimeParameters::ConvectionTermForm::rotational)
+    scratch.fe_values[velocities].get_function_curls(extrapolated_velocity, scratch.extrapolated_velocity_curls);
+  */
 
   // loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
@@ -88,20 +89,9 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
       for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
       {
-        data.local_matrix(i, j) += ( 
-                            scratch.phi_velocity[i] *
-                            scratch.grad_phi_velocity[j] *  
-                            scratch.extrapolated_velocity_values[q]            
-                            +                                    
-                            0.5 *                                
-                            scratch.extrapolated_velocity_divergences[q] *            
-                            scratch.phi_velocity[i] * 
-                            scratch.phi_velocity[j] )
-                            * scratch.fe_values.JxW(q);
-        /*
-        switch (convective_term_form)
+        switch (parameters.convection_term_form)
         {
-          case RunTimeParameters::ConvectionTermForm::convective:
+          case RunTimeParameters::ConvectionTermForm::standard:
           {
             data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i] *
@@ -139,6 +129,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
           }
           case RunTimeParameters::ConvectionTermForm::rotational:
           {
+            Assert(false, ExcNotImplemented());
             // This form needs to be discussed
             data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i] *
@@ -151,7 +142,6 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
           default:
             Assert(false, ExcNotImplemented());
         };
-         */
       }
 
     // loop over local dofs
