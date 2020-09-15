@@ -83,6 +83,40 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                                           pressure_tmp,
                                           scratch.pressure_tmp_values);
 
+  /*
+  scratch.velocity_fe_values[velocities].get_function_gradients
+  (velocity.old_solution,
+   scratch.old_velocity_gradients);
+  scratch.velocity_fe_values[velocities].get_function_gradients
+  (velocity.old_solution,
+   scratch.old_old_velocity_gradients);
+   */
+
+  /*
+  if (!flag_semi_implicit_scheme)
+    {
+      scratch.velocity_fe_values[velocities].get_function_values
+      (velocity.old_solution,
+      scratch.old_velocity_values);
+      scratch.velocity_fe_values[velocities].get_function_divergences
+      (velocity.old_solution,
+      scratch.old_velocity_divergences);
+      scratch.velocity_fe_values[velocities].get_function_curls
+      (velocity.old_solution,
+      scratch.old_velocity_curls);
+
+      scratch.velocity_fe_values[velocities].get_function_values
+      (velocity.old_old_solution,
+      scratch.old_old_velocity_values);
+      scratch.velocity_fe_values[velocities].get_function_divergences
+      (velocity.old_solution,
+      scratch.old_old_velocity_divergences);
+      scratch.velocity_fe_values[velocities].get_function_curls
+      (velocity.old_solution,
+      scratch.old_old_velocity_curls);
+    }
+   */
+
   // loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
   {
@@ -92,6 +126,10 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                   scratch.velocity_fe_values[velocities].value(i, q);
       scratch.div_phi_velocity[i] =
                   scratch.velocity_fe_values[velocities].divergence(i, q);
+      /*
+      scratch.grad_phi_velocity[i] = 
+                scratch.velocity_fe_values[velocities].gradient(i, q);
+       */
     }
     
     // loop over local dofs
@@ -101,9 +139,109 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                                   scratch.velocity_fe_values.JxW(q) * (
                                   - scratch.velocity_tmp_values[q] *
                                   scratch.phi_velocity[i]
+                                  /*
+                                  -
+                                  time_stepping.get_gamma()[1] /
+                                  parmeters.Re *
+                                  scratch.old_velocity_gradients[q] *
+                                  scratch.grad_phi_velocity[i]
+                                  -
+                                  time_stepping.get_gamma()[2] /
+                                  parmeters.Re *
+                                  scratch.old_old_velocity_gradients[q] *
+                                  scratch.grad_phi_velocity[i]
+                                  */
                                   +
                                   scratch.pressure_tmp_values[q] *
                                   scratch.div_phi_velocity[i]);
+      
+      /* if (!flag_semi_implicit_scheme)
+          switch (convective_term_form)
+          {
+            case RunTimeParameters::ConvectionTermForm::convective:
+            {
+              data.local_diffusion_step_rhs(i) -=
+                    scratch.velocity_fe_values.JxW(q) * (
+                    time_stepping.get_beta()[1]
+                    scratch.phi_velocity[i] *
+                    scratch.old_velocity_gradients[q] *  
+                    scratch.old_velocity_values[q]
+                    +
+                    time_stepping.get_beta()[0]
+                    scratch.phi_velocity[i] *
+                    scratch.old_old_velocity_gradients[q] *  
+                    scratch.old_old_velocity_values[q]);
+              break;
+            }
+            case RunTimeParameters::ConvectionTermForm::skewsymmetric:
+            {
+              data.local_diffusion_step_rhs(i) -=
+                    scratch.velocity_fe_values.JxW(q) * (
+                    time_stepping.get_beta()[1] *
+                    (scratch.phi_velocity[i] *
+                    scratch.old_velocity_gradients[q] *
+                    scratch.old_velocity_values[q]
+                    +
+                    0.5 *
+                    scratch.old_velocity_divergences[q] *
+                    scratch.old_velocity_values[q] * 
+                    scratch.phi_velocity[i]))
+                    +
+                    time_stepping.get_beta()[0] *
+                    (scratch.phi_velocity[i] *
+                    scratch.old_old_velocity_gradients[q] *
+                    scratch.old_old_velocity_values[q]
+                    +
+                    0.5 *
+                    scratch.old_old_velocity_divergences[q] *
+                    scratch.old_old_velocity_values[q] * 
+                    scratch.phi_velocity[i])));
+              break;
+            }
+            case RunTimeParameters::ConvectionTermForm::divergence:
+            {
+              data.local_diffusion_step_rhs(i) -=
+                    scratch.velocity_fe_values.JxW(q) * (
+                    time_stepping.get_beta()[1] *
+                    (scratch.phi_velocity[i] *
+                    scratch.old_velocity_gradients[q] *
+                    scratch.old_velocity_values[q]
+                    +
+                    scratch.old_velocity_divergences[q] *
+                    scratch.old_velocity_values[q] *
+                    scratch.phi_velocity[i]))
+                    +
+                    time_stepping.get_beta()[0] *
+                    (scratch.phi_velocity[i] *
+                    scratch.old_old_velocity_gradients[q] *
+                    scratch.old_old_velocity_values[q]
+                    +
+                    scratch.old_old_velocity_divergences[q] *
+                    scratch.old_old_velocity_values[q] * 
+                    scratch.phi_velocity[i])));
+              break;
+            }
+            case RunTimeParameters::ConvectionTermForm::rotational:
+            {
+              data.local_diffusion_step_rhs(i) -=
+                    scratch.velocity_fe_values.JxW(q) * (
+                    time_stepping.get_beta()[1] *
+                    (scratch.phi_velocity[i] *
+                    cross_product_3d(
+                      scratch.old_velocity_gradients[q],
+                      scratch.old_velocity_values[q]))
+                    +
+                    time_stepping.get_beta()[0] *
+                    (scratch.phi_velocity[i] *
+                    cross_product_3d(
+                      scratch.old_old_velocity_curls[q],
+                      scratch.old_old_velocity_values[q])));
+              break;
+            }
+            default:
+              Assert(false, ExcNotImplemented());
+          };
+       */
 
       // assemble matrix for inhomogeneous boundary conditions
       if (velocity.constraints.is_inhomogeneously_constrained(
@@ -115,7 +253,13 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
         scratch.velocity_fe_values[velocities].get_function_divergences(
                             extrapolated_velocity, 
                             scratch.extrapolated_velocity_divergences);
+        /*
+        scratch.velocity_fe_values[velocities].get_function_curls(
+                            extrapolated_velocity, 
+                            scratch.extrapolated_velocity_curls);
+         */
 
+        // Loop to be deleted when the the VSIMEX scheme is implemented
         for (unsigned int k = 0; k < scratch.velocity_dofs_per_cell; ++k)
           scratch.grad_phi_velocity[k] = 
                     scratch.velocity_fe_values[velocities].gradient(k, q);
@@ -131,11 +275,12 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                             scratch.phi_velocity[j] *
                             scratch.phi_velocity[i]
                             +
+                            /* time_stepping.get_gamma()[2] * */
                             1.0 / parameters.Re *
                             scalar_product(
                               scratch.grad_phi_velocity[j],
                               scratch.grad_phi_velocity[i])
-                            +
+                            + /* The following two terms are to be deleted */
                             scratch.phi_velocity[j] *
                             scratch.grad_phi_velocity[i] *  
                             scratch.extrapolated_velocity_values[q]            
@@ -145,6 +290,61 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                             scratch.phi_velocity[j] * 
                             scratch.phi_velocity[i])  
                             * scratch.velocity_fe_values.JxW(q);
+        /*
+        if (flag_semi_implicit_scheme)
+          switch (convective_term_form)
+          {
+            case RunTimeParameters::ConvectionTermForm::convective:
+            {
+              data.local_matrix_for_inhomogeneous_bc(j, i) +=
+                    scratch.velocity_fe_values.JxW(q) * (
+                    scratch.phi_velocity[j] *
+                    scratch.grad_phi_velocity[i] *
+                    scratch.extrapolated_velocity_values[q]);
+              break;
+            }
+            case RunTimeParameters::ConvectionTermForm::skewsymmetric:
+            {
+              data.local_matrix_for_inhomogeneous_bc(j, i) +=
+                    scratch.velocity_fe_values.JxW(q) * (
+                    scratch.phi_velocity[j] *
+                    scratch.grad_phi_velocity[i] *  
+                    scratch.extrapolated_velocity_values[q]            
+                    +                                    
+                    0.5 *                                
+                    scratch.extrapolated_velocity_divergences[q] *            
+                    scratch.phi_velocity[j] * 
+                    scratch.phi_velocity[i]);
+              break;
+            }
+            case RunTimeParameters::ConvectionTermForm::divergence:
+            {
+              data.local_matrix_for_inhomogeneous_bc(j, i) +=
+                    scratch.velocity_fe_values.JxW(q) * (
+                    scratch.phi_velocity[j] *
+                    scratch.grad_phi_velocity[i] *  
+                    scratch.extrapolated_velocity_values[q]
+                    +
+                    scratch.extrapolated_velocity_divergences[q] *
+                    scratch.phi_velocity[j] * 
+                    scratch.phi_velocity[i]);
+              break;
+            }
+            case RunTimeParameters::ConvectionTermForm::rotational:
+            {
+              // This form needs to be discussed
+              data.local_matrix_for_inhomogeneous_bc(j, i) +=
+                    scratch.velocity_fe_values.JxW(q) * (
+                    scratch.phi_velocity[j] *
+                    cross_product_3d(
+                      scratch.extrapolated_velocity_curls[q],
+                      scratch.phi_velocity[i]));
+              break;
+            }
+            default:
+              Assert(false, ExcNotImplemented());
+          };
+        */
       }
 
     } // loop over local dofs
@@ -162,7 +362,7 @@ void NavierStokesProjection<dim>::copy_local_to_global_diffusion_step_rhs
                                 data.local_matrix_for_inhomogeneous_bc);
 }
 
-} // namespace Step35
+} // namespace RMHD
 
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::assemble_diffusion_step_rhs();
