@@ -3,9 +3,6 @@
 # Output frequency of diagnostic data on the terminal.
 set diagnostics_output_frequency = 1
 
-# This indicates whether the problem solves the DFG benchmark or step-35
-set flag_DFG_benchmark           = false
-
 # Graphical output frequency.
 set graphical_output_frequency   = 100
 
