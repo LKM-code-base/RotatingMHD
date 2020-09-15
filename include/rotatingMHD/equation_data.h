@@ -85,7 +85,35 @@ public:
   virtual double value(const Point<dim> &p,
                       const unsigned int component = 0) const override;
 };
-}
+} // namespace DFG
+
+namespace TGV
+{
+template <int dim>
+class VelocityExactSolution : public Function<dim>
+{
+public:
+  VelocityExactSolution(const double &Re, const double time = 0);
+
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+  
+  const double Re;
+};
+
+template <int dim>
+class PressureExactSolution : public Function<dim>
+{
+public:
+  PressureExactSolution(const double &Re, const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                      const unsigned int component = 0) const override;
+
+  const double Re;
+};
+} // namespace TGV
+
 } // namespace EquationData
 
 } // namespace RMHD
