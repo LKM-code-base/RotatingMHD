@@ -15,7 +15,10 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix = 0.;
 
     velocity_mass_plus_laplace_matrix.add
-    (1.0 / parameters.Re,
+    ((parameters.flag_full_vsimex_scheme) ? 
+        time_stepping.get_gamma()[0] : 
+        1.0
+     / parameters.Re,
      velocity_laplace_matrix);
 
     velocity_mass_plus_laplace_matrix.add
@@ -25,9 +28,12 @@ assemble_diffusion_step()
     if (!parameters.time_stepping_parameters.adaptive_time_stepping)
       flag_diffusion_matrix_assembled = true; 
   }
-  velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
-  velocity_system_matrix.add(1., velocity_advection_matrix);
 
+  if (parameters.flag_semi_implicit_scheme)
+  {
+    velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
+    velocity_system_matrix.add(1., velocity_advection_matrix);
+  }
   /* Right hand side setup */
   assemble_diffusion_step_rhs();
 }
@@ -42,8 +48,13 @@ solve_diffusion_step(const bool reinit_prec)
   LinearAlgebra::MPI::Vector distributed_velocity(velocity_rhs);
   distributed_velocity = velocity.solution;
 
+  LinearAlgebra::MPI::SparseMatrix  &system_matrix =
+    (parameters.flag_semi_implicit_scheme) ?
+      velocity_system_matrix :
+      velocity_mass_plus_laplace_matrix;
+
   if (reinit_prec)
-    diffusion_step_preconditioner.initialize(velocity_system_matrix);
+    diffusion_step_preconditioner.initialize(system_matrix);
 
   SolverControl solver_control(parameters.n_maximum_iterations,
                                std::max(parameters.relative_tolerance * velocity_rhs.l2_norm(),
@@ -58,7 +69,7 @@ solve_diffusion_step(const bool reinit_prec)
 
   try
   {
-    solver.solve(velocity_system_matrix,
+    solver.solve(system_matrix,
                  distributed_velocity,
                  velocity_rhs,
                  diffusion_step_preconditioner);
