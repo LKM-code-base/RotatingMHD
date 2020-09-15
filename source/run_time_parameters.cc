@@ -23,6 +23,7 @@ ParameterSet::ParameterSet()
 :
 time_stepping_parameters(),
 projection_method(ProjectionMethod::rotational),
+convection_term_form(ConvectionTermForm::skewsymmetric),
 Re(1.0),
 n_global_refinements(0),
 p_fe_degree(1),
@@ -33,6 +34,8 @@ solver_update_preconditioner(15),
 relative_tolerance(1e-6),
 solver_diag_strength(0.01),
 flag_verbose_output(true),
+flag_semi_implicit_scheme(true),
+flag_full_vsimex_scheme(false),
 graphical_output_interval(15)
 {}
 
@@ -77,6 +80,11 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                     "rotational",
                     Patterns::Selection("rotational|standard"),
                     " Projection method to implement. ");
+
+  prm.declare_entry("convection_term_form",
+                    "skewsymmetric",
+                    Patterns::Selection("standard|skewsymmetric|divergence|rotational"),
+                    " Form the of the convection term to implement. ");
 
   prm.enter_subsection("Physical parameters");
   {
@@ -144,6 +152,16 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                     Patterns::Bool(),
                     "Verbosity flag.");
 
+  prm.declare_entry("semi_implicit_scheme_flag",
+                    "true",
+                    Patterns::Bool(),
+                    "Semi implicit scheme flag.");
+
+  prm.declare_entry("full_vsimex_flag",
+                    "true",
+                    Patterns::Bool(),
+                    "Full VSIMEX method flag.");
+
   prm.declare_entry("graphical_output_frequency",
                     "1",
                     Patterns::Integer(1),
@@ -163,33 +181,45 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
 
   if (prm.get("projection_method") == std::string("rotational"))
     projection_method = ProjectionMethod::rotational;
-  else
+  else if (prm.get("projection_method") == std::string("standard"))
     projection_method = ProjectionMethod::standard;
+  else
+    AssertThrow(false,
+                ExcMessage("Unexpected projection method."));
+
+  if (prm.get("convection_term_form") == std::string("standard"))
+    convection_term_form = ConvectionTermForm::standard;
+  else if (prm.get("convection_term_form") == std::string("skewsymmetric"))
+    convection_term_form = ConvectionTermForm::skewsymmetric;
+  else if (prm.get("convection_term_form") == std::string("divergence"))
+    convection_term_form = ConvectionTermForm::divergence;
+  else if (prm.get("convection_term_form") == std::string("rotational"))
+    convection_term_form = ConvectionTermForm::rotational;
+  else
+    AssertThrow(false,
+                ExcMessage("Unexpected convection term form."));
+  
 
   prm.enter_subsection("Physical parameters");
   {
-    /*
-     * How about a some sanity checks?
-     */
     Re  = prm.get_double("Reynolds_number");
+
+    Assert(Re > 0, ExcLowerRange(Re, 0));
   }
   prm.leave_subsection();
 
   prm.enter_subsection("Spatial discretization parameters");
   {
-    /*
-     * How about a some sanity checks?
-     */
     n_global_refinements  = prm.get_integer("n_global_refinements");
+
     p_fe_degree           = prm.get_integer("p_fe_degree");
+
+    Assert(n_global_refinements > 0, ExcLowerRange(n_global_refinements, 0));
   }
   prm.leave_subsection();
 
   prm.enter_subsection("Parameters of the diffusion-step solver");
   {
-    /*
-     * How about a some sanity checks?
-     */
     n_maximum_iterations  = prm.get_integer("n_maximum_iterations");
 
     relative_tolerance    = prm.get_double("relative_tolerance");
@@ -201,10 +231,19 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
     solver_diag_strength  = prm.get_double("solver_diag_strength");
 
     solver_update_preconditioner  = prm.get_integer("update_frequency_preconditioner");
+  
+    Assert(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
+    Assert(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
+    Assert(solver_krylov_size > 0, ExcLowerRange(solver_krylov_size, 0));
+    Assert(solver_off_diagonals > 0, ExcLowerRange(solver_off_diagonals, 0));
+    Assert(solver_diag_strength > 0, ExcLowerRange(solver_diag_strength, 0));
+    Assert(solver_update_preconditioner > 0, ExcLowerRange(solver_update_preconditioner, 0));
   }
   prm.leave_subsection();
 
   flag_verbose_output       = prm.get_bool("verbosity_flag");
+  flag_semi_implicit_scheme = prm.get_bool("semi_implicit_scheme_flag");
+  flag_full_vsimex_scheme   = prm.get_bool("full_vsimex_flag");
 
   graphical_output_interval = prm.get_integer("graphical_output_frequency");
   terminal_output_interval  = prm.get_integer("diagnostics_output_frequency");

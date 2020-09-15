@@ -9,8 +9,17 @@ set graphical_output_frequency   = 100
 # Projection method to implement.
 set projection_method            = rotational
 
+# Projection method to implement.
+set convection_term_form         = skewsymmetric
+
 # Verbosity flag.
 set verbosity_flag               = false
+
+# Semi implicit scheme flag.
+set semi_implicit_scheme_flag    = true
+
+# Full VSIMEX method flag.
+set full_vsimex_flag             = false
 
 
 subsection Parameters of the diffusion-step solver
