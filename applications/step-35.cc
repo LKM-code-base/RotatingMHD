@@ -18,7 +18,8 @@
 
 namespace RMHD
 {
-  using namespace dealii;
+
+using namespace dealii;
 
 template <int dim>
 class Step35 : public Problem<dim>
@@ -30,9 +31,6 @@ public:
            const unsigned int terminal_output_periodicity   = 10,
            const unsigned int graphical_output_periodicity  = 10);
 private:
-  ConditionalOStream                          pcout;
-
-  parallel::distributed::Triangulation<dim>   triangulation;  
 
   std::vector<types::boundary_id>             boundary_ids;
 
@@ -68,14 +66,8 @@ template <int dim>
 Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(),
-pcout(std::cout,
-      (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
-triangulation(MPI_COMM_WORLD,
-              typename Triangulation<dim>::MeshSmoothing(
-              Triangulation<dim>::smoothing_on_refinement |
-              Triangulation<dim>::smoothing_on_coarsening)),
-velocity(parameters.p_fe_degree + 1, triangulation),
-pressure(parameters.p_fe_degree, triangulation),
+velocity(parameters.p_fe_degree + 1, this->triangulation),
+pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters, velocity, pressure, time_stepping),
 inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
@@ -90,15 +82,14 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   navier_stokes.setup();
   initialize();
 
-  pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
+  this->pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
 }
 
 template <int dim>
-void Step35<dim>::
-make_grid(const unsigned int n_global_refinements)
+void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 {
   GridIn<dim> grid_in;
-  grid_in.attach_triangulation(triangulation);
+  grid_in.attach_triangulation(this->triangulation);
 
   {
     std::string   filename = "nsbench2.inp";
@@ -107,14 +98,14 @@ make_grid(const unsigned int n_global_refinements)
     grid_in.read_ucd(file);
   }
 
-  triangulation.refine_global(n_global_refinements);
+  this->triangulation.refine_global(n_global_refinements);
 
-  boundary_ids = triangulation.get_boundary_ids();
+  boundary_ids = this->triangulation.get_boundary_ids();
 
-  pcout     << "Number of refines                     = " 
-            << n_global_refinements << std::endl;
-  pcout     << "Number of active cells                = " 
-            << triangulation.n_active_cells() << std::endl;
+  this->pcout << "Number of refines                     = "
+              << n_global_refinements << std::endl;
+  this->pcout << "Number of active cells                = "
+              << this->triangulation.n_active_cells() << std::endl;
 }
 
 template <int dim>
@@ -123,12 +114,12 @@ void Step35<dim>::setup_dofs()
   velocity.setup_dofs();
   pressure.setup_dofs();
   
-  pcout     << "Number of velocity degrees of freedom = " 
-            << velocity.dof_handler.n_dofs()
-            << std::endl
-            << "Number of pressure degrees of freedom = " 
-            << pressure.dof_handler.n_dofs()
-            << std::endl;
+  this->pcout << "Number of velocity degrees of freedom = "
+              << velocity.dof_handler.n_dofs()
+              << std::endl
+              << "Number of pressure degrees of freedom = "
+              << pressure.dof_handler.n_dofs()
+              << std::endl;
 }
 
 template <int dim>
@@ -262,8 +253,8 @@ void Step35<dim>::run(
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
-      // snapshot stage
-    pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
+    // snapshot stage
+    this->pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
 
     time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());
