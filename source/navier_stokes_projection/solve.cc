@@ -7,9 +7,9 @@ template <int dim>
 void NavierStokesProjection<dim>::solve(const unsigned int step)
 {
   diffusion_step((step % parameters.solver_update_preconditioner == 0) ||
-                 (step == time_stepping.get_order()));
-  projection_step((step == time_stepping.get_order()));
-  pressure_correction((step == time_stepping.get_order()));
+                 (step == (time_stepping.get_order()-1)));
+  projection_step((step == (time_stepping.get_order()-1)));
+  pressure_correction((step == (time_stepping.get_order()-1)));
 }
 
 template <int dim>
@@ -19,39 +19,68 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   // of the pertinent vectors to be able to perform the sadd()
   // operations.
   {
+    const std::vector<double> eta = time_stepping.get_eta();
+    AssertIsFinite(eta[0]);
+    AssertIsFinite(eta[1]);
+
     LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
-    distributed_old_velocity.sadd(VSIMEX.phi[1], 
-                                  VSIMEX.phi[0],
+    distributed_old_velocity.sadd(eta[0],
+                                  eta[1],
                                   distributed_old_old_velocity);
     extrapolated_velocity = distributed_old_velocity;
   }
 
   {
+    const std::vector<double> alpha = time_stepping.get_alpha();
+    const std::vector<double> old_alpha_zero   = time_stepping.get_old_alpha_zero();
+    const std::vector<double> old_step_size = time_stepping.get_old_step_size();
+    AssertIsFinite(time_stepping.get_next_step_size());
+    AssertIsFinite(alpha[1]);
+    AssertIsFinite(alpha[2]);
+    AssertIsFinite(old_alpha_zero[0]);
+    AssertIsFinite(old_alpha_zero[1]);
+    AssertIsFinite(old_step_size[0]);
+    AssertIsFinite(old_step_size[1]);
+
     LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_phi(pressure_rhs);
     LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
     distributed_old_pressure  = pressure.old_solution;
     distributed_old_old_phi   = old_old_phi;
     distributed_phi           = old_phi;
+    /*
+     * These coefficients are wrong in case of a variable size of the time step.
+     */
     distributed_old_pressure.sadd(1.,
-                                  4. / 3.,
+                                  - old_step_size[0] /
+                                  time_stepping.get_next_step_size() *
+                                  alpha[1] / old_alpha_zero[0],
                                   distributed_phi);
     distributed_old_pressure.sadd(1.,
-                                  -1. / 3.,
+                                  - old_step_size[1] /
+                                  time_stepping.get_next_step_size() *
+                                  alpha[2] / old_alpha_zero[1],
                                   distributed_old_old_phi);
     pressure_tmp = distributed_old_pressure;
   }
 
   {
+    const std::vector<double> alpha = time_stepping.get_alpha();
+    AssertIsFinite(alpha[1]);
+    AssertIsFinite(alpha[2]);
+    AssertIsFinite(time_stepping.get_next_step_size());
+    AssertIsFinite(alpha[1] / time_stepping.get_next_step_size());
+    AssertIsFinite(alpha[2] / time_stepping.get_next_step_size());
+
     LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
-    distributed_old_velocity.sadd(VSIMEX.alpha[1],
-                                  VSIMEX.alpha[0],
+    distributed_old_velocity.sadd(alpha[1] / time_stepping.get_next_step_size(),
+                                  alpha[2] / time_stepping.get_next_step_size(),
                                   distributed_old_old_velocity);
     velocity_tmp = distributed_old_velocity;
   }

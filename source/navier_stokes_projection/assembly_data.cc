@@ -40,6 +40,7 @@ n_q_points(quadrature_formula.size()),
 dofs_per_cell(fe.dofs_per_cell),
 extrapolated_velocity_divergences(n_q_points),
 extrapolated_velocity_values(n_q_points),
+extrapolated_velocity_curls(n_q_points),
 phi_velocity(dofs_per_cell),
 grad_phi_velocity(dofs_per_cell)
 {}
@@ -54,6 +55,7 @@ n_q_points(data.n_q_points),
 dofs_per_cell(data.dofs_per_cell),
 extrapolated_velocity_divergences(n_q_points),
 extrapolated_velocity_values(n_q_points),
+extrapolated_velocity_curls(n_q_points),
 phi_velocity(dofs_per_cell),
 grad_phi_velocity(dofs_per_cell)
 {}
@@ -208,6 +210,15 @@ phi_velocity(velocity_dofs_per_cell),
 div_phi_velocity(velocity_dofs_per_cell),
 extrapolated_velocity_divergences(n_q_points),
 extrapolated_velocity_values(n_q_points),
+extrapolated_velocity_curls(n_q_points),
+old_velocity_divergences(n_q_points),
+old_velocity_values(n_q_points),
+old_velocity_curls(n_q_points),
+old_velocity_gradients(n_q_points),
+old_old_velocity_divergences(n_q_points),
+old_old_velocity_values(n_q_points),
+old_old_velocity_curls(n_q_points),
+old_old_velocity_gradients(n_q_points),
 grad_phi_velocity(velocity_dofs_per_cell)
 {}
 
@@ -228,6 +239,15 @@ phi_velocity(velocity_dofs_per_cell),
 div_phi_velocity(velocity_dofs_per_cell),
 extrapolated_velocity_divergences(n_q_points),
 extrapolated_velocity_values(n_q_points),
+extrapolated_velocity_curls(n_q_points),
+old_velocity_divergences(n_q_points),
+old_velocity_values(n_q_points),
+old_velocity_curls(n_q_points),
+old_velocity_gradients(n_q_points),
+old_old_velocity_divergences(n_q_points),
+old_old_velocity_values(n_q_points),
+old_old_velocity_curls(n_q_points),
+old_old_velocity_gradients(n_q_points),
 grad_phi_velocity(velocity_dofs_per_cell)
 {}
 

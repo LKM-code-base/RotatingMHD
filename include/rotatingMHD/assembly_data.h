@@ -32,6 +32,7 @@ struct LocalCellData
   unsigned int                dofs_per_cell;
   std::vector<double>         extrapolated_velocity_divergences;
   std::vector<Tensor<1,dim>>  extrapolated_velocity_values;
+  std::vector<Tensor<1,dim>>  extrapolated_velocity_curls;
   std::vector<Tensor<1,dim>>  phi_velocity;
   std::vector<Tensor<2,dim>>  grad_phi_velocity;
 
@@ -129,8 +130,16 @@ struct LocalCellData
   std::vector<double>                   div_phi_velocity;
   std::vector<double>                   extrapolated_velocity_divergences;
   std::vector<Tensor<1,dim>>            extrapolated_velocity_values;
+  std::vector<Tensor<1,dim>>            extrapolated_velocity_curls;
+  std::vector<double>                   old_velocity_divergences;
+  std::vector<Tensor<1, dim>>           old_velocity_values;
+  std::vector<Tensor<1, dim>>           old_velocity_curls;
+  std::vector<Tensor<2,dim>>            old_velocity_gradients;
+  std::vector<double>                   old_old_velocity_divergences;
+  std::vector<Tensor<1, dim>>           old_old_velocity_values;
+  std::vector<Tensor<1, dim>>           old_old_velocity_curls;
+  std::vector<Tensor<2,dim>>            old_old_velocity_gradients;
   std::vector<Tensor<2,dim>>            grad_phi_velocity;
-
 
   LocalCellData(const FESystem<dim>  &velocity_fe,
                 const FE_Q<dim>      &pressure_fe,

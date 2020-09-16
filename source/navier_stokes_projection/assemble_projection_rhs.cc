@@ -88,29 +88,11 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
 
     // loop over local dofs
     for (unsigned int i = 0; i < scratch.pressure_dofs_per_cell; ++i)
-    {
       data.local_projection_step_rhs(i) += 
                           -1.0 *
                           scratch.pressure_fe_values.JxW(q) *
                           scratch.velocity_divergence_values[q] *
                           scratch.phi_pressure[i];
-
-      // assemble matrix for inhomogeneous boundary conditions
-      if (pressure.constraints.is_inhomogeneously_constrained(
-        data.local_pressure_dof_indices[i]))
-      {
-        for (unsigned int k = 0; k < scratch.pressure_dofs_per_cell; ++k)
-          scratch.grad_phi_pressure[k] =
-                          scratch.pressure_fe_values.shape_grad(k, q);
-
-        for (unsigned int j = 0; j < scratch.pressure_dofs_per_cell; ++j)
-          data.local_matrix_for_inhomogeneous_bc(j, i) +=
-                                    scratch.pressure_fe_values.JxW(q) *
-                                    scratch.grad_phi_pressure[i] *
-                                    scratch.grad_phi_pressure[j];
-      }
-
-    } // loop over local dofs
   } // loop over quadrature points
 }
 
@@ -122,8 +104,7 @@ copy_local_to_global_projection_step_rhs(
   pressure.constraints.distribute_local_to_global
   (data.local_projection_step_rhs,
    data.local_pressure_dof_indices,
-   pressure_rhs,
-   data.local_matrix_for_inhomogeneous_bc);
+   pressure_rhs);
 }
 
 } // namespace Step35

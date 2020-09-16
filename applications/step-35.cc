@@ -40,8 +40,6 @@ private:
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
-  TimeDiscretization::VSIMEXCoefficients      VSIMEX;
-
   NavierStokesProjection<dim>                 navier_stokes;
   
   EquationData::Step35::VelocityInflowBoundaryCondition<dim>  
@@ -71,14 +69,11 @@ Problem<dim>(),
 velocity(parameters.p_fe_degree + 1, this->triangulation),
 pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
-VSIMEX(time_stepping.get_order()),
-navier_stokes(parameters, velocity, pressure, VSIMEX, time_stepping),
+navier_stokes(parameters, velocity, pressure, time_stepping),
 inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
 velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
 pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
 {
-  // The VSIMEXMethod class is initialized with t_0 = -dt and then
-  // advanced in order to populate a private member of the class.
   make_grid(parameters.n_global_refinements);
   setup_dofs();
   setup_constraints();
@@ -86,6 +81,8 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   pressure.reinit();
   navier_stokes.setup();
   initialize();
+
+  pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
 }
 
 template <int dim>
@@ -245,33 +242,42 @@ void Step35<dim>::run(
               const unsigned int  terminal_output_periodicity,
               const unsigned int  graphical_output_periodicity)
 {
-(void)flag_verbose_output;
+  (void)flag_verbose_output;
 
-for (unsigned int k = 0; k < time_stepping.get_order(); ++k)
-  time_stepping.advance_time();
+  /*
+   * What is going on here? The fact that the initial time step is first order
+   * time step
+   */
+  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
+    time_stepping.advance_time();
 
-time_stepping.get_coefficients(VSIMEX);
-
-while (time_stepping.get_current_time() <= time_stepping.get_end_time())
-  {    
-    navier_stokes.solve(time_stepping.get_step_number());
-
-    postprocessing((time_stepping.get_step_number() % 
-                    terminal_output_periodicity == 0) ||
-                   time_stepping.is_at_end());
-
-    if ((time_stepping.get_step_number() % 
-          graphical_output_periodicity == 0) ||
-        time_stepping.is_at_end())
-      output();
+  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  {
+      // snapshot stage
+    pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
 
     time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());
+
+    // update stage
+    time_stepping.update_coefficients();
+
+    navier_stokes.solve(time_stepping.get_step_number());
+
+    // snapshot stage
+    postprocessing((time_stepping.get_step_number() % 
+                    terminal_output_periodicity == 0) ||
+                   (time_stepping.get_next_time() == 
+                   time_stepping.get_end_time()));
+
+    if ((time_stepping.get_step_number() % 
+          graphical_output_periodicity == 0) ||
+        (time_stepping.get_next_time() == 
+                   time_stepping.get_end_time()))
+      output();
+
     update_solution_vectors();
     
-    if (time_stepping.is_at_end())
-      break;
-    time_stepping.get_coefficients(VSIMEX);
     time_stepping.advance_time();
   }
 }
@@ -280,37 +286,40 @@ template <int dim>
 void Step35<dim>::
 point_evaluation(const Point<dim>   &point) const
 {
-const std::pair<typename DoFHandler<dim>::active_cell_iterator,
-                  Point<dim>> cell_point =
-    GridTools::find_active_cell_around_point(
-                                    StaticMappingQ1<dim, dim>::mapping,
-                                    velocity.dof_handler, 
-                                    point);
-if (cell_point.first->is_locally_owned())
-{
-  Vector<double> point_value_velocity(dim);
-  VectorTools::point_value(velocity.dof_handler,
-                          velocity.solution,
-                          point,
-                          point_value_velocity);
+  /*
+   * Is the point evaluation not duplicate? You have implemented
+   * a function mpi_point_value in auxiliary_functions.cc?
+   */
+  const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
+  cell_point =
+  GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
+                                           velocity.dof_handler,
+                                           point);
+  if (cell_point.first->is_locally_owned())
+  {
+    Vector<double> point_value_velocity(dim);
+    VectorTools::point_value(velocity.dof_handler,
+                            velocity.solution,
+                            point,
+                            point_value_velocity);
 
-  const double point_value_pressure
-  = VectorTools::point_value(pressure.dof_handler,
-                            pressure.solution,
-                            point);
-  std::cout << "Step = " << std::setw(2) 
-            << time_stepping.get_step_number() 
-            << " Time = " << std::noshowpos << std::scientific
-            << time_stepping.get_current_time()
-            << " Velocity = (" << std::showpos << std::scientific
-            << point_value_velocity[0] 
-            << ", " << std::showpos << std::scientific
-            << point_value_velocity[1] 
-            << ") Pressure = " << std::showpos << std::scientific
-            << point_value_pressure
-            << " Time step = " << std::showpos << std::scientific
-            << time_stepping.get_next_step_size() << std::endl;
-}
+    const double point_value_pressure
+    = VectorTools::point_value(pressure.dof_handler,
+                              pressure.solution,
+                              point);
+    std::cout << "Step = " << std::setw(2)
+              << time_stepping.get_step_number()
+              << " Time = " << std::noshowpos << std::scientific
+              << time_stepping.get_next_time()
+              << " Velocity = (" << std::showpos << std::scientific
+              << point_value_velocity[0]
+              << ", " << std::showpos << std::scientific
+              << point_value_velocity[1]
+              << ") Pressure = " << std::showpos << std::scientific
+              << point_value_pressure
+              << " Time step = " << std::showpos << std::scientific
+              << time_stepping.get_next_step_size() << std::endl;
+  }
 }
 
 } // namespace RMHD

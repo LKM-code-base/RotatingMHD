@@ -123,8 +123,7 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
             {
               /* The sign inversion here is due to how the normal
               vector is defined in the benchmark */
-              forces += (- 1.0 /
-                        (density * Re) *
+              forces += (- 1.0 / Re *
                         (normal_vectors[q] * 
                         velocity_gradients[q]
                         +
@@ -166,7 +165,7 @@ void DFG<dim>::print_step_data(DiscreteTime &time)
         << time.get_step_number() 
         << " Time = " 
         << std::noshowpos << std::scientific
-        << time.get_current_time()
+        << time.get_next_time()
         << " dp = " 
         << std::showpos << std::scientific
         << pressure_difference

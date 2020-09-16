@@ -14,6 +14,12 @@ void NavierStokesProjection<dim>::assemble_projection_step()
 
   /* Right hand side setup */
   assemble_projection_step_rhs();
+
+  /* Zeros out the DoFs on the boundary where Dirichlet
+     boundary conditions on the pressure or Neumann boundary
+     conditions on the stress tensor are given
+   */
+  pressure.constraints.set_zero(pressure_rhs);
 }
 
 template <int dim>
@@ -73,8 +79,11 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   pressure.constraints.distribute(distributed_phi);
 
-  distributed_phi *= (time_stepping.get_step_number() > 1 ?
-                      VSIMEX.alpha[2] :
+  /*
+   * Do we need the inline if statement at all?
+   */
+  distributed_phi *= (time_stepping.get_step_number() > 0 ?
+                      time_stepping.get_alpha()[0] / time_stepping.get_next_step_size():
                       1.0 / time_stepping.get_next_step_size());
 
   phi = distributed_phi;

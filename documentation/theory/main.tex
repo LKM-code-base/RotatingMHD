@@ -492,11 +492,13 @@ As you see, the results coincide in a pretty decent manner with those of the ben
 I did another simulation where modified the weak form pertinent to the divergence of the velocity gradient. As seen in \crefrange{Fig:Pressure}{Fig:Lift}, the values (Labeled 2DivSym) are also inside the benchmark range. But the solution behave weird near the inflow boundary. I uploaded a video with the results of using the \textsc{Laplace} operator named "Laplace.ogv" and another one using the $\nabla \cdot \Sym (\nabla \otimes ())$ operator named "Transpose.ogv". In the  "Transpose.ogv" file you can see the mentioned weird behaviour. This might be due to the time step size, the spatial discretization, or the $\nabla \cdot \Sym (\nabla \otimes ())$ operator. But I wanted to discuss the last option before doing tests.
 \subsection{Simulation time}
 The DFG benchmark websites proposes to simulate 3.5 seconds, then perform a restart and simulate until 30 seconds. At 25 seconds the flow should have stabilized itself according to them. \\
-In our simulation the time is scaled (35, 300 and 250 respectively). After the restart, the simulation appears to reach stationary behaviour way sooner
+In our simulation the time is scaled (35, 300 and 250 respectively). After the restart, the simulation appears to reach stationary behaviour way sooner (\cref{Fig:SimulationTime}). Should I keep simulating the whole 300 seconds or just stop at around 50-100?
 \begin{figure}
 	\centering
 	\includegraphics[width=0.5\linewidth]{SimulationTime.png}
 	\caption{The lift coefficient of both formulations (Zoomed in)}
 	\label{Fig:SimulationTime}
 \end{figure}
+\section{Note to the results shown}
+The above results were obtained with $\textrm{Re} = 0$, $\Delta t = \num{1e-2}$, $1728$ active cells, $14304$ velocity degrees of freedom and $1848$ pressure degrees of freedom.
 \end{document}

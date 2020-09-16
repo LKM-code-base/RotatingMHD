@@ -34,13 +34,6 @@ enum class VSIMEXScheme
    */
   CNFE,
   /*!
-   * @brief Combination of the Crank-Nicolson and forward (backward?) Euler method.
-   * @details Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$.
-   * @attention SG: The following enum is duplicate!? What is the difference to
-   * the previous one?
-   */
-  BEFE,
-  /*!
    * @brief Applies the backward differentiation formula of second order.
    */
   BDF2,
@@ -153,55 +146,6 @@ struct TimeSteppingParameters
 };
 
 /*!
-* @struct VSIMEXCoefficients
-* @brief An struct containing all the coefficients of the VSIMEX schemes.
-* @details The struct also includes the coefficients of a Taylor
-* extrapolation of first order.
-*/
-struct VSIMEXCoefficients
-{
-  std::vector<double> alpha;  /**< A vector with the \f$ \alpha \f$ coefficients. */
-
-  std::vector<double> beta;   /**< A vector with the \f$ \beta \f$ coefficients. */
-
-  std::vector<double> gamma;  /**< A vector with the \f$ \gamma \f$ coefficients. */
-
-  std::vector<double> phi;    /**< A vector with the Taylor expansion coefficients. */
-
-  /*!
-  *  @brief The default constructor of the struct.
-  */
-  VSIMEXCoefficients();
-
-  /*!
-  *  @brief A constructor taking the order of the scheme as input.
-  */
-  VSIMEXCoefficients(const unsigned int                 &order);
-
-  /*!
-  *  @brief A copy constructor.
-  */
-  VSIMEXCoefficients(const VSIMEXCoefficients           &data);
-
-  /*!
-  *  @brief Overloaded operator used in the copy constructor.
-  */
-  VSIMEXCoefficients operator=(const VSIMEXCoefficients &data_to_copy);
-
-  /*!
-  *  @brief A reinitializing method.
-  *  @details Passes the order to the respective constructor.
-  */
-  void reinit(const unsigned int order);
-
-  /*!
-  *  A method to output the coefficients to the terminal.
-  */
-  template<typename Stream>
-  void output(Stream &stream) const;
-};
-
-/*!
 * @class VSIMEXMethod
 * @brief A time stepping class implementing the VSIMEX coefficients.
 * @details Here goes a longer explanation with formulas of the VSIMEX
@@ -223,22 +167,28 @@ public:
   unsigned int get_order() const;
 
   /*!
-  * @brief A method returning the parameters of the VSIMEX scheme.
-  */
-  std::vector<double> get_parameters() const;
+   * @brief A method returning the coefficients \f$\alpha_i \f$.
+   */
+  const std::vector<double>& get_alpha() const;
 
   /*!
-  * @brief A method to get the updated coefficients.
-  * @details This method calls a private method which computes the
-  * updated coefficients and then passes the values to the output.
-  * @attention The method has to be called between 
-  * the set_new_time_step() and the advance_time() methods in order for
-  * it to calculate the correct parameters.
-  * @attention In the final version of VSIMEXMethod, we must make sure that the
-  * method is called in the right place and otherwise an error is thrown.The
-  * *stupid user* might be aware of this constraint!
-  */ 
-  void get_coefficients(VSIMEXCoefficients &output);
+   * @brief A method returning the coefficients \f$\beta_i \f$.
+   */
+  const std::vector<double>& get_beta() const;
+
+  /*!
+   * @brief A method returning the coefficients \f$\gamma_i \f$.
+   */
+  const std::vector<double>& get_gamma() const;
+
+  /*!
+   * @brief A method returning the coefficients \f$\phi_i \f$.
+   */
+  const std::vector<double>& get_eta() const;
+
+  const std::vector<double>& get_old_alpha_zero() const;
+
+  const std::vector<double>& get_old_step_size() const;
 
   /*!
   * @brief A method passing the *desired* size of the next time step to the
@@ -250,12 +200,43 @@ public:
   */
   void set_desired_next_step_size(const double time_step_size);
 
+  /*!
+   * @brief Output of the current step number, the current time and the size of
+   * the time step.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex);
+
+  /*!
+   * @brief Output of the current table of coefficients of the variable step
+   * size IMEX scheme to a stream object.
+   */
+  template<typename Stream>
+  void print_coefficients(Stream &stream) const;
+
+  /*!
+   * @brief Returns a string with the name of the variable step size IMEX
+   * scheme.
+   */
+  std::string get_name() const;
+
+  /*!
+  *  @brief A method that updates the coefficients.
+  *  @details Here goes a longer explanation with the formulas.
+  */
+  void update_coefficients();
+
 private:
 
   /*!
-   * @brief VSIMEX scheme being used.
+   * @brief Method which updates the sizes of the coefficient vectors .
    */
-  VSIMEXScheme        scheme;
+  void reinit();
+
+  /*!
+   * @brief Parameter controlling the behavior of this class.
+   */
+  const TimeSteppingParameters &parameters;
 
   /*!
    * @brief Order of the VSIMEX scheme.
@@ -267,12 +248,30 @@ private:
    * @attention This designation is very misleading w.r.t. the
    * TimeSteppingParameters!
    */
-  std::vector<double> imex_constants;
+  std::vector<double> vsimex_parameters;
 
   /*!
-   * @brief Coefficients of the VSIMEX scheme.
+   * @brief A vector containing the \f$ \alpha \f$ coefficients.
+   * @details Public access is provided through the method get_alpha().
    */
-  VSIMEXCoefficients  coefficients;
+  std::vector<double> alpha;
+
+  /*!
+   * @brief A vector containing the \f$ \beta \f$ coefficients.
+   * @details Public access is provided through the method get_beta().
+   */
+  std::vector<double> beta;
+
+  /*!
+   * @brief A vector with the \f$ \gamma \f$ coefficients.
+   * @details Public access is provided through the method get_gamma().
+   */
+  std::vector<double> gamma;
+
+  /*!
+   * @brief A vector containing coefficients required for extrapolation.
+   */
+  std::vector<double> eta;
 
   /*!
    * @brief Ratio of the sizes of the current and the old time step. Denoted by
@@ -282,36 +281,61 @@ private:
   double              omega;
 
   /*!
-   * @brief Size of the current time step \f$\Delta t_n\f$.
-   * @attention Is duplicate because this variable exist the parent class DiscreteTime!
-   */
-  double              time_step;
+   * @brief A vector containing the \f$ \alpha_0 \f$ of previous time steps.
+   * @attention This member is only useful in the NavierStokesProjection
+   * class. 
+   */ 
+  std::vector<double> old_alpha_zero;
 
   /*!
-   * @brief Size of the previous time step \f$ \Delta t_{n-1}\f$.
-   * @attention Is duplicate because this variable exist the parent class DiscreteTime!
-   */
-  double              old_time_step;
+   * @brief A vector containing the previous time steps.
+   * @details The DiscreteTime class stores only the previous time step.
+   * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
+   * is the order of the scheme.
+   * @attention This member is only useful in the NavierStokesProjection
+   * class. 
+   */ 
+  std::vector<double> old_step_size_values;
 
-  double              timestep_lower_bound; /**< Lower bound of the timestep. */
-  double              timestep_upper_bound; /**< Upper bound of the timestep. */
-
-  /*!
-  *  @brief A method that updates the coefficients.
-  *  @details Here goes a longer explanation with the formulas.
-  */
-  void update_coefficients();
 };
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex);
 
 // inline functions
 inline unsigned int VSIMEXMethod::get_order() const
 {
-  return order;
+  return (order);
 }
 
-inline std::vector<double> VSIMEXMethod::get_parameters() const
+inline const std::vector<double>& VSIMEXMethod::get_alpha() const
 {
-  return imex_constants;
+  return (alpha);
+}
+
+inline const std::vector<double>& VSIMEXMethod::get_beta() const
+{
+  return (beta);
+}
+
+inline const std::vector<double>& VSIMEXMethod::get_gamma() const
+{
+  return (gamma);
+}
+
+inline const std::vector<double>& VSIMEXMethod::get_eta() const
+{
+  return (eta);
+}
+
+inline const std::vector<double>& VSIMEXMethod::get_old_alpha_zero() const
+{
+  return (old_alpha_zero);
+}
+
+inline const std::vector<double>& VSIMEXMethod::get_old_step_size() const
+{
+  return (old_step_size_values);
 }
 
 } // namespace TimeDiscretization
