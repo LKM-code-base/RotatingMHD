@@ -34,13 +34,6 @@ enum class VSIMEXScheme
    */
   CNFE,
   /*!
-   * @brief Combination of the Crank-Nicolson and forward (backward?) Euler method.
-   * @details Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$.
-   * @attention SG: The following enum is duplicate!? What is the difference to
-   * the previous one?
-   */
-  BEFE,
-  /*!
    * @brief Applies the backward differentiation formula of second order.
    */
   BDF2,
@@ -193,9 +186,9 @@ public:
    */
   const std::vector<double>& get_eta() const;
 
-  const std::vector<double>& get_old_alpha_0_values() const;
+  const std::vector<double>& get_old_alpha_zero() const;
 
-  const std::vector<double>& get_old_step_size_values() const;
+  const std::vector<double>& get_old_step_size() const;
 
   /*!
   * @brief A method passing the *desired* size of the next time step to the
@@ -208,11 +201,24 @@ public:
   void set_desired_next_step_size(const double time_step_size);
 
   /*!
-   * @brief Output the current coefficients of the variable step size IMEX
-   * scheme to a stream object.
+   * @brief Output of the current step number, the current time and the size of
+   * the time step.
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex);
+
+  /*!
+   * @brief Output of the current table of coefficients of the variable step
+   * size IMEX scheme to a stream object.
+   */
+  template<typename Stream>
+  void print_coefficients(Stream &stream) const;
+
+  /*!
+   * @brief Returns a string with the name of the variable step size IMEX
+   * scheme.
+   */
+  std::string get_name() const;
 
   /*!
   *  @brief A method that updates the coefficients.
@@ -279,7 +285,7 @@ private:
    * @attention This member is only useful in the NavierStokesProjection
    * class. 
    */ 
-  std::vector<double> old_alpha_0_values;
+  std::vector<double> old_alpha_zero;
 
   /*!
    * @brief A vector containing the previous time steps.
@@ -322,12 +328,12 @@ inline const std::vector<double>& VSIMEXMethod::get_eta() const
   return (eta);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_old_alpha_0_values() const
+inline const std::vector<double>& VSIMEXMethod::get_old_alpha_zero() const
 {
-  return (old_alpha_0_values);
+  return (old_alpha_zero);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_old_step_size_values() const
+inline const std::vector<double>& VSIMEXMethod::get_old_step_size() const
 {
   return (old_step_size_values);
 }
