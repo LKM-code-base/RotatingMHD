@@ -88,7 +88,6 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
     // loop over local dofs
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
       for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
-      {
         switch (parameters.convection_term_form)
         {
           case RunTimeParameters::ConvectionTermForm::standard:
@@ -142,8 +141,6 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
           default:
             Assert(false, ExcNotImplemented());
         };
-      }
-
     // loop over local dofs
   } // loop over quadrature points
 }
