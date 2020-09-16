@@ -336,6 +336,13 @@ private:
   bool                                  flag_diffusion_matrix_assembled;
 
   /*!
+   * @brief A flag for the initializing of the solver.
+   * @details It is only set as true while initializing in order to 
+   * reuse methods of the normal solve procedure.
+   */
+  bool                                  flag_initializing;
+
+  /*!
    * @brief Setup of the sparsity spatterns of the matrices of the diffusion and
    * projection steps.
    */
