@@ -430,7 +430,7 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
-  pcout << "Solving until t = 35..." << std::endl;
+  this->pcout << "Solving until t = 35..." << std::endl;
   while (time_stepping.get_current_time() <= 35.0)
   {
     // snapshot stage
@@ -453,7 +453,7 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
     time_stepping.advance_time();
   }
 
-  pcout << "Restarting..." << std::endl;
+  this->pcout << "Restarting..." << std::endl;
   time_stepping.restart();
   velocity.old_old_solution = velocity.solution;
   navier_stokes.reinit_internal_entities();
@@ -465,8 +465,8 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
-  pcout << "Solving until t = " << time_stepping.get_end_time()
-        << "..." << std::endl;
+  this->pcout << "Solving until t = " << time_stepping.get_end_time()
+              << "..." << std::endl;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
