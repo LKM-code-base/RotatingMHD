@@ -25,10 +25,9 @@ Function<dim>(dim, time)
 
 template <int dim>
 void VelocityInitialCondition<dim>::vector_value
-(const Point<dim>  &p,
+(const Point<dim>  &/* point */,
  Vector<double>    &values) const
 {
-    (void)p;
     values[0] = 0.0;
     values[1] = 0.0;
 }
