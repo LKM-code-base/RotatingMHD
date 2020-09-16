@@ -186,9 +186,9 @@ public:
    */
   const std::vector<double>& get_eta() const;
 
-  const std::vector<double>& get_old_alpha_0_values() const;
+  const std::vector<double>& get_old_alpha_zero() const;
 
-  const std::vector<double>& get_old_step_size_values() const;
+  const std::vector<double>& get_old_step_size() const;
 
   /*!
   * @brief A method passing the *desired* size of the next time step to the
@@ -328,12 +328,12 @@ inline const std::vector<double>& VSIMEXMethod::get_eta() const
   return (eta);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_old_alpha_0_values() const
+inline const std::vector<double>& VSIMEXMethod::get_old_alpha_zero() const
 {
   return (old_alpha_zero);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_old_step_size_values() const
+inline const std::vector<double>& VSIMEXMethod::get_old_step_size() const
 {
   return (old_step_size_values);
 }

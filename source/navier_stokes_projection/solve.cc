@@ -35,13 +35,13 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 
   {
     const std::vector<double> alpha = time_stepping.get_alpha();
-    const std::vector<double> old_alpha_0   = time_stepping.get_old_alpha_0_values();
-    const std::vector<double> old_step_size = time_stepping.get_old_step_size_values();
+    const std::vector<double> old_alpha_zero   = time_stepping.get_old_alpha_zero();
+    const std::vector<double> old_step_size = time_stepping.get_old_step_size();
     AssertIsFinite(time_stepping.get_next_step_size());
     AssertIsFinite(alpha[1]);
     AssertIsFinite(alpha[2]);
-    AssertIsFinite(old_alpha_0[0]);
-    AssertIsFinite(old_alpha_0[1]);
+    AssertIsFinite(old_alpha_zero[0]);
+    AssertIsFinite(old_alpha_zero[1]);
     AssertIsFinite(old_step_size[0]);
     AssertIsFinite(old_step_size[1]);
 
@@ -57,12 +57,12 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     distributed_old_pressure.sadd(1.,
                                   - old_step_size[0] /
                                   time_stepping.get_next_step_size() *
-                                  alpha[1] / old_alpha_0[0],
+                                  alpha[1] / old_alpha_zero[0],
                                   distributed_phi);
     distributed_old_pressure.sadd(1.,
                                   - old_step_size[1] /
                                   time_stepping.get_next_step_size() *
-                                  alpha[2] / old_alpha_0[1],
+                                  alpha[2] / old_alpha_zero[1],
                                   distributed_old_old_phi);
     pressure_tmp = distributed_old_pressure;
   }
