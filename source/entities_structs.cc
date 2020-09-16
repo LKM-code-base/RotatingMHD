@@ -188,7 +188,9 @@ double ScalarEntity<dim>::point_value(const Point<dim> &point) const
 
 template struct RMHD::Entities::EntityBase<2>;
 template struct RMHD::Entities::EntityBase<3>;
+
 template struct RMHD::Entities::VectorEntity<2>;
 template struct RMHD::Entities::VectorEntity<3>;
+
 template struct RMHD::Entities::ScalarEntity<2>;
 template struct RMHD::Entities::ScalarEntity<3>;
