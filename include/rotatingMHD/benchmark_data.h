@@ -2,7 +2,6 @@
 #ifndef INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 #define INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 
-#include <rotatingMHD/auxiliary_functions.h>
 #include <rotatingMHD/entities_structs.h>
 
 #include <deal.II/base/discrete_time.h>
