@@ -8,17 +8,17 @@ void NavierStokesProjection<dim>::
 assemble_diffusion_step()
 {
   /* System matrix setup */
-  assemble_velocity_advection_matrix();
 
+  /* This if scope makes sure that if the time step is 
+  constant, the following matrix summation is only done once */
   if (!flag_diffusion_matrix_assembled)
   {
     velocity_mass_plus_laplace_matrix = 0.;
 
     velocity_mass_plus_laplace_matrix.add
     ((parameters.flag_full_vsimex_scheme) ? 
-        time_stepping.get_gamma()[0] : 
-        1.0
-     / parameters.Re,
+        time_stepping.get_gamma()[0] / parameters.Re : 
+        1.0 / parameters.Re,
      velocity_laplace_matrix);
 
     velocity_mass_plus_laplace_matrix.add
@@ -29,8 +29,11 @@ assemble_diffusion_step()
       flag_diffusion_matrix_assembled = true; 
   }
 
+  /* In case of a semi-implicit scheme, the advection matrix has to be
+  assembled and added to the system matrix */
   if (parameters.flag_semi_implicit_scheme)
   {
+    assemble_velocity_advection_matrix();
     velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
     velocity_system_matrix.add(1., velocity_advection_matrix);
   }
@@ -48,13 +51,16 @@ solve_diffusion_step(const bool reinit_prec)
   LinearAlgebra::MPI::Vector distributed_velocity(velocity_rhs);
   distributed_velocity = velocity.solution;
 
-  LinearAlgebra::MPI::SparseMatrix  &system_matrix =
-    (parameters.flag_semi_implicit_scheme) ?
-      velocity_system_matrix :
-      velocity_mass_plus_laplace_matrix;
+  /* The following pointer holds the address to the correct matrix 
+  depending on if the semi-implicit scheme is chosen or not */
+  LinearAlgebra::MPI::SparseMatrix  *system_matrix;
+  if (parameters.flag_semi_implicit_scheme || flag_initializing)
+    system_matrix = &velocity_system_matrix;
+  else
+    system_matrix = &velocity_mass_plus_laplace_matrix;
 
   if (reinit_prec)
-    diffusion_step_preconditioner.initialize(system_matrix);
+    diffusion_step_preconditioner.initialize(*system_matrix);
 
   SolverControl solver_control(parameters.n_maximum_iterations,
                                std::max(parameters.relative_tolerance * velocity_rhs.l2_norm(),
@@ -69,7 +75,7 @@ solve_diffusion_step(const bool reinit_prec)
 
   try
   {
-    solver.solve(system_matrix,
+    solver.solve(*system_matrix,
                  distributed_velocity,
                  velocity_rhs,
                  diffusion_step_preconditioner);

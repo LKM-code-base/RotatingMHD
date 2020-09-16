@@ -79,10 +79,9 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   pressure.constraints.distribute(distributed_phi);
 
-  /*
-   * Do we need the inline if statement at all?
-   */
-  distributed_phi *= (time_stepping.get_step_number() > 0 ?
+  /* The following inline if is added to reuse the method for the 
+  projection prestep */ 
+  distributed_phi *= (!flag_initializing ?
                       time_stepping.get_alpha()[0] / time_stepping.get_next_step_size():
                       1.0 / time_stepping.get_next_step_size());
 
