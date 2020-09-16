@@ -103,7 +103,7 @@ void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
 }
 
 template <int dim>
-void NavierStokesProjection<dim>::pressure_correction(const bool /* reinit_prec */)
+void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 {
   switch (parameters.projection_method)
     {
