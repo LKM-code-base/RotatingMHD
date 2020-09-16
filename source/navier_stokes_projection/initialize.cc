@@ -8,10 +8,17 @@ template <int dim>
 void NavierStokesProjection<dim>::
 initialize()
 {
+  flag_initializing = true;
   poisson_prestep();
+  if (time_stepping.get_order() == 1)
+  {    
+    flag_initializing = false;
+    return;
+  }
   diffusion_prestep();
   projection_prestep();
   pressure_correction_prestep();
+  flag_initializing = false;
 }
 
 template <int dim>
@@ -73,7 +80,7 @@ void NavierStokesProjection<dim>::
 pressure_correction_prestep()
 {
   pressure.old_solution = pressure.old_old_solution;
-  pressure.old_solution += phi;
+  pressure.old_solution += old_phi;
 }
 
 } // namespace RMHD
