@@ -46,11 +46,11 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     AssertIsFinite(old_step_size[1]);
 
     LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
+    LinearAlgebra::MPI::Vector distributed_old_phi(pressure_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_phi(pressure_rhs);
-    LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
     distributed_old_pressure  = pressure.old_solution;
+    distributed_old_phi       = old_phi;
     distributed_old_old_phi   = old_old_phi;
-    distributed_phi           = old_phi;
     /*
      * These coefficients are wrong in case of a variable size of the time step.
      */
@@ -58,7 +58,7 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
                                   - old_step_size[0] /
                                   time_stepping.get_next_step_size() *
                                   alpha[1] / old_alpha_0[0],
-                                  distributed_phi);
+                                  distributed_old_phi);
     distributed_old_pressure.sadd(1.,
                                   - old_step_size[1] /
                                   time_stepping.get_next_step_size() *
