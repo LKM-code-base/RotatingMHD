@@ -48,9 +48,9 @@ protected:
    * @attention Purpose of the method is not clear...
    */
   void set_initial_conditions
-  (Entities::EntityBase<dim>         &entity,
-   Function<dim>                     &function,
-   TimeDiscretization::VSIMEXMethod  &time_stepping);
+  (Entities::EntityBase<dim>              &entity,
+   const Function<dim>                    &function,
+   const TimeDiscretization::VSIMEXMethod &time_stepping);
 
 };
 
