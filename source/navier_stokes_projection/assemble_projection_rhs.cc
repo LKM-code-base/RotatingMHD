@@ -9,6 +9,8 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_projection_step_rhs()
 {
+  TimerOutput::Scope  t(*computing_timer, "Pressure projection rhs assembly");
+
   pressure_rhs = 0.;
 
   using CellFilter =

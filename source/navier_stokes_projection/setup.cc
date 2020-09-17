@@ -16,14 +16,22 @@ template <int dim>
 void NavierStokesProjection<dim>::setup()
 {
   setup_matrices();
+
   setup_vectors();
+
   assemble_constant_matrices();
+
   reinit_internal_entities();
 }
 
 template <int dim>
 void NavierStokesProjection<dim>::setup_matrices()
 {
+  if (parameters.verbose)
+    *pcout << "  Setup matrices..." << std::endl;
+
+  TimerOutput::Scope  t(*computing_timer, "Matrix setup");
+
   velocity_mass_matrix.clear();
   velocity_laplace_matrix.clear();
   velocity_mass_plus_laplace_matrix.clear();
@@ -31,7 +39,6 @@ void NavierStokesProjection<dim>::setup_matrices()
   velocity_system_matrix.clear();
 
   {
-
     #ifdef USE_PETSC_LA
       DynamicSparsityPattern
       sparsity_pattern(velocity.locally_relevant_dofs);
@@ -40,52 +47,52 @@ void NavierStokesProjection<dim>::setup_matrices()
                                       sparsity_pattern,
                                       velocity.constraints,
                                       false,
-                                      Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+                                      Utilities::MPI::this_mpi_process(mpi_communicator));
 
       SparsityTools::distribute_sparsity_pattern
       (sparsity_pattern,
        velocity.locally_owned_dofs,
-       MPI_COMM_WORLD,
+       mpi_communicator,
        velocity.locally_relevant_dofs);
 
       velocity_mass_plus_laplace_matrix.reinit
       (velocity.locally_owned_dofs,
        velocity.locally_owned_dofs,
        sparsity_pattern,
-       MPI_COMM_WORLD);
+       mpi_communicator);
       velocity_system_matrix.reinit
       (velocity.locally_owned_dofs,
        velocity.locally_owned_dofs,
        sparsity_pattern,
-       MPI_COMM_WORLD);
+       mpi_communicator);
       velocity_mass_matrix.reinit
       (velocity.locally_owned_dofs,
        velocity.locally_owned_dofs,
        sparsity_pattern,
-       MPI_COMM_WORLD);
+       mpi_communicator);
       velocity_laplace_matrix.reinit
       (velocity.locally_owned_dofs,
        velocity.locally_owned_dofs,
        sparsity_pattern,
-       MPI_COMM_WORLD);
+       mpi_communicator);
       velocity_advection_matrix.reinit
       (velocity.locally_owned_dofs,
        velocity.locally_owned_dofs,
        sparsity_pattern,
-       MPI_COMM_WORLD);
+       mpi_communicator);
 
     #else
       TrilinosWrappers::SparsityPattern
       sparsity_pattern(velocity.locally_owned_dofs,
                        velocity.locally_owned_dofs,
                        velocity.locally_relevant_dofs,
-                       MPI_COMM_WORLD);
+                       mpi_communicator);
 
       DoFTools::make_sparsity_pattern(velocity.dof_handler,
                                       sparsity_pattern,
                                       velocity.constraints,
                                       false,
-                                      Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+                                      Utilities::MPI::this_mpi_process(mpi_communicator));
 
       sparsity_pattern.compress();
 
@@ -108,56 +115,64 @@ void NavierStokesProjection<dim>::setup_matrices()
                                       sparsity_pattern,
                                       pressure.constraints,
                                       false,
-                                      Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+                                      Utilities::MPI::this_mpi_process(mpi_communicator));
 
       SparsityTools::distribute_sparsity_pattern
       (sparsity_pattern,
        pressure.locally_owned_dofs,
-       MPI_COMM_WORLD,
+       mpi_communicator,
        pressure.locally_relevant_dofs);
 
       pressure_laplace_matrix.reinit
       (pressure.locally_owned_dofs,
        pressure.locally_owned_dofs,
        sparsity_pattern,
-       MPI_COMM_WORLD);
+       mpi_communicator);
       pressure_mass_matrix.reinit
       (pressure.locally_owned_dofs,
        pressure.locally_owned_dofs,
        sparsity_pattern,
-       MPI_COMM_WORLD);
+       mpi_communicator);
 
     #else
       TrilinosWrappers::SparsityPattern
       sparsity_pattern(pressure.locally_owned_dofs,
                        pressure.locally_owned_dofs,
                        pressure.locally_relevant_dofs,
-                       MPI_COMM_WORLD);
+                       mpi_communicator);
 
       DoFTools::make_sparsity_pattern(pressure.dof_handler,
                                       sparsity_pattern,
                                       pressure.constraints,
                                       false,
-                                      Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+                                      Utilities::MPI::this_mpi_process(mpi_communicator));
       sparsity_pattern.compress();
 
       pressure_laplace_matrix.reinit(sparsity_pattern);
       pressure_mass_matrix.reinit(sparsity_pattern);
     #endif
   }
+
+  if (parameters.verbose)
+    *pcout << "    done." << std::endl;
 }
 
 template <int dim>
 void NavierStokesProjection<dim>::
 setup_vectors()
 {
+  if (parameters.verbose)
+    *pcout << "  Setup vectors..." << std::endl;
+
+  TimerOutput::Scope  t(*computing_timer, "Setup vectors");
+
   #ifdef USE_PETSC_LA
     pressure_rhs.reinit(pressure.locally_owned_dofs,
-                        MPI_COMM_WORLD);
+                        mpi_communicator);
   #else
     pressure_rhs.reinit(pressure.locally_owned_dofs,
                         pressure.locally_relevant_dofs,
-                        MPI_COMM_WORLD,
+                        mpi_communicator,
                         true);
   #endif
   poisson_prestep_rhs.reinit(pressure_rhs);
@@ -169,16 +184,19 @@ setup_vectors()
 
   #ifdef USE_PETSC_LA
     velocity_rhs.reinit(velocity.locally_owned_dofs,
-                        MPI_COMM_WORLD);
+                        mpi_communicator);
   #else
     velocity_rhs.reinit(velocity.locally_owned_dofs,
                         velocity.locally_relevant_dofs,
-                        MPI_COMM_WORLD,
+                        mpi_communicator,
                         true);
   #endif
 
   extrapolated_velocity.reinit(velocity.solution);
   velocity_tmp.reinit(velocity.solution);
+
+  if (parameters.verbose)
+    *pcout << "     done." << std::endl;
 }
 
 template <int dim>
@@ -186,6 +204,7 @@ void NavierStokesProjection<dim>::
 assemble_constant_matrices()
 {
   assemble_velocity_matrices();
+
   assemble_pressure_matrices();
 }
 

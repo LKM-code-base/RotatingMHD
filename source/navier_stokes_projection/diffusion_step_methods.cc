@@ -7,6 +7,9 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_diffusion_step()
 {
+  if (parameters.verbose)
+    *pcout << "    Assemble diffusion step...";
+
   /* System matrix setup */
   assemble_velocity_advection_matrix();
 
@@ -30,12 +33,18 @@ assemble_diffusion_step()
 
   /* Right hand side setup */
   assemble_diffusion_step_rhs();
+
+  if (parameters.verbose)
+    *pcout << "    done." << std::endl;
 }
 
 template <int dim>
 void NavierStokesProjection<dim>::
 solve_diffusion_step(const bool reinit_prec)
 {
+  if (parameters.verbose)
+    *pcout << "    Solve diffusion step..." << std::endl;
+
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
@@ -90,6 +99,15 @@ solve_diffusion_step(const bool reinit_prec)
   velocity.constraints.distribute(distributed_velocity);
 
   velocity.solution = distributed_velocity;
+
+  if (parameters.verbose)
+    *pcout << "    done." << std::endl;
+
+  if (parameters.verbose)
+    *pcout << "    Number of GMRES iterations: " << solver_control.last_step()
+           << ", "
+           << "final residual: " << solver_control.last_value() << "."
+           << std::endl;
 }
 }
 // explicit instantiations

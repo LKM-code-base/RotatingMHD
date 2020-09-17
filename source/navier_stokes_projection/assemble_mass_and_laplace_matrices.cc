@@ -8,6 +8,11 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_matrices()
 {
+  if (parameters.verbose)
+    *pcout << "  Assemble velocity matrices..." << std::endl;
+
+  TimerOutput::Scope  t(*computing_timer, "Velocity matrix assembly");
+
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
@@ -43,6 +48,9 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   velocity_mass_matrix.compress(VectorOperation::add);
   velocity_laplace_matrix.compress(VectorOperation::add);
+
+  if (parameters.verbose)
+      *pcout << "    done." << std::endl;
 }
 
 template <int dim>
@@ -117,6 +125,11 @@ void NavierStokesProjection<dim>::copy_local_to_global_velocity_matrices
 template <int dim>
 void NavierStokesProjection<dim>::assemble_pressure_matrices()
 {
+  if (parameters.verbose)
+    *pcout << "  Assemble pressure matrices..." << std::endl;
+
+  TimerOutput::Scope  t(*computing_timer, "Pressure matrix assembly");
+
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
@@ -152,6 +165,9 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 
   pressure_mass_matrix.compress(VectorOperation::add);
   pressure_laplace_matrix.compress(VectorOperation::add);
+
+  if (parameters.verbose)
+      *pcout << "    done." << std::endl;
 }
 
 template <int dim>
