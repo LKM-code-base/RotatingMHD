@@ -25,7 +25,7 @@ protected:
   /*!
    * The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  MPI_Comm            mpi_communicator;
+  const MPI_Comm      mpi_communicator;
 
   /*!
    * Triangulation object of the problem.
@@ -49,7 +49,7 @@ protected:
    */
   void set_initial_conditions
   (Entities::EntityBase<dim>              &entity,
-   const Function<dim>                    &function,
+   Function<dim>                    &function,
    const TimeDiscretization::VSIMEXMethod &time_stepping);
 
 };
