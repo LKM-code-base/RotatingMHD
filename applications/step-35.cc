@@ -336,10 +336,10 @@ int main(int argc, char *argv[])
 
       RunTimeParameters::ParameterSet parameter_set("step-35.prm");
 
-      deallog.depth_console(parameter_set.flag_verbose_output ? 2 : 0);
+      deallog.depth_console(parameter_set.verbose ? 2 : 0);
 
       Step35<2> simulation(parameter_set);
-      simulation.run(parameter_set.flag_verbose_output, 
+      simulation.run(parameter_set.verbose, 
                      parameter_set.terminal_output_interval,
                      parameter_set.graphical_output_interval);
   }

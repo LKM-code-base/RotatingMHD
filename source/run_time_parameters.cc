@@ -32,7 +32,7 @@ solver_off_diagonals(60),
 solver_update_preconditioner(15),
 relative_tolerance(1e-6),
 solver_diag_strength(0.01),
-flag_verbose_output(true),
+verbose(true),
 flag_DFG_benchmark(false),
 graphical_output_interval(15)
 {}
@@ -213,7 +213,7 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  flag_verbose_output       = prm.get_bool("verbosity_flag");
+  verbose       = prm.get_bool("verbosity_flag");
   /*
    * Is this still necessary?
    */
