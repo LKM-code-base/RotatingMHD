@@ -61,10 +61,10 @@ subsection Time stepping settings
   set adaptive_timestep_barrier = 2
 
   # Final time of the simulation.
-  set final_time                = 1.0
+  set final_time                = 10.
 
   # Size of the initial time step.
-  set initial_time_step         = 5e-3
+  set initial_time_step         = 5e-2
 
   # Size of the maximum time step.
   set maximum_time_step         = 7.5e-3

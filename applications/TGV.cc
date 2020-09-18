@@ -60,6 +60,10 @@ private:
   EquationData::TGV::PressureExactSolution<dim>         
                                       pressure_exact_solution;
 
+  const bool                                  periodic_bcs;
+
+  const bool                                  set_boundary_dofs_to_zero;
+
   void make_grid(const unsigned int &n_global_refinements);
 
   void setup_dofs();
@@ -92,16 +96,16 @@ pressure(parameters.p_fe_degree, triangulation),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters, velocity, pressure, time_stepping),
 velocity_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
-pressure_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time)
+pressure_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
+periodic_bcs(true),
+set_boundary_dofs_to_zero(false)
 {
-  pcout << "Grid" << std::endl;
   make_grid(parameters.n_global_refinements);
   setup_dofs();
-  pcout << "Constraints" << std::endl;
   setup_constraints();
   velocity.reinit();
   pressure.reinit();
-  navier_stokes.setup();
+  navier_stokes.setup(true);
   initialize();
 }
 
@@ -111,26 +115,43 @@ make_grid(const unsigned int &n_global_refinements)
 {
   GridGenerator::hyper_cube(triangulation,
                             0.0,
-                            2*M_PI,
+                            2.0*M_PI,
                             true);
+  if (periodic_bcs)
+  {
+    std::vector<GridTools::PeriodicFacePair<
+      typename parallel::distributed::Triangulation<dim>::cell_iterator>>
+      periodicity_vector;
 
-  std::vector<GridTools::PeriodicFacePair<
-    typename parallel::distributed::Triangulation<dim>::cell_iterator>>
-    periodicity_vector;
+    FullMatrix<double> rotation_matrix(dim);
+    rotation_matrix[0][0] = 1.;
+    rotation_matrix[1][1] = 1.;    
 
-  GridTools::collect_periodic_faces(triangulation,
-                                    0,
-                                    1,
-                                    0,
-                                    periodicity_vector);
-  /*GridTools::collect_periodic_faces(triangulation,
-                                    2,
-                                    3,
-                                    1,
-                                    periodicity_vector);*/
+    Tensor<1,dim> offset_x;
+    offset_x[0] = 2.0 * M_PI;
+    offset_x[1] = 0.0;
 
+    Tensor<1,dim> offset_y;
+    offset_y[0] = 0.0;
+    offset_y[1] = 2.0 * M_PI;
 
-  triangulation.add_periodicity(periodicity_vector);
+    GridTools::collect_periodic_faces(triangulation,
+                                      0,
+                                      1,
+                                      0,
+                                      periodicity_vector,
+                                      offset_x,
+                                      rotation_matrix);
+    GridTools::collect_periodic_faces(triangulation,
+                                      2,
+                                      3,
+                                      1,
+                                      periodicity_vector,
+                                      offset_y,
+                                      rotation_matrix);
+
+    triangulation.add_periodicity(periodicity_vector);
+  }
 
   triangulation.refine_global(n_global_refinements);
   boundary_ids = triangulation.get_boundary_ids();
@@ -162,49 +183,74 @@ void TGV<dim>::setup_constraints()
   DoFTools::make_hanging_node_constraints(velocity.dof_handler,
                                           velocity.constraints);
 
-  FEValuesExtractors::Vector velocities(0);
+  if (periodic_bcs)
+  {
+    FEValuesExtractors::Vector velocities(0);
 
-  std::vector<
-  GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
-     periodicity_vector;
+    std::vector<unsigned int> first_vector_components;
+    first_vector_components.push_back(0);
 
-  GridTools::collect_periodic_faces(velocity.dof_handler,
-                                    0,
-                                    1,
-                                    0,
-                                    periodicity_vector);
-  /*GridTools::collect_periodic_faces(velocity.dof_handler,
-                                    2,
-                                    3,
-                                    1,
-                                    periodicity_vector);*/
+    std::vector<
+    GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
+      periodicity_vector;
 
-  DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
-    periodicity_vector,
-    velocity.constraints,
-    velocity.fe.component_mask(velocities));
+    FullMatrix<double> rotation_matrix(dim);
+    rotation_matrix[0][0] = 1.;
+    rotation_matrix[1][1] = 1.;
 
-  /*
-  VectorTools::interpolate_boundary_values(
-                                velocity.dof_handler,
-                                0,
-                                velocity_exact_solution,
-                                velocity.constraints);
-  VectorTools::interpolate_boundary_values(
-                                velocity.dof_handler,
-                                1,
-                                velocity_exact_solution,
-                                velocity.constraints);*/
-  VectorTools::interpolate_boundary_values(
-                                velocity.dof_handler,
-                                2,
-                                velocity_exact_solution,
-                                velocity.constraints);
-  VectorTools::interpolate_boundary_values(
-                                velocity.dof_handler,
-                                3,
-                                velocity_exact_solution,
-                                velocity.constraints);
+    Tensor<1,dim> offset_x;
+    offset_x[0] = 2.0 * M_PI;
+    offset_x[1] = 0.0;
+
+    Tensor<1,dim> offset_y;
+    offset_y[0] = 0.0;
+    offset_y[1] = 2.0 * M_PI;
+
+    GridTools::collect_periodic_faces(velocity.dof_handler,
+                                      0,
+                                      1,
+                                      0,
+                                      periodicity_vector,
+                                      offset_x,
+                                      rotation_matrix);
+    GridTools::collect_periodic_faces(velocity.dof_handler,
+                                      2,
+                                      3,
+                                      1,
+                                      periodicity_vector,
+                                      offset_y,
+                                      rotation_matrix);
+
+    DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
+      periodicity_vector,
+      velocity.constraints,
+      velocity.fe.component_mask(velocities),
+      first_vector_components);
+  }
+  else
+  {
+    VectorTools::interpolate_boundary_values(
+                                  velocity.dof_handler,
+                                  0,
+                                  velocity_exact_solution,
+                                  velocity.constraints);
+    VectorTools::interpolate_boundary_values(
+                                  velocity.dof_handler,
+                                  1,
+                                  velocity_exact_solution,
+                                  velocity.constraints);
+    VectorTools::interpolate_boundary_values(
+                                  velocity.dof_handler,
+                                  2,
+                                  velocity_exact_solution,
+                                  velocity.constraints);
+    VectorTools::interpolate_boundary_values(
+                                  velocity.dof_handler,
+                                  3,
+                                  velocity_exact_solution,
+                                  velocity.constraints);
+  }
+
   velocity.constraints.close();
   }
 
@@ -213,26 +259,87 @@ void TGV<dim>::setup_constraints()
   pressure.constraints.reinit(pressure.locally_relevant_dofs);
   DoFTools::make_hanging_node_constraints(pressure.dof_handler,
                                           pressure.constraints);
-  /*
-  std::vector<
-  GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
-     periodicity_vector;
+  if (periodic_bcs)
+  {
+    FEValuesExtractors::Scalar pressure_extractor(0);
 
-  GridTools::collect_periodic_faces(pressure.dof_handler,
-                                    0,
-                                    1,
-                                    0,
-                                    periodicity_vector);
-  GridTools::collect_periodic_faces(pressure.dof_handler,
-                                    2,
-                                    3,
-                                    1,
-                                    periodicity_vector);
+    std::vector<unsigned int> first_vector_components;
+    first_vector_components.push_back(0);
 
-  DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
-    periodicity_vector,
-    pressure.constraints);
-  */
+    std::vector<
+    GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
+      periodicity_vector;
+
+    FullMatrix<double> rotation_matrix(dim);
+    rotation_matrix[0][0] = 1.;
+    rotation_matrix[1][1] = 1.;
+
+    Tensor<1,dim> offset_x;
+    offset_x[0] = 2.0 * M_PI;
+    offset_x[1] = 0.0;
+
+    Tensor<1,dim> offset_y;
+    offset_y[0] = 0.0;
+    offset_y[1] = 2.0 * M_PI;
+
+    GridTools::collect_periodic_faces(pressure.dof_handler,
+                                      0,
+                                      1,
+                                      0,
+                                      periodicity_vector,
+                                      offset_x,
+                                      rotation_matrix);
+    GridTools::collect_periodic_faces(pressure.dof_handler,
+                                      2,
+                                      3,
+                                      1,
+                                      periodicity_vector,
+                                      offset_y,
+                                      rotation_matrix);
+
+    DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
+      periodicity_vector,
+      pressure.constraints,
+      pressure.fe.component_mask(pressure_extractor),
+      first_vector_components);
+  }
+  if (set_boundary_dofs_to_zero)
+  {
+    const FEValuesExtractors::Scalar    pressure_extractor(0);
+
+    IndexSet    boundary_pressure_dofs;
+
+    DoFTools::extract_boundary_dofs(pressure.dof_handler,
+                                    pressure.fe.component_mask(pressure_extractor),
+                                    boundary_pressure_dofs);
+
+    types::global_dof_index local_idx = numbers::invalid_dof_index;
+    
+    IndexSet::ElementIterator
+    idx = boundary_pressure_dofs.begin(),
+    endidx = boundary_pressure_dofs.end();
+    for(; idx != endidx; ++idx)
+        if (pressure.constraints.can_store_line(*idx)
+                && !pressure.constraints.is_constrained(*idx))
+            local_idx = *idx;
+
+    const types::global_dof_index global_idx
+    = Utilities::MPI::min(
+            (local_idx != numbers::invalid_dof_index) ?
+                    local_idx :
+                    pressure.dof_handler.n_dofs(),
+            pressure.mpi_communicator);
+
+    Assert(global_idx < pressure.dof_handler.n_dofs(),
+            ExcMessage("Error, couldn't find a pressure DoF to constrain."));
+
+    // Finally set this DoF to zero (if we care about it):
+    if (pressure.constraints.can_store_line(global_idx))
+    {
+        Assert(!pressure.constraints.is_constrained(global_idx), ExcInternalError());
+        pressure.constraints.add_line(global_idx);
+    }
+  }
   pressure.constraints.close();
   }
 }
@@ -302,13 +409,14 @@ void TGV<dim>::update_entities()
 template <int dim>
 void TGV<dim>::update_boundary_values()
 {
+  if (!periodic_bcs)
   {
     AffineConstraints<double>     tmp_constraints;
     tmp_constraints.clear();
     tmp_constraints.reinit(velocity.locally_relevant_dofs);
     DoFTools::make_hanging_node_constraints(velocity.dof_handler,
                                             tmp_constraints);
-    /*VectorTools::interpolate_boundary_values(
+    VectorTools::interpolate_boundary_values(
                                 velocity.dof_handler,
                                 0,
                                 velocity_exact_solution,
@@ -317,7 +425,7 @@ void TGV<dim>::update_boundary_values()
                                 velocity.dof_handler,
                                 1,
                                 velocity_exact_solution,
-                                tmp_constraints);*/
+                                tmp_constraints);
     VectorTools::interpolate_boundary_values(
                                 velocity.dof_handler,
                                 2,
@@ -333,24 +441,6 @@ void TGV<dim>::update_boundary_values()
       tmp_constraints,
       AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
   }
-  /*
-  {
-    AffineConstraints<double>     tmp_constraints;
-    tmp_constraints.clear();
-    tmp_constraints.reinit(pressure.locally_relevant_dofs);
-    DoFTools::make_hanging_node_constraints(pressure.dof_handler,
-                                            tmp_constraints);
-    VectorTools::interpolate_boundary_values(
-                                pressure.dof_handler,
-                                0,
-                                pressure_exact_solution,
-                                tmp_constraints);
-    tmp_constraints.close();
-    pressure.constraints.merge(
-      tmp_constraints,
-      AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
-  }
-  */
 }
 
 template <int dim>
