@@ -9,6 +9,8 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_diffusion_step_rhs()
 {
+  TimerOutput::Scope  t(*computing_timer, "Diffusion step rhs assembly");
+
   velocity_rhs  = 0.;
 
   using CellFilter =

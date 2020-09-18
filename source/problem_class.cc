@@ -29,9 +29,9 @@ computing_timer(mpi_communicator,
 
 template <int dim>
 void Problem<dim>::set_initial_conditions
-(Entities::EntityBase<dim>        &entity,
- Function<dim>                    &function,
- TimeDiscretization::VSIMEXMethod &time_stepping)
+(Entities::EntityBase<dim>              &entity,
+ Function<dim>                          &function,
+ const TimeDiscretization::VSIMEXMethod &time_stepping)
 {
   switch (time_stepping.get_order())
   {

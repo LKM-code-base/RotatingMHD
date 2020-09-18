@@ -7,6 +7,8 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 {
+  TimerOutput::Scope  t(*computing_timer, "Assembly velocity advection matrix");
+
   velocity_advection_matrix = 0.;
 
   using CellFilter =

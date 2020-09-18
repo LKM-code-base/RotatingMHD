@@ -18,7 +18,7 @@ EntityBase<dim>::EntityBase
  const parallel::distributed::Triangulation<dim> &triangulation)
 :
 fe_degree(fe_degree),
-mpi_communicator(MPI_COMM_WORLD),
+mpi_communicator(triangulation.get_communicator()),
 dof_handler(triangulation),
 quadrature_formula(fe_degree + 1)
 {}
