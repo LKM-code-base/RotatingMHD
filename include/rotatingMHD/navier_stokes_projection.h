@@ -84,8 +84,10 @@ public:
    *  @details Initializes the vector and matrices using the information
    *  contained in the VectorEntity and ScalarEntity structs passed on
    *  in the constructor (The velocity and the pressure respectively).
+   *  The boolean passed as argument control if the pressure is to be
+   *  normalized.
    */
-  void setup();
+  void setup(const bool normalize_pressure = false);
 
   /*!
    * @brief Currently this method only sets the vector of the two pressure
@@ -334,6 +336,15 @@ private:
    * assembling the system matrix in each time step.
    */
   bool                                  flag_diffusion_matrix_assembled;
+
+  /*!
+   * @brief A flag to normalize the pressure field.
+   * @details In the case of an unconstrained formulation in the 
+   * pressure space, i.e. no Dirichlet boundary conditions, this flag
+   * has to be set to true in order to constraint the pressure field.
+   */
+  bool                                  flag_normalize_pressure;
+
 
   /*!
    * @brief Setup of the sparsity spatterns of the matrices of the diffusion and

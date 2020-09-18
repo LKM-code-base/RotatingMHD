@@ -13,12 +13,14 @@ namespace RMHD
 {
 
 template <int dim>
-void NavierStokesProjection<dim>::setup()
+void NavierStokesProjection<dim>::setup(const bool
+                                        normalize_pressure)
 {
   setup_matrices();
   setup_vectors();
   assemble_constant_matrices();
   reinit_internal_entities();
+  flag_normalize_pressure = normalize_pressure;
 }
 
 template <int dim>
@@ -201,8 +203,8 @@ void NavierStokesProjection<dim>::reinit_internal_entities()
 }
 
 // explicit instantiations
-template void RMHD::NavierStokesProjection<2>::setup();
-template void RMHD::NavierStokesProjection<3>::setup();
+template void RMHD::NavierStokesProjection<2>::setup(const bool);
+template void RMHD::NavierStokesProjection<3>::setup(const bool);
 
 template void RMHD::NavierStokesProjection<2>::setup_matrices();
 template void RMHD::NavierStokesProjection<3>::setup_matrices();
