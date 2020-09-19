@@ -11,6 +11,7 @@
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/convergence_table.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
@@ -26,6 +27,137 @@
 namespace RMHD
 {
   using namespace dealii;
+
+template <int dim>
+struct ConvergenceAnalysisData
+{
+  ConvergenceTable                convergence_table;
+
+  const std::string               entity_name;
+
+  const Entities::EntityBase<dim> &entity;
+
+  const Function<dim>             &exact_solution;
+
+  ConvergenceAnalysisData(const Entities::EntityBase<dim> &entity,
+                          const Function<dim>             &exact_solution,
+                          const std::string entity_name = "Entity")
+  :
+  entity_name(entity_name),
+  entity(entity),
+  exact_solution(exact_solution)
+  {
+    convergence_table.declare_column("level");
+    convergence_table.declare_column("dt");
+    convergence_table.declare_column("cells");
+    convergence_table.declare_column("dofs");
+    convergence_table.declare_column("hmax");
+    convergence_table.declare_column("L2");
+    convergence_table.declare_column("Linfty");
+    //convergence_table.declare_column("H1");
+    convergence_table.set_scientific("dt", true);
+    convergence_table.set_scientific("hmax", true);
+    convergence_table.set_scientific("L2", true);
+    //convergence_table.set_scientific("H1", true);
+    convergence_table.set_scientific("Linfty", true);
+    convergence_table.set_precision("dt", 2);
+    convergence_table.set_precision("hmax", 2);
+    convergence_table.set_precision("L2", 6);
+    //convergence_table.set_precision("H1", 6);
+    convergence_table.set_precision("Linfty", 6);
+  }
+
+  void update_table(const unsigned int  &level,
+                    const double        &time_step,
+                    const bool          &flag)
+  {
+  Vector<double> cellwise_difference(
+    entity.dof_handler.get_triangulation().n_active_cells());
+
+  QGauss<dim>    quadrature_formula(entity.fe_degree + 2);
+  const QTrapez<1>     trapezoidal_rule;
+  const QIterated<dim> iterated_quadrature_rule(trapezoidal_rule,
+                                                entity.fe_degree * 2 + 1);
+  
+  VectorTools::integrate_difference(entity.dof_handler,
+                                    entity.solution,
+                                    exact_solution,
+                                    cellwise_difference,
+                                    quadrature_formula,
+                                    VectorTools::L2_norm);
+  
+  const double L2_error =
+    VectorTools::compute_global_error(entity.dof_handler.get_triangulation(),
+                                      cellwise_difference,
+                                      VectorTools::L2_norm);
+/*
+  VectorTools::integrate_difference(entity.dof_handler,
+                                    entity.solution,
+                                    exact_solution,
+                                    cellwise_difference,
+                                    quadrature_formula,
+                                    VectorTools::H1_norm);
+  
+  const double H1_error =
+    VectorTools::compute_global_error(entity.dof_handler.get_triangulation(),
+                                      cellwise_difference,
+                                      VectorTools::H1_norm);*/
+
+  VectorTools::integrate_difference(entity.dof_handler,
+                                    entity.solution,
+                                    exact_solution,
+                                    cellwise_difference,
+                                    iterated_quadrature_rule,
+                                    VectorTools::Linfty_norm);
+  
+  const double Linfty_error =
+    VectorTools::compute_global_error(entity.dof_handler.get_triangulation(),
+                                      cellwise_difference,
+                                      VectorTools::Linfty_norm);
+
+  convergence_table.add_value("level", level);
+  convergence_table.add_value("dt", time_step);
+  convergence_table.add_value("cells", entity.dof_handler.get_triangulation().n_active_cells());
+  convergence_table.add_value("dofs", entity.dof_handler.n_dofs());
+  convergence_table.add_value("hmax", GridTools::maximal_cell_diameter(entity.dof_handler.get_triangulation()));
+  convergence_table.add_value("L2", L2_error);
+  //convergence_table.add_value("H1", H1_error);
+  convergence_table.add_value("Linfty", Linfty_error);
+
+  std::string reference_column = (flag) ? "hmax" : "dt";
+
+  convergence_table.evaluate_convergence_rates(
+                              "L2",
+                              reference_column,
+                              ConvergenceTable::reduction_rate_log2,
+                              1);
+  /*convergence_table.evaluate_convergence_rates(
+                              "H1",
+                              reference_column,
+                              ConvergenceTable::reduction_rate_log2,
+                              1);*/
+  convergence_table.evaluate_convergence_rates(
+                              "Linfty",
+                              reference_column,
+                              ConvergenceTable::reduction_rate_log2,
+                              1);
+  }
+
+  void print_table()
+  {
+    if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+    {
+    std::cout << std::endl;
+    std::cout 
+      << "                    " << entity_name 
+      << " convergence table" << std::endl
+      << "===============================================================" 
+      << std::endl;
+    convergence_table.write_text(std::cout);
+    }
+  }
+};
+
 /*!
  * @class TGV
  * @brief This class solves the Taylor-Green vortex benchmark
@@ -36,10 +168,10 @@ class TGV : public Problem<dim>
 {
 public:
   TGV(const RunTimeParameters::ParameterSet &parameters);
-  void run(const bool         flag_verbose_output           = false,
-           const unsigned int terminal_output_periodicity   = 10,
-           const unsigned int graphical_output_periodicity  = 10);
+  void run(const bool flag_convergence_test);
 private:
+  const RunTimeParameters::ParameterSet             &prm;
+
   ConditionalOStream                          pcout;
 
   parallel::distributed::Triangulation<dim>   triangulation;
@@ -60,9 +192,14 @@ private:
   EquationData::TGV::PressureExactSolution<dim>         
                                       pressure_exact_solution;
 
+  ConvergenceAnalysisData<dim>                velocity_convergence_table;
+
+  ConvergenceAnalysisData<dim>                pressure_convergence_table;
+
   const bool                                  periodic_bcs;
 
   const bool                                  set_boundary_dofs_to_zero;
+
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -79,12 +216,15 @@ private:
   void update_entities();
 
   void update_boundary_values();
+
+  void solve(const unsigned int &level);
 };
 
 template <int dim>
 TGV<dim>::TGV(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(),
+prm(parameters),
 pcout(std::cout,
       (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
 triangulation(MPI_COMM_WORLD,
@@ -97,17 +237,11 @@ time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters, velocity, pressure, time_stepping),
 velocity_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
 pressure_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
+velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
+pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
 periodic_bcs(true),
 set_boundary_dofs_to_zero(false)
-{
-  make_grid(parameters.n_global_refinements);
-  setup_dofs();
-  setup_constraints();
-  velocity.reinit();
-  pressure.reinit();
-  navier_stokes.setup(true);
-  initialize();
-}
+{}
 
 template <int dim>
 void TGV<dim>::
@@ -155,9 +289,6 @@ make_grid(const unsigned int &n_global_refinements)
 
   triangulation.refine_global(n_global_refinements);
   boundary_ids = triangulation.get_boundary_ids();
-
-  pcout     << "Number of active cells                = " 
-            << triangulation.n_active_cells() << std::endl;
 }
 
 template <int dim>
@@ -165,11 +296,12 @@ void TGV<dim>::setup_dofs()
 {
   velocity.setup_dofs();
   pressure.setup_dofs();
-  
-  pcout     << "Number of velocity degrees of freedom = " 
+  pcout     << "  Number of active cells                = " 
+            << triangulation.n_active_cells() << std::endl;
+  pcout     << "  Number of velocity degrees of freedom = " 
             << velocity.dof_handler.n_dofs()
             << std::endl
-            << "Number of pressure degrees of freedom = " 
+            << "  Number of pressure degrees of freedom = " 
             << pressure.dof_handler.n_dofs()
             << std::endl;
 }
@@ -229,26 +361,12 @@ void TGV<dim>::setup_constraints()
   }
   else
   {
-    VectorTools::interpolate_boundary_values(
-                                  velocity.dof_handler,
-                                  0,
-                                  velocity_exact_solution,
-                                  velocity.constraints);
-    VectorTools::interpolate_boundary_values(
-                                  velocity.dof_handler,
-                                  1,
-                                  velocity_exact_solution,
-                                  velocity.constraints);
-    VectorTools::interpolate_boundary_values(
-                                  velocity.dof_handler,
-                                  2,
-                                  velocity_exact_solution,
-                                  velocity.constraints);
-    VectorTools::interpolate_boundary_values(
-                                  velocity.dof_handler,
-                                  3,
-                                  velocity_exact_solution,
-                                  velocity.constraints);
+    for (const auto& boundary_id : boundary_ids)
+      VectorTools::interpolate_boundary_values(
+                                    velocity.dof_handler,
+                                    boundary_id,
+                                    velocity_exact_solution,
+                                    velocity.constraints);
   }
 
   velocity.constraints.close();
@@ -333,7 +451,6 @@ void TGV<dim>::setup_constraints()
     Assert(global_idx < pressure.dof_handler.n_dofs(),
             ExcMessage("Error, couldn't find a pressure DoF to constrain."));
 
-    // Finally set this DoF to zero (if we care about it):
     if (pressure.constraints.can_store_line(global_idx))
     {
         Assert(!pressure.constraints.is_constrained(global_idx), ExcInternalError());
@@ -353,7 +470,10 @@ void TGV<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_exact_solution, 
                                time_stepping);
-  
+  // The diffusion prestep does not produce physical results.
+  // Could this be due to the boundary conditions? Since there is no
+  // body force in this problem the problem reduces to a boundary integral
+  // whhose integrand is projected in the normal to the boundary direction.
   //navier_stokes.initialize();
 }
 
@@ -362,13 +482,18 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
 {
   if (flag_point_evaluation)
   {
-    pcout << "Step = " 
+    std::cout.precision(1);
+    pcout << "  Step = " 
           << std::setw(4) 
           << time_stepping.get_step_number() 
           << " Time = " 
           << std::noshowpos << std::scientific
-          << time_stepping.get_next_time()    
-          << std::endl;
+          << time_stepping.get_next_time()
+          << " Progress ["
+          << std::setw(5) 
+          << std::fixed
+          << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
+          << "%] \r";
   }
 }
 
@@ -416,26 +541,12 @@ void TGV<dim>::update_boundary_values()
     tmp_constraints.reinit(velocity.locally_relevant_dofs);
     DoFTools::make_hanging_node_constraints(velocity.dof_handler,
                                             tmp_constraints);
-    VectorTools::interpolate_boundary_values(
-                                velocity.dof_handler,
-                                0,
-                                velocity_exact_solution,
-                                tmp_constraints);
-    VectorTools::interpolate_boundary_values(
-                                velocity.dof_handler,
-                                1,
-                                velocity_exact_solution,
-                                tmp_constraints);
-    VectorTools::interpolate_boundary_values(
-                                velocity.dof_handler,
-                                2,
-                                velocity_exact_solution,
-                                tmp_constraints);
-    VectorTools::interpolate_boundary_values(
-                                velocity.dof_handler,
-                                3,
-                                velocity_exact_solution,
-                                tmp_constraints);
+    for (const auto& boundary_id : boundary_ids)
+      VectorTools::interpolate_boundary_values(
+                                  velocity.dof_handler,
+                                  boundary_id,
+                                  velocity_exact_solution,
+                                  tmp_constraints);
     tmp_constraints.close();
     velocity.constraints.merge(
       tmp_constraints,
@@ -444,21 +555,20 @@ void TGV<dim>::update_boundary_values()
 }
 
 template <int dim>
-void TGV<dim>::run(
-              const bool          flag_verbose_output,
-              const unsigned int  terminal_output_periodicity,
-              const unsigned int  graphical_output_periodicity)
+void TGV<dim>::solve(const unsigned int &level)
 {
-  (void)flag_verbose_output;
+  setup_dofs();
+  setup_constraints();
+  velocity.reinit();
+  pressure.reinit();
+  navier_stokes.setup(true);
+  initialize();
 
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
   
   velocity.solution = velocity.old_old_solution;
   pressure.solution = pressure.old_old_solution;
-  output();
-  velocity.solution = velocity.old_solution;
-  pressure.solution = pressure.old_solution;
   output();
 
   velocity_exact_solution.set_time(time_stepping.get_next_time());
@@ -476,12 +586,12 @@ void TGV<dim>::run(
 
     // snapshot stage
     postprocessing((time_stepping.get_step_number() %
-                    terminal_output_periodicity == 0) ||
+                    1 == 0) ||
                     (time_stepping.get_next_time() == 
                    time_stepping.get_end_time()));
 
     if ((time_stepping.get_step_number() %
-          graphical_output_periodicity == 0) ||
+          2 == 0) ||
         (time_stepping.get_next_time() == 
           time_stepping.get_end_time()))
       output();
@@ -489,6 +599,53 @@ void TGV<dim>::run(
     update_entities();
     time_stepping.advance_time();
   }
+  Assert(time_stepping.get_current_time() == velocity_exact_solution.get_time(),
+    ExcMessage("Time mismatch between the time stepping class and the velocity function"));
+  Assert(time_stepping.get_current_time() == pressure_exact_solution.get_time(),
+    ExcMessage("Time mismatch between the time stepping class and the pressure function"));
+  velocity_convergence_table.update_table(
+    level, time_stepping.get_previous_step_size(), prm.flag_spatial_convergence_test);
+  pressure_convergence_table.update_table(
+    level, time_stepping.get_previous_step_size(), prm.flag_spatial_convergence_test);
+  pcout << std::endl;
+  pcout << std::endl;
+}
+
+template <int dim>
+void TGV<dim>::run(const bool flag_convergence_test)
+{
+  make_grid(prm.initial_refinement_level);
+  if (flag_convergence_test)
+    for (unsigned int level = prm.initial_refinement_level; 
+          level <= prm.final_refinement_level; ++level)
+    {
+      std::cout.precision(1);
+      pcout << "Solving until t = " 
+            << std::fixed << time_stepping.get_end_time()
+            << " with a refinement level of " << level << std::endl;
+      time_stepping.restart();
+      solve(level);
+      triangulation.refine_global();
+    }
+  else
+  {
+    for (unsigned int cycle = 0; 
+         cycle < prm.temporal_convergence_cycles; ++cycle)
+    {
+      double time_step = prm.time_stepping_parameters.initial_time_step *
+                         pow(prm.time_step_scaling_factor, cycle);
+      std::cout.precision(1);
+      pcout << "Solving until t = " 
+            << std::fixed << time_stepping.get_end_time()
+            << " with a refinement level of " << prm.initial_refinement_level << std::endl;
+      time_stepping.restart();
+      time_stepping.set_desired_next_step_size(time_step);
+      solve(prm.initial_refinement_level);
+    }
+  }
+  
+  velocity_convergence_table.print_table();
+  pressure_convergence_table.print_table();
 }
 
 } // namespace RMHD
@@ -508,9 +665,7 @@ int main(int argc, char *argv[])
       deallog.depth_console(parameter_set.flag_verbose_output ? 2 : 0);
 
       TGV<2> simulation(parameter_set);
-      simulation.run(parameter_set.flag_verbose_output, 
-                     parameter_set.terminal_output_interval,
-                     parameter_set.graphical_output_interval);
+      simulation.run(parameter_set.flag_spatial_convergence_test);
   }
   catch (std::exception &exc)
   {
