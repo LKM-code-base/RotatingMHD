@@ -172,9 +172,9 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
     }
     else
     {
-        minimum_time_step = initial_time_step;
+        minimum_time_step = 1e-15;
 
-        maximum_time_step = initial_time_step;
+        maximum_time_step = 1e+15;
     }
 
     start_time = prm.get_double("start_time");
