@@ -34,7 +34,12 @@ relative_tolerance(1e-6),
 solver_diag_strength(0.01),
 flag_verbose_output(true),
 flag_DFG_benchmark(false),
-graphical_output_interval(15)
+graphical_output_interval(15),
+terminal_output_interval(1),
+flag_spatial_convergence_test(true),
+initial_refinement_level(3),
+final_refinement_level(8),
+time_step_scaling_factor(1./10.)
 {}
 
 ParameterSet::ParameterSet(const std::string &parameter_filename)
@@ -140,6 +145,32 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+  prm.enter_subsection("Convergence test parameters");
+  {
+    prm.declare_entry("flag_spatial_convergence_test",
+                      "true",
+                      Patterns::Bool(),
+                      "Choses between an spatial or temporal "
+                      "convergence test");
+    prm.declare_entry("initial_refinement_level",
+                      "3",
+                      Patterns::Integer(1),
+                      "The initial refinement level of the test");
+    prm.declare_entry("final_refinement_level",
+                      "8",
+                      Patterns::Integer(1),
+                      "The final refinement level of the test");
+    prm.declare_entry("temporal_convergence_cycles",
+                      "6",
+                      Patterns::Integer(1),
+                      "The amount of cycles for the temporal convergence test");
+    prm.declare_entry("time_step_scaling_factor",
+                      "0.1",
+                      Patterns::Double(0.),
+                      "The scaling factor of the temporal convergence test");
+  }
+  prm.leave_subsection();
+
   prm.declare_entry("verbosity_flag",
                     "true",
                     Patterns::Bool(),
@@ -210,6 +241,20 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
     solver_diag_strength  = prm.get_double("solver_diag_strength");
 
     solver_update_preconditioner  = prm.get_integer("update_frequency_preconditioner");
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Convergence test parameters");
+  {
+    flag_spatial_convergence_test = prm.get_bool("flag_spatial_convergence_test");
+
+    initial_refinement_level = prm.get_integer("initial_refinement_level");
+
+    final_refinement_level = prm.get_integer("final_refinement_level");
+
+    temporal_convergence_cycles = prm.get_integer("temporal_convergence_cycles");
+
+    time_step_scaling_factor = prm.get_double("time_step_scaling_factor");
   }
   prm.leave_subsection();
 
