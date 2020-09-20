@@ -297,6 +297,21 @@ Re(Re)
 {}
 
 template <int dim>
+double BodyForce<dim>::value(const Point<dim> &point,
+                      const unsigned int component) const
+{
+  // This correspondes to the divergence of the body force
+  (void)component;
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+  return cos(2.*(t + x)) + cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) + 
+         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) - 
+         0.5*Re*(2.*cos(2.*(t + y)) + 2.*cos(2.*t + x + y) + 
+         2.*sin(t + x - 1.*y)) - 1.*sin(2.*t + x + y))/Re;
+}
+
+template <int dim>
 void BodyForce<dim>::vector_value(const Point<dim>  &point,
                                   Vector<double>    &values) const
 {

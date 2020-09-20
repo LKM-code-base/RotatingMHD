@@ -154,6 +154,9 @@ class BodyForce : public Function<dim>
 public:
   BodyForce(const double &Re, const double time = 0);
 
+  virtual double value(const Point<dim> &point,
+                       const unsigned int component = 0) const override;
+
   virtual void vector_value(const Point<dim>  &p,
                             Vector<double>    &values) const override;
 
