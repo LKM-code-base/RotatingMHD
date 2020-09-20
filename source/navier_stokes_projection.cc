@@ -17,7 +17,9 @@ pressure(pressure),
 time_stepping(time_stepping),
 flag_diffusion_matrix_assembled(false),
 flag_normalize_pressure(false)
-{}
+{
+  body_force_ptr = nullptr;
+}
 
 }  // namespace RMHD
 

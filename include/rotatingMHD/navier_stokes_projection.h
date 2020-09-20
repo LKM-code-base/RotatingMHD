@@ -90,6 +90,14 @@ public:
   void setup(const bool normalize_pressure = false);
 
   /*!
+   *  @brief Sets the body force of the problem.
+   *
+   *  @details Stores the memory address of the body force function in 
+   *  the pointer @ref body_force.
+   */
+  void set_body_force(Function<dim> &body_force);
+
+  /*!
    * @brief Currently this method only sets the vector of the two pressure
    * updates @ref old_phi and @ref old_old_phi to zero.
    */
@@ -159,6 +167,11 @@ private:
    * @brief A reference to the entity of the pressure field.
    */
   Entities::ScalarEntity<dim>            &pressure;
+
+  /*!
+   * @brief A pointer to the body force function.
+   */
+  Function<dim>                          *body_force_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
