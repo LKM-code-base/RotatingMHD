@@ -43,10 +43,12 @@ assemble_poisson_prestep_rhs()
                                   update_hessians,
                                   update_values|
                                   update_gradients|
-                                  update_JxW_values,
+                                  update_JxW_values|
+                                  update_quadrature_points,
                                   update_values|
                                   update_JxW_values|
-                                  update_normal_vectors),
+                                  update_normal_vectors|
+                                  update_quadrature_points),
                   PoissonPrestepRightHandSideAssembly::MappingData<dim>(
                                           pressure.fe.dofs_per_cell));
   poisson_prestep_rhs.compress(VectorOperation::add);

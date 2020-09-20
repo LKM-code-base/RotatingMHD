@@ -42,7 +42,8 @@ assemble_diffusion_step_rhs()
                                                      velocity.quadrature_formula,
                                                      update_values|
                                                      update_gradients|
-                                                     update_JxW_values,
+                                                     update_JxW_values|
+                                                     update_quadrature_points,
                                                      update_values),
    VelocityRightHandSideAssembly::MappingData<dim>(velocity.fe.dofs_per_cell));
 
