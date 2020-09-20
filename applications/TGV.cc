@@ -53,23 +53,23 @@ struct ConvergenceAnalysisData
     convergence_table.declare_column("dofs");
     convergence_table.declare_column("hmax");
     convergence_table.declare_column("L2");
+    convergence_table.declare_column("H1");
     convergence_table.declare_column("Linfty");
-    //convergence_table.declare_column("H1");
     convergence_table.set_scientific("dt", true);
     convergence_table.set_scientific("hmax", true);
     convergence_table.set_scientific("L2", true);
-    //convergence_table.set_scientific("H1", true);
+    convergence_table.set_scientific("H1", true);
     convergence_table.set_scientific("Linfty", true);
     convergence_table.set_precision("dt", 2);
     convergence_table.set_precision("hmax", 2);
     convergence_table.set_precision("L2", 6);
-    //convergence_table.set_precision("H1", 6);
+    convergence_table.set_precision("H1", 6);
     convergence_table.set_precision("Linfty", 6);
   }
 
   void update_table(const unsigned int  &level,
                     const double        &time_step,
-                    const bool          &flag)
+                    const bool          &flag_spatial_convergence)
   {
   Vector<double> cellwise_difference(
     entity.dof_handler.get_triangulation().n_active_cells());
@@ -90,7 +90,7 @@ struct ConvergenceAnalysisData
     VectorTools::compute_global_error(entity.dof_handler.get_triangulation(),
                                       cellwise_difference,
                                       VectorTools::L2_norm);
-/*
+
   VectorTools::integrate_difference(entity.dof_handler,
                                     entity.solution,
                                     exact_solution,
@@ -101,7 +101,7 @@ struct ConvergenceAnalysisData
   const double H1_error =
     VectorTools::compute_global_error(entity.dof_handler.get_triangulation(),
                                       cellwise_difference,
-                                      VectorTools::H1_norm);*/
+                                      VectorTools::H1_norm);
 
   VectorTools::integrate_difference(entity.dof_handler,
                                     entity.solution,
@@ -121,21 +121,22 @@ struct ConvergenceAnalysisData
   convergence_table.add_value("dofs", entity.dof_handler.n_dofs());
   convergence_table.add_value("hmax", GridTools::maximal_cell_diameter(entity.dof_handler.get_triangulation()));
   convergence_table.add_value("L2", L2_error);
-  //convergence_table.add_value("H1", H1_error);
+  convergence_table.add_value("H1", H1_error);
   convergence_table.add_value("Linfty", Linfty_error);
 
-  std::string reference_column = (flag) ? "hmax" : "dt";
+  std::string reference_column = (flag_spatial_convergence) ? 
+                                  "hmax" : "dt";
 
   convergence_table.evaluate_convergence_rates(
                               "L2",
                               reference_column,
                               ConvergenceTable::reduction_rate_log2,
                               1);
-  /*convergence_table.evaluate_convergence_rates(
+  convergence_table.evaluate_convergence_rates(
                               "H1",
                               reference_column,
                               ConvergenceTable::reduction_rate_log2,
-                              1);*/
+                              1);
   convergence_table.evaluate_convergence_rates(
                               "Linfty",
                               reference_column,
@@ -149,9 +150,10 @@ struct ConvergenceAnalysisData
     {
     std::cout << std::endl;
     std::cout 
-      << "                    " << entity_name 
+      << "                               " << entity_name 
       << " convergence table" << std::endl
-      << "===============================================================" 
+      << "==============================================="
+      << "===============================================" 
       << std::endl;
     convergence_table.write_text(std::cout);
     }
