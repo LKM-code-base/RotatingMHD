@@ -185,6 +185,10 @@ private:
 
   Entities::ScalarEntity<dim>                 pressure;
 
+  LinearAlgebra::MPI::Vector                  velocity_error;
+
+  LinearAlgebra::MPI::Vector                  pressure_error;
+
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
   NavierStokesProjection<dim>                 navier_stokes;
@@ -203,6 +207,8 @@ private:
 
   const bool                                  set_boundary_dofs_to_zero;
 
+  const bool                                  flag_square_domain;
+
   void make_grid(const unsigned int &n_global_refinements);
 
   void setup_dofs();
@@ -220,6 +226,10 @@ private:
   void update_boundary_values();
 
   void solve(const unsigned int &level);
+
+  void compute_error_vector(LinearAlgebra::MPI::Vector  &error_vector,
+                            Entities::EntityBase<dim>   &entity,
+                            Function<dim>               &exact_solution);
 };
 
 template <int dim>
@@ -242,7 +252,8 @@ pressure_exact_solution(parameters.time_stepping_parameters.start_time),
 body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
 velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
 pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
-set_boundary_dofs_to_zero(false)
+set_boundary_dofs_to_zero(false),
+flag_square_domain(false)
 {
   navier_stokes.set_body_force(body_force);
 }
@@ -251,10 +262,19 @@ template <int dim>
 void Guermond<dim>::
 make_grid(const unsigned int &n_global_refinements)
 {
-  GridGenerator::hyper_cube(triangulation,
-                            0.0,
-                            1.0,
-                            true);
+  if (flag_square_domain)
+    GridGenerator::hyper_cube(triangulation,
+                              0.0,
+                              1.0,
+                              true);
+  else
+  {
+    const double radius = 0.5;
+    GridGenerator::hyper_ball(triangulation,
+                              Point<dim>(),
+                              radius,
+                              true);
+  }
 
   triangulation.refine_global(n_global_refinements);
   boundary_ids = triangulation.get_boundary_ids();
@@ -376,9 +396,65 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 }
 
 template <int dim>
+void Guermond<dim>::compute_error_vector(
+  LinearAlgebra::MPI::Vector  &error_vector,
+  Entities::EntityBase<dim>   &entity,
+  Function<dim>               &exact_solution)
+{
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_error_vector(entity.locally_owned_dofs, MPI_COMM_WORLD);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_error_vector(entity.locally_owned_dofs);
+  #endif
+  VectorTools::project(entity.dof_handler,
+                       entity.constraints,
+                       QGauss<dim>(entity.fe_degree + 2),
+                       exact_solution,
+                       tmp_error_vector);
+
+  error_vector = tmp_error_vector;
+
+  LinearAlgebra::MPI::Vector distributed_error_vector;
+  LinearAlgebra::MPI::Vector distributed_solution;
+
+  #ifdef USE_PETSC_LA
+    distributed_error_vector.reinit(entity.locally_owned_dofs,
+                                    MPI_COMM_WORLD);
+  #else
+    distributed_error_vector.reinit(entity.locally_owned_dofs,
+                                    entity.locally_relevant_dofs,
+                                    MPI_COMM_WORLD,
+                                    true);
+  #endif
+  distributed_solution.reinit(distributed_error_vector);
+
+  distributed_error_vector  = error_vector;
+  distributed_solution      = entity.solution;
+
+  distributed_error_vector.add(-1.0, distributed_solution);
+  
+  for (unsigned int i = distributed_error_vector.local_range().first; 
+       i < distributed_error_vector.local_range().second; ++i)
+    if (distributed_error_vector(i) < 0)
+      distributed_error_vector(i) *= -1.0;
+
+  error_vector = distributed_error_vector;
+}
+
+template <int dim>
 void Guermond<dim>::output()
 {
+  compute_error_vector(velocity_error,
+                       velocity,
+                       velocity_exact_solution);
+  compute_error_vector(pressure_error,
+                       pressure,
+                       pressure_exact_solution);
+
   std::vector<std::string> names(dim, "velocity");
+  std::vector<std::string> error_name(dim, "velocity_error");
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
@@ -387,9 +463,16 @@ void Guermond<dim>::output()
                            velocity.solution,
                            names, 
                            component_interpretation);
+  data_out.add_data_vector(velocity.dof_handler,
+                           velocity_error,
+                           error_name, 
+                           component_interpretation);
   data_out.add_data_vector(pressure.dof_handler, 
                            pressure.solution, 
-                           "Pressure");
+                           "pressure");
+  data_out.add_data_vector(pressure.dof_handler, 
+                           pressure_error, 
+                           "pressure_error");
   data_out.build_patches(velocity.fe_degree);
   
   static int out_index = 0;
@@ -413,21 +496,25 @@ void Guermond<dim>::update_entities()
 template <int dim>
 void Guermond<dim>::update_boundary_values()
 {
-  AffineConstraints<double>     tmp_constraints;
-  tmp_constraints.clear();
-  tmp_constraints.reinit(velocity.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(velocity.dof_handler,
-                                          tmp_constraints);
-  for (const auto& boundary_id : boundary_ids)
-    VectorTools::interpolate_boundary_values(
-                                velocity.dof_handler,
-                                boundary_id,
-                                velocity_exact_solution,
-                                tmp_constraints);
-  tmp_constraints.close();
-  velocity.constraints.merge(
-    tmp_constraints,
-    AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
+  Assert(time_stepping.get_next_time() == velocity_exact_solution.get_time(),
+    ExcMessage("Time mismatch between the time stepping class and the velocity function"));
+  {
+    AffineConstraints<double>     tmp_constraints;
+    tmp_constraints.clear();
+    tmp_constraints.reinit(velocity.locally_relevant_dofs);
+    DoFTools::make_hanging_node_constraints(velocity.dof_handler,
+                                            tmp_constraints);
+    for (const auto& boundary_id : boundary_ids)
+      VectorTools::interpolate_boundary_values(
+                                  velocity.dof_handler,
+                                  boundary_id,
+                                  velocity_exact_solution,
+                                  tmp_constraints);
+    tmp_constraints.close();
+    velocity.constraints.merge(
+      tmp_constraints,
+      AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
+  }
 }
 
 template <int dim>
@@ -437,54 +524,74 @@ void Guermond<dim>::solve(const unsigned int &level)
   setup_constraints();
   velocity.reinit();
   pressure.reinit();
+  velocity_error.reinit(velocity.solution);
+  pressure_error.reinit(pressure.solution);
   navier_stokes.setup(true);
   initialize();
 
+  // Advances the time to t^{k-1}, either t^0 or t^1
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
-  
-  velocity.solution = velocity.old_old_solution;
-  pressure.solution = pressure.old_old_solution;
-  output();
 
+  // Outputs the fields at t_0, i.e. the initial conditions.
+  { 
+    velocity.solution = velocity.old_old_solution;
+    pressure.solution = pressure.old_old_solution;
+    velocity_exact_solution.set_time(time_stepping.get_start_time());
+    pressure_exact_solution.set_time(time_stepping.get_start_time());
+    output();
+  }
+
+  // Sets the internal time of the functions to t^k, either t^1 or t^2
   velocity_exact_solution.set_time(time_stepping.get_next_time());
   pressure_exact_solution.set_time(time_stepping.get_next_time());
   body_force.set_time(time_stepping.get_next_time());
 
+  // Updates the boundary values to t^k, either t^1 or t^2
+  // Attention: If there is no adaptive barrier, there is a
+  // time mismatch here.
   update_boundary_values();
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
+    // The whole while-scope is at t^{k-1}
+
+    // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());
-
+    // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
+    // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve(time_stepping.get_step_number());
 
-    // snapshot stage
+    // Snapshot stage, all time calls should be done with get_next_time()
     postprocessing((time_stepping.get_step_number() %
-                    1 == 0) ||
+                    prm.terminal_output_interval == 0) ||
                     (time_stepping.get_next_time() == 
                    time_stepping.get_end_time()));
 
     if ((time_stepping.get_step_number() %
-          2 == 0) ||
+          prm.graphical_output_interval == 0) ||
         (time_stepping.get_next_time() == 
           time_stepping.get_end_time()))
       output();
     
+    // Advances the time to t^{k}
     update_entities();
     time_stepping.advance_time();
   }
+
   Assert(time_stepping.get_current_time() == velocity_exact_solution.get_time(),
     ExcMessage("Time mismatch between the time stepping class and the velocity function"));
   Assert(time_stepping.get_current_time() == pressure_exact_solution.get_time(),
     ExcMessage("Time mismatch between the time stepping class and the pressure function"));
+  
   velocity_convergence_table.update_table(
     level, time_stepping.get_previous_step_size(), prm.flag_spatial_convergence_test);
   pressure_convergence_table.update_table(
     level, time_stepping.get_previous_step_size(), prm.flag_spatial_convergence_test);
+  
   pcout << std::endl;
   pcout << std::endl;
 }
