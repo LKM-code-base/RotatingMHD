@@ -205,9 +205,12 @@ private:
 
   ConvergenceAnalysisData<dim>                pressure_convergence_table;
 
-  const bool                                  set_boundary_dofs_to_zero;
+  const bool                                  flag_set_boundary_dofs_to_zero;
+
+  const bool                                  flag_contrain_pressure_boundary;
 
   const bool                                  flag_square_domain;
+
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -252,8 +255,9 @@ pressure_exact_solution(parameters.time_stepping_parameters.start_time),
 body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
 velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
 pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
-set_boundary_dofs_to_zero(false),
-flag_square_domain(false)
+flag_set_boundary_dofs_to_zero(true),
+flag_contrain_pressure_boundary(false),
+flag_square_domain(true)
 {
   navier_stokes.set_body_force(body_force);
 }
@@ -319,7 +323,15 @@ void Guermond<dim>::setup_constraints()
   pressure.constraints.reinit(pressure.locally_relevant_dofs);
   DoFTools::make_hanging_node_constraints(pressure.dof_handler,
                                           pressure.constraints);
-  if (set_boundary_dofs_to_zero)
+  if (flag_contrain_pressure_boundary)
+    for (const auto& boundary_id : boundary_ids)
+      VectorTools::interpolate_boundary_values(
+                                    pressure.dof_handler,
+                                    boundary_id,
+                                    pressure_exact_solution,
+                                    pressure.constraints);
+  
+  if (flag_set_boundary_dofs_to_zero)
   {
     const FEValuesExtractors::Scalar    pressure_extractor(0);
 
@@ -512,6 +524,26 @@ void Guermond<dim>::update_boundary_values()
                                   tmp_constraints);
     tmp_constraints.close();
     velocity.constraints.merge(
+      tmp_constraints,
+      AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
+  }
+  if (flag_contrain_pressure_boundary)
+  {
+    Assert(time_stepping.get_next_time() == pressure_exact_solution.get_time(),
+      ExcMessage("Time mismatch between the time stepping class and the velocity function"));
+    AffineConstraints<double>     tmp_constraints;
+    tmp_constraints.clear();
+    tmp_constraints.reinit(pressure.locally_relevant_dofs);
+    DoFTools::make_hanging_node_constraints(pressure.dof_handler,
+                                            tmp_constraints);
+    for (const auto& boundary_id : boundary_ids)
+      VectorTools::interpolate_boundary_values(
+                                    pressure.dof_handler,
+                                    boundary_id,
+                                    pressure_exact_solution,
+                                    tmp_constraints);
+    tmp_constraints.close();
+    pressure.constraints.merge(
       tmp_constraints,
       AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
   }

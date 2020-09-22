@@ -7,7 +7,7 @@ set diagnostics_output_frequency = 1
 set flag_DFG_benchmark           = false
 
 # Graphical output frequency.
-set graphical_output_frequency   = 5
+set graphical_output_frequency   = 100
 
 # Projection method to implement.
 set projection_method            = rotational
@@ -89,7 +89,7 @@ subsection Convergence test parameters
 
   set flag_spatial_convergence_test = false
 
-  set initial_refinement_level      = 5
+  set initial_refinement_level      = 6
 
   set final_refinement_level        = 3
 
