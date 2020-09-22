@@ -52,6 +52,18 @@ protected:
    Function<dim>                     &function,
    TimeDiscretization::VSIMEXMethod  &time_stepping);
 
+  /*!
+   * @brief Computes the error of the numerical solution against
+   * the analytical solution.
+   * @details The error is calculated by subtracting the /f$ L_2/f$
+   * projection of the given function from the solution vector and
+   * computing the absolute value of the residum.
+   */
+  void compute_error
+  (LinearAlgebra::MPI::Vector  &error_vector,
+   Entities::EntityBase<dim>   &entity,
+   Function<dim>               &exact_solution);
+
 };
 
 } // namespace RMHD
