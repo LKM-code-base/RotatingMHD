@@ -207,10 +207,13 @@ private:
 
   const bool                                  flag_set_boundary_dofs_to_zero;
 
+  const bool                                  flag_set_boundary_dof_to_solution;
+
   const bool                                  flag_contrain_pressure_boundary;
 
   const bool                                  flag_square_domain;
 
+  types::global_dof_index               global_idx;
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -229,10 +232,6 @@ private:
   void update_boundary_values();
 
   void solve(const unsigned int &level);
-
-  void compute_error_vector(LinearAlgebra::MPI::Vector  &error_vector,
-                            Entities::EntityBase<dim>   &entity,
-                            Function<dim>               &exact_solution);
 };
 
 template <int dim>
@@ -256,6 +255,7 @@ body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
 velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
 pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
 flag_set_boundary_dofs_to_zero(true),
+flag_set_boundary_dof_to_solution(false),
 flag_contrain_pressure_boundary(false),
 flag_square_domain(true)
 {
@@ -331,7 +331,8 @@ void Guermond<dim>::setup_constraints()
                                     pressure_exact_solution,
                                     pressure.constraints);
   
-  if (flag_set_boundary_dofs_to_zero)
+  if ((flag_set_boundary_dofs_to_zero) || 
+      (flag_set_boundary_dof_to_solution))
   {
     const FEValuesExtractors::Scalar    pressure_extractor(0);
 
@@ -351,7 +352,7 @@ void Guermond<dim>::setup_constraints()
                 && !pressure.constraints.is_constrained(*idx))
             local_idx = *idx;
 
-    const types::global_dof_index global_idx
+    /*static const types::global_dof_index*/ global_idx
     = Utilities::MPI::min(
             (local_idx != numbers::invalid_dof_index) ?
                     local_idx :
@@ -363,7 +364,8 @@ void Guermond<dim>::setup_constraints()
 
     if (pressure.constraints.can_store_line(global_idx))
     {
-        Assert(!pressure.constraints.is_constrained(global_idx), ExcInternalError());
+        Assert(!pressure.constraints.is_constrained(global_idx), 
+               ExcInternalError());
         pressure.constraints.add_line(global_idx);
     }
   }
@@ -380,10 +382,6 @@ void Guermond<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_exact_solution, 
                                time_stepping);
-  // The diffusion prestep does not produce physical results.
-  // Could this be due to the boundary conditions? Since there is no
-  // body force in this problem the problem reduces to a boundary integral
-  // whhose integrand is projected in the normal to the boundary direction.
   //navier_stokes.initialize();
 }
 
@@ -408,60 +406,12 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 }
 
 template <int dim>
-void Guermond<dim>::compute_error_vector(
-  LinearAlgebra::MPI::Vector  &error_vector,
-  Entities::EntityBase<dim>   &entity,
-  Function<dim>               &exact_solution)
-{
-  #ifdef USE_PETSC_LA
-    LinearAlgebra::MPI::Vector
-    tmp_error_vector(entity.locally_owned_dofs, MPI_COMM_WORLD);
-  #else
-    LinearAlgebra::MPI::Vector
-    tmp_error_vector(entity.locally_owned_dofs);
-  #endif
-  VectorTools::project(entity.dof_handler,
-                       entity.constraints,
-                       QGauss<dim>(entity.fe_degree + 2),
-                       exact_solution,
-                       tmp_error_vector);
-
-  error_vector = tmp_error_vector;
-
-  LinearAlgebra::MPI::Vector distributed_error_vector;
-  LinearAlgebra::MPI::Vector distributed_solution;
-
-  #ifdef USE_PETSC_LA
-    distributed_error_vector.reinit(entity.locally_owned_dofs,
-                                    MPI_COMM_WORLD);
-  #else
-    distributed_error_vector.reinit(entity.locally_owned_dofs,
-                                    entity.locally_relevant_dofs,
-                                    MPI_COMM_WORLD,
-                                    true);
-  #endif
-  distributed_solution.reinit(distributed_error_vector);
-
-  distributed_error_vector  = error_vector;
-  distributed_solution      = entity.solution;
-
-  distributed_error_vector.add(-1.0, distributed_solution);
-  
-  for (unsigned int i = distributed_error_vector.local_range().first; 
-       i < distributed_error_vector.local_range().second; ++i)
-    if (distributed_error_vector(i) < 0)
-      distributed_error_vector(i) *= -1.0;
-
-  error_vector = distributed_error_vector;
-}
-
-template <int dim>
 void Guermond<dim>::output()
 {
-  compute_error_vector(velocity_error,
+  this->compute_error(velocity_error,
                        velocity,
                        velocity_exact_solution);
-  compute_error_vector(pressure_error,
+  this->compute_error(pressure_error,
                        pressure,
                        pressure_exact_solution);
 
@@ -489,7 +439,7 @@ void Guermond<dim>::output()
   
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record(
-    "./", "solution", out_index, MPI_COMM_WORLD, 5);
+    "./", "solution_square", out_index, MPI_COMM_WORLD, 5);
   out_index++;
 }
 
@@ -499,10 +449,6 @@ void Guermond<dim>::update_entities()
   velocity.update_solution_vectors();
   pressure.update_solution_vectors();
   navier_stokes.update_internal_entities();
-  velocity_exact_solution.set_time(time_stepping.get_next_time());
-  pressure_exact_solution.set_time(time_stepping.get_next_time());
-  body_force.set_time(time_stepping.get_next_time());
-  update_boundary_values();
 }
 
 template <int dim>
@@ -547,6 +493,51 @@ void Guermond<dim>::update_boundary_values()
       tmp_constraints,
       AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
   }
+  if (flag_set_boundary_dof_to_solution)
+  {
+    Assert(time_stepping.get_next_time() == pressure_exact_solution.get_time(),
+      ExcMessage("Time mismatch between the time stepping class and the velocity function"));
+    AffineConstraints<double>     tmp_constraints;
+    tmp_constraints.clear();
+    tmp_constraints.reinit(pressure.locally_relevant_dofs);
+    DoFTools::make_hanging_node_constraints(pressure.dof_handler,
+                                            tmp_constraints);
+    std::map<types::global_dof_index, Point<dim>> support_points;
+    pcout << "Support mapping created" << std::endl;
+    DoFTools::map_dofs_to_support_points(MappingQ1<dim,dim>(), 
+                                          pressure.dof_handler, 
+                                          support_points);
+    pcout << "Support mapping filled" << std::endl;
+    if (support_points.find(global_idx) != support_points.end())
+    {
+      pcout << "True" << std::endl;
+      Point<dim> dof_coordinates = support_points[global_idx];
+      pcout << "Point found" << std::endl;
+      /*double value = pressure.point_value(dof_coordinates);*/
+      const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
+      cell_point =
+      GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
+                                              pressure.dof_handler,
+                                              dof_coordinates);
+      if (cell_point.first->is_locally_owned())
+      {
+        const double value
+        = VectorTools::point_value(pressure.dof_handler,
+                                  pressure.solution,
+                                  dof_coordinates);
+        pcout << "Value computed" << std::endl;
+        pressure.constraints.set_inhomogeneity(
+          global_idx,
+          value);
+        pcout << "Value set" << std::endl;
+      }
+    }
+    pcout << "Closing constraints" << std::endl;
+    tmp_constraints.close();
+    pressure.constraints.merge(
+      tmp_constraints,
+      AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
+  }
 }
 
 template <int dim>
@@ -572,17 +563,14 @@ void Guermond<dim>::solve(const unsigned int &level)
     velocity_exact_solution.set_time(time_stepping.get_start_time());
     pressure_exact_solution.set_time(time_stepping.get_start_time());
     output();
+    velocity.solution = velocity.old_solution;
+    pressure.solution = pressure.old_solution;
+    velocity_exact_solution.set_time(time_stepping.get_start_time() + 
+                                     time_stepping.get_next_step_size());
+    pressure_exact_solution.set_time(time_stepping.get_start_time() + 
+                                     time_stepping.get_next_step_size());
+    output();   
   }
-
-  // Sets the internal time of the functions to t^k, either t^1 or t^2
-  velocity_exact_solution.set_time(time_stepping.get_next_time());
-  pressure_exact_solution.set_time(time_stepping.get_next_time());
-  body_force.set_time(time_stepping.get_next_time());
-
-  // Updates the boundary values to t^k, either t^1 or t^2
-  // Attention: If there is no adaptive barrier, there is a
-  // time mismatch here.
-  update_boundary_values();
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
@@ -591,8 +579,15 @@ void Guermond<dim>::solve(const unsigned int &level)
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());
+    
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
+    
+    // Updates the functions and the constraints to t^{k}
+    velocity_exact_solution.set_time(time_stepping.get_next_time());
+    pressure_exact_solution.set_time(time_stepping.get_next_time());
+    body_force.set_time(time_stepping.get_next_time());
+    update_boundary_values();
 
     // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve(time_stepping.get_step_number());

@@ -7,7 +7,7 @@ set diagnostics_output_frequency = 1
 set flag_DFG_benchmark           = false
 
 # Graphical output frequency.
-set graphical_output_frequency   = 100
+set graphical_output_frequency   = 1
 
 # Projection method to implement.
 set projection_method            = rotational
@@ -61,10 +61,10 @@ subsection Time stepping settings
   set adaptive_timestep_barrier = 2
 
   # Final time of the simulation.
-  set final_time                = 2.0
+  set final_time                = 3.0
 
   # Size of the initial time step.
-  set initial_time_step         = 5e-1
+  set initial_time_step         = 6.25e-3
 
   # Size of the maximum time step.
   set maximum_time_step         = 7.5e-3
@@ -89,11 +89,11 @@ subsection Convergence test parameters
 
   set flag_spatial_convergence_test = false
 
-  set initial_refinement_level      = 6
+  set initial_refinement_level      = 5
 
   set final_refinement_level        = 3
 
-  set temporal_convergence_cycles   = 4
+  set temporal_convergence_cycles   = 1
 
   set time_step_scaling_factor      = 0.1
 
