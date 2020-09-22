@@ -228,12 +228,14 @@ struct LocalCellData
   unsigned int                          pressure_dofs_per_cell;
 
   std::vector<double>                   body_force_divergence_values;
-
+  
   std::vector<Tensor<1, dim>>           velocity_laplacian_values;
 
   std::vector<Vector<double>>           body_force_values;
 
   std::vector<Tensor<1, dim>>           normal_vectors;
+
+  std::vector<double>                   projected_body_force;
 
   std::vector<double>                   phi_pressure;
   std::vector<double>                   face_phi_pressure;
