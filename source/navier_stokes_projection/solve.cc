@@ -1,5 +1,7 @@
 #include <rotatingMHD/navier_stokes_projection.h>
 
+#include <deal.II/numerics/vector_tools.h>
+
 namespace RMHD
 {
 
@@ -174,6 +176,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           distributed_pressure.sadd(1.0 / parameters.Re, 1., distributed_old_pressure);
           distributed_pressure += distributed_phi;
+
+          if (flag_normalize_pressure)
+            VectorTools::subtract_mean_value(distributed_pressure);
 
           pressure.solution = distributed_pressure;
         }

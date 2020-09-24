@@ -82,6 +82,7 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   if (flag_normalize_pressure)
     VectorTools::subtract_mean_value(distributed_phi);
+
   /*
    * Do we need the inline if statement at all?
    */
