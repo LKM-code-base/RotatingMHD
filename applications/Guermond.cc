@@ -205,15 +205,13 @@ private:
 
   ConvergenceAnalysisData<dim>                pressure_convergence_table;
 
-  const bool                                  flag_set_boundary_dofs_to_zero;
-
-  const bool                                  flag_set_boundary_dof_to_solution;
+  const bool                                  flag_set_a_boundary_dof_to_zero;
 
   const bool                                  flag_contrain_pressure_boundary;
 
-  const bool                                  flag_square_domain;
+  const bool                                  flag_set_exact_pressure_constant;
 
-  types::global_dof_index               global_idx;
+  const bool                                  flag_square_domain;
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -254,10 +252,10 @@ pressure_exact_solution(parameters.time_stepping_parameters.start_time),
 body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
 velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
 pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
-flag_set_boundary_dofs_to_zero(true),
-flag_set_boundary_dof_to_solution(false),
+flag_set_a_boundary_dof_to_zero(false),
 flag_contrain_pressure_boundary(false),
-flag_square_domain(true)
+flag_set_exact_pressure_constant(true),
+flag_square_domain(false)
 {
   navier_stokes.set_body_force(body_force);
 }
@@ -331,8 +329,7 @@ void Guermond<dim>::setup_constraints()
                                     pressure_exact_solution,
                                     pressure.constraints);
   
-  if ((flag_set_boundary_dofs_to_zero) || 
-      (flag_set_boundary_dof_to_solution))
+  if (flag_set_a_boundary_dof_to_zero)
   {
     const FEValuesExtractors::Scalar    pressure_extractor(0);
 
@@ -352,7 +349,7 @@ void Guermond<dim>::setup_constraints()
                 && !pressure.constraints.is_constrained(*idx))
             local_idx = *idx;
 
-    /*static const types::global_dof_index*/ global_idx
+    const types::global_dof_index global_idx
     = Utilities::MPI::min(
             (local_idx != numbers::invalid_dof_index) ?
                     local_idx :
@@ -388,6 +385,50 @@ void Guermond<dim>::initialize()
 template <int dim>
 void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 {
+  if (flag_set_exact_pressure_constant)
+  {
+    LinearAlgebra::MPI::Vector  analytical_pressure(pressure.solution);
+    {
+      #ifdef USE_PETSC_LA
+        LinearAlgebra::MPI::Vector
+        tmp_analytical_pressure(pressure.locally_owned_dofs, MPI_COMM_WORLD);
+      #else
+        LinearAlgebra::MPI::Vector
+        tmp_analytical_pressure(pressure.locally_owned_dofs);
+      #endif
+      VectorTools::project(pressure.dof_handler,
+                          pressure.constraints,
+                          QGauss<dim>(pressure.fe_degree + 2),
+                          pressure_exact_solution,
+                          tmp_analytical_pressure);
+
+      analytical_pressure = tmp_analytical_pressure;
+    }
+    {
+      LinearAlgebra::MPI::Vector distributed_analytical_pressure;
+      LinearAlgebra::MPI::Vector distributed_numerical_pressure;
+      #ifdef USE_PETSC_LA
+        distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
+                                        MPI_COMM_WORLD);
+      #else
+        distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
+                                        pressure.locally_relevant_dofs,
+                                        MPI_COMM_WORLD,
+                                        true);
+      #endif
+      distributed_numerical_pressure.reinit(distributed_analytical_pressure);
+
+      distributed_analytical_pressure = analytical_pressure;
+      distributed_numerical_pressure  = pressure.solution;
+
+      distributed_numerical_pressure.add(  
+        distributed_analytical_pressure.mean_value() -
+        distributed_numerical_pressure.mean_value());
+
+      pressure.solution = distributed_numerical_pressure;
+    }
+  }
+
   if (flag_point_evaluation)
   {
     std::cout.precision(1);
@@ -439,7 +480,7 @@ void Guermond<dim>::output()
   
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record(
-    "./", "solution_square", out_index, MPI_COMM_WORLD, 5);
+    "./", "solution_circle", out_index, MPI_COMM_WORLD, 5);
   out_index++;
 }
 
@@ -488,51 +529,6 @@ void Guermond<dim>::update_boundary_values()
                                     boundary_id,
                                     pressure_exact_solution,
                                     tmp_constraints);
-    tmp_constraints.close();
-    pressure.constraints.merge(
-      tmp_constraints,
-      AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
-  }
-  if (flag_set_boundary_dof_to_solution)
-  {
-    Assert(time_stepping.get_next_time() == pressure_exact_solution.get_time(),
-      ExcMessage("Time mismatch between the time stepping class and the velocity function"));
-    AffineConstraints<double>     tmp_constraints;
-    tmp_constraints.clear();
-    tmp_constraints.reinit(pressure.locally_relevant_dofs);
-    DoFTools::make_hanging_node_constraints(pressure.dof_handler,
-                                            tmp_constraints);
-    std::map<types::global_dof_index, Point<dim>> support_points;
-    pcout << "Support mapping created" << std::endl;
-    DoFTools::map_dofs_to_support_points(MappingQ1<dim,dim>(), 
-                                          pressure.dof_handler, 
-                                          support_points);
-    pcout << "Support mapping filled" << std::endl;
-    if (support_points.find(global_idx) != support_points.end())
-    {
-      pcout << "True" << std::endl;
-      Point<dim> dof_coordinates = support_points[global_idx];
-      pcout << "Point found" << std::endl;
-      /*double value = pressure.point_value(dof_coordinates);*/
-      const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
-      cell_point =
-      GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
-                                              pressure.dof_handler,
-                                              dof_coordinates);
-      if (cell_point.first->is_locally_owned())
-      {
-        const double value
-        = VectorTools::point_value(pressure.dof_handler,
-                                  pressure.solution,
-                                  dof_coordinates);
-        pcout << "Value computed" << std::endl;
-        pressure.constraints.set_inhomogeneity(
-          global_idx,
-          value);
-        pcout << "Value set" << std::endl;
-      }
-    }
-    pcout << "Closing constraints" << std::endl;
     tmp_constraints.close();
     pressure.constraints.merge(
       tmp_constraints,
