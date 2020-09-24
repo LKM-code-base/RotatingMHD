@@ -301,6 +301,8 @@ double BodyForce<dim>::value(const Point<dim> &point,
                       const unsigned int component) const
 {
   // This correspondes to the divergence of the body force
+  // The commented out lines corresponds to the case where the convection
+  // term is ignored.
   (void)component;
   double t = this->get_time();
   double x = point(0);
@@ -308,20 +310,30 @@ double BodyForce<dim>::value(const Point<dim> &point,
   return cos(2.*(t + x)) + cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) + 
          (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) - 
          0.5*Re*(2.*cos(2.*(t + y)) + 2.*cos(2.*t + x + y) + 
-         2.*sin(t + x - 1.*y)) - 1.*sin(2.*t + x + y))/Re;
+         2.*sin(t + x - 1.*y)) - 1.*sin(2.*t + x + y))/Re
+         /*cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) + 
+         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) - 
+         1.*Re*(cos(2.*t + x + y) + sin(t + x - 1.*y)) - 
+         1.*sin(2.*t + x + y))/Re*/;
 }
 
 template <int dim>
 void BodyForce<dim>::vector_value(const Point<dim>  &point,
                                   Vector<double>    &values) const
 {
+  // The commented out lines corresponds to the case where the convection
+  // term is ignored.
   double t = this->get_time();
   double x = point(0);
   double y = point(1);
   values[0] = cos(t + x - y) + sin(2.*(t + x))/2. + 
-              (2.*sin(t + x)*sin(t + y))/Re + sin(2.*t + x + y);
+              (2.*sin(t + x)*sin(t + y))/Re + sin(2.*t + x + y)
+              /*cos(t + x - 1.*y) + (2.*sin(t + x)*sin(t + y))/Re 
+              + sin(2.*t + x + y)*/;
   values[1] = (cos(x - y) + cos(2.*t + x + y) - (Re*(2.*cos(t + x - y) + 
-              sin(2.*(t + y)) + 2.*sin(2.*t + x + y)))/2.)/Re;
+              sin(2.*(t + y)) + 2.*sin(2.*t + x + y)))/2.)/Re
+              /*(cos(x - 1.*y) + cos(2.*t + x + y) - 
+              1.*Re*(cos(t + x - 1.*y) + sin(2.*t + x + y)))/Re*/;
 }
 
 } // namespace Guermond
