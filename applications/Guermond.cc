@@ -205,10 +205,6 @@ private:
 
   ConvergenceAnalysisData<dim>                pressure_convergence_table;
 
-  const bool                                  flag_set_a_boundary_dof_to_zero;
-
-  const bool                                  flag_contrain_pressure_boundary;
-
   const bool                                  flag_set_exact_pressure_constant;
 
   const bool                                  flag_square_domain;
@@ -227,7 +223,6 @@ private:
 
   void update_entities();
 
-  void update_boundary_values();
 
   void solve(const unsigned int &level);
 };
@@ -252,10 +247,8 @@ pressure_exact_solution(parameters.time_stepping_parameters.start_time),
 body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
 velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
 pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
-flag_set_a_boundary_dof_to_zero(false),
-flag_contrain_pressure_boundary(false),
 flag_set_exact_pressure_constant(true),
-flag_square_domain(false)
+flag_square_domain(true)
 {
   navier_stokes.set_body_force(body_force);
 }
@@ -300,74 +293,16 @@ void Guermond<dim>::setup_dofs()
 template <int dim>
 void Guermond<dim>::setup_constraints()
 {
-  {
-  velocity.constraints.clear();
-  velocity.constraints.reinit(velocity.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(velocity.dof_handler,
-                                          velocity.constraints);
-
   for (const auto& boundary_id : boundary_ids)
-    VectorTools::interpolate_boundary_values(
-                                  velocity.dof_handler,
-                                  boundary_id,
-                                  velocity_exact_solution,
-                                  velocity.constraints);
-
-  velocity.constraints.close();
-  }
-
-  {
-  pressure.constraints.clear();
-  pressure.constraints.reinit(pressure.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(pressure.dof_handler,
-                                          pressure.constraints);
-  if (flag_contrain_pressure_boundary)
-    for (const auto& boundary_id : boundary_ids)
-      VectorTools::interpolate_boundary_values(
-                                    pressure.dof_handler,
-                                    boundary_id,
-                                    pressure_exact_solution,
-                                    pressure.constraints);
+    velocity.boundary_conditions.set_dirichlet_bcs(
+      boundary_id,
+      std::shared_ptr<Function<dim>> 
+        (new EquationData::Guermond::VelocityExactSolution<dim>(
+          prm.time_stepping_parameters.start_time)),
+      true);
   
-  if (flag_set_a_boundary_dof_to_zero)
-  {
-    const FEValuesExtractors::Scalar    pressure_extractor(0);
-
-    IndexSet    boundary_pressure_dofs;
-
-    DoFTools::extract_boundary_dofs(pressure.dof_handler,
-                                    pressure.fe.component_mask(pressure_extractor),
-                                    boundary_pressure_dofs);
-
-    types::global_dof_index local_idx = numbers::invalid_dof_index;
-    
-    IndexSet::ElementIterator
-    idx = boundary_pressure_dofs.begin(),
-    endidx = boundary_pressure_dofs.end();
-    for(; idx != endidx; ++idx)
-        if (pressure.constraints.can_store_line(*idx)
-                && !pressure.constraints.is_constrained(*idx))
-            local_idx = *idx;
-
-    const types::global_dof_index global_idx
-    = Utilities::MPI::min(
-            (local_idx != numbers::invalid_dof_index) ?
-                    local_idx :
-                    pressure.dof_handler.n_dofs(),
-            pressure.mpi_communicator);
-
-    Assert(global_idx < pressure.dof_handler.n_dofs(),
-            ExcMessage("Error, couldn't find a pressure DoF to constrain."));
-
-    if (pressure.constraints.can_store_line(global_idx))
-    {
-        Assert(!pressure.constraints.is_constrained(global_idx), 
-               ExcInternalError());
-        pressure.constraints.add_line(global_idx);
-    }
-  }
-  pressure.constraints.close();
-  }
+  velocity.apply_boundary_conditions();
+  pressure.apply_boundary_conditions();
 }
 
 template <int dim>
@@ -480,7 +415,7 @@ void Guermond<dim>::output()
   
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record(
-    "./", "solution_circle", out_index, MPI_COMM_WORLD, 5);
+    "./", "solution", out_index, MPI_COMM_WORLD, 5);
   out_index++;
 }
 
@@ -490,50 +425,6 @@ void Guermond<dim>::update_entities()
   velocity.update_solution_vectors();
   pressure.update_solution_vectors();
   navier_stokes.update_internal_entities();
-}
-
-template <int dim>
-void Guermond<dim>::update_boundary_values()
-{
-  Assert(time_stepping.get_next_time() == velocity_exact_solution.get_time(),
-    ExcMessage("Time mismatch between the time stepping class and the velocity function"));
-  {
-    AffineConstraints<double>     tmp_constraints;
-    tmp_constraints.clear();
-    tmp_constraints.reinit(velocity.locally_relevant_dofs);
-    DoFTools::make_hanging_node_constraints(velocity.dof_handler,
-                                            tmp_constraints);
-    for (const auto& boundary_id : boundary_ids)
-      VectorTools::interpolate_boundary_values(
-                                  velocity.dof_handler,
-                                  boundary_id,
-                                  velocity_exact_solution,
-                                  tmp_constraints);
-    tmp_constraints.close();
-    velocity.constraints.merge(
-      tmp_constraints,
-      AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
-  }
-  if (flag_contrain_pressure_boundary)
-  {
-    Assert(time_stepping.get_next_time() == pressure_exact_solution.get_time(),
-      ExcMessage("Time mismatch between the time stepping class and the velocity function"));
-    AffineConstraints<double>     tmp_constraints;
-    tmp_constraints.clear();
-    tmp_constraints.reinit(pressure.locally_relevant_dofs);
-    DoFTools::make_hanging_node_constraints(pressure.dof_handler,
-                                            tmp_constraints);
-    for (const auto& boundary_id : boundary_ids)
-      VectorTools::interpolate_boundary_values(
-                                    pressure.dof_handler,
-                                    boundary_id,
-                                    pressure_exact_solution,
-                                    tmp_constraints);
-    tmp_constraints.close();
-    pressure.constraints.merge(
-      tmp_constraints,
-      AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
-  }
 }
 
 template <int dim>
@@ -583,7 +474,9 @@ void Guermond<dim>::solve(const unsigned int &level)
     velocity_exact_solution.set_time(time_stepping.get_next_time());
     pressure_exact_solution.set_time(time_stepping.get_next_time());
     body_force.set_time(time_stepping.get_next_time());
-    update_boundary_values();
+    velocity.boundary_conditions.set_time(time_stepping.get_next_time());
+    velocity.update_boundary_conditions();
+    //update_boundary_values();
 
     // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve(time_stepping.get_step_number());
