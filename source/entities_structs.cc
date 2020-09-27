@@ -159,6 +159,106 @@ void VectorEntity<dim>::apply_boundary_conditions()
   this->constraints.close();
 }
 
+template <int dim>
+void VectorEntity<dim>::update_boundary_conditions()
+{
+  if (boundary_conditions.time_dependent_multimap.empty())
+    return;
+
+  using FunctionMap = std::map<types::boundary_id, 
+                              const Function<dim> *>;
+
+  AffineConstraints<double>   tmp_constraints;
+
+  tmp_constraints.clear();
+
+  tmp_constraints.reinit(this->locally_relevant_dofs);
+
+  if (boundary_conditions.time_dependent_multimap.find(BCType::dirichlet)
+      != boundary_conditions.time_dependent_multimap.end())
+  {
+    FunctionMap   function_map;
+
+    auto iterator = 
+      boundary_conditions.time_dependent_multimap.equal_range(
+        BCType::dirichlet);
+    
+    for (auto multimap_pair = iterator.first;
+         multimap_pair != iterator.second;
+         ++multimap_pair)
+      function_map[multimap_pair->second] =
+        boundary_conditions.dirichlet_bcs[multimap_pair->second].get();
+
+    VectorTools::interpolate_boundary_values(
+      this->dof_handler,
+      function_map,
+      tmp_constraints);
+  }
+
+  if (boundary_conditions.time_dependent_multimap.find(BCType::normal_flux)
+      != boundary_conditions.time_dependent_multimap.end())
+  {
+    FunctionMap                   function_map;
+
+    std::set<types::boundary_id>  boundary_id_set;
+
+    auto iterator = 
+      boundary_conditions.time_dependent_multimap.equal_range(
+        BCType::normal_flux);
+    
+    for (auto multimap_pair = iterator.first;
+         multimap_pair != iterator.second;
+         ++multimap_pair)
+    {
+      function_map[multimap_pair->second] =
+        boundary_conditions.normal_flux_bcs[multimap_pair->second].get();
+      boundary_id_set.insert(multimap_pair->second);
+    }
+    
+    VectorTools::compute_nonzero_normal_flux_constraints(
+      this->dof_handler,
+      0,
+      boundary_id_set,
+      function_map,
+      tmp_constraints);
+  }
+
+  if (boundary_conditions.time_dependent_multimap.find(BCType::tangential_flux)
+      != boundary_conditions.time_dependent_multimap.end())
+  {
+    FunctionMap                   function_map;
+
+    std::set<types::boundary_id>  boundary_id_set;
+
+    auto iterator = 
+      boundary_conditions.time_dependent_multimap.equal_range(
+        BCType::tangential_flux);
+    
+    for (auto multimap_pair = iterator.first;
+         multimap_pair != iterator.second;
+         ++multimap_pair)
+    {
+      function_map[multimap_pair->second] =
+        boundary_conditions.tangential_flux_bcs[multimap_pair->second].get();
+      boundary_id_set.insert(multimap_pair->second);
+    }
+    
+    VectorTools::compute_nonzero_tangential_flux_constraints(
+      this->dof_handler,
+      0,
+      boundary_id_set,
+      function_map,
+      tmp_constraints);
+  }
+
+  tmp_constraints.close();
+
+  this->constraints.merge(
+    tmp_constraints,
+    AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
+}
+
+
 template<int dim>
 Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 {
@@ -287,6 +387,49 @@ void ScalarEntity<dim>::apply_boundary_conditions()
       this->constraints);
   }
   this->constraints.close();
+}
+
+template <int dim>
+void ScalarEntity<dim>::update_boundary_conditions()
+{
+  if (boundary_conditions.time_dependent_multimap.empty())
+    return;
+
+  using FunctionMap = std::map<types::boundary_id, 
+                              const Function<dim> *>;
+
+  AffineConstraints<double>   tmp_constraints;
+
+  tmp_constraints.clear();
+
+  tmp_constraints.reinit(this->locally_relevant_dofs);
+
+  if (boundary_conditions.time_dependent_multimap.find(BCType::dirichlet)
+      != boundary_conditions.time_dependent_multimap.end())
+  {
+    FunctionMap   function_map;
+
+    auto iterator = 
+      boundary_conditions.time_dependent_multimap.equal_range(
+        BCType::dirichlet);
+    
+    for (auto multimap_pair = iterator.first;
+         multimap_pair != iterator.second;
+         ++multimap_pair)
+      function_map[multimap_pair->second] =
+        boundary_conditions.dirichlet_bcs[multimap_pair->second].get();
+
+    VectorTools::interpolate_boundary_values(
+      this->dof_handler,
+      function_map,
+      tmp_constraints);
+  }
+
+  tmp_constraints.close();
+
+  this->constraints.merge(
+    tmp_constraints,
+    AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
 }
 
 template<int dim>
