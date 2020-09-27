@@ -11,6 +11,22 @@ namespace RMHD
 
 using namespace dealii;
 
+template<int dim>
+Problem<dim>::Problem()
+:
+mpi_communicator(MPI_COMM_WORLD),
+triangulation(mpi_communicator,
+              typename Triangulation<dim>::MeshSmoothing(
+              Triangulation<dim>::smoothing_on_refinement |
+              Triangulation<dim>::smoothing_on_coarsening)),
+pcout(std::cout,
+      (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
+computing_timer(mpi_communicator,
+                pcout,
+                TimerOutput::summary,
+                TimerOutput::wall_times)
+{}
+
 template <int dim>
 void Problem<dim>::set_initial_conditions
 (Entities::EntityBase<dim>        &entity,
@@ -23,7 +39,7 @@ void Problem<dim>::set_initial_conditions
       {
         #ifdef USE_PETSC_LA
           LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity.locally_owned_dofs, MPI_COMM_WORLD);
+          tmp_old_solution(entity.locally_owned_dofs, mpi_communicator);
         #else
           LinearAlgebra::MPI::Vector
           tmp_old_solution(entity.locally_owned_dofs);
@@ -45,7 +61,7 @@ void Problem<dim>::set_initial_conditions
       {
         #ifdef USE_PETSC_LA
           LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity.locally_owned_dofs, MPI_COMM_WORLD);
+          tmp_old_solution(entity.locally_owned_dofs, mpi_communicator);
           LinearAlgebra::MPI::Vector
           tmp_old_old_solution(entity.locally_owned_dofs, MPI_COMM_WORLD);
         #else
@@ -77,6 +93,54 @@ void Problem<dim>::set_initial_conditions
       Assert(false, ExcNotImplemented());
   };
 
+}
+
+template <int dim>
+void Problem<dim>::compute_error(
+  LinearAlgebra::MPI::Vector  &error_vector,
+  Entities::EntityBase<dim>   &entity,
+  Function<dim>               &exact_solution)
+{
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_error_vector(entity.locally_owned_dofs, MPI_COMM_WORLD);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_error_vector(entity.locally_owned_dofs);
+  #endif
+  VectorTools::project(entity.dof_handler,
+                       entity.constraints,
+                       QGauss<dim>(entity.fe_degree + 2),
+                       exact_solution,
+                       tmp_error_vector);
+
+  error_vector = tmp_error_vector;
+
+  LinearAlgebra::MPI::Vector distributed_error_vector;
+  LinearAlgebra::MPI::Vector distributed_solution;
+
+  #ifdef USE_PETSC_LA
+    distributed_error_vector.reinit(entity.locally_owned_dofs,
+                                    MPI_COMM_WORLD);
+  #else
+    distributed_error_vector.reinit(entity.locally_owned_dofs,
+                                    entity.locally_relevant_dofs,
+                                    MPI_COMM_WORLD,
+                                    true);
+  #endif
+  distributed_solution.reinit(distributed_error_vector);
+
+  distributed_error_vector  = error_vector;
+  distributed_solution      = entity.solution;
+
+  distributed_error_vector.add(-1.0, distributed_solution);
+  
+  for (unsigned int i = distributed_error_vector.local_range().first; 
+       i < distributed_error_vector.local_range().second; ++i)
+    if (distributed_error_vector(i) < 0)
+      distributed_error_vector(i) *= -1.0;
+
+  error_vector = distributed_error_vector;
 }
 
 } // namespace RMHD

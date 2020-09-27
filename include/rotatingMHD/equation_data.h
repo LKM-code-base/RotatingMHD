@@ -85,7 +85,86 @@ public:
   virtual double value(const Point<dim> &p,
                       const unsigned int component = 0) const override;
 };
-}
+} // namespace DFG
+
+namespace TGV
+{
+template <int dim>
+class VelocityExactSolution : public Function<dim>
+{
+public:
+  VelocityExactSolution(const double &Re, const double time = 0);
+
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int component) const;
+
+  const double Re;
+};
+
+template <int dim>
+class PressureExactSolution : public Function<dim>
+{
+public:
+  PressureExactSolution(const double &Re, const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                      const unsigned int component = 0) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int = 0) const;
+
+  const double Re;
+};
+} // namespace TGV
+
+namespace Guermond
+{
+template <int dim>
+class VelocityExactSolution : public Function<dim>
+{
+public:
+  VelocityExactSolution(const double time = 0);
+
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int component) const;
+};
+
+template <int dim>
+class PressureExactSolution : public Function<dim>
+{
+public:
+  PressureExactSolution(const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                      const unsigned int component = 0) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int = 0) const;
+};
+
+template <int dim>
+class BodyForce : public Function<dim>
+{
+public:
+  BodyForce(const double &Re, const double time = 0);
+
+  virtual double value(const Point<dim> &point,
+                       const unsigned int component = 0) const override;
+
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+
+  const double Re;
+};
+
+} // namespace Guermond
+
 } // namespace EquationData
 
 } // namespace RMHD

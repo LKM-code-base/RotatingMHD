@@ -1,6 +1,7 @@
 #include <rotatingMHD/navier_stokes_projection.h>
 
 #include <deal.II/lac/solver_cg.h>
+#include <deal.II/numerics/vector_tools.h>
 
 namespace RMHD
 {
@@ -78,6 +79,9 @@ void NavierStokesProjection<dim>::solve_projection_step
   }
 
   pressure.constraints.distribute(distributed_phi);
+
+  if (flag_normalize_pressure)
+    VectorTools::subtract_mean_value(distributed_phi);
 
   /*
    * Do we need the inline if statement at all?

@@ -60,7 +60,6 @@ ENDIF()
 
 # Set the source files to be compiled
 SET(TARGET_SRC
-    source/auxiliary_functions.cc
     source/benchmark_data.cc
     source/boundary_conditions.cc
     source/entities_structs.cc

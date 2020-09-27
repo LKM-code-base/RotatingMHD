@@ -8,7 +8,11 @@ template <int dim>
 void NavierStokesProjection<dim>::
 initialize()
 {
+  if (body_force_ptr != nullptr)
+    body_force_ptr->set_time(time_stepping.get_start_time());
   poisson_prestep();
+  if (body_force_ptr != nullptr)
+    body_force_ptr->advance_time(time_stepping.get_next_step_size());
   diffusion_prestep();
   projection_prestep();
   pressure_correction_prestep();

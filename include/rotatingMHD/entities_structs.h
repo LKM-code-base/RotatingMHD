@@ -31,6 +31,8 @@ struct EntityBase
 {
   const unsigned int          fe_degree;
 
+  const MPI_Comm              mpi_communicator;
+
   DoFHandler<dim>             dof_handler;
 
   AffineConstraints<double>   hanging_nodes;
@@ -46,7 +48,7 @@ struct EntityBase
   LinearAlgebra::MPI::Vector  old_solution;
   LinearAlgebra::MPI::Vector  old_old_solution;
 
-  EntityBase(const unsigned int                              &fe_degree,
+  EntityBase(const unsigned int                               fe_degree,
              const parallel::distributed::Triangulation<dim> &triangulation);
 
   void reinit();
@@ -57,31 +59,35 @@ struct EntityBase
 template <int dim>
 struct VectorEntity : EntityBase<dim>
 {
-  FESystem<dim>                       fe;
+  FESystem<dim>                 fe;
 
-  VectorBoundaryConditions<dim>       boundary_conditions;
+  VectorBoundaryConditions<dim> boundary_conditions;
 
-  VectorEntity(const unsigned int                              &fe_degree,
+  VectorEntity(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation);
 
   void setup_dofs();
 
   void apply_boundary_conditions();
+
+  Tensor<1,dim> point_value(const Point<dim>  &point) const;
 };
 
 template <int dim>
 struct ScalarEntity : EntityBase<dim>
 {
-  FE_Q<dim>                           fe;
+  FE_Q<dim> fe;
 
   ScalarBoundaryConditions<dim>       boundary_conditions;
 
-  ScalarEntity(const unsigned int                              &fe_degree,
+  ScalarEntity(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation);
 
   void setup_dofs();
 
   void apply_boundary_conditions();
+
+  double point_value(const Point<dim> &point) const;
 };
 
 } // namespace Entities
