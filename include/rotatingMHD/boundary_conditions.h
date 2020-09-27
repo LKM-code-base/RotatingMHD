@@ -40,19 +40,28 @@ struct PeriodicBoundaryData
   {}
 };
 
+enum class BCType
+{
+  periodic,
+  dirichlet,
+  neumann,
+  normal_flux,
+  tangential_flux
+};
+
 template <int dim>
 struct BoundaryConditionsBase
 {
   using FunctionMapping = std::map<types::boundary_id,
                                    std::shared_ptr<Function<dim>>>;
 
-  FunctionMapping                         dirichlet_bcs;
+  FunctionMapping                           dirichlet_bcs;
   
-  FunctionMapping                         neumann_bcs;
+  FunctionMapping                           neumann_bcs;
 
-  std::vector<PeriodicBoundaryData<dim>>  periodic_bcs;
+  std::vector<PeriodicBoundaryData<dim>>    periodic_bcs;
 
-  std::vector<types::boundary_id>         boundary_ids;
+  std::multimap<BCType, types::boundary_id> time_dependent_multimap;
 };
 
 template <int dim>
@@ -69,11 +78,15 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
 
   void set_dirichlet_bcs(const types::boundary_id             boundary_id,
                          const std::shared_ptr<Function<dim>> &function
-                          = std::shared_ptr<Function<dim>>());
+                          = std::shared_ptr<Function<dim>>(),
+                         const bool                           time_dependent
+                          = false);
 
   void set_neumann_bcs(const types::boundary_id             boundary_id,
                        const std::shared_ptr<Function<dim>> &function
-                          = std::shared_ptr<Function<dim>>());
+                          = std::shared_ptr<Function<dim>>(),
+                       const bool                           time_depedent
+                          = false);
 
   void set_time(const double &time);
 
@@ -105,19 +118,27 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
 
   void set_dirichlet_bcs(const types::boundary_id             boundary_id,
                          const std::shared_ptr<Function<dim>> &function
-                          = std::shared_ptr<Function<dim>>());
+                          = std::shared_ptr<Function<dim>>(),
+                         const bool                           time_depedent
+                          = false);
 
   void set_neumann_bcs(const types::boundary_id             boundary_id,
                        const std::shared_ptr<Function<dim>> &function
-                          = std::shared_ptr<Function<dim>>());
+                          = std::shared_ptr<Function<dim>>(),
+                       const bool                           time_depedent
+                          = false);
 
   void set_normal_flux_bcs(const types::boundary_id             boundary_id,
                            const std::shared_ptr<Function<dim>> &function
-                              = std::shared_ptr<Function<dim>>());
+                              = std::shared_ptr<Function<dim>>(),
+                           const bool                           time_depedent
+                              = false);
 
   void set_tangential_flux_bcs(const types::boundary_id             boundary_id,
                                const std::shared_ptr<Function<dim>> &function
-                                  = std::shared_ptr<Function<dim>>());
+                                  = std::shared_ptr<Function<dim>>(),
+                               const bool                           time_depedent
+                                  = false);
 
   void set_time(const double &time);
 

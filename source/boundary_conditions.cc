@@ -30,7 +30,8 @@ void ScalarBoundaryConditions<dim>::set_periodic_bcs(
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
   const types::boundary_id             boundary_id,
-  const std::shared_ptr<Function<dim>> &function)
+  const std::shared_ptr<Function<dim>> &function,
+  const bool                           time_dependent)
 {
   check_boundary_id(boundary_id);
 
@@ -44,12 +45,23 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
 
     this->dirichlet_bcs[boundary_id] = function;
   }
+
+  if (time_dependent)
+  {
+    typedef std::multimap<BCType, types::boundary_id> MapType;
+
+    this->time_dependent_multimap.insert(
+      MapType::value_type(
+        BCType::dirichlet, 
+        boundary_id));
+  }
 }
 
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_neumann_bcs(
   const types::boundary_id             boundary_id,
-  const std::shared_ptr<Function<dim>> &function)
+  const std::shared_ptr<Function<dim>> &function,
+  const bool                           time_dependent)
 {
   check_boundary_id(boundary_id);
 
@@ -62,6 +74,16 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
       ExcMessage("Neumann boundary function needs to have dim components."));
     
     this->neumann_bcs[boundary_id] = function;
+  }
+
+  if (time_dependent)
+  {
+    typedef std::multimap<BCType, types::boundary_id> MapType;
+
+    this->time_dependent_multimap.insert(
+      MapType::value_type(
+        BCType::neumann, 
+        boundary_id));
   }
 }
 
@@ -126,7 +148,8 @@ void VectorBoundaryConditions<dim>::set_periodic_bcs(
 template <int dim>
 void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
   const types::boundary_id             boundary_id,
-  const std::shared_ptr<Function<dim>> &function)
+  const std::shared_ptr<Function<dim>> &function,
+  const bool                           time_dependent)
 {
   check_boundary_id(boundary_id);
 
@@ -140,12 +163,23 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
 
     this->dirichlet_bcs[boundary_id] = function;
   }
+
+  if (time_dependent)
+  {
+    typedef std::multimap<BCType, types::boundary_id> MapType;
+
+    this->time_dependent_multimap.insert(
+      MapType::value_type(
+        BCType::dirichlet, 
+        boundary_id));
+  }
 }
 
 template <int dim>
 void VectorBoundaryConditions<dim>::set_neumann_bcs(
   const types::boundary_id             boundary_id,
-  const std::shared_ptr<Function<dim>> &function)
+  const std::shared_ptr<Function<dim>> &function,
+  const bool                           time_dependent)
 {
   check_boundary_id(boundary_id);
 
@@ -159,12 +193,23 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
     
     this->neumann_bcs[boundary_id] = function;
   }
+
+  if (time_dependent)
+  {
+    typedef std::multimap<BCType, types::boundary_id> MapType;
+
+    this->time_dependent_multimap.insert(
+      MapType::value_type(
+        BCType::neumann, 
+        boundary_id));
+  }
 }
 
 template <int dim>
 void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
   const types::boundary_id             boundary_id,
-  const std::shared_ptr<Function<dim>> &function)
+  const std::shared_ptr<Function<dim>> &function,
+  const bool                           time_dependent)
 {
   check_boundary_id(boundary_id);
 
@@ -178,12 +223,23 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
     
     normal_flux_bcs[boundary_id] = function;
   }
+
+  if (time_dependent)
+  {
+    typedef std::multimap<BCType, types::boundary_id> MapType;
+
+    this->time_dependent_multimap.insert(
+      MapType::value_type(
+        BCType::normal_flux, 
+        boundary_id));
+  }
 }
 
 template <int dim>
 void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
   const types::boundary_id             boundary_id,
-  const std::shared_ptr<Function<dim>> &function)
+  const std::shared_ptr<Function<dim>> &function,
+  const bool                           time_dependent)
 {
   check_boundary_id(boundary_id);
 
@@ -197,6 +253,29 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
     
     tangential_flux_bcs[boundary_id] = function;
   }
+
+  if (time_dependent)
+  {
+    typedef std::multimap<BCType, types::boundary_id> MapType;
+
+    this->time_dependent_multimap.insert(
+      MapType::value_type(
+        BCType::tangential_flux, 
+        boundary_id));
+  }
+}
+
+template <int dim>
+void VectorBoundaryConditions<dim>::set_time(const double &time)
+{
+  for (const auto &dirichlet_bc : this->dirichlet_bcs)
+    dirichlet_bc.second->set_time(time);
+  for (const auto &neumann_bc : this->neumann_bcs)
+    neumann_bc.second->set_time(time);
+  for (const auto &normal_flux_bc : this->normal_flux_bcs)
+    normal_flux_bc.second->set_time(time);
+  for (const auto &tangential_flux_bc : this->tangential_flux_bcs)
+    tangential_flux_bc.second->set_time(time);
 }
 
 template <int dim>
