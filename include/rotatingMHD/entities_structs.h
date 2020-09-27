@@ -4,6 +4,7 @@
 
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
+#include <rotatingMHD/boundary_conditions.h>
 
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/quadrature_lib.h>
@@ -13,6 +14,10 @@
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/lac/affine_constraints.h>
 
+#include <vector>
+#include <map>
+#include <memory.h>
+#include <set>
 namespace RMHD
 {
 
@@ -27,6 +32,8 @@ struct EntityBase
   const unsigned int          fe_degree;
 
   DoFHandler<dim>             dof_handler;
+
+  AffineConstraints<double>   hanging_nodes;
 
   AffineConstraints<double>   constraints;
 
@@ -52,10 +59,14 @@ struct VectorEntity : EntityBase<dim>
 {
   FESystem<dim>                       fe;
 
+  VectorBoundaryConditions<dim>       boundary_conditions;
+
   VectorEntity(const unsigned int                              &fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation);
 
   void setup_dofs();
+
+  void apply_boundary_conditions();
 };
 
 template <int dim>
@@ -63,10 +74,14 @@ struct ScalarEntity : EntityBase<dim>
 {
   FE_Q<dim>                           fe;
 
+  ScalarBoundaryConditions<dim>       boundary_conditions;
+
   ScalarEntity(const unsigned int                              &fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation);
 
   void setup_dofs();
+
+  void apply_boundary_conditions();
 };
 
 } // namespace Entities
