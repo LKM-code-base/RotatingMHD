@@ -27,12 +27,22 @@ struct PeriodicBoundaryData
   FullMatrix<double>                                rotation_matrix;
 
   Tensor<1,dim>                                     offset;
+
+  PeriodicBoundaryData(types::boundary_id first_boundary,
+                       types::boundary_id second_boundary,
+                       unsigned int       direction,
+                       FullMatrix<double> rotation_matrix,
+                       Tensor<1,dim>      offset)
+  : boundary_pair(std::make_pair(first_boundary, second_boundary)),
+    direction(direction),
+    rotation_matrix(rotation_matrix),
+    offset(offset)
+  {}
 };
 
 template <int dim>
 struct BoundaryConditionsBase
 {
-
   using FunctionMapping = std::map<types::boundary_id,
                                    std::shared_ptr<Function<dim>>>;
 
@@ -43,6 +53,11 @@ struct BoundaryConditionsBase
   std::vector<PeriodicBoundaryData<dim>>  periodic_bcs;
 
   std::vector<types::boundary_id>         boundary_ids;
+};
+
+template <int dim>
+struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
+{
 
   void set_periodic_bcs(const types::boundary_id  first_boundary,
                         const types::boundary_id  second_boundary,
@@ -51,11 +66,6 @@ struct BoundaryConditionsBase
                                 FullMatrix<double>(IdentityMatrix(dim)),
                         const Tensor<1,dim>       offset = 
                                 Tensor<1,dim>());
-};
-
-template <int dim>
-struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
-{
 
   void set_dirichlet_bcs(const types::boundary_id             boundary_id,
                          const std::shared_ptr<Function<dim>> &function
@@ -84,7 +94,15 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
   FunctionMapping   normal_flux_bcs;
 
   FunctionMapping   tangential_flux_bcs;
-  
+
+  void set_periodic_bcs(const types::boundary_id  first_boundary,
+                        const types::boundary_id  second_boundary,
+                        const unsigned int        direction,
+                        const FullMatrix<double>  rotation_matrix = 
+                                FullMatrix<double>(IdentityMatrix(dim)),
+                        const Tensor<1,dim>       offset = 
+                                Tensor<1,dim>());
+
   void set_dirichlet_bcs(const types::boundary_id             boundary_id,
                          const std::shared_ptr<Function<dim>> &function
                           = std::shared_ptr<Function<dim>>());

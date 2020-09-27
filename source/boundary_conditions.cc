@@ -8,6 +8,26 @@ namespace Entities
 {
 
 template <int dim>
+void ScalarBoundaryConditions<dim>::set_periodic_bcs(
+  const types::boundary_id  first_boundary,
+  const types::boundary_id  second_boundary,
+  const unsigned int        direction,
+  const FullMatrix<double>  rotation_matrix,
+  const Tensor<1,dim>       offset)
+{
+  check_boundary_id(first_boundary);
+  check_boundary_id(second_boundary);
+
+  PeriodicBoundaryData  periodic_bc(first_boundary,
+                                    second_boundary,
+                                    direction,
+                                    rotation_matrix,
+                                    offset);
+  
+  this->periodic_bcs.push_back(periodic_bc);
+}
+
+template <int dim>
 void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
   const types::boundary_id             boundary_id,
   const std::shared_ptr<Function<dim>> &function)
@@ -81,6 +101,26 @@ void ScalarBoundaryConditions<dim>::check_boundary_id(
                 ExcMessage("A periodic boundary condition was already set on "
                            "the given boundary."));
   }
+}
+
+template <int dim>
+void VectorBoundaryConditions<dim>::set_periodic_bcs(
+  const types::boundary_id  first_boundary,
+  const types::boundary_id  second_boundary,
+  const unsigned int        direction,
+  const FullMatrix<double>  rotation_matrix,
+  const Tensor<1,dim>       offset)
+{
+  check_boundary_id(first_boundary);
+  check_boundary_id(second_boundary);
+
+  PeriodicBoundaryData  periodic_bc(first_boundary,
+                                    second_boundary,
+                                    direction,
+                                    rotation_matrix,
+                                    offset);
+  
+  this->periodic_bcs.push_back(periodic_bc);
 }
 
 template <int dim>
