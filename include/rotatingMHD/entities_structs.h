@@ -70,6 +70,8 @@ struct VectorEntity : EntityBase<dim>
 
   void apply_boundary_conditions();
 
+  void update_boundary_conditions();
+
   Tensor<1,dim> point_value(const Point<dim>  &point) const;
 };
 
@@ -86,6 +88,8 @@ struct ScalarEntity : EntityBase<dim>
   void setup_dofs();
 
   void apply_boundary_conditions();
+
+  void update_boundary_conditions();
 
   double point_value(const Point<dim> &point) const;
 };

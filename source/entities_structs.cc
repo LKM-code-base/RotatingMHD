@@ -2,6 +2,7 @@
 
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
+#include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
 #include <algorithm>
@@ -73,10 +74,35 @@ void VectorEntity<dim>::apply_boundary_conditions()
   this->constraints.clear();
   this->constraints.reinit(this->locally_relevant_dofs);
   this->constraints.merge(this->hanging_nodes);
+
   if (!boundary_conditions.periodic_bcs.empty())
   {
+    FEValuesExtractors::Vector extractor(0);
 
+    std::vector<unsigned int> first_vector_components;
+    first_vector_components.push_back(0);
+
+    std::vector<
+    GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
+      periodicity_vector;
+
+    for (auto const &periodic_bc : boundary_conditions.periodic_bcs)
+      GridTools::collect_periodic_faces(
+        this->dof_handler,
+        periodic_bc.boundary_pair.first,
+        periodic_bc.boundary_pair.second,
+        periodic_bc.direction,
+        periodicity_vector,
+        periodic_bc.offset,
+        periodic_bc.rotation_matrix);
+    
+    DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
+      periodicity_vector,
+      this->constraints,
+      fe.component_mask(extractor),
+      first_vector_components);
   }
+
   if (!boundary_conditions.dirichlet_bcs.empty())
   {
     FunctionMap function_map;
@@ -89,6 +115,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
       function_map,
       this->constraints);
   }
+
   if (!boundary_conditions.normal_flux_bcs.empty())
   {
     FunctionMap                   function_map;
@@ -108,6 +135,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
       function_map,
       this->constraints);
   }
+
   if (!boundary_conditions.tangential_flux_bcs.empty())
   {
     FunctionMap                   function_map;
@@ -127,6 +155,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
       function_map,
       this->constraints);
   }
+
   this->constraints.close();
 }
 
@@ -220,7 +249,30 @@ void ScalarEntity<dim>::apply_boundary_conditions()
   this->constraints.merge(this->hanging_nodes);
   if (!boundary_conditions.periodic_bcs.empty())
   {
+    FEValuesExtractors::Scalar extractor(0);
 
+    std::vector<unsigned int> first_vector_components;
+    first_vector_components.push_back(0);
+
+    std::vector<
+    GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
+      periodicity_vector;
+
+    for (auto const &periodic_bc : boundary_conditions.periodic_bcs)
+      GridTools::collect_periodic_faces(
+        this->dof_handler,
+        periodic_bc.boundary_pair.first,
+        periodic_bc.boundary_pair.second,
+        periodic_bc.direction,
+        periodicity_vector,
+        periodic_bc.offset,
+        periodic_bc.rotation_matrix);
+    
+    DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
+      periodicity_vector,
+      this->constraints,
+      fe.component_mask(extractor),
+      first_vector_components);
   }
   if (!boundary_conditions.dirichlet_bcs.empty())
   {
