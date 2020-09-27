@@ -14,6 +14,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 namespace RMHD
@@ -134,60 +135,32 @@ void Step35<dim>::setup_dofs()
 template <int dim>
 void Step35<dim>::setup_constraints()
 {
-  velocity.constraints.clear();
-  velocity.constraints.reinit(velocity.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(velocity.dof_handler,
-                                          velocity.constraints);
-  for (const auto &boundary_id : boundary_ids)
-    switch (boundary_id)
-    {
-      case 1:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    Functions::ZeroFunction<dim>(dim),
-                                    velocity.constraints);
-        break;
-      case 2:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    inflow_boundary_condition,
-                                    velocity.constraints);
-        break;
-      case 3:
-      {
-        std::set<types::boundary_id> no_normal_flux_boundaries;
-        no_normal_flux_boundaries.insert(boundary_id);
-        VectorTools::compute_normal_flux_constraints(
-                                    velocity.dof_handler,
-                                    0,
-                                    no_normal_flux_boundaries,
-                                    velocity.constraints);
-        break;
-      }
-      case 4:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    Functions::ZeroFunction<dim>(dim),
-                                    velocity.constraints);
-        break;
-      default:
-        Assert(false, ExcNotImplemented());
-    }
-  velocity.constraints.close();
+  velocity.boundary_conditions.set_dirichlet_bcs(
+    1,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>(dim)));
+  velocity.boundary_conditions.set_dirichlet_bcs(
+    2,
+    std::shared_ptr<Function<dim>> 
+      (new EquationData::Step35::VelocityInflowBoundaryCondition<dim>(dim)));
+  velocity.boundary_conditions.set_dirichlet_bcs(
+    4,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>(dim)));
+  velocity.boundary_conditions.set_tangential_flux_bcs(
+    3,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>(dim)));
+  
+  pressure.boundary_conditions.set_dirichlet_bcs(
+    3,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>()));
 
-  pressure.constraints.clear();
-  pressure.constraints.reinit(pressure.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(pressure.dof_handler,
-                                          pressure.constraints);
-  VectorTools::interpolate_boundary_values(
-                                      pressure.dof_handler,
-                                      3,
-                                      Functions::ZeroFunction<dim>(),
-                                      pressure.constraints);
-  pressure.constraints.close();
+  velocity.apply_boundary_conditions();
+
+  pressure.apply_boundary_conditions();
+
 }
 
 template <int dim>
