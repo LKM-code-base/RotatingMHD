@@ -70,12 +70,13 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
   (extrapolated_velocity,
    scratch.extrapolated_velocity_divergences);
 
-  /*
-  // The curl only exists in dim == 3
+  
   if (parameters.convection_term_form == 
         RunTimeParameters::ConvectionTermForm::rotational)
-    scratch.fe_values[velocities].get_function_curls(extrapolated_velocity, scratch.extrapolated_velocity_curls);
-  */
+    scratch.fe_values[velocities].get_function_curls(
+      extrapolated_velocity, 
+      scratch.extrapolated_velocity_curls);
+
 
   // loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
@@ -128,14 +129,25 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
           }
           case RunTimeParameters::ConvectionTermForm::rotational:
           {
-            Assert(false, ExcNotImplemented());
-            // This form needs to be discussed
-            data.local_matrix(i, j) += ( 
+            // This form needs to be discussed, specifically which
+            // velocity instance is to be replaced by the extrapolated
+            // velocity.
+            // The minus sign in the argument of cross_product_2d
+            // method is due to how the method is defined.
+            if constexpr(dim == 2)
+              data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i] *
+                          scratch.extrapolated_velocity_curls[q][0] *
+                          cross_product_2d(
+                            - scratch.phi_velocity[j])) * 
+                          scratch.fe_values.JxW(q);
+            else if constexpr(dim == 3)
+              data.local_matrix(i, j) += ( 
+                          scratch.phi_velocity[i]  *
                           cross_product_3d(
                             scratch.extrapolated_velocity_curls[q],
-                            scratch.phi_velocity[j]))
-                          * scratch.fe_values.JxW(q);
+                            scratch.phi_velocity[j])) *
+                          scratch.fe_values.JxW(q);
             break;
           }
           default:

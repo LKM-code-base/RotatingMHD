@@ -103,9 +103,9 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     scratch.velocity_fe_values[velocities].get_function_divergences
     (velocity.old_solution,
     scratch.old_velocity_divergences);
-    //scratch.velocity_fe_values[velocities].get_function_curls
-    //(velocity.old_solution,
-    //scratch.old_velocity_curls);
+    scratch.velocity_fe_values[velocities].get_function_curls
+    (velocity.old_solution,
+    scratch.old_velocity_curls);
     
     scratch.velocity_fe_values[velocities].get_function_values
     (velocity.old_old_solution,
@@ -113,9 +113,9 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     scratch.velocity_fe_values[velocities].get_function_divergences
     (velocity.old_old_solution,
     scratch.old_old_velocity_divergences);
-    //scratch.velocity_fe_values[velocities].get_function_curls
-    //(velocity.old_solution,
-    //scratch.old_old_velocity_curls);
+    scratch.velocity_fe_values[velocities].get_function_curls
+    (velocity.old_old_solution,
+    scratch.old_old_velocity_curls);
   }
 
   // loop over quadrature points
@@ -224,21 +224,36 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
               }
               case RunTimeParameters::ConvectionTermForm::rotational:
               {
-                AssertThrow(false, 
-                  ExcMessage("The rotational form is currently not implemented."));
-                /*data.local_diffusion_step_rhs(i) -=
-                      scratch.velocity_fe_values.JxW(q) * (
-                      time_stepping.get_beta()[1] *
-                      (scratch.phi_velocity[i] *
-                      cross_product_3d(
-                        scratch.old_velocity_gradients[q],
-                        scratch.old_velocity_values[q]))
-                      +
-                      time_stepping.get_beta()[2] *
-                      (scratch.phi_velocity[i] *
-                      cross_product_3d(
-                        scratch.old_old_velocity_curls[q],
-                        scratch.old_old_velocity_values[q])));*/
+                // The minus sign in the argument of cross_product_2d
+                // method is due to how the method is defined.
+                if constexpr(dim == 2)
+                  data.local_diffusion_step_rhs(i) -=
+                        scratch.velocity_fe_values.JxW(q) * (
+                        time_stepping.get_beta()[1] *
+                        (scratch.phi_velocity[i] *
+                        scratch.old_velocity_curls[q][0] *
+                        cross_product_2d(
+                          - scratch.old_velocity_values[q]))
+                        +
+                        time_stepping.get_beta()[2] *
+                        (scratch.phi_velocity[i] *
+                        scratch.old_old_velocity_curls[q][0] *
+                        cross_product_2d(
+                          - scratch.old_old_velocity_values[q])));
+                else if constexpr(dim == 3)
+                  data.local_diffusion_step_rhs(i) -=
+                        scratch.velocity_fe_values.JxW(q) * (
+                        time_stepping.get_beta()[1] *
+                        (scratch.phi_velocity[i] *
+                        cross_product_3d(
+                          scratch.old_velocity_curls[q],
+                          scratch.old_velocity_values[q]))
+                        +
+                        time_stepping.get_beta()[2] *
+                        (scratch.phi_velocity[i]  *
+                        cross_product_3d(
+                          scratch.old_old_velocity_curls[q],
+                          scratch.old_old_velocity_values[q])));
                 break;
               }
               default:
@@ -260,11 +275,9 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
           scratch.velocity_fe_values[velocities].get_function_divergences(
                               extrapolated_velocity, 
                               scratch.extrapolated_velocity_divergences);
-          /*
           scratch.velocity_fe_values[velocities].get_function_curls(
                               extrapolated_velocity, 
                               scratch.extrapolated_velocity_curls);
-          */
         }
 
         for (unsigned int j = 0; j < scratch.velocity_dofs_per_cell; ++j)
@@ -342,15 +355,25 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
               }
               case RunTimeParameters::ConvectionTermForm::rotational:
               {
-                AssertThrow(false, 
-                  ExcMessage("The rotational form is currently not implemented."));
-                // This form needs to be discussed
-                /*data.local_matrix_for_inhomogeneous_bc(j, i) +=
-                      scratch.velocity_fe_values.JxW(q) * (
-                      scratch.phi_velocity[j] *
-                      cross_product_3d(
-                        scratch.extrapolated_velocity_curls[q],
-                        scratch.phi_velocity[i]));*/
+                // This form needs to be discussed, specifically which
+                // velocity instance is to be replaced by the extrapolated
+                // velocity.
+                // The minus sign in the argument of cross_product_2d
+                // method is due to how the method is defined.
+                if constexpr(dim == 2)
+                  data.local_matrix_for_inhomogeneous_bc(j, i) +=
+                        scratch.velocity_fe_values.JxW(q) * (
+                        scratch.phi_velocity[j] *
+                        scratch.extrapolated_velocity_curls[q][0] *
+                        cross_product_2d(
+                          - scratch.phi_velocity[i]));
+                else if constexpr(dim == 3)
+                  data.local_matrix_for_inhomogeneous_bc(j, i) +=
+                        scratch.velocity_fe_values.JxW(q) * (
+                        scratch.phi_velocity[j] *
+                        cross_product_3d(
+                          scratch.extrapolated_velocity_curls[q],
+                          - scratch.phi_velocity[i]));
                 break;
               }
               default:
