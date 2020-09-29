@@ -81,7 +81,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   (velocity.old_old_solution,
    scratch.old_old_velocity_gradients);
 
-  // The velocity and its divergence of previous solutions are
+  // The velocity, its divergence and its curl of previous solutions are
   // needed for the convection term
   scratch.velocity_fe_values[velocities].get_function_values
   (velocity.old_solution,
@@ -102,7 +102,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   scratch.velocity_fe_values[velocities].get_function_curls
   (velocity.old_old_solution,
   scratch.old_old_velocity_curls);
-
 
   // prepare pressure part
   typename DoFHandler<dim>::active_cell_iterator
@@ -242,13 +241,13 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                 if constexpr(dim == 2)
                   data.local_diffusion_step_rhs(i) -=
                         scratch.velocity_fe_values.JxW(q) * (
-                        time_stepping.get_beta()[1] *
+                        time_stepping.get_beta()[0] *
                         (scratch.phi_velocity[i] *
                         scratch.old_velocity_curls[q][0] *
                         cross_product_2d(
                           - scratch.old_velocity_values[q]))
                         +
-                        time_stepping.get_beta()[2] *
+                        time_stepping.get_beta()[1] *
                         (scratch.phi_velocity[i] *
                         scratch.old_old_velocity_curls[q][0] *
                         cross_product_2d(
@@ -256,13 +255,13 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                 else if constexpr(dim == 3)
                   data.local_diffusion_step_rhs(i) -=
                         scratch.velocity_fe_values.JxW(q) * (
-                        time_stepping.get_beta()[1] *
+                        time_stepping.get_beta()[0] *
                         (scratch.phi_velocity[i] *
                         cross_product_3d(
                           scratch.old_velocity_curls[q],
                           scratch.old_velocity_values[q]))
                         +
-                        time_stepping.get_beta()[2] *
+                        time_stepping.get_beta()[1] *
                         (scratch.phi_velocity[i]  *
                         cross_product_3d(
                           scratch.old_old_velocity_curls[q],

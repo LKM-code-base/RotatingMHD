@@ -3,9 +3,6 @@
 # Output frequency of diagnostic data on the terminal.
 set diagnostics_output_frequency = 1
 
-# This indicates whether the problem solves the DFG benchmark or step-35
-set flag_DFG_benchmark           = false
-
 # Graphical output frequency.
 set graphical_output_frequency   = 1
 
@@ -14,6 +11,12 @@ set projection_method            = rotational
 
 # Verbosity flag.
 set verbosity_flag               = false
+
+# Semi implicit scheme flag.
+set semi_implicit_scheme_flag    = false
+
+# Full VSIMEX method flag.
+set full_vsimex_flag             = true
 
 
 subsection Parameters of the diffusion-step solver
@@ -89,11 +92,11 @@ subsection Convergence test parameters
 
   set flag_spatial_convergence_test = false
 
-  set initial_refinement_level      = 6
+  set initial_refinement_level      = 5
 
   set final_refinement_level        = 3
 
-  set temporal_convergence_cycles   = 4
+  set temporal_convergence_cycles   = 1
 
   set time_step_scaling_factor      = 0.25
 

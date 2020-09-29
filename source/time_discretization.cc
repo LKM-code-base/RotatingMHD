@@ -126,7 +126,7 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
 
     if (vsimex_type_str == "CNAB")
       vsimex_scheme = VSIMEXScheme::CNAB;
-    else if (vsimex_type_str == "MCNAB")
+    else if (vsimex_type_str == "mCNAB")
       vsimex_scheme = VSIMEXScheme::mCNAB;
     else if (vsimex_type_str == "CNLF")
       vsimex_scheme = VSIMEXScheme::CNLF;

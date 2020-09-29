@@ -36,9 +36,9 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   }
 
   {
-    const std::vector<double> alpha = time_stepping.get_alpha();
-    const std::vector<double> old_alpha_zero   = time_stepping.get_old_alpha_zero();
-    const std::vector<double> old_step_size = time_stepping.get_old_step_size();
+    const std::vector<double> alpha           = time_stepping.get_alpha();
+    const std::vector<double> old_alpha_zero  = time_stepping.get_old_alpha_zero();
+    const std::vector<double> old_step_size   = time_stepping.get_old_step_size();
     AssertIsFinite(time_stepping.get_next_step_size());
     AssertIsFinite(alpha[1]);
     AssertIsFinite(alpha[2]);

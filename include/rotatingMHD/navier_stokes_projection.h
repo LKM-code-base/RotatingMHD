@@ -365,8 +365,6 @@ private:
    */
   bool                                  flag_normalize_pressure;
 
->>>>>>> TaylorGreen
-
   /*!
    * @brief Setup of the sparsity spatterns of the matrices of the diffusion and
    * projection steps.
