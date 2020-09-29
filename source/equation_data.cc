@@ -6,6 +6,7 @@
  */
 
 #include <rotatingMHD/equation_data.h>
+#include <cmath>
 
 namespace RMHD
 {
@@ -18,108 +19,324 @@ namespace Step35
 {
 
 template <int dim>
-VelocityInitialCondition<dim>::VelocityInitialCondition(
-                                                      const double time)
-  : Function<dim>(dim, time)
+VelocityInitialCondition<dim>::VelocityInitialCondition(const double time)
+:
+Function<dim>(dim, time)
 {}
 
 template <int dim>
-void VelocityInitialCondition<dim>::vector_value(
-                                        const Point<dim>  &p,
-                                        Vector<double>    &values) const
+void VelocityInitialCondition<dim>::vector_value
+(const Point<dim>  &/* point */,
+ Vector<double>    &values) const
 {
-    (void)p;
     values[0] = 0.0;
     values[1] = 0.0;
 }
 
 template <int dim>
-VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition(
-                                          const double time)
-: Function<dim>(dim, time)
+VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
+(const double time)
+:
+Function<dim>(dim, time)
 {}
 
 template <int dim>
-void VelocityInflowBoundaryCondition<dim>::vector_value(
-                                        const Point<dim>  &p,
-                                        Vector<double>    &values) const
+void VelocityInflowBoundaryCondition<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
 {
   const double Um = 1.5;
   const double H  = 4.1;
 
-  values[0] = 4.0 * Um * p(1) * ( H - p(1) ) / ( H * H );
+  values[0] = 4.0 * Um * point(1) * ( H - point(1) ) / ( H * H );
   values[1] = 0.0;
 }
 
 template <int dim>
-PressureInitialCondition<dim>::PressureInitialCondition(
-                                          const double time)
-: Function<dim>(1, time)
+PressureInitialCondition<dim>::PressureInitialCondition(const double time)
+:
+Function<dim>(1, time)
 {}
 
 template<int dim>
-double PressureInitialCondition<dim>::value(
-                                    const Point<dim> &p,
-                                    const unsigned int component) const
+double PressureInitialCondition<dim>::value
+(const Point<dim> &p,
+ const unsigned int /* component */) const
 {
-  (void)component;
   return (25.0 - p(0)) ;
 }
+
 } // namespace Step35
 
 namespace DFG
 {
 
 template <int dim>
-VelocityInitialCondition<dim>::VelocityInitialCondition(
-                                                      const double time)
-  : Function<dim>(dim, time)
+VelocityInitialCondition<dim>::VelocityInitialCondition(const double time)
+:
+Function<dim>(dim, time)
 {}
 
 template <int dim>
-void VelocityInitialCondition<dim>::vector_value(
-                                        const Point<dim>  &p,
-                                        Vector<double>    &values) const
+void VelocityInitialCondition<dim>::vector_value
+(const Point<dim>  &/* point */,
+ Vector<double>    &values) const
 {
-    (void)p;
     values[0] = 0.0;
     values[1] = 0.0;
 }
 
 template <int dim>
-VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition(
-                                          const double time)
-: Function<dim>(dim, time)
+VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
+(const double time)
+:
+Function<dim>(dim, time)
 {}
 
 template <int dim>
-void VelocityInflowBoundaryCondition<dim>::vector_value(
-                                        const Point<dim>  &p,
-                                        Vector<double>    &values) const
+void VelocityInflowBoundaryCondition<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
 {
   const double Um = 1.5;
   const double H  = 4.1;
 
-  values[0] = 4.0 * Um * p(1) * ( H - p(1) ) / ( H * H );
+  values[0] = 4.0 * Um * point(1) * ( H - point(1) ) / ( H * H );
   values[1] = 0.0;
 }
 
 template <int dim>
-PressureInitialCondition<dim>::PressureInitialCondition(
-                                          const double time)
-: Function<dim>(1, time)
+PressureInitialCondition<dim>::PressureInitialCondition(const double time)
+:
+Function<dim>(1, time)
 {}
 
 template<int dim>
-double PressureInitialCondition<dim>::value(
-                                    const Point<dim> &p,
+double PressureInitialCondition<dim>::value(const Point<dim> &/* point */,
+                                            const unsigned int /* component */) const
+{
+  return (0.0);
+}
+
+} // namespace DFG
+
+namespace TGV
+{
+
+template <int dim>
+VelocityExactSolution<dim>::VelocityExactSolution(const double &Re,
+                                                  const double time)
+: 
+Function<dim>(dim, time),
+Re(Re)
+{}
+
+template <int dim>
+void VelocityExactSolution<dim>::vector_value(
+                                        const Point<dim>  &point,
+                                        Vector<double>    &values) const
+{
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+  values[0] =  exp(-2.0/Re*t)*cos(x)*sin(y);
+  values[1] = -exp(-2.0/Re*t)*sin(x)*cos(y);
+}
+
+template <int dim>
+Tensor<1, dim> VelocityExactSolution<dim>::gradient(
+  const Point<dim>  &point,
+  const unsigned int component) const
+{
+  Tensor<1, dim>  return_value;
+
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+
+  // The gradient has to match that of dealii, i.e. from the right.
+  if (component == 0)
+  {
+    return_value[0] = - exp(-2.0/Re*t) * sin(x) * sin(y);
+    return_value[1] =   exp(-2.0/Re*t) * cos(x) * cos(y);
+  }
+  else if (component == 1)
+  {
+    return_value[0] = - exp(-2.0/Re*t) * cos(x) * cos(y);
+    return_value[1] =   exp(-2.0/Re*t) * sin(x) * sin(y);
+  }
+
+  return return_value;
+}
+
+template <int dim>
+PressureExactSolution<dim>::PressureExactSolution(const double &Re,
+                                                  const double time)
+:
+Function<dim>(1, time),
+Re(Re)
+{}
+
+template<int dim>
+double PressureExactSolution<dim>::value(
+                                    const Point<dim> &point,
                                     const unsigned int component) const
 {
   (void)component;
-  (void)p;
-  return 0.0 ;
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+
+  return -0.25*exp(-4.0/Re*t)*(cos(2.0*x)+cos(2.0*y));
 }
-} // namespace DFG
+
+template<int dim>
+Tensor<1, dim> PressureExactSolution<dim>::gradient(
+  const Point<dim> &point,
+  const unsigned int component) const
+{
+  (void)component;
+  Tensor<1, dim>  return_value;
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+
+  return_value[0] = 0.5 * exp(-4.0 / Re * t) * sin(2.0 * x);
+  return_value[1] = 0.5 * exp(-4.0 / Re * t) * sin(2.0 * y);
+
+  return return_value;
+}
+} // namespace TGV
+
+namespace Guermond
+{
+
+template <int dim>
+VelocityExactSolution<dim>::VelocityExactSolution(const double time)
+: 
+Function<dim>(dim, time)
+{}
+
+template <int dim>
+void VelocityExactSolution<dim>::vector_value(
+                                        const Point<dim>  &point,
+                                        Vector<double>    &values) const
+{
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+  values[0] = sin(x + t) * sin(y + t);
+  values[1] = cos(x + t) * cos(y + t);
+}
+
+template <int dim>
+Tensor<1, dim> VelocityExactSolution<dim>::gradient(
+  const Point<dim>  &point,
+  const unsigned int component) const
+{
+  Tensor<1, dim>  return_value;
+
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+  // The gradient has to match that of dealii, i.e. from the right.
+  if (component == 0)
+  {
+    return_value[0] = cos(x + t) * sin(y + t);
+    return_value[1] = sin(x + t) * cos(y + t);
+  }
+  else if (component == 1)
+  {
+    return_value[0] = - sin(x + t) * cos(y + t);
+    return_value[1] = - cos(x + t) * sin(y + t);
+  }
+
+  return return_value;
+}
+
+template <int dim>
+PressureExactSolution<dim>::PressureExactSolution(const double time)
+:
+Function<dim>(1, time)
+{}
+
+template<int dim>
+double PressureExactSolution<dim>::value(
+                                    const Point<dim> &point,
+                                    const unsigned int component) const
+{
+  (void)component;
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+  return sin(x - y + t);
+}
+
+template<int dim>
+Tensor<1, dim> PressureExactSolution<dim>::gradient(
+  const Point<dim> &point,
+  const unsigned int component) const
+{
+  (void)component;
+  Tensor<1, dim>  return_value;
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+
+  return_value[0] =   cos(x - y + t);
+  return_value[1] = - cos(x - y + t);
+
+  return return_value;
+}
+
+template <int dim>
+BodyForce<dim>::BodyForce(const double &Re, const double time)
+: 
+Function<dim>(dim, time),
+Re(Re)
+{}
+
+template <int dim>
+double BodyForce<dim>::value(const Point<dim> &point,
+                      const unsigned int component) const
+{
+  // This correspondes to the divergence of the body force
+  // The commented out lines corresponds to the case where the convection
+  // term is ignored.
+  (void)component;
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+  return cos(2.*(t + x)) + cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) + 
+         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) - 
+         0.5*Re*(2.*cos(2.*(t + y)) + 2.*cos(2.*t + x + y) + 
+         2.*sin(t + x - 1.*y)) - 1.*sin(2.*t + x + y))/Re
+         /*cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) + 
+         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) - 
+         1.*Re*(cos(2.*t + x + y) + sin(t + x - 1.*y)) - 
+         1.*sin(2.*t + x + y))/Re*/;
+}
+
+template <int dim>
+void BodyForce<dim>::vector_value(const Point<dim>  &point,
+                                  Vector<double>    &values) const
+{
+  // The commented out lines corresponds to the case where the convection
+  // term is ignored.
+  double t = this->get_time();
+  double x = point(0);
+  double y = point(1);
+  values[0] = cos(t + x - y) + sin(2.*(t + x))/2. + 
+              (2.*sin(t + x)*sin(t + y))/Re + sin(2.*t + x + y)
+              /*cos(t + x - 1.*y) + (2.*sin(t + x)*sin(t + y))/Re 
+              + sin(2.*t + x + y)*/;
+  values[1] = (cos(x - y) + cos(2.*t + x + y) - (Re*(2.*cos(t + x - y) + 
+              sin(2.*(t + y)) + 2.*sin(2.*t + x + y)))/2.)/Re
+              /*(cos(x - 1.*y) + cos(2.*t + x + y) - 
+              1.*Re*(cos(t + x - 1.*y) + sin(2.*t + x + y)))/Re*/;
+}
+
+} // namespace Guermond
 
 } // namespace EquationData
 
@@ -145,3 +362,18 @@ template class RMHD::EquationData::DFG::VelocityInflowBoundaryCondition<3>;
 
 template class RMHD::EquationData::DFG::PressureInitialCondition<2>;
 template class RMHD::EquationData::DFG::PressureInitialCondition<3>;
+
+template class RMHD::EquationData::TGV::VelocityExactSolution<2>;
+template class RMHD::EquationData::TGV::VelocityExactSolution<3>;
+
+template class RMHD::EquationData::TGV::PressureExactSolution<2>;
+template class RMHD::EquationData::TGV::PressureExactSolution<3>;
+
+template class RMHD::EquationData::Guermond::VelocityExactSolution<2>;
+template class RMHD::EquationData::Guermond::VelocityExactSolution<3>;
+
+template class RMHD::EquationData::Guermond::PressureExactSolution<2>;
+template class RMHD::EquationData::Guermond::PressureExactSolution<3>;
+
+template class RMHD::EquationData::Guermond::BodyForce<2>;
+template class RMHD::EquationData::Guermond::BodyForce<3>;

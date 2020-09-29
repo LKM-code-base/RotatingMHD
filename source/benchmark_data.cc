@@ -1,4 +1,5 @@
 #include <rotatingMHD/benchmark_data.h>
+
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/exceptions.h>
 #include <deal.II/fe/mapping_q1.h>
@@ -6,6 +7,7 @@
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
+
 namespace RMHD
 {
   using namespace dealii;
@@ -14,22 +16,21 @@ namespace BenchmarkData
 
 template <int dim>
 DFG<dim>::DFG()
-  : density(1.0),
-    characteristic_length(0.1),
-    mean_velocity(1.0),
-    kinematic_viscosity(0.001),
-    Re(characteristic_length*mean_velocity/kinematic_viscosity),
-    front_evaluation_point(0.15 / characteristic_length, 
-                           0.20 / characteristic_length),
-    rear_evaluation_point(0.25 / characteristic_length, 
-                          0.20 / characteristic_length),
-    pressure_difference(0),
-    front_point_pressure_value(0),
-    rear_point_pressure_value(0),
-    drag_force(0),
-    drag_coefficient(0),
-    lift_force(0),
-    lift_coefficient(0)
+:
+density(1.0),
+characteristic_length(0.1),
+mean_velocity(1.0),
+kinematic_viscosity(0.001),
+Re(characteristic_length * mean_velocity / kinematic_viscosity),
+front_evaluation_point(0.15 / characteristic_length,
+                       0.20 / characteristic_length),
+rear_evaluation_point(0.25 / characteristic_length,
+                      0.20 / characteristic_length),
+pressure_difference(0),
+drag_force(0),
+drag_coefficient(0),
+lift_force(0),
+lift_coefficient(0)
 {
   data_table.declare_column("n");
   data_table.declare_column("t");
@@ -47,19 +48,17 @@ DFG<dim>::DFG()
 }
 
 template <int dim>
-void DFG<dim>::compute_pressure_difference(
-                            const Entities::ScalarEntity<dim> &pressure)
+void DFG<dim>::compute_pressure_difference
+(const Entities::ScalarEntity<dim> &pressure)
 {
-  front_point_pressure_value = 0.; 
-  rear_point_pressure_value = 0.;
-  mpi_point_value(pressure,
-                  front_evaluation_point,
-                  front_point_pressure_value);
-  mpi_point_value(pressure,
-                  rear_evaluation_point,
-                  rear_point_pressure_value); 
+  const double front_point_pressure_value
+  = pressure.point_value(front_evaluation_point);
+
+  const double rear_point_pressure_value
+  = pressure.point_value(rear_evaluation_point);
+
   pressure_difference = front_point_pressure_value - 
-                                              rear_point_pressure_value;
+                        rear_point_pressure_value;
 }
 
 template <int dim>
@@ -67,8 +66,10 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
                           const Entities::VectorEntity<dim> &velocity,
                           const Entities::ScalarEntity<dim> &pressure)
 {
-  const MappingQ<dim>   mapping(3);
+  const MappingQ<dim> mapping(3);
+
   QGauss<dim-1>     face_quadrature_formula(velocity.fe_degree + 1);
+
   FEFaceValues<dim> velocity_face_fe_values(mapping,
                                             velocity.fe,
                                             face_quadrature_formula,
@@ -76,14 +77,15 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
                                             update_gradients |
                                             update_JxW_values |
                                             update_normal_vectors);
+
   FEFaceValues<dim> pressure_face_fe_values(mapping,
                                             pressure.fe,
                                             face_quadrature_formula,
                                             update_values);
 
-  const unsigned int n_face_q_points        = 
-                                        face_quadrature_formula.size();
-  const FEValuesExtractors::Vector          velocities(0);
+  const unsigned int n_face_q_points = face_quadrature_formula.size();
+
+  const FEValuesExtractors::Vector  velocities(0);
 
   std::vector<double>         pressure_values(n_face_q_points);
   std::vector<Tensor<1, dim>> normal_vectors(n_face_q_points);

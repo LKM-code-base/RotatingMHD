@@ -42,7 +42,8 @@ assemble_diffusion_step_rhs()
                                                      velocity.quadrature_formula,
                                                      update_values|
                                                      update_gradients|
-                                                     update_JxW_values,
+                                                     update_JxW_values|
+                                                     update_quadrature_points,
                                                      update_values),
    VelocityRightHandSideAssembly::MappingData<dim>(velocity.fe.dofs_per_cell));
 
@@ -116,6 +117,14 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   (pressure_tmp,
   scratch.pressure_tmp_values);
 
+  if (body_force_ptr != nullptr)
+    body_force_ptr->vector_value_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.body_force_values);
+  else
+    scratch.body_force_values = 
+      std::vector<Vector<double>>(scratch.n_q_points, Vector<double>(dim));
+
   // loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
   {
@@ -132,14 +141,20 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     // loop over local dofs
     for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
     {
-      data.local_diffusion_step_rhs(i) +=
+      {
+        const unsigned int component_i = 
+          scratch.velocity_fe_values.get_fe().system_to_component_index(i).first;
+        data.local_diffusion_step_rhs(i) +=
                                   scratch.velocity_fe_values.JxW(q) * (
                                   scratch.pressure_tmp_values[q] *
                                   scratch.div_phi_velocity[i]
                                   - 
                                   scratch.velocity_tmp_values[q] *
-                                  scratch.phi_velocity[i]);
-      if (parameters.flag_full_vsimex_scheme)
+                                  scratch.phi_velocity[i]
+                                  +
+                                  scratch.velocity_fe_values.shape_value(i, q) *
+                                  scratch.body_force_values[q](component_i));
+        if (parameters.flag_full_vsimex_scheme)
         {
           data.local_diffusion_step_rhs(i) -=
                                     scratch.velocity_fe_values.JxW(q) * (
@@ -258,6 +273,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                 Assert(false, ExcNotImplemented());
             };
         }
+      }
 
       // assemble matrix for inhomogeneous boundary conditions
       if (velocity.constraints.is_inhomogeneously_constrained(

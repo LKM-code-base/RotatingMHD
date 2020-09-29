@@ -172,9 +172,9 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
     }
     else
     {
-        minimum_time_step = initial_time_step;
+        minimum_time_step = 1e-15;
 
-        maximum_time_step = initial_time_step;
+        maximum_time_step = 1e+15;
     }
 
     start_time = prm.get_double("start_time");
@@ -236,31 +236,50 @@ void VSIMEXMethod::reinit()
   alpha.resize(order+1, 0.0);
   beta.resize(order, 0.0);
   gamma.resize(order+1, 0.0);
-  eta.resize(2, 0.0);
+  eta.resize(order, 0.0);
+
   old_step_size_values.resize(order, this->get_next_step_size());
   
-  double old_alpha_0_init_value;
+  double old_alpha_zero_init_value;
   switch (order)
   {
   case 1:
-    old_alpha_0_init_value = 1.0;
+    old_alpha_zero_init_value = 1.0;
     break;
   case 2:
-    old_alpha_0_init_value = (1.0 + 2.0 * vsimex_parameters[0])/2.0 ;
+    old_alpha_zero_init_value = (1.0 + 2.0 * vsimex_parameters[0])/2.0 ;
     break;
   default:
     Assert(false,
     ExcMessage("The order is not implemented in the reinit method."));
     break;
   } 
-  old_alpha_0_values.resize(order, old_alpha_0_init_value);
-  alpha[0] = old_alpha_0_init_value;
+  old_alpha_zero.resize(order, old_alpha_zero_init_value);
+  alpha[0] = old_alpha_zero_init_value;
 }
 
 template<typename Stream>
 Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
 {
-  switch (vsimex.beta.size())
+  stream << "Step = "
+         << std::setw(6)
+         << vsimex.get_step_number()
+         << ","
+         << " Time = "
+         << std::noshowpos << std::scientific
+         << vsimex.get_current_time()
+         << ","
+         << " Time step = "
+         << std::showpos << std::scientific
+         << vsimex.get_next_step_size();
+
+  return stream;
+}
+
+template<typename Stream>
+void VSIMEXMethod::print_coefficients(Stream &stream) const
+{
+  switch (beta.size())
   {
     case 1:
       stream << "+-------------+------------+------------+\n"
@@ -281,7 +300,7 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
       break;
   }
 
-  for (const auto it: vsimex.alpha)
+  for (const auto it: alpha)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -292,7 +311,7 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
   }
 
   stream << std::endl << "|    beta     |     -      | ";
-  for (const auto it: vsimex.beta)
+  for (const auto it: beta)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -303,7 +322,7 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
   }
 
   stream << std::endl << "|    gamma    | ";
-  for (const auto it: vsimex.gamma)
+  for (const auto it: gamma)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -314,7 +333,29 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
   }
 
   stream << std::endl << "|  extra_pol  |     -      | ";
-  for (const auto it: vsimex.eta)
+  for (const auto it: eta)
+  {
+    stream << std::setw(10)
+           << std::setprecision(2)
+           << std::scientific
+           << std::right
+           << it;
+    stream << " | ";
+  }
+
+  stream << std::endl << "|  alpha_zero |     -      | ";
+  for (const auto it: old_alpha_zero)
+  {
+    stream << std::setw(10)
+           << std::setprecision(2)
+           << std::scientific
+           << std::right
+           << it;
+    stream << " | ";
+  }
+
+  stream << std::endl << "|old_step_size|     -      | ";
+  for (const auto it: old_step_size_values)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -325,7 +366,7 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
   }
   stream << std::endl;
 
-  switch (vsimex.beta.size())
+  switch (beta.size())
   {
     case 1:
       stream << "+-------------+------------+------------+\n";
@@ -342,8 +383,36 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
   }
 
   stream << std::fixed << std::setprecision(0);
+}
 
-  return stream;
+std::string VSIMEXMethod::get_name() const
+{
+  std::string name;
+
+  switch (parameters.vsimex_scheme)
+  {
+    case VSIMEXScheme::ForwardEuler:
+      name.assign("Euler");
+      break;
+    case VSIMEXScheme::CNAB:
+      name.assign("Crank-Nicolson-Adams-Bashforth");
+      break;
+    case VSIMEXScheme::mCNAB:
+      name.assign("Modified Crank-Nicolson-Adams-Bashforth");
+      break;
+    case VSIMEXScheme::CNLF:
+      name.assign("Crank-Nicolson-Leap-Frog");
+      break;
+  case VSIMEXScheme::BDF2:
+      name.assign("Second order backward differentiation");
+      break;
+  default:
+    AssertThrow(false,
+                ExcMessage("Given VSIMEXScheme is not known or cannot be "
+                           "interpreted."));
+    break;
+  }
+  return (name);
 }
 
 VSIMEXMethod::VSIMEXMethod(const TimeSteppingParameters &params)
@@ -370,11 +439,6 @@ omega(1.0)
       order = 1;
       vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.5;
-      break;
-    case VSIMEXScheme::BEFE :
-      order = 1;
-      vsimex_parameters.resize(order);
-      vsimex_parameters[0] = 1.0;
       break;
     case VSIMEXScheme::BDF2 :
       order = 2;
@@ -428,10 +492,10 @@ void VSIMEXMethod::update_coefficients()
 
   for (unsigned int i = order-1; i > 0; --i)
   {
-    old_alpha_0_values[i]   = old_alpha_0_values[i-1];
+    old_alpha_zero[i]   = old_alpha_zero[i-1];
     old_step_size_values[i] = old_step_size_values[i-1];
   }
-  old_alpha_0_values[0] = alpha[0];
+  old_alpha_zero[0] = alpha[0];
   old_step_size_values[0] = get_previous_step_size();
 
   switch (order)
@@ -493,3 +557,8 @@ template std::ostream & RMHD::TimeDiscretization::operator<<
 (std::ostream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
 template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
 (dealii::ConditionalOStream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
+(std::ostream &) const;
+template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
+(dealii::ConditionalOStream &) const;

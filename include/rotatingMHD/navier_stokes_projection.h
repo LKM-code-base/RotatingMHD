@@ -40,7 +40,7 @@ using namespace dealii;
  * \begin{equation}
  *  p^\sharp = p^{n-1} + 
  *  \sum_{j=1}^{2} \frac{\Delta t_{n-1-j}}{\Delta t_{n-1}}
- *  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^\textrm{n-j}
+ *  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^{n-j}
  * \end{equation}
  * \f]
  * a projection step given by
@@ -54,7 +54,7 @@ using namespace dealii;
  * and a pressure correction step given by
  * \f[
  * \begin{equation*}
- * p^{1} = p^{n-1} + \phi^{n} - \frac{\chi}{\textrm{Re}} \nabla \cdot \bs{u}^{n}
+ * p^{n} = p^{n-1} + \phi^{n} - \frac{\chi}{\textrm{Re}} \nabla \cdot \bs{u}^{n}
  * \end{equation*}
  * \f]
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
@@ -84,8 +84,18 @@ public:
    *  @details Initializes the vector and matrices using the information
    *  contained in the VectorEntity and ScalarEntity structs passed on
    *  in the constructor (The velocity and the pressure respectively).
+   *  The boolean passed as argument control if the pressure is to be
+   *  normalized.
    */
-  void setup();
+  void setup(const bool normalize_pressure = false);
+
+  /*!
+   *  @brief Sets the body force of the problem.
+   *
+   *  @details Stores the memory address of the body force function in 
+   *  the pointer @ref body_force.
+   */
+  void set_body_force(Function<dim> &body_force);
 
   /*!
    * @brief Currently this method only sets the vector of the two pressure
@@ -157,6 +167,11 @@ private:
    * @brief A reference to the entity of the pressure field.
    */
   Entities::ScalarEntity<dim>            &pressure;
+
+  /*!
+   * @brief A pointer to the body force function.
+   */
+  Function<dim>                          *body_force_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
@@ -341,6 +356,16 @@ private:
    * reuse methods of the normal solve procedure.
    */
   bool                                  flag_initializing;
+  
+  /*!
+   * @brief A flag to normalize the pressure field.
+   * @details In the case of an unconstrained formulation in the 
+   * pressure space, i.e. no Dirichlet boundary conditions, this flag
+   * has to be set to true in order to constraint the pressure field.
+   */
+  bool                                  flag_normalize_pressure;
+
+>>>>>>> TaylorGreen
 
   /*!
    * @brief Setup of the sparsity spatterns of the matrices of the diffusion and

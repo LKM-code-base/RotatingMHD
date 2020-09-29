@@ -85,6 +85,12 @@ struct ParameterSet
 
   unsigned int        graphical_output_interval;
   unsigned int        terminal_output_interval;
+  
+  bool                flag_spatial_convergence_test;
+  unsigned int        initial_refinement_level;
+  unsigned int        final_refinement_level;
+  unsigned int        temporal_convergence_cycles;
+  double              time_step_scaling_factor;
 };
 
 } // namespace RunTimeParameters

@@ -143,6 +143,7 @@ struct LocalCellData
   std::vector<Tensor<1, dim>>           old_old_velocity_values;
   std::vector<CurlType>                 old_old_velocity_curls;
   std::vector<Tensor<2,dim>>            old_old_velocity_gradients;
+  std::vector<Vector<double>>           body_force_values;
   std::vector<Tensor<2,dim>>            grad_phi_velocity;
 
   LocalCellData(const FESystem<dim>  &velocity_fe,
@@ -230,13 +231,15 @@ struct LocalCellData
   unsigned int                          n_face_q_points;
   unsigned int                          pressure_dofs_per_cell;
 
-  std::vector<double>                   force_divergence_values;
-
+  std::vector<double>                   body_force_divergence_values;
+  
   std::vector<Tensor<1, dim>>           velocity_laplacian_values;
 
-  std::vector<Tensor<1, dim>>           force_values;
+  std::vector<Vector<double>>           body_force_values;
 
   std::vector<Tensor<1, dim>>           normal_vectors;
+
+  std::vector<double>                   projected_body_force;
 
   std::vector<double>                   phi_pressure;
   std::vector<double>                   face_phi_pressure;
