@@ -199,6 +199,7 @@ void Step35<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_initial_conditions, 
                                time_stepping);
+  navier_stokes.initialize();
   velocity.solution = velocity.old_solution;
   pressure.solution = pressure.old_solution;
   output();

@@ -10,7 +10,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
   velocity_advection_matrix = 0.;
 
   using CellFilter =
-    FilteredIterator<typename DoFHandler<2>::active_cell_iterator>;
+    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
