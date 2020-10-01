@@ -255,7 +255,7 @@ pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
 flag_set_a_boundary_dof_to_zero(false),
 flag_contrain_pressure_boundary(false),
 flag_set_exact_pressure_constant(true),
-flag_square_domain(false)
+flag_square_domain(true)
 {
   navier_stokes.set_body_force(body_force);
 }

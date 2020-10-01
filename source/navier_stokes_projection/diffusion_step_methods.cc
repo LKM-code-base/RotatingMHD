@@ -16,14 +16,14 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix = 0.;
 
     velocity_mass_plus_laplace_matrix.add
-    ((parameters.flag_full_vsimex_scheme) ? 
-        time_stepping.get_gamma()[0] / parameters.Re : 
-        1.0 / parameters.Re,
-     velocity_laplace_matrix);
+    (time_stepping.get_alpha()[0] / time_stepping.get_next_step_size() * time_stepping.get_next_step_size(),
+     velocity_mass_matrix);
 
     velocity_mass_plus_laplace_matrix.add
-    (time_stepping.get_alpha()[0] / time_stepping.get_next_step_size(),
-     velocity_mass_matrix);
+    ((parameters.flag_vsimex_method) ? 
+        time_stepping.get_gamma()[0] / parameters.Re * time_stepping.get_next_step_size() : 
+        1.0 / parameters.Re * time_stepping.get_next_step_size(),
+     velocity_laplace_matrix);
 
     if (!parameters.time_stepping_parameters.adaptive_time_stepping)
       flag_diffusion_matrix_assembled = true; 
@@ -31,11 +31,12 @@ assemble_diffusion_step()
 
   /* In case of a semi-implicit scheme, the advection matrix has to be
   assembled and added to the system matrix */
-  if (parameters.flag_semi_implicit_scheme)
+  if (!parameters.flag_vsimex_method ||
+      parameters.flag_semi_implicit_convection)
   {
     assemble_velocity_advection_matrix();
     velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
-    velocity_system_matrix.add(1., velocity_advection_matrix);
+    velocity_system_matrix.add(1. * time_stepping.get_next_step_size(), velocity_advection_matrix);
   }
   /* Right hand side setup */
   assemble_diffusion_step_rhs();
@@ -54,7 +55,9 @@ solve_diffusion_step(const bool reinit_prec)
   /* The following pointer holds the address to the correct matrix 
   depending on if the semi-implicit scheme is chosen or not */
   LinearAlgebra::MPI::SparseMatrix  *system_matrix;
-  if (parameters.flag_semi_implicit_scheme || flag_initializing)
+  if (!parameters.flag_vsimex_method ||
+      parameters.flag_semi_implicit_convection ||
+      flag_initializing)
     system_matrix = &velocity_system_matrix;
   else
     system_matrix = &velocity_mass_plus_laplace_matrix;

@@ -33,11 +33,17 @@ void NavierStokesProjection<dim>::solve_projection_step
   LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
   distributed_phi = phi;
 
+  LinearAlgebra::MPI::Vector tmp_pressure_rhs(pressure_rhs);
+  tmp_pressure_rhs = pressure_rhs;
+  tmp_pressure_rhs *= (!flag_initializing ?
+                      time_stepping.get_alpha()[0] / time_stepping.get_next_step_size():
+                      1.0 / time_stepping.get_next_step_size());
+
   if (reinit_prec)
     projection_step_preconditioner.initialize(pressure_laplace_matrix);
 
   SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
+                               std::max(parameters.relative_tolerance * tmp_pressure_rhs.l2_norm(),
                                         absolute_tolerance));
 
   #ifdef USE_PETSC_LA
@@ -51,7 +57,7 @@ void NavierStokesProjection<dim>::solve_projection_step
   {
     solver.solve(pressure_laplace_matrix,
                  distributed_phi,
-                 pressure_rhs,
+                 tmp_pressure_rhs,
                  projection_step_preconditioner);
   }
   catch (std::exception &exc)
@@ -82,9 +88,9 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   /* The following inline if is added to reuse the method for the 
   projection prestep */ 
-  distributed_phi *= (!flag_initializing ?
+  /*distributed_phi *= (!flag_initializing ?
                       time_stepping.get_alpha()[0] / time_stepping.get_next_step_size():
-                      1.0 / time_stepping.get_next_step_size());
+                      1.0 / time_stepping.get_next_step_size());*/
 
   if (flag_normalize_pressure)
     VectorTools::subtract_mean_value(distributed_phi);

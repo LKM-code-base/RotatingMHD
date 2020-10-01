@@ -80,8 +80,8 @@ struct ParameterSet
   double              solver_diag_strength;
 
   bool                flag_verbose_output;
-  bool                flag_semi_implicit_scheme;
-  bool                flag_full_vsimex_scheme;
+  bool                flag_semi_implicit_convection;
+  bool                flag_vsimex_method;
 
   unsigned int        graphical_output_interval;
   unsigned int        terminal_output_interval;

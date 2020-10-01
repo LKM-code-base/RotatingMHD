@@ -4,7 +4,7 @@
 set diagnostics_output_frequency = 1
 
 # Graphical output frequency.
-set graphical_output_frequency   = 50
+set graphical_output_frequency   = 1
 
 # Projection method to implement.
 set projection_method            = rotational
@@ -15,11 +15,11 @@ set convection_term_form         = skewsymmetric
 # Verbosity flag.
 set verbosity_flag               = false
 
-# Semi implicit scheme flag.
-set semi_implicit_scheme_flag    = true
+# VSIMEX method flag.
+set vsimex_method_flag           = true
 
-# Full VSIMEX method flag.
-set full_vsimex_flag             = false
+# Excludes the convection term from the VSIMEX scheme.
+set semi_implicit_convection_flag = false
 
 
 subsection Parameters of the diffusion-step solver
@@ -67,10 +67,10 @@ subsection Time stepping settings
   set adaptive_timestep_barrier = 2
 
   # Final time of the simulation.
-  set final_time                = 5e-2
+  set final_time                = 10.0
 
   # Size of the initial time step.
-  set initial_time_step         = 5e-3
+  set initial_time_step         = 5e-4
 
   # Size of the maximum time step.
   set maximum_time_step         = 7.5e-3
@@ -85,7 +85,7 @@ subsection Time stepping settings
   set start_time                = 0.0
 
   # Time stepping scheme applied.
-  set time_stepping_scheme      = mCNAB
+  set time_stepping_scheme      = BDF2
 
   # Activate verbose output.
   set verbose                   = false
