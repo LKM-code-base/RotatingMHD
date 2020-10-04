@@ -19,6 +19,7 @@
 \newcommand{\bs}[1]{\boldsymbol{#1}}
 \newcommand{\abs}[1]{\left\lvert #1 \right\rvert}
 \newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\cdott}{\, {\cdot}{\cdot}\,}
 \DeclareMathOperator{\divv}{div}
 \DeclareMathOperator{\grad}{grad}
 \DeclareMathOperator{\rot}{rot}
@@ -272,12 +273,12 @@ The treatment of $h(p,\phi)$ is dictated by the incremental pressure correction 
 \dfrac{1}{\Delta t_{k-1}} \left[\alpha_0^k \bs{u}^{k} + \sum_{j=1}^{s} \alpha_i^k \bs{u}^{k-j}\right] - \gamma_0^k g(\bs{u}^{k}) = \sum_{j=1}^{s} \beta_i^k f(\bs{u}^{k-j},\dots) + \sum_{j=1}^{s} \eta_i^k g(\bs{u}^{k-j}) + h(\phi)
 \end{equation*}
 Noticing that the first term of the equation mirrors, up to a sign, the algebraic form used to eliminate the divergence free velocity of the generalized incremental scheme and the above definitions of $f$ and $g$, we propose $s$th-order scheme with a \textbf{diffusion step}
-\begin{equation*}
-\begin{split}
-	\dfrac{\alpha_0^k}{\Delta t_{k-1}} \bs{u}^{k} -\dfrac{\gamma_0^k}{\textrm{Re}} \Delta \bs{u}^{k} = -\nabla p^{\sharp} + \sum_{j=1}^{s} \beta_i^k \left[ \bs{b} - \bs{u}^{k-j} \cdot (\nabla \otimes \bs{u}^{k-j})\right] +
-	\sum_{j=1}^{s} \dfrac{\gamma_i^k}{\textrm{Re}} \Delta \bs{u}^{k-j} -  \\ \sum_{j=1}^{s} \dfrac{\alpha_i^k}{\Delta t_{k-1}}\bs{u}^{k-j}, \qquad \forall(\bs{x},t)\in \Omega \times [0, T]
+\begin{equation}
+\begin{split}\label{Eqn:VSIMEXDiffusionStep}
+	\dfrac{\alpha_0^k}{\Delta t_{k-1}} \bs{u}^{k} -\dfrac{\gamma_0^k}{\textrm{Re}} \Delta \bs{u}^{k} = -\nabla p^{\sharp} + \sum_{j=1}^{s} \beta_i^k \left[ \bs{b} - \bs{u}^{k-j} \cdot (\nabla \otimes \bs{u}^{k-j})\right] + \\
+	\sum_{j=1}^{s} \dfrac{\gamma_i^k}{\textrm{Re}} \Delta \bs{u}^{k-j} -   \sum_{j=1}^{s} \dfrac{\alpha_i^k}{\Delta t_{k-1}}\bs{u}^{k-j}, \qquad \forall(\bs{x},t)\in \Omega \times [0, T]
 \end{split}
-\end{equation*}
+\end{equation}
 with
 \begin{equation*}
 	 p^\sharp = p^{\star, k} - \sum_{j=1}^{s} \frac{\Delta t_{k-1-j}}{\Delta t_{k-1}}          \frac{\alpha_j^k}{\alpha_0^{k-j}}\phi^\textrm{k-j} ,
@@ -292,18 +293,18 @@ where $s\ge r$, with boundary conditions
 	\end{aligned}
 \end{equation*}
 a \textbf{projection step}
-\begin{equation*}
-\begin{aligned}
-\Delta \phi^{k} &= \dfrac{\alpha_0^k}{\Delta t} \nabla \cdot \bs{u}^{k},  &\forall (\bs{x}, t) &\in \Omega \times \left[0, T \right] \\
-\nabla \phi^{k} \cdot \bs{n} &= 0, &\forall (\bs{x}, t) &\in \Gamma_\textrm{D} \times \left[0, T \right] \\
-\phi^{k} &= 0, &\forall\left(\bs{x}, t\right) &\in \Gamma_\textrm{N} \times \left[0, T \right]
-\end{aligned}
-\end{equation*}
+
+\begin{align}
+\Delta \phi^{k} &= \dfrac{\alpha_0^k}{\Delta t} \nabla \cdot \bs{u}^{k},  &\forall (\bs{x}, t) &\in \Omega \times \left[0, T \right] \label{Eqn:VSIMEXProjectionStep} \\
+\nabla \phi^{k} \cdot \bs{n} &= 0, &\forall (\bs{x}, t) &\in \Gamma_\textrm{D} \times \left[0, T \right] \nonumber \\
+\phi^{k} &= 0, &\forall\left(\bs{x}, t\right) &\in \Gamma_\textrm{N} \times \left[0, T \right] \nonumber
+\end{align}
+
 and a \textbf{correction step}
-\begin{equation*}
+\begin{equation}\label{Eqn:VSIMEXCorrectionStep}
 	p^{k} = p^{\star, k} + \phi^{k} - \chi\textrm{Re}^{-1} \nabla \cdot \bs{u}^{k}
-\end{equation*}
-\subsection{A semi-implicit approach}
+\end{equation}
+\subsection{A semi-implicit approach}\label{Sec:SemiImplicit}
 An alternative follows from introducing the $r$th-oder extrapolation of the velocity field $\bs{u}$ 
 \begin{equation*}
 \bs{u}^{\star, k} = \sum_{j=1}^{r} \eta_j \bs{u}^{k-j}
@@ -320,7 +321,8 @@ and treat the convective term outside of the VSIMEX scheme, as we did with the p
 \begin{equation*}
 	\bs{u}^{\star, k} \cdot (\nabla \otimes \bs{u}^{k}) + \dfrac{1}{2} (\nabla \cdot \bs{u}^{\star, k})\bs{u}^{k}
 \end{equation*}
-\subsection{The step-35 approach}
+
+\subsection{The step-35 approach}\label{Sec:Step35}
 The step-35 uses the generalized incremental scheme of second order (BDF2), the elimination of the divergence free velocity and a semi-implicit approach on the skew-symmetric form of the convective term, which leads to a projection step
 \begin{equation*}
 	\begin{split}
@@ -352,6 +354,176 @@ and a correction step
 \begin{equation*}
 p^{k} = p^{k-1} + \phi^{k} - \chi\textrm{Re}^{-1} \nabla \cdot \bs{u}^{k}
 \end{equation*}
+
+\section{Numerical treatment}
+The problem described in the \cref{Sec:FluidMechanics} will be solved using the finite element method, which is based upon the weak formulation of the problem and the proper selection and discretization of the trial and test function spaces.
+\subsection{Weak formulation}
+The weak formulation of diffusion and correction step is obtained by multiplying the \cref{Eqn:VSIMEXDiffusionStep,Eqn:VSIMEXProjectionStep} by the test functions $\bs{\nu}$ and $\omega$ respectively; applying the \textsc{Gauss} theorem where possible and assuming there are no \textsc{Neumann} boundary conditions; and applying a \textsc{Galerkin} space reduction the discrete problem becomes: Find $(\bs{u}^k_\textrm{h}, \phi^k_\textrm{h}) \in (V_{\bs{u}}, V_\phi)$ that fulfills
+\begin{equation*}
+\begin{split}
+\dfrac{\alpha_0^k}{\Delta t^{k-1}} 
+\int_{\Omega}
+\bs{\nu} \cdot \bs{u}^k_\textrm{h}
+\d v 
++ 
+\dfrac{\gamma_0^k}{\textrm{Re}}
+\int_{\Omega} 
+\nabla \otimes \bs{\nu} \cdott \nabla \otimes \bs{u}^k_\textrm{h}
+\d v
+=
+\int_{\Omega}
+(\nabla \cdot \bs{\nu}) p^{\sharp, k}_\textrm{h}
+\d v \\
+-
+\int_{\Omega}
+\sum_{j=1}^{s} 
+\left[
+\dfrac{\alpha_j^k}{\Delta t^{k-1}} \bs{\nu} \cdot \bs{u}^{k-j}_\textrm{h}
++
+\beta_j^k \bs{\nu} \cdot \left[ \bs{u}^{k-j}_\textrm{h} \cdot (\nabla \otimes \bs{u}^{k-j}_\textrm{h} ) - \bs{b} \right]
++
+\dfrac{\gamma_j^k}{\textrm{Re}} \nabla \otimes \bs{\nu} \cdott \nabla \otimes \bs{u}^{k-j}_\textrm{h}
+\right]
+\d v
+\end{split} 	
+\end{equation*}
+and 
+\begin{equation*}
+	\int_{\Omega}
+	\nabla \omega \cdot \nabla \phi^k_\textrm{h} 
+	\d v
+	= 
+	- \dfrac{\alpha_0^k}{\Delta t^{k-1}} 
+	\int_{\Omega}
+	\omega (\nabla \cdot \bs{u}^k_\textrm{h})
+	\d v,
+	\qquad
+	\forall (\bs{\nu}, \omega) \in (W_{\bs{u}}, W_\phi)
+\end{equation*}
+where $(V_{\bs{u}}, V_\phi)$ and $(W_{\bs{u}}, W_\phi)$ are the discrete trial function spaces and the test functions spaces respectively. The linear equation systems are then given by
+\begin{equation*}
+	\left[
+	\dfrac{\alpha_0^k}{\Delta t^{k-1}} 
+	\mathcal{M}^u_{ij}
+	+
+	\dfrac{\gamma_0^k}{\textrm{Re}}
+	\mathcal{K}^u_{ij}
+	\right]
+	U^k_J
+	= 
+	b^{u, k}_i
+	\qquad \textrm{and} \qquad
+	\mathcal{M}^\phi_{ij} \Phi^k_j = b^{\phi, k}_i
+\end{equation*}
+The matrices $\mathcal{M}_u$ and $\mathcal{M}_\phi$ are the mass matrices of the velocity and pressure respectively, whereas $\mathcal{K}_u$ is the stiffness matrix of the velocity, i.e.
+\begin{equation*}
+	\mathcal{M}^u_{ij}= \int_{\Omega} \bs{\psi}_i \cdot \bs{\psi}_j \d v,
+	\qquad
+	\mathcal{K}^u_{ij} = \int_{\Omega} \nabla \otimes \bs{\psi}_i \cdott \nabla \otimes \bs{\psi}_j \d v,
+	\qquad \textrm{and} \qquad
+	\mathcal{M}^\phi_{ij} = \int_{\Omega} \psi_i \psi_j \d v.
+\end{equation*}
+and the right hand sides are 
+\begin{equation*}
+\begin{split}
+	b^u_i &= \int_{\Omega}
+\Bigg\lbrace
+(\nabla \cdot \bs{\psi}_i) p^{\sharp, k}_\textrm{h}
+- \\
+&\sum_{j=1}^{s} 
+\left[
+\dfrac{\alpha_j^k}{\Delta t^{k-1}} \bs{\psi}_i \cdot \bs{u}^{k-j}_\textrm{h}
++
+\beta_j^k \bs{\psi}_i \cdot \left[ \bs{u}^{k-j}_\textrm{h} \cdot (\nabla \otimes \bs{u}^{k-j}_\textrm{h} ) - \bs{b} \right]
++
+\dfrac{\gamma_j^k}{\textrm{Re}} \nabla \otimes \bs{\nu}_i \cdott \nabla \otimes \bs{u}^{k-j}_\textrm{h}
+\right]\Bigg\rbrace
+\d v
+\end{split}
+\end{equation*}
+and
+\begin{equation*}
+\begin{aligned}
+b^\phi_i  = 	- \dfrac{\alpha_0^k}{\Delta t^{k-1}} 
+\int_{\Omega}
+\omega_i (\nabla \cdot \bs{u}^k_\textrm{h})
+\d v
+\end{aligned}
+\end{equation*}
+This linear equation system is obtained by setting the \texttt{vsimex\_method\_flag} and \\ \texttt{semi\_implicit\_convection\_flag} to \texttt{true} and \texttt{false} respectively.
+\subsubsection{A semi implicit approach}
+The weak formulation of the equations described in \cref{Sec:SemiImplicit} leads to a linear equation system for the diffusion step
+\begin{equation*}
+	\left[
+	\dfrac{\alpha_0^k}{\Delta t^{k-1}} 
+	\mathcal{M}^u_{ij}
+	+
+	\dfrac{\gamma_0^k}{\textrm{Re}}
+	\mathcal{K}^u_{ij}
+	+
+	\mathcal{C}^u_{ij}
+	\right]
+	U^k_J
+	= 
+	b^{u, k}_i
+\end{equation*}
+where the matrix $\mathcal{C}$ represent the convection term given, for the standard form, by
+\begin{equation*}
+	\mathcal{C}^u_{ij}
+	=
+	\int_{\Omega}
+	\bs{\psi}_i \cdot [\bs{u}^{\star,k}_\textrm{h} \cdot (\nabla \otimes \bs{\psi}_j)]
+	\d v
+\end{equation*}
+and the right hand side is given by
+\begin{equation*}
+	\begin{split}
+		b^u_i = \int_{\Omega}
+		\Bigg\lbrace
+		(\nabla \cdot \bs{\psi}_i) p^{\sharp, k}_\textrm{h}
+		-\sum_{j=1}^{s} 
+		\left[
+		\dfrac{\alpha_j^k}{\Delta t^{k-1}} \bs{\psi}_i \cdot \bs{u}^{k-j}_\textrm{h}
+		-
+		\beta_j^k \bs{\psi}_i \cdot \bs{b}
+		+
+		\dfrac{\gamma_j^k}{\textrm{Re}} \nabla \otimes \bs{\nu}_i \cdott \nabla \otimes \bs{u}^{k-j}_\textrm{h}
+		\right]\Bigg\rbrace
+		\d v
+	\end{split}
+\end{equation*}
+This linear equation system is obtained by setting the \texttt{vsimex\_method\_flag} and \\ \texttt{semi\_implicit\_convection\_flag} to \texttt{true}.
+\subsubsection{The step-35 approach}
+The weak formulation of the equations described in \cref{Sec:SemiImplicit} leads to a linear equation system for the diffusion step
+\begin{equation*}
+	\left[
+	\dfrac{\alpha_0^k}{\Delta t^{k-1}} 
+	\mathcal{M}^u_{ij}
+	+
+	\dfrac{1}{\textrm{Re}}
+	\mathcal{K}^u_{ij}
+	+
+	\mathcal{C}^u_{ij}
+	\right]
+	U^k_J
+	= 
+	b^{u, k}_i
+\end{equation*}
+where the right hand side is given by
+\begin{equation*}
+	\begin{split}
+		b^u_i = \int_{\Omega}
+		\left[
+		(\nabla \cdot \bs{\psi}_i) p^{\sharp, k}_\textrm{h}
+		+ 
+		\bs{\psi}_i \cdot \bs{b}
+		-\sum_{j=1}^{s} 
+		\dfrac{\alpha_j^k}{\Delta t^{k-1}} \bs{\psi}_i \cdot \bs{u}^{k-j}_\textrm{h}
+		\right]
+		\d v
+	\end{split}
+\end{equation*}
+This linear equation system is obtained by setting the \texttt{vsimex\_method\_flag} to \texttt{false}.
 \section{DFG benchmark}
 The DFG benchmark models the flow inside a pipe with a circular cylinder as obstacle (See Fig ). The field equations for the problem are those we obtained in section \ref{Sec:FluidMechanics}
 \begin{equation*}
