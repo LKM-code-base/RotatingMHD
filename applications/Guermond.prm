@@ -9,15 +9,17 @@ set graphical_output_frequency   = 1
 # Projection method to implement.
 set projection_method            = rotational
 
+# Projection method to implement.
+set convection_term_form         = skewsymmetric
+
+# VSIMEX method flag.
+set vsimex_method_flag           = false
+
+# Excludes the convection term from the VSIMEX scheme.
+set semi_implicit_convection_flag = false
+
 # Verbosity flag.
 set verbosity_flag               = false
-
-# Semi implicit scheme flag.
-set semi_implicit_scheme_flag    = false
-
-# Full VSIMEX method flag.
-set full_vsimex_flag             = true
-
 
 subsection Parameters of the diffusion-step solver
   # Parameter which controls the size of the Krylov subspace in the GMRES

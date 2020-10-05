@@ -12,14 +12,14 @@ set projection_method            = rotational
 # Projection method to implement.
 set convection_term_form         = skewsymmetric
 
+# VSIMEX method flag.
+set vsimex_method_flag           = true
+
+# Excludes the convection term from the VSIMEX scheme.
+set semi_implicit_convection_flag = false
+
 # Verbosity flag.
 set verbosity_flag               = false
-
-# Semi implicit scheme flag.
-set semi_implicit_scheme_flag    = true
-
-# Full VSIMEX method flag.
-set full_vsimex_flag             = false
 
 
 subsection Parameters of the diffusion-step solver
