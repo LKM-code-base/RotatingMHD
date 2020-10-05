@@ -108,10 +108,10 @@ struct BoundaryConditionsBase
   std::vector<PeriodicBoundaryData<dim>>    periodic_bcs;
 
   /*!
-   * @brief A multimap bookkeeping which boundary ids correspond to a
-   * time dependent function.
+   * @brief A multimap of boundary condition types and boundary ids
+   * which were mark as having a time-dependent function.
    */
-  std::multimap<BCType, types::boundary_id> time_dependent_multimap;
+  std::multimap<BCType, types::boundary_id> time_dependent_bcs_map;
 };
 
 /*!
@@ -170,7 +170,7 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
    * @brief Sets the time of the functions by calling their respective
    * set_time method in a loop.
    */
-  void set_time(const double &time);
+  void set_time(const double time);
 
   /*!
    * @brief Clears all the boundary conditions.
@@ -289,7 +289,7 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
    * @brief Sets the time of the functions by calling their respective
    * set_time method in a loop.
    */
-  void set_time(const double &time);
+  void set_time(const double time);
 
   /*!
    * @brief Clears all the boundary conditions.

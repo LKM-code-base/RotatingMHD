@@ -50,7 +50,7 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
   {
     typedef std::multimap<BCType, types::boundary_id> MapType;
 
-    this->time_dependent_multimap.insert(
+    this->time_dependent_bcs_map.insert(
       MapType::value_type(
         BCType::dirichlet, 
         boundary_id));
@@ -80,7 +80,7 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
   {
     typedef std::multimap<BCType, types::boundary_id> MapType;
 
-    this->time_dependent_multimap.insert(
+    this->time_dependent_bcs_map.insert(
       MapType::value_type(
         BCType::neumann, 
         boundary_id));
@@ -88,7 +88,7 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
 }
 
 template <int dim>
-void ScalarBoundaryConditions<dim>::set_time(const double &time)
+void ScalarBoundaryConditions<dim>::set_time(const double time)
 {
   for (const auto &dirichlet_bc : this->dirichlet_bcs)
     dirichlet_bc.second->set_time(time);
@@ -168,7 +168,7 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
   {
     typedef std::multimap<BCType, types::boundary_id> MapType;
 
-    this->time_dependent_multimap.insert(
+    this->time_dependent_bcs_map.insert(
       MapType::value_type(
         BCType::dirichlet, 
         boundary_id));
@@ -198,7 +198,7 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
   {
     typedef std::multimap<BCType, types::boundary_id> MapType;
 
-    this->time_dependent_multimap.insert(
+    this->time_dependent_bcs_map.insert(
       MapType::value_type(
         BCType::neumann, 
         boundary_id));
@@ -228,7 +228,7 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
   {
     typedef std::multimap<BCType, types::boundary_id> MapType;
 
-    this->time_dependent_multimap.insert(
+    this->time_dependent_bcs_map.insert(
       MapType::value_type(
         BCType::normal_flux, 
         boundary_id));
@@ -258,7 +258,7 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
   {
     typedef std::multimap<BCType, types::boundary_id> MapType;
 
-    this->time_dependent_multimap.insert(
+    this->time_dependent_bcs_map.insert(
       MapType::value_type(
         BCType::tangential_flux, 
         boundary_id));
@@ -266,7 +266,7 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
 }
 
 template <int dim>
-void VectorBoundaryConditions<dim>::set_time(const double &time)
+void VectorBoundaryConditions<dim>::set_time(const double time)
 {
   for (const auto &dirichlet_bc : this->dirichlet_bcs)
     dirichlet_bc.second->set_time(time);
