@@ -89,11 +89,11 @@ subsection Convergence test parameters
 
   set flag_spatial_convergence_test = false
 
-  set initial_refinement_level      = 6
+  set initial_refinement_level      = 5
 
   set final_refinement_level        = 3
 
-  set temporal_convergence_cycles   = 4
+  set temporal_convergence_cycles   = 1
 
   set time_step_scaling_factor      = 0.25
 

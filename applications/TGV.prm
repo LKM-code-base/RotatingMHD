@@ -93,7 +93,7 @@ subsection Convergence test parameters
 
   set final_refinement_level = 4
 
-  set temporal_convergence_cycles = 4
+  set temporal_convergence_cycles = 1
 
   set time_step_scaling_factor = 0.1
 
