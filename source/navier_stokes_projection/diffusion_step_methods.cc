@@ -54,7 +54,7 @@ solve_diffusion_step(const bool reinit_prec)
 
   /* The following pointer holds the address to the correct matrix 
   depending on if the semi-implicit scheme is chosen or not */
-  LinearAlgebra::MPI::SparseMatrix  *system_matrix;
+  const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
   if (!parameters.flag_vsimex_method ||
       parameters.flag_semi_implicit_convection ||
       flag_initializing)
