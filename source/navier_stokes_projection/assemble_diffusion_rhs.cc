@@ -73,35 +73,41 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
   // The velocity gradients of previous solutions are
   // needed for the laplacian term
-  scratch.velocity_fe_values[velocities].get_function_gradients
-  (velocity.old_solution,
-   scratch.old_velocity_gradients);
-  
-  scratch.velocity_fe_values[velocities].get_function_gradients
-  (velocity.old_old_solution,
-   scratch.old_old_velocity_gradients);
+  if (parameters.flag_vsimex_method)
+  {
+    scratch.velocity_fe_values[velocities].get_function_gradients
+    (velocity.old_solution,
+    scratch.old_velocity_gradients);
+    
+    scratch.velocity_fe_values[velocities].get_function_gradients
+    (velocity.old_old_solution,
+    scratch.old_old_velocity_gradients);
 
-  // The velocity, its divergence and its curl of previous solutions are
-  // needed for the convection term
-  scratch.velocity_fe_values[velocities].get_function_values
-  (velocity.old_solution,
-  scratch.old_velocity_values);
-  scratch.velocity_fe_values[velocities].get_function_divergences
-  (velocity.old_solution,
-  scratch.old_velocity_divergences);
-  scratch.velocity_fe_values[velocities].get_function_curls
-  (velocity.old_solution,
-  scratch.old_velocity_curls);
-  
-  scratch.velocity_fe_values[velocities].get_function_values
-  (velocity.old_old_solution,
-  scratch.old_old_velocity_values);
-  scratch.velocity_fe_values[velocities].get_function_divergences
-  (velocity.old_old_solution,
-  scratch.old_old_velocity_divergences);
-  scratch.velocity_fe_values[velocities].get_function_curls
-  (velocity.old_old_solution,
-  scratch.old_old_velocity_curls);
+    if (!parameters.flag_semi_implicit_convection)
+    {
+      // The velocity, its divergence and its curl of previous solutions
+      //  are needed for the convection term
+      scratch.velocity_fe_values[velocities].get_function_values
+      (velocity.old_solution,
+      scratch.old_velocity_values);
+      scratch.velocity_fe_values[velocities].get_function_divergences
+      (velocity.old_solution,
+      scratch.old_velocity_divergences);
+      scratch.velocity_fe_values[velocities].get_function_curls
+      (velocity.old_solution,
+      scratch.old_velocity_curls);
+      
+      scratch.velocity_fe_values[velocities].get_function_values
+      (velocity.old_old_solution,
+      scratch.old_old_velocity_values);
+      scratch.velocity_fe_values[velocities].get_function_divergences
+      (velocity.old_old_solution,
+      scratch.old_old_velocity_divergences);
+      scratch.velocity_fe_values[velocities].get_function_curls
+      (velocity.old_old_solution,
+      scratch.old_old_velocity_curls);
+    }
+  }
 
   // prepare pressure part
   typename DoFHandler<dim>::active_cell_iterator
