@@ -95,7 +95,7 @@ public:
    *  @details Stores the memory address of the body force function in 
    *  the pointer @ref body_force.
    */
-  void set_body_force(Function<dim> &body_force);
+  void set_body_force(RMHD::EquationData::BodyForce<dim> &body_force);
 
   /*!
    * @brief Currently this method only sets the vector of the two pressure
@@ -171,7 +171,7 @@ private:
   /*!
    * @brief A pointer to the body force function.
    */
-  Function<dim>                          *body_force_ptr;
+  RMHD::EquationData::BodyForce<dim>    *body_force_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.

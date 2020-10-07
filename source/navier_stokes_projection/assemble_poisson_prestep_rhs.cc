@@ -71,7 +71,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
   const FEValuesExtractors::Vector  velocities(0);
 
   if (body_force_ptr != nullptr)
-    body_force_ptr->value_list(
+    body_force_ptr->divergence_list(
       scratch.pressure_fe_values.get_quadrature_points(),
       scratch.body_force_divergence_values);
   else
@@ -129,12 +129,13 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       scratch.velocity_fe_face_values.reinit(velocity_cell, velocity_face);
 
       if (body_force_ptr != nullptr)
-        body_force_ptr->vector_value_list(scratch.pressure_fe_face_values.get_quadrature_points(),
-                                          scratch.body_force_values);
+        body_force_ptr->value_list(
+          scratch.pressure_fe_face_values.get_quadrature_points(),
+          scratch.body_force_values);
       else
         scratch.body_force_values = 
-                          std::vector<Vector<double>>(scratch.n_face_q_points,
-                                                      Vector<double>(dim));
+                          std::vector<Tensor<1,dim>>(scratch.n_face_q_points,
+                                                     Tensor<1,dim>());
 
       scratch.velocity_fe_face_values[velocities].get_function_laplacians(
                                     velocity.old_old_solution,
@@ -145,23 +146,18 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
       for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
         {
-          scratch.projected_body_force[q] = 0.0;
-
           for (unsigned int i = 0; i < scratch.pressure_dofs_per_cell; ++i)
             scratch.face_phi_pressure[i] = 
                         scratch.pressure_fe_face_values.shape_value(i, q);
-          for (unsigned int i = 0; i < dim; ++i)  
-            scratch.projected_body_force[q] += 
-                        scratch.body_force_values[q](i) *
-                        scratch.normal_vectors[q][i];
+
           for (unsigned int i = 0; i < scratch.pressure_dofs_per_cell; ++i)
             data.local_poisson_prestep_rhs(i) += 
                             scratch.face_phi_pressure[i] * 
-                            (scratch.projected_body_force[q]
+                            (scratch.body_force_values[q]
                              +
                              1.0 / parameters.Re *
-                             scratch.velocity_laplacian_values[q] *
-                             scratch.normal_vectors[q]) *
+                             scratch.velocity_laplacian_values[q])*
+                            scratch.normal_vectors[q] *
                             scratch.pressure_fe_face_values.JxW(q);        
         }
     }

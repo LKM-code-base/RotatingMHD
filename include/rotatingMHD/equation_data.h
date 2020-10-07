@@ -10,7 +10,7 @@
 
 #include <deal.II/base/point.h>
 #include <deal.II/base/function.h>
-
+#include <deal.II/base/tensor_function.h>
 #include <deal.II/lac/vector.h>
 
 namespace RMHD
@@ -20,6 +20,20 @@ namespace RMHD
 
 namespace EquationData
 {
+
+template <int dim>
+class BodyForce : public TensorFunction<1, dim>
+{
+public:
+  BodyForce(const double time = 0);
+
+  virtual double divergence(
+    const Point<dim>  &point) const;
+
+  virtual void divergence_list(
+    const std::vector<Point<dim>> &points,
+    std::vector<double>           &values) const;
+};
 
 namespace Step35
 {
@@ -149,16 +163,15 @@ public:
 };
 
 template <int dim>
-class BodyForce : public Function<dim>
+class BodyForce: public RMHD::EquationData::BodyForce<dim>
 {
 public:
   BodyForce(const double &Re, const double time = 0);
 
-  virtual double value(const Point<dim> &point,
-                       const unsigned int component = 0) const override;
+  virtual Tensor<1, dim> value(
+    const Point<dim>  &point) const override;
 
-  virtual void vector_value(const Point<dim>  &p,
-                            Vector<double>    &values) const override;
+  virtual double divergence(const Point<dim>  &point) const override;
 
   const double Re;
 };

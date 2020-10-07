@@ -117,12 +117,12 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   scratch.pressure_tmp_values);
 
   if (body_force_ptr != nullptr)
-    body_force_ptr->vector_value_list(
+    body_force_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.body_force_values);
   else
     scratch.body_force_values = 
-      std::vector<Vector<double>>(scratch.n_q_points, Vector<double>(dim));
+      std::vector<Tensor<1,dim>>(scratch.n_q_points, Tensor<1,dim>());
 
   // loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
@@ -141,8 +141,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
     {
       {
-        const unsigned int component_i = 
-          scratch.velocity_fe_values.get_fe().system_to_component_index(i).first;
         data.local_diffusion_step_rhs(i) +=
                                   scratch.velocity_fe_values.JxW(q) * (
                                   scratch.pressure_tmp_values[q] *
@@ -151,8 +149,8 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                                   scratch.velocity_tmp_values[q] *
                                   scratch.phi_velocity[i]
                                   +
-                                  scratch.velocity_fe_values.shape_value(i, q) *
-                                  scratch.body_force_values[q](component_i));
+                                  scratch.phi_velocity[i] *
+                                  scratch.body_force_values[q]);
         if (parameters.flag_vsimex_method)
         {
           data.local_diffusion_step_rhs(i) -=
