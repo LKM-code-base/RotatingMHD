@@ -239,12 +239,10 @@ void Step35<dim>::update_solution_vectors()
 
 template <int dim>
 void Step35<dim>::run(
-              const bool          flag_verbose_output,
+              const bool          /* flag_verbose_output */,
               const unsigned int  terminal_output_periodicity,
               const unsigned int  graphical_output_periodicity)
 {
-  (void)flag_verbose_output;
-
   /*
    * What is going on here? The fact that the initial time step is first order
    * time step

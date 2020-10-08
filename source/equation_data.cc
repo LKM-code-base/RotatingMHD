@@ -22,9 +22,8 @@ TensorFunction<1, dim>(time)
 {}
 
 template <int dim>
-double BodyForce<dim>::divergence(const Point<dim>  &point) const
+double BodyForce<dim>::divergence(const Point<dim>  &/* point */) const
 {
-  (void)point;
   return 0.0;
 }
 
@@ -146,17 +145,18 @@ namespace TGV
 {
 
 template <int dim>
-VelocityExactSolution<dim>::VelocityExactSolution(const double &Re,
-                                                  const double time)
+VelocityExactSolution<dim>::VelocityExactSolution
+(const double Re,
+ const double time)
 : 
 Function<dim>(dim, time),
 Re(Re)
 {}
 
 template <int dim>
-void VelocityExactSolution<dim>::vector_value(
-                                        const Point<dim>  &point,
-                                        Vector<double>    &values) const
+void VelocityExactSolution<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
 {
   double t = this->get_time();
   double x = point(0);
@@ -166,9 +166,9 @@ void VelocityExactSolution<dim>::vector_value(
 }
 
 template <int dim>
-Tensor<1, dim> VelocityExactSolution<dim>::gradient(
-  const Point<dim>  &point,
-  const unsigned int component) const
+Tensor<1, dim> VelocityExactSolution<dim>::gradient
+(const Point<dim>  &point,
+ const unsigned int component) const
 {
   Tensor<1, dim>  return_value;
 
@@ -192,32 +192,31 @@ Tensor<1, dim> VelocityExactSolution<dim>::gradient(
 }
 
 template <int dim>
-PressureExactSolution<dim>::PressureExactSolution(const double &Re,
-                                                  const double time)
+PressureExactSolution<dim>::PressureExactSolution
+(const double Re,
+ const double time)
 :
 Function<dim>(1, time),
 Re(Re)
 {}
 
 template<int dim>
-double PressureExactSolution<dim>::value(
-                                    const Point<dim> &point,
-                                    const unsigned int component) const
+double PressureExactSolution<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
 {
-  (void)component;
   double t = this->get_time();
   double x = point(0);
   double y = point(1);
 
-  return -0.25*exp(-4.0/Re*t)*(cos(2.0*x)+cos(2.0*y));
+  return (-0.25*exp(-4.0/Re*t)*(cos(2.0*x)+cos(2.0*y)));
 }
 
 template<int dim>
-Tensor<1, dim> PressureExactSolution<dim>::gradient(
-  const Point<dim> &point,
-  const unsigned int component) const
+Tensor<1, dim> PressureExactSolution<dim>::gradient
+(const Point<dim> &point,
+ const unsigned int /* component */) const
 {
-  (void)component;
   Tensor<1, dim>  return_value;
   double t = this->get_time();
   double x = point(0);
@@ -283,11 +282,10 @@ Function<dim>(1, time)
 {}
 
 template<int dim>
-double PressureExactSolution<dim>::value(
-                                    const Point<dim> &point,
-                                    const unsigned int component) const
+double PressureExactSolution<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
 {
-  (void)component;
   double t = this->get_time();
   double x = point(0);
   double y = point(1);
@@ -295,11 +293,10 @@ double PressureExactSolution<dim>::value(
 }
 
 template<int dim>
-Tensor<1, dim> PressureExactSolution<dim>::gradient(
-  const Point<dim> &point,
-  const unsigned int component) const
+Tensor<1, dim> PressureExactSolution<dim>::gradient
+(const Point<dim> &point,
+ const unsigned int /* component */) const
 {
-  (void)component;
   Tensor<1, dim>  return_value;
   double t = this->get_time();
   double x = point(0);
@@ -312,7 +309,9 @@ Tensor<1, dim> PressureExactSolution<dim>::gradient(
 }
 
 template <int dim>
-BodyForce<dim>::BodyForce(const double &Re, const double time)
+BodyForce<dim>::BodyForce
+(const double Re,
+ const double time)
 : 
 RMHD::EquationData::BodyForce<dim>(time),
 Re(Re)
