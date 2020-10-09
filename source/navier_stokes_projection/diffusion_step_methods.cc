@@ -20,9 +20,7 @@ assemble_diffusion_step()
      velocity_mass_matrix);
 
     velocity_mass_plus_laplace_matrix.add
-    ((parameters.flag_vsimex_method) ? 
-        time_stepping.get_gamma()[0] / parameters.Re: 
-        1.0 / parameters.Re,
+    (time_stepping.get_gamma()[0] / parameters.Re,
      velocity_laplace_matrix);
 
     if (!parameters.time_stepping_parameters.adaptive_time_stepping)
@@ -31,8 +29,7 @@ assemble_diffusion_step()
 
   /* In case of a semi-implicit scheme, the advection matrix has to be
   assembled and added to the system matrix */
-  if (!parameters.flag_vsimex_method ||
-      parameters.flag_semi_implicit_convection)
+  if (parameters.flag_semi_implicit_convection)
   {
     assemble_velocity_advection_matrix();
     velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
@@ -55,8 +52,7 @@ solve_diffusion_step(const bool reinit_prec)
   /* The following pointer holds the address to the correct matrix 
   depending on if the semi-implicit scheme is chosen or not */
   const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
-  if (!parameters.flag_vsimex_method ||
-      parameters.flag_semi_implicit_convection ||
+  if (parameters.flag_semi_implicit_convection ||
       flag_initializing)
     system_matrix = &velocity_system_matrix;
   else

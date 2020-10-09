@@ -12,11 +12,8 @@ set projection_method            = rotational
 # Projection method to implement.
 set convection_term_form         = skewsymmetric
 
-# VSIMEX method flag.
-set vsimex_method_flag           = true
-
 # Excludes the convection term from the VSIMEX scheme.
-set semi_implicit_convection_flag = false
+set semi_implicit_convection_flag = true
 
 # Verbosity flag.
 set verbosity_flag               = false

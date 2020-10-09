@@ -12,11 +12,8 @@ set projection_method            = rotational
 # Projection method to implement.
 set convection_term_form         = skewsymmetric
 
-# VSIMEX method flag.
-set vsimex_method_flag           = true
-
 # Excludes the convection term from the VSIMEX scheme.
-set semi_implicit_convection_flag = false
+set semi_implicit_convection_flag = true
 
 # Verbosity flag.
 set verbosity_flag               = false
@@ -69,7 +66,7 @@ subsection Time stepping settings
   set final_time                = 5e-2
 
   # Size of the initial time step.
-  set initial_time_step         = 5e-4
+  set initial_time_step         = 5e-3
 
   # Size of the maximum time step.
   set maximum_time_step         = 7.5e-3
