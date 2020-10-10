@@ -83,7 +83,7 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   navier_stokes.setup();
   initialize();
 
-  this->pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
+  //this->pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
 }
 
 template <int dim>
@@ -163,6 +163,7 @@ void Step35<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_initial_conditions, 
                                time_stepping);
+  //navier_stokes.initialize();
   velocity.solution = velocity.old_solution;
   pressure.solution = pressure.old_solution;
   output();
@@ -211,12 +212,10 @@ void Step35<dim>::update_solution_vectors()
 
 template <int dim>
 void Step35<dim>::run(
-              const bool          flag_verbose_output,
+              const bool          /* flag_verbose_output */,
               const unsigned int  terminal_output_periodicity,
               const unsigned int  graphical_output_periodicity)
 {
-  (void)flag_verbose_output;
-
   /*
    * What is going on here? The fact that the initial time step is first order
    * time step
@@ -227,7 +226,7 @@ void Step35<dim>::run(
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
     // snapshot stage
-    this->pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
+    //this->pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
 
     time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());

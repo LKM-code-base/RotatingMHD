@@ -95,7 +95,7 @@ public:
    *  @details Stores the memory address of the body force function in 
    *  the pointer @ref body_force.
    */
-  void set_body_force(Function<dim> &body_force);
+  void set_body_force(RMHD::EquationData::BodyForce<dim> &body_force);
 
   /*!
    * @brief Currently this method only sets the vector of the two pressure
@@ -171,7 +171,7 @@ private:
   /*!
    * @brief A pointer to the body force function.
    */
-  Function<dim>                          *body_force_ptr;
+  RMHD::EquationData::BodyForce<dim>    *body_force_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
@@ -351,13 +351,19 @@ private:
   bool                                  flag_diffusion_matrix_assembled;
 
   /*!
+   * @brief A flag for the initializing of the solver.
+   * @details It is only set as true while initializing in order to 
+   * reuse methods of the normal solve procedure.
+   */
+  bool                                  flag_initializing;
+  
+  /*!
    * @brief A flag to normalize the pressure field.
    * @details In the case of an unconstrained formulation in the 
    * pressure space, i.e. no Dirichlet boundary conditions, this flag
    * has to be set to true in order to constraint the pressure field.
    */
   bool                                  flag_normalize_pressure;
-
 
   /*!
    * @brief Setup of the sparsity spatterns of the matrices of the diffusion and

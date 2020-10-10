@@ -24,6 +24,14 @@ enum class ProjectionMethod
   rotational
 };
 
+enum class ConvectionTermForm
+{
+  standard,
+  skewsymmetric,
+  divergence,
+  rotational
+};
+
 struct ParameterSet
 {
   /*!
@@ -55,32 +63,33 @@ struct ParameterSet
    */
   TimeDiscretization::TimeSteppingParameters  time_stepping_parameters;
 
-  ProjectionMethod  projection_method;
+  ProjectionMethod    projection_method;
+  ConvectionTermForm  convection_term_form;
 
-  double            Re;
+  double              Re;
 
-  unsigned int      n_global_refinements;
+  unsigned int        n_global_refinements;
 
-  unsigned int      p_fe_degree;
+  unsigned int        p_fe_degree;
 
-  unsigned int      n_maximum_iterations;
-  unsigned int      solver_krylov_size;
-  unsigned int      solver_off_diagonals;
-  unsigned int      solver_update_preconditioner;
-  double            relative_tolerance;
-  double            solver_diag_strength;
+  unsigned int        n_maximum_iterations;
+  unsigned int        solver_krylov_size;
+  unsigned int        solver_off_diagonals;
+  unsigned int        solver_update_preconditioner;
+  double              relative_tolerance;
+  double              solver_diag_strength;
 
-  bool              flag_verbose_output;
-  bool              flag_DFG_benchmark;
+  bool                flag_verbose_output;
+  bool                flag_semi_implicit_convection;
 
-  unsigned int      graphical_output_interval;
-  unsigned int      terminal_output_interval;
-
-  bool              flag_spatial_convergence_test;
-  unsigned int      initial_refinement_level;
-  unsigned int      final_refinement_level;
-  unsigned int      temporal_convergence_cycles;
-  double            time_step_scaling_factor;
+  unsigned int        graphical_output_interval;
+  unsigned int        terminal_output_interval;
+  
+  bool                flag_spatial_convergence_test;
+  unsigned int        initial_refinement_level;
+  unsigned int        final_refinement_level;
+  unsigned int        temporal_convergence_cycles;
+  double              time_step_scaling_factor;
 };
 
 } // namespace RunTimeParameters

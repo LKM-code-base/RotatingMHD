@@ -3,14 +3,17 @@
 # Output frequency of diagnostic data on the terminal.
 set diagnostics_output_frequency = 1
 
-# This indicates whether the problem solves the DFG benchmark or step-35
-set flag_DFG_benchmark           = false
-
 # Graphical output frequency.
 set graphical_output_frequency   = 1
 
 # Projection method to implement.
 set projection_method            = rotational
+
+# Projection method to implement.
+set convection_term_form         = skewsymmetric
+
+# Excludes the convection term from the VSIMEX scheme.
+set semi_implicit_convection_flag = true
 
 # Verbosity flag.
 set verbosity_flag               = false
@@ -64,7 +67,7 @@ subsection Time stepping settings
   set final_time                = 1.0
 
   # Size of the initial time step.
-  set initial_time_step         = 1e-1
+  set initial_time_step         = 1e-3
 
   # Size of the maximum time step.
   set maximum_time_step         = 7.5e-3

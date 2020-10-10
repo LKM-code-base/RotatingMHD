@@ -10,7 +10,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
   velocity_advection_matrix = 0.;
 
   using CellFilter =
-    FilteredIterator<typename DoFHandler<2>::active_cell_iterator>;
+    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
@@ -70,11 +70,13 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
   (extrapolated_velocity,
    scratch.extrapolated_velocity_divergences);
 
-  /*
-  scratch.velocity_fe_values[velocities].get_function_curls
-  (extrapolated_velocity, 
-  scratch.extrapolated_velocity_curls);
-    */
+  
+  if (parameters.convection_term_form == 
+        RunTimeParameters::ConvectionTermForm::rotational)
+    scratch.fe_values[velocities].get_function_curls(
+      extrapolated_velocity, 
+      scratch.extrapolated_velocity_curls);
+
 
   // loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
@@ -83,25 +85,14 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
     {
       scratch.phi_velocity[i] = scratch.fe_values[velocities].value(i,q);
       scratch.grad_phi_velocity[i] = scratch.fe_values[velocities].gradient(i,q);
+      scratch.curl_phi_velocity[i] = scratch.fe_values[velocities].curl(i,q);
     }
     // loop over local dofs
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
       for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
-      {
-        data.local_matrix(i, j) += ( 
-                            scratch.phi_velocity[i] *
-                            scratch.grad_phi_velocity[j] *  
-                            scratch.extrapolated_velocity_values[q]            
-                            +                                    
-                            0.5 *                                
-                            scratch.extrapolated_velocity_divergences[q] *            
-                            scratch.phi_velocity[i] * 
-                            scratch.phi_velocity[j] )
-                            * scratch.fe_values.JxW(q);
-        /*
-        switch (convective_term_form)
+        switch (parameters.convection_term_form)
         {
-          case RunTimeParameters::ConvectionTermForm::convective:
+          case RunTimeParameters::ConvectionTermForm::standard:
           {
             data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i] *
@@ -139,21 +130,30 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
           }
           case RunTimeParameters::ConvectionTermForm::rotational:
           {
-            // This form needs to be discussed
-            data.local_matrix(i, j) += ( 
+            // This form needs to be discussed, specifically which
+            // velocity instance is to be replaced by the extrapolated
+            // velocity The current implementation computes the total pressure.
+            // The minus sign in the argument of cross_product_2d
+            // method is due to how the method is defined.
+            if constexpr(dim == 2)
+              data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i] *
+                          scratch.curl_phi_velocity[j][0] *
+                          cross_product_2d(
+                            - scratch.extrapolated_velocity_values[q])) * 
+                          scratch.fe_values.JxW(q);
+            else if constexpr(dim == 3)
+              data.local_matrix(i, j) += ( 
+                          scratch.phi_velocity[i]  *
                           cross_product_3d(
-                            scratch.extrapolated_velocity_curls[q],
-                            scratch.phi_velocity[j]))
-                          * scratch.fe_values.JxW(q);
+                            scratch.curl_phi_velocity[j],
+                            scratch.extrapolated_velocity_values[q])) *
+                          scratch.fe_values.JxW(q);
             break;
           }
           default:
             Assert(false, ExcNotImplemented());
         };
-         */
-      }
-
     // loop over local dofs
   } // loop over quadrature points
 }

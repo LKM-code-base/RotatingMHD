@@ -3,18 +3,20 @@
 # Output frequency of diagnostic data on the terminal.
 set diagnostics_output_frequency = 1
 
-# This indicates whether the problem solves the DFG benchmark or step-35
-set flag_DFG_benchmark           = false
-
 # Graphical output frequency.
-set graphical_output_frequency   = 50
+set graphical_output_frequency   = 1
 
 # Projection method to implement.
 set projection_method            = rotational
 
+# Projection method to implement.
+set convection_term_form         = skewsymmetric
+
+# Excludes the convection term from the VSIMEX scheme.
+set semi_implicit_convection_flag = true
+
 # Verbosity flag.
 set verbosity_flag               = false
-
 
 subsection Parameters of the diffusion-step solver
   # Parameter which controls the size of the Krylov subspace in the GMRES
