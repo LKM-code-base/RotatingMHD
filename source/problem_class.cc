@@ -95,6 +95,54 @@ void Problem<dim>::set_initial_conditions
 
 }
 
+template <int dim>
+void Problem<dim>::compute_error(
+  LinearAlgebra::MPI::Vector  &error_vector,
+  Entities::EntityBase<dim>   &entity,
+  Function<dim>               &exact_solution)
+{
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_error_vector(entity.locally_owned_dofs, MPI_COMM_WORLD);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_error_vector(entity.locally_owned_dofs);
+  #endif
+  VectorTools::project(entity.dof_handler,
+                       entity.constraints,
+                       QGauss<dim>(entity.fe_degree + 2),
+                       exact_solution,
+                       tmp_error_vector);
+
+  error_vector = tmp_error_vector;
+
+  LinearAlgebra::MPI::Vector distributed_error_vector;
+  LinearAlgebra::MPI::Vector distributed_solution;
+
+  #ifdef USE_PETSC_LA
+    distributed_error_vector.reinit(entity.locally_owned_dofs,
+                                    MPI_COMM_WORLD);
+  #else
+    distributed_error_vector.reinit(entity.locally_owned_dofs,
+                                    entity.locally_relevant_dofs,
+                                    MPI_COMM_WORLD,
+                                    true);
+  #endif
+  distributed_solution.reinit(distributed_error_vector);
+
+  distributed_error_vector  = error_vector;
+  distributed_solution      = entity.solution;
+
+  distributed_error_vector.add(-1.0, distributed_solution);
+  
+  for (unsigned int i = distributed_error_vector.local_range().first; 
+       i < distributed_error_vector.local_range().second; ++i)
+    if (distributed_error_vector(i) < 0)
+      distributed_error_vector(i) *= -1.0;
+
+  error_vector = distributed_error_vector;
+}
+
 } // namespace RMHD
 
 template class RMHD::Problem<2>;

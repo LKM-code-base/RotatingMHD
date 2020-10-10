@@ -11,26 +11,33 @@ assemble_diffusion_step()
     *pcout << "    Assemble diffusion step...";
 
   /* System matrix setup */
-  assemble_velocity_advection_matrix();
 
+  /* This if scope makes sure that if the time step is 
+  constant, the following matrix summation is only done once */
   if (!flag_diffusion_matrix_assembled)
   {
     velocity_mass_plus_laplace_matrix = 0.;
 
     velocity_mass_plus_laplace_matrix.add
-    (1.0 / parameters.Re,
-     velocity_laplace_matrix);
-
-    velocity_mass_plus_laplace_matrix.add
     (time_stepping.get_alpha()[0] / time_stepping.get_next_step_size(),
      velocity_mass_matrix);
+
+    velocity_mass_plus_laplace_matrix.add
+    (time_stepping.get_gamma()[0] / parameters.Re,
+     velocity_laplace_matrix);
 
     if (!parameters.time_stepping_parameters.adaptive_time_stepping)
       flag_diffusion_matrix_assembled = true; 
   }
-  velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
-  velocity_system_matrix.add(1., velocity_advection_matrix);
 
+  /* In case of a semi-implicit scheme, the advection matrix has to be
+  assembled and added to the system matrix */
+  if (parameters.flag_semi_implicit_convection)
+  {
+    assemble_velocity_advection_matrix();
+    velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
+    velocity_system_matrix.add(1. , velocity_advection_matrix);
+  }
   /* Right hand side setup */
   assemble_diffusion_step_rhs();
 
@@ -51,8 +58,17 @@ solve_diffusion_step(const bool reinit_prec)
   LinearAlgebra::MPI::Vector distributed_velocity(velocity_rhs);
   distributed_velocity = velocity.solution;
 
+  /* The following pointer holds the address to the correct matrix 
+  depending on if the semi-implicit scheme is chosen or not */
+  const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
+  if (parameters.flag_semi_implicit_convection ||
+      flag_initializing)
+    system_matrix = &velocity_system_matrix;
+  else
+    system_matrix = &velocity_mass_plus_laplace_matrix;
+
   if (reinit_prec)
-    diffusion_step_preconditioner.initialize(velocity_system_matrix);
+    diffusion_step_preconditioner.initialize(*system_matrix);
 
   SolverControl solver_control(parameters.n_maximum_iterations,
                                std::max(parameters.relative_tolerance * velocity_rhs.l2_norm(),
@@ -67,7 +83,7 @@ solve_diffusion_step(const bool reinit_prec)
 
   try
   {
-    solver.solve(velocity_system_matrix,
+    solver.solve(*system_matrix,
                  distributed_velocity,
                  velocity_rhs,
                  diffusion_step_preconditioner);

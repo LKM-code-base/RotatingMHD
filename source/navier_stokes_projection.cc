@@ -18,7 +18,9 @@ mpi_communicator(velocity.mpi_communicator),
 velocity(velocity),
 pressure(pressure),
 time_stepping(time_stepping),
-flag_diffusion_matrix_assembled(false)
+flag_diffusion_matrix_assembled(false),
+flag_initializing(false),
+flag_normalize_pressure(false)
 {
   if (external_pcout.get() != 0)
     pcout = external_pcout;
@@ -32,6 +34,8 @@ flag_diffusion_matrix_assembled(false)
       computing_timer.reset(new TimerOutput(*pcout,
                                             TimerOutput::summary,
                                             TimerOutput::wall_times));
+
+  body_force_ptr = nullptr;
 }
 
 }  // namespace RMHD

@@ -1,5 +1,7 @@
 #include <rotatingMHD/navier_stokes_projection.h>
 
+#include <deal.II/numerics/vector_tools.h>
+
 namespace RMHD
 {
 
@@ -39,9 +41,9 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   }
 
   {
-    const std::vector<double> alpha = time_stepping.get_alpha();
-    const std::vector<double> old_alpha_zero   = time_stepping.get_old_alpha_zero();
-    const std::vector<double> old_step_size = time_stepping.get_old_step_size();
+    const std::vector<double> alpha           = time_stepping.get_alpha();
+    const std::vector<double> old_alpha_zero  = time_stepping.get_old_alpha_zero();
+    const std::vector<double> old_step_size   = time_stepping.get_old_step_size();
     AssertIsFinite(time_stepping.get_next_step_size());
     AssertIsFinite(alpha[1]);
     AssertIsFinite(alpha[2]);
@@ -51,24 +53,24 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     AssertIsFinite(old_step_size[1]);
 
     LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
+    LinearAlgebra::MPI::Vector distributed_old_phi(pressure_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_phi(pressure_rhs);
-    LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
     distributed_old_pressure  = pressure.old_solution;
+    distributed_old_phi       = old_phi;
     distributed_old_old_phi   = old_old_phi;
-    distributed_phi           = old_phi;
-    /*
-     * These coefficients are wrong in case of a variable size of the time step.
-     */
+
     distributed_old_pressure.sadd(1.,
                                   - old_step_size[0] /
                                   time_stepping.get_next_step_size() *
                                   alpha[1] / old_alpha_zero[0],
-                                  distributed_phi);
+                                  distributed_old_phi);
+
     distributed_old_pressure.sadd(1.,
                                   - old_step_size[1] /
                                   time_stepping.get_next_step_size() *
                                   alpha[2] / old_alpha_zero[1],
                                   distributed_old_old_phi);
+                                  
     pressure_tmp = distributed_old_pressure;
   }
 
@@ -133,6 +135,11 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           distributed_old_pressure  = pressure.old_solution;
           distributed_phi           = phi;
 
+          pressure_rhs /= (!flag_initializing ?
+                            time_stepping.get_alpha()[0] / 
+                            time_stepping.get_next_step_size()  :
+                            1.0 / time_stepping.get_next_step_size());
+
           SolverControl solver_control(parameters.n_maximum_iterations,
                                        std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
                                                 absolute_tolerance));
@@ -184,6 +191,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           distributed_pressure.sadd(1.0 / parameters.Re, 1., distributed_old_pressure);
           distributed_pressure += distributed_phi;
+
+          if (flag_normalize_pressure)
+            VectorTools::subtract_mean_value(distributed_pressure);
 
           pressure.solution = distributed_pressure;
         }

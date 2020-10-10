@@ -4,7 +4,7 @@
 set diagnostics_output_frequency = 1
 
 # Graphical output frequency.
-set graphical_output_frequency   = 100
+set graphical_output_frequency   = 1
 
 # Projection method to implement.
 set projection_method            = rotational
@@ -17,7 +17,6 @@ set semi_implicit_convection_flag = true
 
 # Verbosity flag.
 set verbosity_flag               = false
-
 
 subsection Parameters of the diffusion-step solver
   # Parameter which controls the size of the Krylov subspace in the GMRES
@@ -37,7 +36,7 @@ subsection Parameters of the diffusion-step solver
   set solver_off_diagonals            = 70
 
   # The number of time steps after which the preconditioner is updated.
-  set update_frequency_preconditioner = 15
+  set update_frequency_preconditioner = 1
 end
 
 
@@ -49,7 +48,7 @@ end
 
 subsection Spatial discretization parameters
   # Number of global refinements done on the input mesh.
-  set n_global_refinements = 3
+  set n_global_refinements = 6
 
   # The polynomial degree of the pressure finiteelement.
   set p_fe_degree          = 1
@@ -58,22 +57,22 @@ end
 
 subsection Time stepping settings
   # Turn adaptive time stepping on or off
-  set adaptive_time_stepping         = false
+  set adaptive_time_stepping    = false
 
   # Time step after which adaptive time stepping is applied.
   set adaptive_timestep_barrier = 2
 
   # Final time of the simulation.
-  set final_time                = 40.0
+  set final_time                = 2.0
 
   # Size of the initial time step.
-  set initial_time_step         = 2.5e-2
+  set initial_time_step         = 1e-1
 
   # Size of the maximum time step.
-  set maximum_time_step         = 5e-2
+  set maximum_time_step         = 7.5e-3
 
   # Size of the minimum time step.
-  set minimum_time_step         = 1e-2
+  set minimum_time_step         = 2.5e-3
 
   # Maximum number of time steps to be computed.
   set n_maximum_steps           = 10
@@ -86,6 +85,20 @@ subsection Time stepping settings
 
   # Activate verbose output.
   set verbose                   = false
+end
+
+subsection Convergence test parameters
+
+  set flag_spatial_convergence_test = false
+
+  set initial_refinement_level      = 5
+
+  set final_refinement_level        = 3
+
+  set temporal_convergence_cycles   = 1
+
+  set time_step_scaling_factor      = 0.25
+
 end
 
 

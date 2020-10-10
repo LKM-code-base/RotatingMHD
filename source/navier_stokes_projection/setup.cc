@@ -13,7 +13,8 @@ namespace RMHD
 {
 
 template <int dim>
-void NavierStokesProjection<dim>::setup()
+void NavierStokesProjection<dim>::setup(const bool
+                                        normalize_pressure)
 {
   setup_matrices();
 
@@ -22,6 +23,7 @@ void NavierStokesProjection<dim>::setup()
   assemble_constant_matrices();
 
   reinit_internal_entities();
+  flag_normalize_pressure = normalize_pressure;
 }
 
 template <int dim>
@@ -209,6 +211,13 @@ assemble_constant_matrices()
 }
 
 template <int dim>
+void NavierStokesProjection<dim>::set_body_force(
+  RMHD::EquationData::BodyForce<dim> &body_force)
+{
+  body_force_ptr  = &body_force;
+}
+
+template <int dim>
 void NavierStokesProjection<dim>::reinit_internal_entities()
 {
   phi         = 0.;
@@ -220,8 +229,8 @@ void NavierStokesProjection<dim>::reinit_internal_entities()
 }
 
 // explicit instantiations
-template void RMHD::NavierStokesProjection<2>::setup();
-template void RMHD::NavierStokesProjection<3>::setup();
+template void RMHD::NavierStokesProjection<2>::setup(const bool);
+template void RMHD::NavierStokesProjection<3>::setup(const bool);
 
 template void RMHD::NavierStokesProjection<2>::setup_matrices();
 template void RMHD::NavierStokesProjection<3>::setup_matrices();
@@ -231,6 +240,9 @@ template void RMHD::NavierStokesProjection<3>::setup_vectors();
 
 template void RMHD::NavierStokesProjection<2>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
+
+template void RMHD::NavierStokesProjection<2>::set_body_force(RMHD::EquationData::BodyForce<2> &);
+template void RMHD::NavierStokesProjection<3>::set_body_force(RMHD::EquationData::BodyForce<3> &);
 
 template void RMHD::NavierStokesProjection<2>::reinit_internal_entities();
 template void RMHD::NavierStokesProjection<3>::reinit_internal_entities();

@@ -8,10 +8,27 @@ template <int dim>
 void NavierStokesProjection<dim>::
 initialize()
 {
+  flag_initializing = true;
+
+  if (body_force_ptr != nullptr)
+    body_force_ptr->set_time(time_stepping.get_start_time());
+
   poisson_prestep();
+
+  if (time_stepping.get_order() == 1)
+  {    
+    flag_initializing = false;
+    return;
+  }
+
+  if (body_force_ptr != nullptr)
+    body_force_ptr->advance_time(time_stepping.get_next_step_size());
+
   diffusion_prestep();
   projection_prestep();
   pressure_correction_prestep();
+  
+  flag_initializing = false;
 }
 
 template <int dim>
@@ -73,7 +90,7 @@ void NavierStokesProjection<dim>::
 pressure_correction_prestep()
 {
   pressure.old_solution = pressure.old_old_solution;
-  pressure.old_solution += phi;
+  pressure.old_solution += old_phi;
 }
 
 } // namespace RMHD

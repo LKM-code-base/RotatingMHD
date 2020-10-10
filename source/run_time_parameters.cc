@@ -23,6 +23,7 @@ ParameterSet::ParameterSet()
 :
 time_stepping_parameters(),
 projection_method(ProjectionMethod::rotational),
+convection_term_form(ConvectionTermForm::skewsymmetric),
 Re(1.0),
 n_global_refinements(0),
 p_fe_degree(1),
@@ -33,8 +34,13 @@ solver_update_preconditioner(15),
 relative_tolerance(1e-6),
 solver_diag_strength(0.01),
 verbose(true),
-flag_DFG_benchmark(false),
-graphical_output_interval(15)
+flag_semi_implicit_convection(true),
+graphical_output_interval(15),
+terminal_output_interval(1),
+flag_spatial_convergence_test(true),
+initial_refinement_level(3),
+final_refinement_level(8),
+time_step_scaling_factor(1./10.)
 {}
 
 ParameterSet::ParameterSet(const std::string &parameter_filename)
@@ -78,6 +84,11 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                     "rotational",
                     Patterns::Selection("rotational|standard"),
                     " Projection method to implement. ");
+
+  prm.declare_entry("convection_term_form",
+                    "skewsymmetric",
+                    Patterns::Selection("standard|skewsymmetric|divergence|rotational"),
+                    " Form the of the convection term to implement. ");
 
   prm.enter_subsection("Physical parameters");
   {
@@ -140,18 +151,42 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+  prm.enter_subsection("Convergence test parameters");
+  {
+    prm.declare_entry("flag_spatial_convergence_test",
+                      "true",
+                      Patterns::Bool(),
+                      "Choses between an spatial or temporal "
+                      "convergence test");
+    prm.declare_entry("initial_refinement_level",
+                      "3",
+                      Patterns::Integer(1),
+                      "The initial refinement level of the test");
+    prm.declare_entry("final_refinement_level",
+                      "8",
+                      Patterns::Integer(1),
+                      "The final refinement level of the test");
+    prm.declare_entry("temporal_convergence_cycles",
+                      "6",
+                      Patterns::Integer(1),
+                      "The amount of cycles for the temporal convergence test");
+    prm.declare_entry("time_step_scaling_factor",
+                      "0.1",
+                      Patterns::Double(0.),
+                      "The scaling factor of the temporal convergence test");
+  }
+  prm.leave_subsection();
+
   prm.declare_entry("verbosity_flag",
                     "true",
                     Patterns::Bool(),
                     "Verbosity flag.");
-  /*
-   * Is this flag still necessary?
-   */
-  prm.declare_entry("flag_DFG_benchmark",
-                    "false",
+
+  prm.declare_entry("semi_implicit_convection_flag",
+                    "true",
                     Patterns::Bool(),
-                    "This indicates whether the problem solves the DFG "
-                    "benchmark or step-35");
+                    "Flag determing the treatment of the convection"
+                    " term inside the VSIMEX method.");
 
   prm.declare_entry("graphical_output_frequency",
                     "1",
@@ -172,33 +207,45 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
 
   if (prm.get("projection_method") == std::string("rotational"))
     projection_method = ProjectionMethod::rotational;
-  else
+  else if (prm.get("projection_method") == std::string("standard"))
     projection_method = ProjectionMethod::standard;
+  else
+    AssertThrow(false,
+                ExcMessage("Unexpected projection method."));
+
+  if (prm.get("convection_term_form") == std::string("standard"))
+    convection_term_form = ConvectionTermForm::standard;
+  else if (prm.get("convection_term_form") == std::string("skewsymmetric"))
+    convection_term_form = ConvectionTermForm::skewsymmetric;
+  else if (prm.get("convection_term_form") == std::string("divergence"))
+    convection_term_form = ConvectionTermForm::divergence;
+  else if (prm.get("convection_term_form") == std::string("rotational"))
+    convection_term_form = ConvectionTermForm::rotational;
+  else
+    AssertThrow(false,
+                ExcMessage("Unexpected convection term form."));
+  
 
   prm.enter_subsection("Physical parameters");
   {
-    /*
-     * How about a some sanity checks?
-     */
     Re  = prm.get_double("Reynolds_number");
+
+    Assert(Re > 0, ExcLowerRange(Re, 0));
   }
   prm.leave_subsection();
 
   prm.enter_subsection("Spatial discretization parameters");
   {
-    /*
-     * How about a some sanity checks?
-     */
     n_global_refinements  = prm.get_integer("n_global_refinements");
+
     p_fe_degree           = prm.get_integer("p_fe_degree");
+
+    Assert(n_global_refinements > 0, ExcLowerRange(n_global_refinements, 0));
   }
   prm.leave_subsection();
 
   prm.enter_subsection("Parameters of the diffusion-step solver");
   {
-    /*
-     * How about a some sanity checks?
-     */
     n_maximum_iterations  = prm.get_integer("n_maximum_iterations");
 
     relative_tolerance    = prm.get_double("relative_tolerance");
@@ -210,14 +257,32 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
     solver_diag_strength  = prm.get_double("solver_diag_strength");
 
     solver_update_preconditioner  = prm.get_integer("update_frequency_preconditioner");
+  
+    Assert(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
+    Assert(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
+    Assert(solver_krylov_size > 0, ExcLowerRange(solver_krylov_size, 0));
+    Assert(solver_off_diagonals > 0, ExcLowerRange(solver_off_diagonals, 0));
+    Assert(solver_diag_strength > 0, ExcLowerRange(solver_diag_strength, 0));
+    Assert(solver_update_preconditioner > 0, ExcLowerRange(solver_update_preconditioner, 0));
   }
   prm.leave_subsection();
 
-  verbose       = prm.get_bool("verbosity_flag");
-  /*
-   * Is this still necessary?
-   */
-  flag_DFG_benchmark        = prm.get_bool("flag_DFG_benchmark");
+  prm.enter_subsection("Convergence test parameters");
+  {
+    flag_spatial_convergence_test = prm.get_bool("flag_spatial_convergence_test");
+
+    initial_refinement_level = prm.get_integer("initial_refinement_level");
+
+    final_refinement_level = prm.get_integer("final_refinement_level");
+
+    temporal_convergence_cycles = prm.get_integer("temporal_convergence_cycles");
+
+    time_step_scaling_factor = prm.get_double("time_step_scaling_factor");
+  }
+  prm.leave_subsection();
+
+  verbose                       = prm.get_bool("verbosity_flag");
+  flag_semi_implicit_convection = prm.get_bool("semi_implicit_convection_flag");
 
   graphical_output_interval = prm.get_integer("graphical_output_frequency");
   terminal_output_interval  = prm.get_integer("diagnostics_output_frequency");

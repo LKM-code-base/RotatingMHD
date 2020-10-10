@@ -27,14 +27,17 @@ struct MappingData
 template <int dim>  
 struct LocalCellData
 {
+  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+
   FEValues<dim>               fe_values;
   unsigned int                n_q_points;
   unsigned int                dofs_per_cell;
   std::vector<double>         extrapolated_velocity_divergences;
   std::vector<Tensor<1,dim>>  extrapolated_velocity_values;
-  std::vector<Tensor<1,dim>>  extrapolated_velocity_curls;
+  std::vector<CurlType>       extrapolated_velocity_curls;
   std::vector<Tensor<1,dim>>  phi_velocity;
   std::vector<Tensor<2,dim>>  grad_phi_velocity;
+  std::vector<CurlType>       curl_phi_velocity;
 
   LocalCellData(const FESystem<dim>  &fe,
                 const Quadrature<dim>&quadrature_formula,
@@ -120,6 +123,8 @@ struct MappingData
 template <int dim>
 struct LocalCellData
 {
+  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+
   FEValues<dim>                         velocity_fe_values;
   FEValues<dim>                         pressure_fe_values;
   unsigned int                          n_q_points;
@@ -130,16 +135,18 @@ struct LocalCellData
   std::vector<double>                   div_phi_velocity;
   std::vector<double>                   extrapolated_velocity_divergences;
   std::vector<Tensor<1,dim>>            extrapolated_velocity_values;
-  std::vector<Tensor<1,dim>>            extrapolated_velocity_curls;
+  std::vector<CurlType>                 extrapolated_velocity_curls;
   std::vector<double>                   old_velocity_divergences;
   std::vector<Tensor<1, dim>>           old_velocity_values;
-  std::vector<Tensor<1, dim>>           old_velocity_curls;
+  std::vector<CurlType>                 old_velocity_curls;
   std::vector<Tensor<2,dim>>            old_velocity_gradients;
   std::vector<double>                   old_old_velocity_divergences;
   std::vector<Tensor<1, dim>>           old_old_velocity_values;
-  std::vector<Tensor<1, dim>>           old_old_velocity_curls;
+  std::vector<CurlType>                 old_old_velocity_curls;
   std::vector<Tensor<2,dim>>            old_old_velocity_gradients;
+  std::vector<Tensor<1,dim>>            body_force_values;
   std::vector<Tensor<2,dim>>            grad_phi_velocity;
+  std::vector<CurlType>                 curl_phi_velocity;
 
   LocalCellData(const FESystem<dim>  &velocity_fe,
                 const FE_Q<dim>      &pressure_fe,
@@ -226,11 +233,11 @@ struct LocalCellData
   unsigned int                          n_face_q_points;
   unsigned int                          pressure_dofs_per_cell;
 
-  std::vector<double>                   force_divergence_values;
-
+  std::vector<double>                   body_force_divergence_values;
+  
   std::vector<Tensor<1, dim>>           velocity_laplacian_values;
 
-  std::vector<Tensor<1, dim>>           force_values;
+  std::vector<Tensor<1, dim>>           body_force_values;
 
   std::vector<Tensor<1, dim>>           normal_vectors;
 

@@ -1,5 +1,7 @@
 #include <rotatingMHD/navier_stokes_projection.h>
 
+#include <deal.II/numerics/vector_tools.h>
+
 namespace RMHD
 {
 
@@ -71,6 +73,9 @@ solve_poisson_prestep()
   }
 
   pressure.constraints.distribute(distributed_old_old_pressure);
+
+  if (flag_normalize_pressure)
+    VectorTools::subtract_mean_value(distributed_old_old_pressure);
 
   pressure.old_old_solution = distributed_old_old_pressure;
 }

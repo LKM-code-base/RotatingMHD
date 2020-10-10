@@ -91,7 +91,10 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
     // loop over local dofs
     for (unsigned int i = 0; i < scratch.pressure_dofs_per_cell; ++i)
       data.local_projection_step_rhs(i) += 
-                          -1.0 *
+                          - (!flag_initializing ?
+                              time_stepping.get_alpha()[0] / 
+                              time_stepping.get_next_step_size() :
+                              1.0 / time_stepping.get_next_step_size()) *
                           scratch.pressure_fe_values.JxW(q) *
                           scratch.velocity_divergence_values[q] *
                           scratch.phi_pressure[i];

@@ -14,6 +14,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 namespace RMHD
@@ -82,7 +83,7 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   navier_stokes.setup();
   initialize();
 
-  this->pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
+  //this->pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
 }
 
 template <int dim>
@@ -125,60 +126,32 @@ void Step35<dim>::setup_dofs()
 template <int dim>
 void Step35<dim>::setup_constraints()
 {
-  velocity.constraints.clear();
-  velocity.constraints.reinit(velocity.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(velocity.dof_handler,
-                                          velocity.constraints);
-  for (const auto &boundary_id : boundary_ids)
-    switch (boundary_id)
-    {
-      case 1:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    Functions::ZeroFunction<dim>(dim),
-                                    velocity.constraints);
-        break;
-      case 2:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    inflow_boundary_condition,
-                                    velocity.constraints);
-        break;
-      case 3:
-      {
-        std::set<types::boundary_id> no_normal_flux_boundaries;
-        no_normal_flux_boundaries.insert(boundary_id);
-        VectorTools::compute_normal_flux_constraints(
-                                    velocity.dof_handler,
-                                    0,
-                                    no_normal_flux_boundaries,
-                                    velocity.constraints);
-        break;
-      }
-      case 4:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    Functions::ZeroFunction<dim>(dim),
-                                    velocity.constraints);
-        break;
-      default:
-        Assert(false, ExcNotImplemented());
-    }
-  velocity.constraints.close();
+  velocity.boundary_conditions.set_dirichlet_bcs(
+    1,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>(dim)));
+  velocity.boundary_conditions.set_dirichlet_bcs(
+    2,
+    std::shared_ptr<Function<dim>> 
+      (new EquationData::Step35::VelocityInflowBoundaryCondition<dim>(dim)));
+  velocity.boundary_conditions.set_dirichlet_bcs(
+    4,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>(dim)));
+  velocity.boundary_conditions.set_tangential_flux_bcs(
+    3,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>(dim)));
+  
+  pressure.boundary_conditions.set_dirichlet_bcs(
+    3,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>()));
 
-  pressure.constraints.clear();
-  pressure.constraints.reinit(pressure.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(pressure.dof_handler,
-                                          pressure.constraints);
-  VectorTools::interpolate_boundary_values(
-                                      pressure.dof_handler,
-                                      3,
-                                      Functions::ZeroFunction<dim>(),
-                                      pressure.constraints);
-  pressure.constraints.close();
+  velocity.apply_boundary_conditions();
+
+  pressure.apply_boundary_conditions();
+
 }
 
 template <int dim>
@@ -190,6 +163,7 @@ void Step35<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_initial_conditions, 
                                time_stepping);
+  //navier_stokes.initialize();
   velocity.solution = velocity.old_solution;
   pressure.solution = pressure.old_solution;
   output();
@@ -238,12 +212,10 @@ void Step35<dim>::update_solution_vectors()
 
 template <int dim>
 void Step35<dim>::run(
-              const bool          flag_verbose_output,
+              const bool          /* flag_verbose_output */,
               const unsigned int  terminal_output_periodicity,
               const unsigned int  graphical_output_periodicity)
 {
-  (void)flag_verbose_output;
-
   /*
    * What is going on here? The fact that the initial time step is first order
    * time step
@@ -254,7 +226,7 @@ void Step35<dim>::run(
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
     // snapshot stage
-    this->pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
+    //this->pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
 
     time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());

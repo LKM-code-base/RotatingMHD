@@ -1,6 +1,7 @@
 #include <rotatingMHD/navier_stokes_projection.h>
 
 #include <deal.II/lac/solver_cg.h>
+#include <deal.II/numerics/vector_tools.h>
 
 namespace RMHD
 {
@@ -91,12 +92,8 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   pressure.constraints.distribute(distributed_phi);
 
-  /*
-   * Do we need the inline if statement at all?
-   */
-  distributed_phi *= (time_stepping.get_step_number() > 0 ?
-                      time_stepping.get_alpha()[0] / time_stepping.get_next_step_size():
-                      1.0 / time_stepping.get_next_step_size());
+  if (flag_normalize_pressure)
+    VectorTools::subtract_mean_value(distributed_phi);
 
   phi = distributed_phi;
 

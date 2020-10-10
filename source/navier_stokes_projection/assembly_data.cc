@@ -42,7 +42,8 @@ extrapolated_velocity_divergences(n_q_points),
 extrapolated_velocity_values(n_q_points),
 extrapolated_velocity_curls(n_q_points),
 phi_velocity(dofs_per_cell),
-grad_phi_velocity(dofs_per_cell)
+grad_phi_velocity(dofs_per_cell),
+curl_phi_velocity(dofs_per_cell)
 {}
 
 template <int dim>
@@ -57,7 +58,8 @@ extrapolated_velocity_divergences(n_q_points),
 extrapolated_velocity_values(n_q_points),
 extrapolated_velocity_curls(n_q_points),
 phi_velocity(dofs_per_cell),
-grad_phi_velocity(dofs_per_cell)
+grad_phi_velocity(dofs_per_cell),
+curl_phi_velocity(dofs_per_cell)
 {}
 
 }// namespace AdvectionTermAssembly
@@ -219,7 +221,9 @@ old_old_velocity_divergences(n_q_points),
 old_old_velocity_values(n_q_points),
 old_old_velocity_curls(n_q_points),
 old_old_velocity_gradients(n_q_points),
-grad_phi_velocity(velocity_dofs_per_cell)
+body_force_values(n_q_points),
+grad_phi_velocity(velocity_dofs_per_cell),
+curl_phi_velocity(velocity_dofs_per_cell)
 {}
 
 template <int dim>
@@ -248,7 +252,9 @@ old_old_velocity_divergences(n_q_points),
 old_old_velocity_values(n_q_points),
 old_old_velocity_curls(n_q_points),
 old_old_velocity_gradients(n_q_points),
-grad_phi_velocity(velocity_dofs_per_cell)
+body_force_values(n_q_points),
+grad_phi_velocity(velocity_dofs_per_cell),
+curl_phi_velocity(velocity_dofs_per_cell)
 {}
 
 } // namespace VelocityRightHandSideAssembly
@@ -358,9 +364,9 @@ pressure_fe_face_values(pressure_fe,
 n_q_points(pressure_quadrature_formula.size()),
 n_face_q_points(pressure_face_quadrature_formula.size()),
 pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
-force_divergence_values(n_q_points),
+body_force_divergence_values(n_q_points),
 velocity_laplacian_values(n_face_q_points),
-force_values(n_face_q_points),
+body_force_values(n_face_q_points),
 normal_vectors(n_face_q_points),
 phi_pressure(pressure_dofs_per_cell),
 face_phi_pressure(pressure_dofs_per_cell),
@@ -382,9 +388,9 @@ pressure_fe_face_values(data.pressure_fe_face_values.get_fe(),
 n_q_points(data.n_q_points),
 n_face_q_points(data.n_face_q_points),
 pressure_dofs_per_cell(data.pressure_dofs_per_cell),
-force_divergence_values(n_q_points),
+body_force_divergence_values(n_q_points),
 velocity_laplacian_values(n_face_q_points),
-force_values(n_face_q_points),
+body_force_values(n_face_q_points),
 normal_vectors(n_face_q_points),
 phi_pressure(pressure_dofs_per_cell),
 face_phi_pressure(pressure_dofs_per_cell),
