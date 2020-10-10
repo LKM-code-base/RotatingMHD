@@ -3,33 +3,44 @@
 
 namespace RMHD
 {
-template <int dim>
-NavierStokesProjection<dim>::
-NavierStokesProjection(
-                const RunTimeParameters::ParameterSet   &parameters,
-                Entities::VectorEntity<dim>             &velocity,
-                Entities::ScalarEntity<dim>             &pressure,
-                TimeDiscretization::VSIMEXCoefficients  &VSIMEX,
-                TimeDiscretization::VSIMEXMethod        &time_stepping)
-  : projection_method(parameters.projection_method),
-    Re(parameters.Re),
-    velocity(velocity),
-    pressure(pressure),
-    VSIMEX(VSIMEX),
-    time_stepping(time_stepping),
-    solver_max_iterations(parameters.solver_max_iterations),
-    solver_krylov_size(parameters.solver_krylov_size),
-    solver_off_diagonals(parameters.solver_off_diagonals),
-    solver_update_preconditioner(parameters.solver_update_preconditioner),
-    solver_tolerance(parameters.solver_tolerance),
-    solver_diag_strength(parameters.solver_diag_strength),
-    flag_adpative_time_step(parameters.flag_adaptive_time_step)
-{}
 
-}  // namespace Step35
+template <int dim>
+NavierStokesProjection<dim>::NavierStokesProjection
+(const RunTimeParameters::ParameterSet   &parameters,
+ Entities::VectorEntity<dim>             &velocity,
+ Entities::ScalarEntity<dim>             &pressure,
+ TimeDiscretization::VSIMEXMethod        &time_stepping,
+ const std::shared_ptr<ConditionalOStream>external_pcout,
+ const std::shared_ptr<TimerOutput>       external_timer)
+:
+parameters(parameters),
+mpi_communicator(velocity.mpi_communicator),
+velocity(velocity),
+pressure(pressure),
+time_stepping(time_stepping),
+flag_diffusion_matrix_assembled(false),
+flag_initializing(false),
+flag_normalize_pressure(false)
+{
+  if (external_pcout.get() != 0)
+    pcout = external_pcout;
+  else
+    pcout.reset(new ConditionalOStream(std::cout,
+                                       Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
+
+  if (external_timer.get() != 0)
+      computing_timer  = external_timer;
+  else
+      computing_timer.reset(new TimerOutput(*pcout,
+                                            TimerOutput::summary,
+                                            TimerOutput::wall_times));
+
+  body_force_ptr = nullptr;
+}
+
+}  // namespace RMHD
 
 // explicit instantiations
-
 template class RMHD::NavierStokesProjection<2>;
 template class RMHD::NavierStokesProjection<3>;
 

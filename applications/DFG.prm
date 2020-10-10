@@ -1,0 +1,91 @@
+# Listing of Parameters
+# ---------------------
+# Output frequency of diagnostic data on the terminal.
+set diagnostics_output_frequency = 1
+
+# Graphical output frequency.
+set graphical_output_frequency   = 100
+
+# Projection method to implement.
+set projection_method            = rotational
+
+# Projection method to implement.
+set convection_term_form         = skewsymmetric
+
+# Excludes the convection term from the VSIMEX scheme.
+set semi_implicit_convection_flag = true
+
+# Verbosity flag.
+set verbosity_flag               = false
+
+
+subsection Parameters of the diffusion-step solver
+  # Parameter which controls the size of the Krylov subspace in the GMRES
+  # algorithm.
+  set gmres_restart_parameter         = 30
+
+  # Maximum number of iterations done of diffusion-step solver.
+  set n_maximum_iterations            = 1000
+
+  # Relative tolerance of the diffusion-step solver.
+  set relative_tolerance              = 1e-10
+
+  # Diagonal strengthening coefficient.
+  set solver_diag_strength            = 0.1
+
+  # The number of off-diagonal elements ILU must compute.
+  set solver_off_diagonals            = 70
+
+  # The number of time steps after which the preconditioner is updated.
+  set update_frequency_preconditioner = 15
+end
+
+
+subsection Physical parameters
+  # The kinetic Reynolds number.
+  set Reynolds_number = 100.
+end
+
+
+subsection Spatial discretization parameters
+  # Number of global refinements done on the input mesh.
+  set n_global_refinements = 3
+
+  # The polynomial degree of the pressure finiteelement.
+  set p_fe_degree          = 1
+end
+
+
+subsection Time stepping settings
+  # Turn adaptive time stepping on or off
+  set adaptive_time_stepping         = false
+
+  # Time step after which adaptive time stepping is applied.
+  set adaptive_timestep_barrier = 2
+
+  # Final time of the simulation.
+  set final_time                = 40.0
+
+  # Size of the initial time step.
+  set initial_time_step         = 2.5e-2
+
+  # Size of the maximum time step.
+  set maximum_time_step         = 5e-2
+
+  # Size of the minimum time step.
+  set minimum_time_step         = 1e-2
+
+  # Maximum number of time steps to be computed.
+  set n_maximum_steps           = 10
+
+  # Start time of the simulation.
+  set start_time                = 0.0
+
+  # Time stepping scheme applied.
+  set time_stepping_scheme      = BDF2
+
+  # Activate verbose output.
+  set verbose                   = false
+end
+
+
