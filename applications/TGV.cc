@@ -608,7 +608,7 @@ int main(int argc, char *argv[])
 
       RunTimeParameters::ParameterSet parameter_set("TGV.prm");
 
-      deallog.depth_console(parameter_set.flag_verbose_output ? 2 : 0);
+      deallog.depth_console(parameter_set.verbose ? 2 : 0);
 
       TGV<2> simulation(parameter_set);
       simulation.run(parameter_set.flag_spatial_convergence_test);
