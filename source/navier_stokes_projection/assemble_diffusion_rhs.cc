@@ -138,6 +138,8 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                   scratch.velocity_fe_values[velocities].divergence(i, q);
       scratch.grad_phi_velocity[i] = 
                 scratch.velocity_fe_values[velocities].gradient(i, q);
+      scratch.curl_phi_velocity[i] =
+                scratch.velocity_fe_values[velocities].curl(i, q);
     }
     
     // loop over local dofs
@@ -367,25 +369,23 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
               {
                 // This form needs to be discussed, specifically which
                 // velocity instance is to be replaced by the extrapolated
-                // velocity. Furthermore, if we want to compute the 
-                // total pressure or the static pressure. The current
-                // implementation computes the total pressure.
+                // velocity. The current implementation computes the total pressure.
                 // The minus sign in the argument of cross_product_2d
                 // method is due to how the method is defined.
                 if constexpr(dim == 2)
                   data.local_matrix_for_inhomogeneous_bc(j, i) +=
                         scratch.velocity_fe_values.JxW(q) * (
                         scratch.phi_velocity[j] *
-                        scratch.extrapolated_velocity_curls[q][0] *
+                        scratch.curl_phi_velocity[i][0] *
                         cross_product_2d(
-                          - scratch.phi_velocity[i]));
+                          - scratch.extrapolated_velocity_values[q]));
                 else if constexpr(dim == 3)
                   data.local_matrix_for_inhomogeneous_bc(j, i) +=
                         scratch.velocity_fe_values.JxW(q) * (
                         scratch.phi_velocity[j] *
                         cross_product_3d(
-                          scratch.extrapolated_velocity_curls[q],
-                          - scratch.phi_velocity[i]));
+                          scratch.curl_phi_velocity[i],
+                          scratch.extrapolated_velocity_values[q]));
                 break;
               }
               default:
