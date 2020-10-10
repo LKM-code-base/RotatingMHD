@@ -3,7 +3,6 @@
 #define INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
 
 #include <rotatingMHD/global.h>
-#include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/index_set.h>
 #include <deal.II/base/quadrature_lib.h>
@@ -26,6 +25,8 @@ struct EntityBase
 {
   const unsigned int          fe_degree;
 
+  const MPI_Comm              mpi_communicator;
+
   DoFHandler<dim>             dof_handler;
 
   AffineConstraints<double>   constraints;
@@ -39,7 +40,7 @@ struct EntityBase
   LinearAlgebra::MPI::Vector  old_solution;
   LinearAlgebra::MPI::Vector  old_old_solution;
 
-  EntityBase(const unsigned int                              &fe_degree,
+  EntityBase(const unsigned int                               fe_degree,
              const parallel::distributed::Triangulation<dim> &triangulation);
 
   void reinit();
@@ -50,23 +51,30 @@ struct EntityBase
 template <int dim>
 struct VectorEntity : EntityBase<dim>
 {
-  FESystem<dim>                       fe;
+  FESystem<dim> fe;
 
-  VectorEntity(const unsigned int                              &fe_degree,
+  VectorEntity(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation);
 
   void setup_dofs();
+
+  Tensor<1,dim> point_value(const Point<dim>  &point) const;
+
 };
 
 template <int dim>
 struct ScalarEntity : EntityBase<dim>
 {
-  FE_Q<dim>                           fe;
 
-  ScalarEntity(const unsigned int                              &fe_degree,
+  FE_Q<dim> fe;
+
+  ScalarEntity(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation);
 
   void setup_dofs();
+
+  double point_value(const Point<dim> &point) const;
+
 };
 
 } // namespace Entities

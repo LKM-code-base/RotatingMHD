@@ -70,7 +70,7 @@ struct ParameterSet
   double            relative_tolerance;
   double            solver_diag_strength;
 
-  bool              flag_verbose_output;
+  bool              verbose;
   bool              flag_DFG_benchmark;
 
   unsigned int      graphical_output_interval;
