@@ -22,6 +22,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <cmath>
 
@@ -172,6 +173,9 @@ class Guermond : public Problem<dim>
 public:
   Guermond(const RunTimeParameters::ParameterSet &parameters);
   void run(const bool flag_convergence_test);
+
+  std::ofstream outputFile;
+
 private:
   const RunTimeParameters::ParameterSet       &prm;
 
@@ -231,6 +235,7 @@ template <int dim>
 Guermond<dim>::Guermond(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(),
+outputFile("Guermond.csv"),
 prm(parameters),
 pcout(std::cout,
       (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
@@ -251,6 +256,9 @@ flag_set_exact_pressure_constant(true),
 flag_square_domain(true)
 {
   navier_stokes.set_body_force(body_force);
+  outputFile << "Step" << "," << "Time" << ","
+           << "Norm_diffusion" << "," << "Norm_projection"
+           << "," << "dt" << "," << "CFL" << std::endl;
 }
 
 template <int dim>
@@ -370,14 +378,26 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
     pcout << "  Step = " 
           << std::setw(4) 
           << time_stepping.get_step_number() 
-          << " Time = " 
+          << " t = " 
           << std::noshowpos << std::scientific
           << time_stepping.get_next_time()
+          << " D_norm = "
+          << navier_stokes.norm_diffusion_rhs
+          << " P_norm = "
+          << navier_stokes.norm_projection_rhs
+          << " CFL = "
+          << navier_stokes.compute_next_time_step()
           << " Progress ["
           << std::setw(5) 
           << std::fixed
           << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
           << "%] \r";
+    outputFile << time_stepping.get_step_number() << ","
+               << time_stepping.get_next_time() << ","
+               << navier_stokes.norm_diffusion_rhs << ","
+               << navier_stokes.norm_projection_rhs << ","
+               << time_stepping.get_next_step_size() << ","
+               << navier_stokes.compute_next_time_step() << std::endl;
   }
 }
 
@@ -465,7 +485,7 @@ void Guermond<dim>::solve(const unsigned int &level)
 
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-                              navier_stokes.compute_next_time_step());
+                              time_stepping.get_next_step_size());
     
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -508,6 +528,9 @@ void Guermond<dim>::solve(const unsigned int &level)
   pressure_convergence_table.update_table(
     level, time_stepping.get_previous_step_size(), prm.flag_spatial_convergence_test);
   
+  velocity.boundary_conditions.clear();
+  pressure.boundary_conditions.clear();
+
   pcout << std::endl;
   pcout << std::endl;
 }
