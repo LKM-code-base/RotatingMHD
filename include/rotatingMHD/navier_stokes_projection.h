@@ -85,6 +85,11 @@ public:
    const std::shared_ptr<TimerOutput>       external_timer =
        std::shared_ptr<TimerOutput>());
 
+  double                            norm_diffusion_rhs;
+
+  double                            norm_projection_rhs;
+
+
   /*!
    *  @brief Setups and initializes all the internal entities for
    *  the projection method problem.
