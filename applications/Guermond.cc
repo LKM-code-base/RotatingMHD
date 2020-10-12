@@ -235,7 +235,7 @@ template <int dim>
 Guermond<dim>::Guermond(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(),
-outputFile("Guermond.csv"),
+outputFile("Guermond_Log.csv"),
 prm(parameters),
 pcout(std::cout,
       (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),

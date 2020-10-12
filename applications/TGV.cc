@@ -233,7 +233,7 @@ template <int dim>
 TGV<dim>::TGV(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(),
-outputFile("File.csv"),
+outputFile("TGV_Log.csv"),
 prm(parameters),
 pcout(std::cout,
       (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
