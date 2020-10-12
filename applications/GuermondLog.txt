@@ -1,0 +1,159 @@
+Guermond`s numerical tests
+==========================
+
+1. Simulation with no convection term
+
+                               Velocity convergence table
+==============================================================================================
+level    dt    cells  dofs    hmax           L2                 H1               Linfty       
+    7 1.00e-01  4495 132098 1.10e-02 8.557566e-03     - 6.456461e-02     - 1.103922e-02     - 
+    7 5.00e-02  4495 132098 1.10e-02 2.140373e-03 -2.00 1.801716e-02 -1.84 2.742362e-03 -2.01 
+    7 2.50e-02  4495 132098 1.10e-02 5.354958e-04 -2.00 5.090699e-03 -1.82 6.822326e-04 -2.01 
+    7 1.25e-02  4495 132098 1.10e-02 1.340945e-04 -2.00 1.457039e-03 -1.80 1.700972e-04 -2.00 
+
+                               Pressure convergence table
+==============================================================================================
+level    dt    cells dofs    hmax           L2                 H1               Linfty       
+    7 1.00e-01  4495 16641 1.10e-02 5.543160e-03     - 2.687030e-02     - 3.649990e-02     - 
+    7 5.00e-02  4495 16641 1.10e-02 1.368782e-03 -2.02 8.463614e-03 -1.67 1.301177e-02 -1.49 
+    7 2.50e-02  4495 16641 1.10e-02 3.394893e-04 -2.01 3.684616e-03 -1.20 4.209361e-03 -1.63 
+    7 1.25e-02  4495 16641 1.10e-02 8.457049e-05 -2.01 2.836774e-03 -0.38 1.308836e-03 -1.69 
+
+
++----------------------------------------------+------------+------------+
+| Total wallclock time elapsed since start     |   721.245s |            |
+|                                              |            |            |
+| Section                          | no. calls |  wall time | % of total |
++----------------------------------+-----------+------------+------------+
+| Diffusion step rhs assembly      |       296 |   310.985s |     43.12% |
+| Matrix setup                     |         4 |     0.520s |     0.000% |
+| Pressure correction step         |       296 |     0.836s |      0.12% |
+| Pressure matrix assembly         |         4 |     0.673s |     0.000% |
+| Pressure projection rhs assembly |       296 |    52.801s |      7.32% |
+| Pressure projection solve        |       296 |     6.047s |      0.84% |
+| Setup vectors                    |         4 |     0.017s |     0.000% |
+| Velocity matrix assembly         |         4 |     7.630s |      1.06% |
++----------------------------------+-----------+------------+------------+
+
+2. Simulation with convection term (Body form modified accordingly)
+
+Solving until t = 2.0 with a refinement level of 7
+  Number of active cells                = 4495
+  Number of velocity degrees of freedom = 132098
+  Number of pressure degrees of freedom = 16641
+  Step =   19 t = 2.0e+00 D_norm = 3.3e-01 P_norm = 5.7e-03 CFL = 1.2e-02 Progress [100.0%] 
+
+Solving until t = 2.0 with a refinement level of 7
+  Number of active cells                = 4495
+  Number of velocity degrees of freedom = 132098
+  Number of pressure degrees of freedom = 16641
+  Step =   39 t = 2.0e+00 D_norm = 3.5e-01 P_norm = 3.1e-03 CFL = 1.1e-02 Progress [100.0%] 
+
+Solving until t = 2.0 with a refinement level of 7
+  Number of active cells                = 4495
+  Number of velocity degrees of freedom = 132098
+  Number of pressure degrees of freedom = 16641
+  Step =   79 t = 2.0e+00 D_norm = 4.0e-01 P_norm = 1.7e-03 CFL = 1.1e-02 Progress [100.0%] 
+
+Solving until t = 2.0 with a refinement level of 7 
+  Number of active cells                = 4495
+  Number of velocity degrees of freedom = 132098
+  Number of pressure degrees of freedom = 16641
+  Step =  159 t = 2.0e+00 D_norm = 5.3e-01 P_norm = 9.8e-04 CFL = 1.1e-02 Progress [100.0%] 
+
+
+                               Velocity convergence table
+==============================================================================================
+level    dt    cells  dofs    hmax           L2                 H1               Linfty       
+    7 1.00e-01  4495 132098 1.10e-02 8.353325e-03     - 8.274854e-02     - 1.054669e-02     - 
+    7 5.00e-02  4495 132098 1.10e-02 2.099576e-03 -1.99 2.159751e-02 -1.94 2.668433e-03 -1.98 
+    7 2.50e-02  4495 132098 1.10e-02 5.267605e-04 -1.99 5.875210e-03 -1.88 6.665165e-04 -2.00 
+    7 1.25e-02  4495 132098 1.10e-02 1.322075e-04 -1.99 1.631437e-03 -1.85 1.667758e-04 -2.00 
+
+                               Pressure convergence table
+==============================================================================================
+level    dt    cells dofs    hmax           L2                 H1               Linfty       
+    7 1.00e-01  4495 16641 1.10e-02 7.611528e-03     - 5.851242e-02     - 4.044169e-02     - 
+    7 5.00e-02  4495 16641 1.10e-02 1.884683e-03 -2.01 1.606255e-02 -1.87 1.385950e-02 -1.54 
+    7 2.50e-02  4495 16641 1.10e-02 4.674257e-04 -2.01 5.314884e-03 -1.60 4.309485e-03 -1.69 
+    7 1.25e-02  4495 16641 1.10e-02 1.166651e-04 -2.00 3.035614e-03 -0.81 1.315082e-03 -1.71 
+
+
++------------------------------------------------+------------+------------+
+| Total wallclock time elapsed since start       |  2526.107s |            |
+|                                                |            |            |
+| Section                            | no. calls |  wall time | % of total |
++------------------------------------+-----------+------------+------------+
+| Assembly velocity advection matrix |       296 |   971.443s |     38.46% |
+| Diffusion step rhs assembly        |       296 |   317.497s |     12.57% |
+| Matrix setup                       |         4 |     0.514s |     0.000% |
+| Pressure correction step           |       296 |     0.857s |     0.000% |
+| Pressure matrix assembly           |         4 |     0.627s |     0.000% |
+| Pressure projection rhs assembly   |       296 |    53.949s |      2.14% |
+| Pressure projection solve          |       296 |     6.163s |      0.24% |
+| Setup vectors                      |         4 |     0.015s |     0.000% |
+| Velocity matrix assembly           |         4 |     7.482s |      0.30% |
++------------------------------------+-----------+------------+------------+
+
+3. Simulation with convection term (Body form modified accordingly) and diffusion step equation multiplied
+by the time step
+
+Solving until t = 2.0 with a refinement level of 7
+  Number of active cells                = 4495
+  Number of velocity degrees of freedom = 132098
+  Number of pressure degrees of freedom = 16641
+  Step =   19 t = 2.0e+00 D_norm = 3.3e-02 P_norm = 5.7e-03 CFL = 1.2e-02 Progress [100.0%] 
+
+Solving until t = 2.0 with a refinement level of 7
+  Number of active cells                = 4495
+  Number of velocity degrees of freedom = 132098
+  Number of pressure degrees of freedom = 16641
+  Step =   39 t = 2.0e+00 D_norm = 1.7e-02 P_norm = 3.1e-03 CFL = 1.1e-02 Progress [100.0%] 
+
+Solving until t = 2.0 with a refinement level of 7
+  Number of active cells                = 4495
+  Number of velocity degrees of freedom = 132098
+  Number of pressure degrees of freedom = 16641
+  Step =   79 t = 2.0e+00 D_norm = 9.9e-03 P_norm = 1.7e-03 CFL = 1.1e-02 Progress [100.0%] 
+
+Solving until t = 2.0 with a refinement level of 7
+  Number of active cells                = 4495
+  Number of velocity degrees of freedom = 132098
+  Number of pressure degrees of freedom = 16641
+  Step =  159 t = 2.0e+00 D_norm = 6.6e-03 P_norm = 9.8e-04 CFL = 1.1e-02 Progress [100.0%] %] 
+
+
+                               Velocity convergence table
+==============================================================================================
+level    dt    cells  dofs    hmax           L2                 H1               Linfty       
+    7 1.00e-01  4495 132098 1.10e-02 8.353346e-03     - 8.274863e-02     - 1.054687e-02     - 
+    7 5.00e-02  4495 132098 1.10e-02 2.099573e-03 -1.99 2.159674e-02 -1.94 2.668344e-03 -1.98 
+    7 2.50e-02  4495 132098 1.10e-02 5.267013e-04 -2.00 5.874425e-03 -1.88 6.662043e-04 -2.00 
+    7 1.25e-02  4495 132098 1.10e-02 1.321434e-04 -1.99 1.632457e-03 -1.85 1.668063e-04 -2.00 
+
+                               Pressure convergence table
+==============================================================================================
+level    dt    cells dofs    hmax           L2                 H1               Linfty       
+    7 1.00e-01  4495 16641 1.10e-02 7.611424e-03     - 5.851229e-02     - 4.044150e-02     - 
+    7 5.00e-02  4495 16641 1.10e-02 1.884581e-03 -2.01 1.606231e-02 -1.87 1.385929e-02 -1.54 
+    7 2.50e-02  4495 16641 1.10e-02 4.674123e-04 -2.01 5.314704e-03 -1.60 4.309364e-03 -1.69 
+    7 1.25e-02  4495 16641 1.10e-02 1.168096e-04 -2.00 3.035713e-03 -0.81 1.315681e-03 -1.71 
+
+
++------------------------------------------------+------------+------------+
+| Total wallclock time elapsed since start       |  2630.841s |            |
+|                                                |            |            |
+| Section                            | no. calls |  wall time | % of total |
++------------------------------------+-----------+------------+------------+
+| Assembly velocity advection matrix |       296 |  1037.603s |     39.44% |
+| Diffusion step rhs assembly        |       296 |   329.821s |     12.54% |
+| Matrix setup                       |         4 |     0.569s |     0.000% |
+| Pressure correction step           |       296 |     0.875s |     0.000% |
+| Pressure matrix assembly           |         4 |     0.682s |     0.000% |
+| Pressure projection rhs assembly   |       296 |    55.876s |      2.12% |
+| Pressure projection solve          |       296 |     6.594s |      0.25% |
+| Setup vectors                      |         4 |     0.020s |     0.000% |
+| Velocity matrix assembly           |         4 |     8.010s |      0.30% |
++------------------------------------+-----------+------------+------------+
+
+
