@@ -397,6 +397,8 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       }
     } // loop over local dofs
   } // loop over quadrature points
+  /*data.local_diffusion_step_rhs *= time_stepping.get_next_step_size();
+  data.local_matrix_for_inhomogeneous_bc *= time_stepping.get_next_step_size();*/
 }
 
 template <int dim>

@@ -19,11 +19,11 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix = 0.;
 
     velocity_mass_plus_laplace_matrix.add
-    (time_stepping.get_alpha()[0] / time_stepping.get_next_step_size(),
+    (time_stepping.get_alpha()[0] / time_stepping.get_next_step_size() /* * time_stepping.get_next_step_size() */,
      velocity_mass_matrix);
 
     velocity_mass_plus_laplace_matrix.add
-    (time_stepping.get_gamma()[0] / parameters.Re,
+    (time_stepping.get_gamma()[0] / parameters.Re /* * time_stepping.get_next_step_size()*/,
      velocity_laplace_matrix);
 
     if (!parameters.time_stepping_parameters.adaptive_time_stepping)
@@ -36,7 +36,7 @@ assemble_diffusion_step()
   {
     assemble_velocity_advection_matrix();
     velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
-    velocity_system_matrix.add(1. , velocity_advection_matrix);
+    velocity_system_matrix.add(1. /** time_stepping.get_next_step_size()*/ , velocity_advection_matrix);
   }
   /* Right hand side setup */
   assemble_diffusion_step_rhs();
