@@ -21,6 +21,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <cmath>
 
@@ -171,6 +172,9 @@ class TGV : public Problem<dim>
 public:
   TGV(const RunTimeParameters::ParameterSet &parameters);
   void run(const bool flag_convergence_test);
+
+  std::ofstream outputFile;
+
 private:
   const RunTimeParameters::ParameterSet             &prm;
 
@@ -204,7 +208,6 @@ private:
 
   const bool                                  flag_set_exact_pressure_constant;
 
-
   void make_grid(const unsigned int &n_global_refinements);
 
   void setup_dofs();
@@ -230,6 +233,7 @@ template <int dim>
 TGV<dim>::TGV(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(),
+outputFile("File.csv"),
 prm(parameters),
 pcout(std::cout,
       (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
@@ -245,8 +249,12 @@ velocity_exact_solution(parameters.Re, parameters.time_stepping_parameters.start
 pressure_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
 velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
 pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
-flag_set_exact_pressure_constant(false)
-{}
+flag_set_exact_pressure_constant(true)
+{
+outputFile << "Step" << "," << "Time" << ","
+           << "Norm_diffusion" << "," << "Norm_projection"
+           << "," << "dt" << "," << "CFL" << std::endl;
+}
 
 template <int dim>
 void TGV<dim>::
@@ -272,7 +280,7 @@ make_grid(const unsigned int &n_global_refinements)
   Tensor<1,dim> offset_y;
   offset_y[0] = 0.0;
   offset_y[1] = 2.0 * M_PI;
-
+  
   GridTools::collect_periodic_faces(triangulation,
                                     0,
                                     1,
@@ -323,7 +331,7 @@ void TGV<dim>::setup_constraints()
   Tensor<1,dim> offset_y;
   offset_y[0] = 0.0;
   offset_y[1] = 2.0 * M_PI;
-
+  
   velocity.boundary_conditions.set_periodic_bcs(0,
                                                 1,
                                                 0,
@@ -344,6 +352,15 @@ void TGV<dim>::setup_constraints()
                                                 1,
                                                 rotation_matrix,
                                                 offset_y);
+
+  /*
+  for (auto const& boundary_id : boundary_ids)
+    velocity.boundary_conditions.set_dirichlet_bcs(
+      boundary_id,
+      std::shared_ptr<Function<dim>>
+        (new EquationData::TGV::VelocityExactSolution<dim>
+          (prm.Re, time_stepping.get_start_time())),
+      true);*/
   
   velocity.apply_boundary_conditions();
 
@@ -419,14 +436,26 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
     pcout << "  Step = " 
           << std::setw(4) 
           << time_stepping.get_step_number() 
-          << " Time = " 
+          << " t = " 
           << std::noshowpos << std::scientific
           << time_stepping.get_next_time()
+          << " D_norm = "
+          << navier_stokes.norm_diffusion_rhs
+          << " P_norm = "
+          << navier_stokes.norm_projection_rhs
+          << " CFL = "
+          << navier_stokes.compute_next_time_step()
           << " Progress ["
           << std::setw(5) 
           << std::fixed
           << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
           << "%] \r";
+    outputFile << time_stepping.get_step_number() << ","
+               << time_stepping.get_next_time() << ","
+               << navier_stokes.norm_diffusion_rhs << ","
+               << navier_stokes.norm_projection_rhs << ","
+               << time_stepping.get_next_step_size() << ","
+               << navier_stokes.compute_next_time_step() << std::endl;
   }
 }
 
@@ -514,7 +543,7 @@ void TGV<dim>::solve(const unsigned int &level)
 
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-                              navier_stokes.compute_next_time_step());
+                              time_stepping.get_next_step_size());
     
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -522,6 +551,9 @@ void TGV<dim>::solve(const unsigned int &level)
     // Updates the functions and the constraints to t^{k}
     velocity_exact_solution.set_time(time_stepping.get_next_time());
     pressure_exact_solution.set_time(time_stepping.get_next_time());
+
+    velocity.boundary_conditions.set_time(time_stepping.get_next_time());
+    velocity.update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve(time_stepping.get_step_number());
@@ -553,6 +585,11 @@ void TGV<dim>::solve(const unsigned int &level)
   pressure_convergence_table.update_table(
     level, time_stepping.get_previous_step_size(), prm.flag_spatial_convergence_test);
   
+  velocity.boundary_conditions.clear();
+  pressure.boundary_conditions.clear();
+
+  outputFile << "\n";
+
   pcout << std::endl;
   pcout << std::endl;
 }
@@ -611,7 +648,11 @@ int main(int argc, char *argv[])
       deallog.depth_console(parameter_set.verbose ? 2 : 0);
 
       TGV<2> simulation(parameter_set);
+      
       simulation.run(parameter_set.flag_spatial_convergence_test);
+  
+      //simulation.outputFile.close();
+
   }
   catch (std::exception &exc)
   {

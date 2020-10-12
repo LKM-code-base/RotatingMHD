@@ -43,7 +43,7 @@ end
 
 subsection Physical parameters
   # The kinetic Reynolds number.
-  set Reynolds_number = 100.
+  set Reynolds_number = 5.
 end
 
 
@@ -67,7 +67,7 @@ subsection Time stepping settings
   set final_time                = 1.0
 
   # Size of the initial time step.
-  set initial_time_step         = 1e-3
+  set initial_time_step         = 1e-1
 
   # Size of the maximum time step.
   set maximum_time_step         = 7.5e-3
@@ -92,13 +92,13 @@ subsection Convergence test parameters
 
   set flag_spatial_convergence_test = false
 
-  set initial_refinement_level = 5
+  set initial_refinement_level = 7
 
   set final_refinement_level = 4
 
-  set temporal_convergence_cycles = 1
+  set temporal_convergence_cycles = 4
 
-  set time_step_scaling_factor = 0.1
+  set time_step_scaling_factor = 0.5
 
 end
 
