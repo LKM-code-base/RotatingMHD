@@ -19,12 +19,13 @@ triangulation(mpi_communicator,
               typename Triangulation<dim>::MeshSmoothing(
               Triangulation<dim>::smoothing_on_refinement |
               Triangulation<dim>::smoothing_on_coarsening)),
-pcout(std::cout,
-      (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)),
-computing_timer(mpi_communicator,
-                pcout,
-                TimerOutput::summary,
-                TimerOutput::wall_times)
+pcout(std::make_shared<ConditionalOStream>(std::cout,
+      (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))),
+computing_timer(
+  std::make_shared<TimerOutput>(mpi_communicator,
+                                *pcout,
+                                TimerOutput::summary,
+                                TimerOutput::wall_times))
 {}
 
 template <int dim>

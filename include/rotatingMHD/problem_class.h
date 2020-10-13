@@ -35,12 +35,12 @@ protected:
   /*!
    * Stream object which only prints output for one MPI process.
    */
-  ConditionalOStream  pcout;
+  std::shared_ptr<ConditionalOStream>         pcout;
 
   /*!
    * Class member used to monitor the compute time of parts of the simulation.
    */
-  TimerOutput         computing_timer;
+  std::shared_ptr<TimerOutput>                computing_timer;
 
 protected:
 
