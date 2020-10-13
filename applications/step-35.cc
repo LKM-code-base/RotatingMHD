@@ -103,9 +103,9 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 
   boundary_ids = this->triangulation.get_boundary_ids();
 
-  this->pcout << "Number of refines                     = "
+  *(this->pcout) << "Number of refines                     = "
               << n_global_refinements << std::endl;
-  this->pcout << "Number of active cells                = "
+  *(this->pcout) << "Number of active cells                = "
               << this->triangulation.n_active_cells() << std::endl;
 }
 
@@ -115,7 +115,7 @@ void Step35<dim>::setup_dofs()
   velocity.setup_dofs();
   pressure.setup_dofs();
   
-  this->pcout << "Number of velocity degrees of freedom = "
+  *(this->pcout) << "Number of velocity degrees of freedom = "
               << velocity.dof_handler.n_dofs()
               << std::endl
               << "Number of pressure degrees of freedom = "

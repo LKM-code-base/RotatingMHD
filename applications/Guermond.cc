@@ -175,10 +175,6 @@ public:
 private:
   const RunTimeParameters::ParameterSet       &prm;
 
-  ConditionalOStream                          pcout;
-
-  parallel::distributed::Triangulation<dim>   triangulation;
-
   std::vector<types::boundary_id>             boundary_ids;
 
   Entities::VectorEntity<dim>                 velocity;
@@ -232,16 +228,10 @@ Guermond<dim>::Guermond(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(),
 prm(parameters),
-pcout(std::cout,
-      (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
-triangulation(MPI_COMM_WORLD,
-              typename Triangulation<dim>::MeshSmoothing(
-              Triangulation<dim>::smoothing_on_refinement |
-              Triangulation<dim>::smoothing_on_coarsening)),
-velocity(parameters.p_fe_degree + 1, triangulation),
-pressure(parameters.p_fe_degree, triangulation),
+velocity(parameters.p_fe_degree + 1, this->triangulation),
+pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters, velocity, pressure, time_stepping),
+navier_stokes(parameters, velocity, pressure, time_stepping, this->pcout),
 velocity_exact_solution(parameters.time_stepping_parameters.start_time),
 pressure_exact_solution(parameters.time_stepping_parameters.start_time),
 body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
@@ -258,21 +248,21 @@ void Guermond<dim>::
 make_grid(const unsigned int &n_global_refinements)
 {
   if (flag_square_domain)
-    GridGenerator::hyper_cube(triangulation,
+    GridGenerator::hyper_cube(this->triangulation,
                               0.0,
                               1.0,
                               true);
   else
   {
     const double radius = 0.5;
-    GridGenerator::hyper_ball(triangulation,
+    GridGenerator::hyper_ball(this->triangulation,
                               Point<dim>(),
                               radius,
                               true);
   }
 
-  triangulation.refine_global(n_global_refinements);
-  boundary_ids = triangulation.get_boundary_ids();
+  this->triangulation.refine_global(n_global_refinements);
+  boundary_ids = this->triangulation.get_boundary_ids();
 }
 
 template <int dim>
@@ -280,14 +270,14 @@ void Guermond<dim>::setup_dofs()
 {
   velocity.setup_dofs();
   pressure.setup_dofs();
-  pcout     << "  Number of active cells                = " 
-            << triangulation.n_active_cells() << std::endl;
-  pcout     << "  Number of velocity degrees of freedom = " 
-            << velocity.dof_handler.n_dofs()
-            << std::endl
-            << "  Number of pressure degrees of freedom = " 
-            << pressure.dof_handler.n_dofs()
-            << std::endl;
+  *(this->pcout)  << "  Number of active cells                = " 
+                  << this->triangulation.n_active_cells() << std::endl;
+  *(this->pcout)  << "  Number of velocity degrees of freedom = " 
+                  << velocity.dof_handler.n_dofs()
+                  << std::endl
+                  << "  Number of pressure degrees of freedom = " 
+                  << pressure.dof_handler.n_dofs()
+                  << std::endl;
 }
 
 template <int dim>
@@ -370,17 +360,17 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
   if (flag_point_evaluation)
   {
     std::cout.precision(1);
-    pcout << "  Step = " 
-          << std::setw(4) 
-          << time_stepping.get_step_number() 
-          << " Time = " 
-          << std::noshowpos << std::scientific
-          << time_stepping.get_next_time()
-          << " Progress ["
-          << std::setw(5) 
-          << std::fixed
-          << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-          << "%] \r";
+    *(this->pcout)  << "  Step = " 
+                    << std::setw(4) 
+                    << time_stepping.get_step_number() 
+                    << " Time = " 
+                    << std::noshowpos << std::scientific
+                    << time_stepping.get_next_time()
+                    << " Progress ["
+                    << std::setw(5) 
+                    << std::fixed
+                    << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
+                    << "%] \r";
   }
 }
 
@@ -511,8 +501,8 @@ void Guermond<dim>::solve(const unsigned int &level)
   pressure_convergence_table.update_table(
     level, time_stepping.get_previous_step_size(), prm.flag_spatial_convergence_test);
   
-  pcout << std::endl;
-  pcout << std::endl;
+  *(this->pcout) << std::endl;
+  *(this->pcout) << std::endl;
 }
 
 template <int dim>
@@ -524,12 +514,13 @@ void Guermond<dim>::run(const bool flag_convergence_test)
           level <= prm.final_refinement_level; ++level)
     {
       std::cout.precision(1);
-      pcout << "Solving until t = " 
-            << std::fixed << time_stepping.get_end_time()
-            << " with a refinement level of " << level << std::endl;
+      *(this->pcout)  << "Solving until t = " 
+                      << std::fixed << time_stepping.get_end_time()
+                      << " with a refinement level of " << level 
+                      << std::endl;
       time_stepping.restart();
       solve(level);
-      triangulation.refine_global();
+      this->triangulation.refine_global();
     }
   else
   {
@@ -539,9 +530,10 @@ void Guermond<dim>::run(const bool flag_convergence_test)
       double time_step = prm.time_stepping_parameters.initial_time_step *
                          pow(prm.time_step_scaling_factor, cycle);
       std::cout.precision(1);
-      pcout << "Solving until t = " 
-            << std::fixed << time_stepping.get_end_time()
-            << " with a refinement level of " << prm.initial_refinement_level << std::endl;
+      *(this->pcout)  << "Solving until t = " 
+                      << std::fixed << time_stepping.get_end_time()
+                      << " with a refinement level of " 
+                      << prm.initial_refinement_level << std::endl;
       time_stepping.restart();
       time_stepping.set_desired_next_step_size(time_step);
       solve(prm.initial_refinement_level);

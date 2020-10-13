@@ -296,8 +296,8 @@ make_grid()
   this->triangulation.set_all_manifold_ids_on_boundary(2, 1);
   this->triangulation.set_manifold(1, inner_boundary);
 
-  this->pcout << "Number of active cells                = "
-              << this->triangulation.n_active_cells() << std::endl;
+  *(this->pcout)  << "Number of active cells                = "
+                  << this->triangulation.n_active_cells() << std::endl;
 }
 
 template <int dim>
@@ -306,12 +306,12 @@ void DFG<dim>::setup_dofs()
   velocity.setup_dofs();
   pressure.setup_dofs();
   
-  this->pcout << "Number of velocity degrees of freedom = "
-              << velocity.dof_handler.n_dofs()
-              << std::endl
-              << "Number of pressure degrees of freedom = "
-              << pressure.dof_handler.n_dofs()
-              << std::endl;
+  *(this->pcout)  << "Number of velocity degrees of freedom = "
+                  << velocity.dof_handler.n_dofs()
+                  << std::endl
+                  << "Number of pressure degrees of freedom = "
+                  << pressure.dof_handler.n_dofs()
+                  << std::endl;
 }
 
 template <int dim>
@@ -430,7 +430,7 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
-  this->pcout << "Solving until t = 35..." << std::endl;
+  *(this->pcout) << "Solving until t = 35..." << std::endl;
   while (time_stepping.get_current_time() <= 35.0)
   {
     // snapshot stage
@@ -453,7 +453,7 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
     time_stepping.advance_time();
   }
 
-  this->pcout << "Restarting..." << std::endl;
+  *(this->pcout) << "Restarting..." << std::endl;
   time_stepping.restart();
   velocity.old_old_solution = velocity.solution;
   navier_stokes.reinit_internal_entities();
@@ -465,8 +465,8 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
-  this->pcout << "Solving until t = " << time_stepping.get_end_time()
-              << "..." << std::endl;
+  *(this->pcout)  << "Solving until t = " << time_stepping.get_end_time()
+                  << "..." << std::endl;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {

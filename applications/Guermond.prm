@@ -4,7 +4,7 @@
 set diagnostics_output_frequency = 1
 
 # Graphical output frequency.
-set graphical_output_frequency   = 1
+set graphical_output_frequency   = 20
 
 # Projection method to implement.
 set projection_method            = rotational
@@ -95,9 +95,9 @@ subsection Convergence test parameters
 
   set final_refinement_level        = 3
 
-  set temporal_convergence_cycles   = 1
+  set temporal_convergence_cycles   = 2
 
-  set time_step_scaling_factor      = 0.25
+  set time_step_scaling_factor      = 0.5
 
 end
 
