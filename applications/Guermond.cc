@@ -293,6 +293,9 @@ void Guermond<dim>::setup_dofs()
 template <int dim>
 void Guermond<dim>::setup_constraints()
 {
+  velocity.boundary_conditions.clear();
+  pressure.boundary_conditions.clear();
+
   for (const auto& boundary_id : boundary_ids)
     velocity.boundary_conditions.set_dirichlet_bcs(
       boundary_id,

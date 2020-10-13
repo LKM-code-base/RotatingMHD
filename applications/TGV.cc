@@ -312,6 +312,9 @@ void TGV<dim>::setup_dofs()
 template <int dim>
 void TGV<dim>::setup_constraints()
 {
+  velocity.boundary_conditions.clear();
+  pressure.boundary_conditions.clear();
+
   FullMatrix<double> rotation_matrix(dim);
   rotation_matrix[0][0] = 1.;
   rotation_matrix[1][1] = 1.;
