@@ -231,7 +231,12 @@ prm(parameters),
 velocity(parameters.p_fe_degree + 1, this->triangulation),
 pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters, velocity, pressure, time_stepping, this->pcout),
+navier_stokes(parameters,
+              velocity,
+              pressure,
+              time_stepping,
+              this->pcout,
+              this->computing_timer),
 velocity_exact_solution(parameters.time_stepping_parameters.start_time),
 pressure_exact_solution(parameters.time_stepping_parameters.start_time),
 body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
@@ -319,7 +324,8 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
     {
       #ifdef USE_PETSC_LA
         LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure.locally_owned_dofs, MPI_COMM_WORLD);
+        tmp_analytical_pressure(pressure.locally_owned_dofs,
+                                this->mpi_communicator);
       #else
         LinearAlgebra::MPI::Vector
         tmp_analytical_pressure(pressure.locally_owned_dofs);
@@ -337,12 +343,12 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
       LinearAlgebra::MPI::Vector distributed_numerical_pressure;
       #ifdef USE_PETSC_LA
         distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
-                                        MPI_COMM_WORLD);
+                                        this->mpi_communicator);
       #else
         distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
-                                        pressure.locally_relevant_dofs,
-                                        MPI_COMM_WORLD,
-                                        true);
+                                               pressure.locally_relevant_dofs,
+                                               this->mpi_communicator,
+                                               true);
       #endif
       distributed_numerical_pressure.reinit(distributed_analytical_pressure);
 
@@ -386,9 +392,11 @@ void Guermond<dim>::output()
 
   std::vector<std::string> names(dim, "velocity");
   std::vector<std::string> error_name(dim, "velocity_error");
+
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
-    component_interpretation(
-      dim, DataComponentInterpretation::component_is_part_of_vector);
+  component_interpretation(dim,
+                           DataComponentInterpretation::component_is_part_of_vector);
+
   DataOut<dim>        data_out;
   data_out.add_data_vector(velocity.dof_handler,
                            velocity.solution,
@@ -407,8 +415,11 @@ void Guermond<dim>::output()
   data_out.build_patches(velocity.fe_degree);
   
   static int out_index = 0;
-  data_out.write_vtu_with_pvtu_record(
-    "./", "solution", out_index, MPI_COMM_WORLD, 5);
+  data_out.write_vtu_with_pvtu_record("./",
+                                      "solution",
+                                      out_index,
+                                      this->mpi_communicator,
+                                      5);
   out_index++;
 }
 
@@ -589,9 +600,6 @@ int main(int argc, char *argv[])
       return 1;
   }
   std::cout << "----------------------------------------------------"
-            << std::endl
-            << "Apparently everything went fine!" << std::endl
-            << "Don't forget to brush your teeth :-)" << std::endl
             << std::endl;
   return 0;
 }
