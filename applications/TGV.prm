@@ -4,7 +4,7 @@
 set diagnostics_output_frequency = 1
 
 # Graphical output frequency.
-set graphical_output_frequency   = 1
+set graphical_output_frequency   = 1000
 
 # Projection method to implement.
 set projection_method            = rotational
@@ -43,7 +43,7 @@ end
 
 subsection Physical parameters
   # The kinetic Reynolds number.
-  set Reynolds_number = 0.79577471546
+  set Reynolds_number = 197.39208802178717237668981999752302270627398814481581252826698752
 end
 
 
@@ -64,10 +64,10 @@ subsection Time stepping settings
   set adaptive_timestep_barrier = 2
 
   # Final time of the simulation.
-  set final_time                = 0.15915494309
+  set final_time                = 1.
 
   # Size of the initial time step.
-  set initial_time_step         = 0.15915494309e-1
+  set initial_time_step         = 1e-2
 
   # Size of the maximum time step.
   set maximum_time_step         = 7.5e-3
@@ -90,13 +90,13 @@ end
 
 subsection Convergence test parameters
 
-  set flag_spatial_convergence_test = false
+  set flag_spatial_convergence_test = true
 
-  set initial_refinement_level = 6
+  set initial_refinement_level = 5
 
-  set final_refinement_level = 4
+  set final_refinement_level = 8
 
-  set temporal_convergence_cycles = 1
+  set temporal_convergence_cycles = 6
 
   set time_step_scaling_factor = 0.5
 

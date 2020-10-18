@@ -262,7 +262,7 @@ make_grid(const unsigned int &n_global_refinements)
 {
   GridGenerator::hyper_cube(triangulation,
                             0.0,
-                            1.0 /*2.0*M_PI*/,
+                            1.0,
                             true);
 
   std::vector<GridTools::PeriodicFacePair<
@@ -274,12 +274,12 @@ make_grid(const unsigned int &n_global_refinements)
   rotation_matrix[1][1] = 1.;    
 
   Tensor<1,dim> offset_x;
-  offset_x[0] = 1.0 /*2.0*M_PI*/;
+  offset_x[0] = 1.0;
   offset_x[1] = 0.0;
 
   Tensor<1,dim> offset_y;
   offset_y[0] = 0.0;
-  offset_y[1] = 1.0 /*2.0*M_PI*/;
+  offset_y[1] = 1.0;
   
   GridTools::collect_periodic_faces(triangulation,
                                     0,
@@ -308,7 +308,7 @@ void TGV<dim>::setup_dofs()
   velocity.setup_dofs();
   pressure.setup_dofs();
   pcout     << "  Number of active cells                = " 
-            << triangulation.n_active_cells() << std::endl;
+            << triangulation.n_global_active_cells() << std::endl;
   pcout     << "  Number of velocity degrees of freedom = " 
             << velocity.dof_handler.n_dofs()
             << std::endl
@@ -325,12 +325,12 @@ void TGV<dim>::setup_constraints()
   rotation_matrix[1][1] = 1.;
 
   Tensor<1,dim> offset_x;
-  offset_x[0] = 1.0 /*2.0*M_PI*/;
+  offset_x[0] = 1.0;
   offset_x[1] = 0.0;
 
   Tensor<1,dim> offset_y;
   offset_y[0] = 0.0;
-  offset_y[1] = 1.0 /*2.0*M_PI*/;
+  offset_y[1] = 1.0;
   
   velocity.boundary_conditions.set_periodic_bcs(0,
                                                 1,

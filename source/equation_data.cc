@@ -161,10 +161,10 @@ void VelocityExactSolution<dim>::vector_value
   double t = this->get_time();
   double x = point(0);
   double y = point(1);
-  double k = 2. * M_PI;
+  double k = 2.  *M_PI;
 
-  values[0] =  exp(-2.0 / Re * t)*cos(k * x)*sin(k * y);
-  values[1] = -exp(-2.0 / Re * t)*sin(k * x)*cos(k * y);
+  values[0] =  exp(-2.0 *k*k/ Re * t)*cos(k * x)*sin(k * y);
+  values[1] = -exp(-2.0 *k*k/ Re * t)*sin(k * x)*cos(k * y);
 }
 
 template <int dim>
@@ -177,18 +177,18 @@ Tensor<1, dim> VelocityExactSolution<dim>::gradient
   double t = this->get_time();
   double x = point(0);
   double y = point(1);
-  double k = 2. * M_PI;
+  double k = 2.  *M_PI;
 
   // The gradient has to match that of dealii, i.e. from the right.
   if (component == 0)
   {
-    return_value[0] = - exp(-2.0 /Re*t) * k * sin(k * x) * sin(k * y);
-    return_value[1] =   exp(-2.0 /Re*t) * k * cos(k * x) * cos(k * y);
+    return_value[0] = - exp(-2.0 *k*k/Re*t) * k * sin(k * x) * sin(k * y);
+    return_value[1] =   exp(-2.0 *k*k/Re*t) * k * cos(k * x) * cos(k * y);
   }
   else if (component == 1)
   {
-    return_value[0] = - exp(-2.0 /Re*t) * k * cos(k * x) * cos(k * y);
-    return_value[1] =   exp(-2.0 /Re*t) * k * sin(k * x) * sin(k * y);
+    return_value[0] = - exp(-2.0 *k*k/Re*t) * k * cos(k * x) * cos(k * y);
+    return_value[1] =   exp(-2.0 *k*k/Re*t) * k * sin(k * x) * sin(k * y);
   }
 
   return return_value;
@@ -211,9 +211,9 @@ double PressureExactSolution<dim>::value
   double t = this->get_time();
   double x = point(0);
   double y = point(1);
-  double k = 2. * M_PI;
+  double k = 2.  *M_PI;
 
-  return (-0.25*exp(-4.0 / Re * t)*(cos(2. * k * x)+cos(2. * k * y)));
+  return (-0.25*exp(-4.0 *k*k/ Re * t)*(cos(2. * k * x)+cos(2. * k * y)));
 }
 
 template<int dim>
@@ -225,10 +225,10 @@ Tensor<1, dim> PressureExactSolution<dim>::gradient
   double t = this->get_time();
   double x = point(0);
   double y = point(1);
-  double k = 2. * M_PI;
+  double k = 2.  *M_PI;
 
-  return_value[0] = 0.5 * exp(-4.0 / Re * t) * k * sin(2. * k * x);
-  return_value[1] = 0.5 * exp(-4.0 / Re * t) * k * sin(2. * k * y);
+  return_value[0] = 0.5 * exp(-4.0*k*k / Re * t) * k * sin(2. * k * x);
+  return_value[1] = 0.5 * exp(-4.0*k*k / Re * t) * k * sin(2. * k * y);
 
   return return_value;
 }
