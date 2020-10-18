@@ -288,8 +288,10 @@ void Guermond<dim>::setup_dofs()
 {
   velocity.setup_dofs();
   pressure.setup_dofs();
+  std::cout     << "  Number of active cells                = " 
+            << triangulation.n_locally_owned_active_cells() << std::endl;
   pcout     << "  Number of active cells                = " 
-            << triangulation.n_active_cells() << std::endl;
+            << triangulation.n_global_active_cells() << std::endl;
   pcout     << "  Number of velocity degrees of freedom = " 
             << velocity.dof_handler.n_dofs()
             << std::endl
