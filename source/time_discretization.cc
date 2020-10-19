@@ -4,6 +4,7 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/tensor.h>
+#include <deal.II/fe/fe_values.h>
 #include <deal.II/lac/vector.h>
 
 #include <fstream>
@@ -605,23 +606,6 @@ void VSIMEXMethod::extrapolate_list
                                          old_old_values[i]);
 }
 
-
-/*
- *
-template
-void VSIMEXMethod::extrapolate(const Vector<double> &old_values,
-                               const Vector<double> &old_old_values,
-                               Vector<double>       &extrapolated_values) const
-{
-  extrapolated_values = 0;
-  extrapolated_values.sadd(eta[0], old_values,
-                           eta[1], old_old_values);
-}
- *
- */
-
-
-
 } // namespace TimeDiscretiation
 
 } // namespace RMHD
@@ -641,14 +625,14 @@ template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
 (dealii::ConditionalOStream &) const;
 
 template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const double &,
+ const double &,
+ double &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
 (const Tensor<1,2> &,
  const Tensor<1,2> &,
  Tensor<1,2> &) const;
-
-template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
-(const Tensor<2,2> &,
- const Tensor<2,2> &,
- Tensor<2,2> &) const;
 
 template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
 (const Tensor<1,3> &,
@@ -656,9 +640,16 @@ template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
  Tensor<1,3> &) const;
 
 template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const FEValuesViews::Vector<2>::curl_type &,
+ const FEValuesViews::Vector<2>::curl_type &,
+ FEValuesViews::Vector<2>::curl_type &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const Tensor<2,2> &,
+ const Tensor<2,2> &,
+ Tensor<2,2> &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
 (const Tensor<2,3> &,
  const Tensor<2,3> &,
  Tensor<2,3> &) const;
-
-
-
