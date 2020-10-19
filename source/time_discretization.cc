@@ -1,7 +1,10 @@
+#include <rotatingMHD/global.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/tensor.h>
+#include <deal.II/lac/vector.h>
 
 #include <fstream>
 #include <ostream>
@@ -545,6 +548,80 @@ void VSIMEXMethod::update_coefficients()
   }
 }
 
+template<>
+void VSIMEXMethod::extrapolate<Vector<double>>
+(const Vector<double> &old_values,
+ const Vector<double> &old_old_values,
+ Vector<double>       &extrapolated_values) const
+{
+  Assert(old_values.size() == old_old_values.size(),
+         ExcDimensionMismatch(old_values.size(), old_old_values.size()));
+  Assert(extrapolated_values.size() == old_values.size(),
+         ExcDimensionMismatch(extrapolated_values.size(), old_values.size()));
+
+  extrapolated_values = old_values;
+  extrapolated_values.sadd(eta[0], eta[1], old_old_values);
+}
+
+template<>
+void VSIMEXMethod::extrapolate<LinearAlgebra::MPI::Vector>
+(const LinearAlgebra::MPI::Vector &old_values,
+ const LinearAlgebra::MPI::Vector &old_old_values,
+ LinearAlgebra::MPI::Vector       &extrapolated_values) const
+{
+  Assert(old_values.size() == old_old_values.size(),
+         ExcDimensionMismatch(old_values.size(), old_old_values.size()));
+  Assert(extrapolated_values.size() == old_values.size(),
+         ExcDimensionMismatch(extrapolated_values.size(), old_values.size()));
+
+  extrapolated_values = old_values;
+  extrapolated_values.sadd(eta[0], eta[1], old_old_values);
+}
+
+template<typename DataType>
+void VSIMEXMethod::extrapolate
+(const DataType &old_values,
+ const DataType &old_old_values,
+ DataType       &extrapolated_values) const
+{
+  extrapolated_values = eta[0] * old_values + eta[1] * old_old_values;
+}
+
+template<typename DataType>
+void VSIMEXMethod::extrapolate_list
+(const std::vector<DataType>  &old_values,
+ const std::vector<DataType>  &old_old_values,
+ std::vector<DataType>        &extrapolated_values) const
+{
+  Assert(old_values.size() == old_old_values.size(),
+         ExcDimensionMismatch(old_values.size(), old_old_values.size()));
+  Assert(extrapolated_values.size() == old_values.size(),
+         ExcDimensionMismatch(extrapolated_values.size(), old_values.size()));
+
+  const std::size_t n = extrapolated_values.size();
+
+  for (std::size_t i=0; i<n; ++i)
+    extrapolated_values[i] = extrapolate(old_values[i],
+                                         old_old_values[i]);
+}
+
+
+/*
+ *
+template
+void VSIMEXMethod::extrapolate(const Vector<double> &old_values,
+                               const Vector<double> &old_old_values,
+                               Vector<double>       &extrapolated_values) const
+{
+  extrapolated_values = 0;
+  extrapolated_values.sadd(eta[0], old_values,
+                           eta[1], old_old_values);
+}
+ *
+ */
+
+
+
 } // namespace TimeDiscretiation
 
 } // namespace RMHD
@@ -562,3 +639,26 @@ template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
 (std::ostream &) const;
 template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
 (dealii::ConditionalOStream &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const Tensor<1,2> &,
+ const Tensor<1,2> &,
+ Tensor<1,2> &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const Tensor<2,2> &,
+ const Tensor<2,2> &,
+ Tensor<2,2> &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const Tensor<1,3> &,
+ const Tensor<1,3> &,
+ Tensor<1,3> &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const Tensor<2,3> &,
+ const Tensor<2,3> &,
+ Tensor<2,3> &) const;
+
+
+
