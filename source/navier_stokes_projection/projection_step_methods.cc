@@ -9,6 +9,9 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::assemble_projection_step()
 {
+  if (parameters.verbose)
+    *pcout << "    Assemble projection step...";
+
   /* System matrix setup */
   // System matrix is constant and assembled in the
   // NavierStokesProjection constructor.
@@ -21,12 +24,21 @@ void NavierStokesProjection<dim>::assemble_projection_step()
      conditions on the stress tensor are given
    */
   pressure.constraints.set_zero(pressure_rhs);
+
+  if (parameters.verbose)
+    *pcout << "   done." << std::endl;
+
 }
 
 template <int dim>
 void NavierStokesProjection<dim>::solve_projection_step
 (const bool reinit_prec)
 {
+  if (parameters.verbose)
+    *pcout << "    Solve projection step..." << std::endl;
+
+  TimerOutput::Scope  t(*computing_timer, "Pressure projection solve");
+
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
@@ -84,6 +96,15 @@ void NavierStokesProjection<dim>::solve_projection_step
     VectorTools::subtract_mean_value(distributed_phi);
 
   phi = distributed_phi;
+
+  if (parameters.verbose)
+    *pcout << "   done." << std::endl;
+
+  if (parameters.verbose)
+    *pcout << "    Number of GMRES iterations: " << solver_control.last_step()
+           << ", "
+           << "final residual: " << solver_control.last_value() << "."
+           << std::endl;
 }
 
 }

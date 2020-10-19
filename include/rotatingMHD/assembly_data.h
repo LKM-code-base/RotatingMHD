@@ -37,6 +37,7 @@ struct LocalCellData
   std::vector<CurlType>       extrapolated_velocity_curls;
   std::vector<Tensor<1,dim>>  phi_velocity;
   std::vector<Tensor<2,dim>>  grad_phi_velocity;
+  std::vector<CurlType>       curl_phi_velocity;
 
   LocalCellData(const FESystem<dim>  &fe,
                 const Quadrature<dim>&quadrature_formula,
@@ -145,6 +146,7 @@ struct LocalCellData
   std::vector<Tensor<2,dim>>            old_old_velocity_gradients;
   std::vector<Tensor<1,dim>>            body_force_values;
   std::vector<Tensor<2,dim>>            grad_phi_velocity;
+  std::vector<CurlType>                 curl_phi_velocity;
 
   LocalCellData(const FESystem<dim>  &velocity_fe,
                 const FE_Q<dim>      &pressure_fe,

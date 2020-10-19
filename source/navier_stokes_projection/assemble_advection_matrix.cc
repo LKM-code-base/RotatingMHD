@@ -7,6 +7,8 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 {
+  TimerOutput::Scope  t(*computing_timer, "Assembly velocity advection matrix");
+
   velocity_advection_matrix = 0.;
 
   using CellFilter =
@@ -85,6 +87,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
     {
       scratch.phi_velocity[i] = scratch.fe_values[velocities].value(i,q);
       scratch.grad_phi_velocity[i] = scratch.fe_values[velocities].gradient(i,q);
+      scratch.curl_phi_velocity[i] = scratch.fe_values[velocities].curl(i,q);
     }
     // loop over local dofs
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
@@ -131,24 +134,22 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
           {
             // This form needs to be discussed, specifically which
             // velocity instance is to be replaced by the extrapolated
-            // velocity. Furthermore, if we want to compute the 
-            // total pressure or the static pressure. The current
-            // implementation computes the total pressure.
+            // velocity The current implementation computes the total pressure.
             // The minus sign in the argument of cross_product_2d
             // method is due to how the method is defined.
             if constexpr(dim == 2)
               data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i] *
-                          scratch.extrapolated_velocity_curls[q][0] *
+                          scratch.curl_phi_velocity[j][0] *
                           cross_product_2d(
-                            - scratch.phi_velocity[j])) * 
+                            - scratch.extrapolated_velocity_values[q])) * 
                           scratch.fe_values.JxW(q);
             else if constexpr(dim == 3)
               data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i]  *
                           cross_product_3d(
-                            scratch.extrapolated_velocity_curls[q],
-                            scratch.phi_velocity[j])) *
+                            scratch.curl_phi_velocity[j],
+                            scratch.extrapolated_velocity_values[q])) *
                           scratch.fe_values.JxW(q);
             break;
           }

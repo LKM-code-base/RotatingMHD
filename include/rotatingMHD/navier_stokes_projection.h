@@ -1,6 +1,9 @@
 #ifndef INCLUDE_ROTATINGMHD_NAVIER_STOKES_PROJECTION_H_
 #define INCLUDE_ROTATINGMHD_NAVIER_STOKES_PROJECTION_H_
 
+#include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/timer.h>
+
 #include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
@@ -8,6 +11,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -75,7 +79,11 @@ public:
   (const RunTimeParameters::ParameterSet   &parameters,
    Entities::VectorEntity<dim>             &velocity,
    Entities::ScalarEntity<dim>             &pressure,
-   TimeDiscretization::VSIMEXMethod        &time_stepping);
+   TimeDiscretization::VSIMEXMethod        &time_stepping,
+   const std::shared_ptr<ConditionalOStream>external_pcout =
+       std::shared_ptr<ConditionalOStream>(),
+   const std::shared_ptr<TimerOutput>       external_timer =
+       std::shared_ptr<TimerOutput>());
 
   /*!
    *  @brief Setups and initializes all the internal entities for
@@ -154,9 +162,24 @@ public:
 
 private:
   /*!
-   *  @brief A reference to the parameters which control the solution process.
+   * @brief A reference to the parameters which control the solution process.
    */
   const RunTimeParameters::ParameterSet  &parameters;
+
+  /*!
+   * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
+   */
+  const MPI_Comm                         &mpi_communicator;
+
+  /*!
+   * @brief Pointer to a conditional output stream object.
+   */
+  std::shared_ptr<ConditionalOStream>     pcout;
+
+  /*!
+   * @breif Pointer to a monitor of the computing times.
+   */
+  std::shared_ptr<TimerOutput>            computing_timer;
 
   /*!
    * @brief A reference to the entity of velocity field.
@@ -176,7 +199,7 @@ private:
   /*!
    * @brief A reference to the class controlling the temporal discretization.
    */
-  TimeDiscretization::VSIMEXMethod       &time_stepping;
+  const TimeDiscretization::VSIMEXMethod &time_stepping;
 
   /*!
    * @brief System matrix used to solve for the velocity field in the diffusion
@@ -225,7 +248,6 @@ private:
    * assembled in every timestep.
    */
   LinearAlgebra::MPI::SparseMatrix  velocity_advection_matrix;
-
 
   /*!
    * @brief A vector representing the extrapolated velocity at the

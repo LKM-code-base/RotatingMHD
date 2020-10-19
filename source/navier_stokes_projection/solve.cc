@@ -10,13 +10,18 @@ void NavierStokesProjection<dim>::solve(const unsigned int step)
 {
   diffusion_step((step % parameters.solver_update_preconditioner == 0) ||
                  (step == (time_stepping.get_order()-1)));
+
   projection_step((step == (time_stepping.get_order()-1)));
+
   pressure_correction((step == (time_stepping.get_order()-1)));
 }
 
 template <int dim>
 void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 {
+  if (parameters.verbose)
+    *pcout << "  Diffusion step..." << std::endl;
+
   // In the following scopes we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the sadd()
   // operations.
@@ -107,6 +112,11 @@ void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
 template <int dim>
 void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 {
+  if (parameters.verbose)
+    *pcout << "  Pressure correction step..." << std::endl;
+
+  TimerOutput::Scope  t(*computing_timer, "Pressure correction step");
+
   switch (parameters.projection_method)
     {
       case RunTimeParameters::ProjectionMethod::standard:

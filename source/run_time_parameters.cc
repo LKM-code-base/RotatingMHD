@@ -33,9 +33,8 @@ solver_off_diagonals(60),
 solver_update_preconditioner(15),
 relative_tolerance(1e-6),
 solver_diag_strength(0.01),
-flag_verbose_output(true),
+verbose(true),
 flag_semi_implicit_convection(true),
-flag_vsimex_method(false),
 graphical_output_interval(15),
 terminal_output_interval(1),
 flag_spatial_convergence_test(true),
@@ -189,11 +188,6 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                     "Flag determing the treatment of the convection"
                     " term inside the VSIMEX method.");
 
-  prm.declare_entry("vsimex_method_flag",
-                    "true",
-                    Patterns::Bool(),
-                    "VSIMEX method flag");
-
   prm.declare_entry("graphical_output_frequency",
                     "1",
                     Patterns::Integer(1),
@@ -287,9 +281,8 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  flag_verbose_output           = prm.get_bool("verbosity_flag");
+  verbose                       = prm.get_bool("verbosity_flag");
   flag_semi_implicit_convection = prm.get_bool("semi_implicit_convection_flag");
-  flag_vsimex_method            = prm.get_bool("vsimex_method_flag");
 
   graphical_output_interval = prm.get_integer("graphical_output_frequency");
   terminal_output_interval  = prm.get_integer("diagnostics_output_frequency");

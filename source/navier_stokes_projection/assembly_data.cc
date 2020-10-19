@@ -42,7 +42,8 @@ extrapolated_velocity_divergences(n_q_points),
 extrapolated_velocity_values(n_q_points),
 extrapolated_velocity_curls(n_q_points),
 phi_velocity(dofs_per_cell),
-grad_phi_velocity(dofs_per_cell)
+grad_phi_velocity(dofs_per_cell),
+curl_phi_velocity(dofs_per_cell)
 {}
 
 template <int dim>
@@ -57,7 +58,8 @@ extrapolated_velocity_divergences(n_q_points),
 extrapolated_velocity_values(n_q_points),
 extrapolated_velocity_curls(n_q_points),
 phi_velocity(dofs_per_cell),
-grad_phi_velocity(dofs_per_cell)
+grad_phi_velocity(dofs_per_cell),
+curl_phi_velocity(dofs_per_cell)
 {}
 
 }// namespace AdvectionTermAssembly
@@ -220,7 +222,8 @@ old_old_velocity_values(n_q_points),
 old_old_velocity_curls(n_q_points),
 old_old_velocity_gradients(n_q_points),
 body_force_values(n_q_points),
-grad_phi_velocity(velocity_dofs_per_cell)
+grad_phi_velocity(velocity_dofs_per_cell),
+curl_phi_velocity(velocity_dofs_per_cell)
 {}
 
 template <int dim>
@@ -250,7 +253,8 @@ old_old_velocity_values(n_q_points),
 old_old_velocity_curls(n_q_points),
 old_old_velocity_gradients(n_q_points),
 body_force_values(n_q_points),
-grad_phi_velocity(velocity_dofs_per_cell)
+grad_phi_velocity(velocity_dofs_per_cell),
+curl_phi_velocity(velocity_dofs_per_cell)
 {}
 
 } // namespace VelocityRightHandSideAssembly

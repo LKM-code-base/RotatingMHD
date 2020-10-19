@@ -14,6 +14,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 namespace RMHD
@@ -69,7 +70,12 @@ Problem<dim>(),
 velocity(parameters.p_fe_degree + 1, this->triangulation),
 pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters, velocity, pressure, time_stepping),
+navier_stokes(parameters,
+              velocity,
+              pressure,
+              time_stepping,
+              this->pcout,
+              this->computing_timer),
 inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
 velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
 pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
@@ -102,9 +108,9 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 
   boundary_ids = this->triangulation.get_boundary_ids();
 
-  this->pcout << "Number of refines                     = "
+  *(this->pcout) << "Number of refines                     = "
               << n_global_refinements << std::endl;
-  this->pcout << "Number of active cells                = "
+  *(this->pcout) << "Number of active cells                = "
               << this->triangulation.n_active_cells() << std::endl;
 }
 
@@ -114,7 +120,7 @@ void Step35<dim>::setup_dofs()
   velocity.setup_dofs();
   pressure.setup_dofs();
   
-  this->pcout << "Number of velocity degrees of freedom = "
+  *(this->pcout) << "Number of velocity degrees of freedom = "
               << velocity.dof_handler.n_dofs()
               << std::endl
               << "Number of pressure degrees of freedom = "
@@ -125,60 +131,32 @@ void Step35<dim>::setup_dofs()
 template <int dim>
 void Step35<dim>::setup_constraints()
 {
-  velocity.constraints.clear();
-  velocity.constraints.reinit(velocity.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(velocity.dof_handler,
-                                          velocity.constraints);
-  for (const auto &boundary_id : boundary_ids)
-    switch (boundary_id)
-    {
-      case 1:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    Functions::ZeroFunction<dim>(dim),
-                                    velocity.constraints);
-        break;
-      case 2:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    inflow_boundary_condition,
-                                    velocity.constraints);
-        break;
-      case 3:
-      {
-        std::set<types::boundary_id> no_normal_flux_boundaries;
-        no_normal_flux_boundaries.insert(boundary_id);
-        VectorTools::compute_normal_flux_constraints(
-                                    velocity.dof_handler,
-                                    0,
-                                    no_normal_flux_boundaries,
-                                    velocity.constraints);
-        break;
-      }
-      case 4:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    Functions::ZeroFunction<dim>(dim),
-                                    velocity.constraints);
-        break;
-      default:
-        Assert(false, ExcNotImplemented());
-    }
-  velocity.constraints.close();
+  velocity.boundary_conditions.set_dirichlet_bcs(
+    1,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>(dim)));
+  velocity.boundary_conditions.set_dirichlet_bcs(
+    2,
+    std::shared_ptr<Function<dim>> 
+      (new EquationData::Step35::VelocityInflowBoundaryCondition<dim>(dim)));
+  velocity.boundary_conditions.set_dirichlet_bcs(
+    4,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>(dim)));
+  velocity.boundary_conditions.set_tangential_flux_bcs(
+    3,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>(dim)));
+  
+  pressure.boundary_conditions.set_dirichlet_bcs(
+    3,
+    std::shared_ptr<Function<dim>> 
+      (new Functions::ZeroFunction<dim>()));
 
-  pressure.constraints.clear();
-  pressure.constraints.reinit(pressure.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(pressure.dof_handler,
-                                          pressure.constraints);
-  VectorTools::interpolate_boundary_values(
-                                      pressure.dof_handler,
-                                      3,
-                                      Functions::ZeroFunction<dim>(),
-                                      pressure.constraints);
-  pressure.constraints.close();
+  velocity.apply_boundary_conditions();
+
+  pressure.apply_boundary_conditions();
+
 }
 
 template <int dim>
@@ -224,8 +202,11 @@ void Step35<dim>::output()
   data_out.build_patches(velocity.fe_degree);
   
   static int out_index = 0;
-  data_out.write_vtu_with_pvtu_record(
-    "./", "solution", out_index, MPI_COMM_WORLD, 5);
+  data_out.write_vtu_with_pvtu_record("./",
+                                      "solution",
+                                      out_index,
+                                      this->mpi_communicator,
+                                      5);
   out_index++;
 }
 
@@ -335,10 +316,10 @@ int main(int argc, char *argv[])
 
       RunTimeParameters::ParameterSet parameter_set("step-35.prm");
 
-      deallog.depth_console(parameter_set.flag_verbose_output ? 2 : 0);
+      deallog.depth_console(parameter_set.verbose ? 2 : 0);
 
       Step35<2> simulation(parameter_set);
-      simulation.run(parameter_set.flag_verbose_output, 
+      simulation.run(parameter_set.verbose, 
                      parameter_set.terminal_output_interval,
                      parameter_set.graphical_output_interval);
   }
@@ -368,9 +349,6 @@ int main(int argc, char *argv[])
       return 1;
   }
   std::cout << "----------------------------------------------------"
-            << std::endl
-            << "Apparently everything went fine!" << std::endl
-            << "Don't forget to brush your teeth :-)" << std::endl
             << std::endl;
   return 0;
 }

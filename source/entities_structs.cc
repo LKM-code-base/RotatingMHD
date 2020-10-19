@@ -2,8 +2,10 @@
 
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
+#include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <algorithm>
 namespace RMHD
 {
 
@@ -18,7 +20,7 @@ EntityBase<dim>::EntityBase
  const parallel::distributed::Triangulation<dim> &triangulation)
 :
 fe_degree(fe_degree),
-mpi_communicator(MPI_COMM_WORLD),
+mpi_communicator(triangulation.get_communicator()),
 dof_handler(triangulation),
 quadrature_formula(fe_degree + 1)
 {}
@@ -57,7 +59,246 @@ void VectorEntity<dim>::setup_dofs()
 
   DoFTools::extract_locally_relevant_dofs(this->dof_handler,
                                           this->locally_relevant_dofs);
+  this->hanging_nodes.clear();
+  this->hanging_nodes.reinit(this->locally_relevant_dofs);
+  DoFTools::make_hanging_node_constraints(this->dof_handler,
+                                          this->hanging_nodes);
+  this->hanging_nodes.close();
 }
+
+template <int dim>
+void VectorEntity<dim>::apply_boundary_conditions()
+{
+  using FunctionMap = std::map<types::boundary_id, 
+                              const Function<dim> *>;
+  this->constraints.clear();
+  this->constraints.reinit(this->locally_relevant_dofs);
+  this->constraints.merge(this->hanging_nodes);
+
+  if (!boundary_conditions.periodic_bcs.empty())
+  {
+    FEValuesExtractors::Vector extractor(0);
+
+    std::vector<unsigned int> first_vector_components;
+    first_vector_components.push_back(0);
+
+    std::vector<
+    GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
+      periodicity_vector;
+
+    for (auto const &periodic_bc : boundary_conditions.periodic_bcs)
+      GridTools::collect_periodic_faces(
+        this->dof_handler,
+        periodic_bc.boundary_pair.first,
+        periodic_bc.boundary_pair.second,
+        periodic_bc.direction,
+        periodicity_vector,
+        periodic_bc.offset,
+        periodic_bc.rotation_matrix);
+    
+    DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
+      periodicity_vector,
+      this->constraints,
+      fe.component_mask(extractor),
+      first_vector_components);
+  }
+
+  if (!boundary_conditions.dirichlet_bcs.empty())
+  {
+    FunctionMap function_map;
+
+    for (auto const &[boundary_id, function] : boundary_conditions.dirichlet_bcs)
+      function_map[boundary_id] = function.get();
+    
+    VectorTools::interpolate_boundary_values(
+      this->dof_handler,
+      function_map,
+      this->constraints);
+  }
+
+  if (!boundary_conditions.normal_flux_bcs.empty())
+  {
+    FunctionMap                   function_map;
+
+    std::set<types::boundary_id>  boundary_id_set;
+
+    for (auto const &[boundary_id, function] : boundary_conditions.normal_flux_bcs)
+    {
+      function_map[boundary_id] = function.get();
+      boundary_id_set.insert(boundary_id);
+    }
+
+    VectorTools::compute_nonzero_normal_flux_constraints(
+      this->dof_handler,
+      0,
+      boundary_id_set,
+      function_map,
+      this->constraints);
+  }
+
+  if (!boundary_conditions.tangential_flux_bcs.empty())
+  {
+    FunctionMap                   function_map;
+
+    std::set<types::boundary_id>  boundary_id_set;
+
+    for (auto const &[boundary_id, function] : boundary_conditions.tangential_flux_bcs)
+    {
+      function_map[boundary_id] = function.get();
+      boundary_id_set.insert(boundary_id);
+    }
+
+    VectorTools::compute_nonzero_tangential_flux_constraints(
+      this->dof_handler,
+      0,
+      boundary_id_set,
+      function_map,
+      this->constraints);
+  }
+
+  this->constraints.close();
+}
+
+template <int dim>
+void VectorEntity<dim>::update_boundary_conditions()
+{
+  if (boundary_conditions.time_dependent_bcs_map.empty())
+    return;
+
+  using FunctionMap = std::map<types::boundary_id, 
+                              const Function<dim> *>;
+
+  AffineConstraints<double>   tmp_constraints;
+
+  tmp_constraints.clear();
+
+  tmp_constraints.reinit(this->locally_relevant_dofs);
+
+  if (boundary_conditions.time_dependent_bcs_map.find(BCType::dirichlet)
+      != boundary_conditions.time_dependent_bcs_map.end())
+  {
+    FunctionMap   function_map;
+
+    /*!
+     * Extract an std::pair containing the upper and 
+     * lower limit of the iteration range of all the boundary ids on 
+     * which a time dependent given BCType boundary condition was set. 
+     */ 
+  
+    auto iterator_range = 
+      boundary_conditions.time_dependent_bcs_map.equal_range(
+        BCType::dirichlet);
+
+    /*!
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * from which the the boundary_id is extracted to populate the
+     * std::map<boundary_id, const Function<dim> *> needed to 
+     * constraint the AffineConstraints instance.
+     */ 
+
+    for (auto multimap_pair = iterator_range.first;
+         multimap_pair != iterator_range.second;
+         ++multimap_pair)
+      function_map[multimap_pair->second] =
+        boundary_conditions.dirichlet_bcs[multimap_pair->second].get();
+
+    VectorTools::interpolate_boundary_values(
+      this->dof_handler,
+      function_map,
+      tmp_constraints);
+  }
+
+  if (boundary_conditions.time_dependent_bcs_map.find(BCType::normal_flux)
+      != boundary_conditions.time_dependent_bcs_map.end())
+  {
+    FunctionMap                   function_map;
+
+    std::set<types::boundary_id>  boundary_id_set;
+
+    /*!
+     * Extract an std::pair containing the upper and 
+     * lower limit of the iteration range of all the boundary ids on 
+     * which a time dependent given BCType boundary condition was set. 
+     */ 
+
+    auto iterator_range = 
+      boundary_conditions.time_dependent_bcs_map.equal_range(
+        BCType::normal_flux);
+    
+    /*!
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * from which the the boundary_id is extracted to populate the
+     * std::map<boundary_id, const Function<dim> *> and 
+     * std::set<boundary_id> instances needed to 
+     * constraint the AffineConstraints instance.
+     */
+
+    for (auto multimap_pair = iterator_range.first;
+         multimap_pair != iterator_range.second;
+         ++multimap_pair)
+    {
+      function_map[multimap_pair->second] =
+        boundary_conditions.normal_flux_bcs[multimap_pair->second].get();
+      boundary_id_set.insert(multimap_pair->second);
+    }
+    
+    VectorTools::compute_nonzero_normal_flux_constraints(
+      this->dof_handler,
+      0,
+      boundary_id_set,
+      function_map,
+      tmp_constraints);
+  }
+
+  if (boundary_conditions.time_dependent_bcs_map.find(BCType::tangential_flux)
+      != boundary_conditions.time_dependent_bcs_map.end())
+  {
+    FunctionMap                   function_map;
+
+    std::set<types::boundary_id>  boundary_id_set;
+
+    /*!
+     * Extract an std::pair containing the upper and 
+     * lower limit of the iteration range of all the boundary ids on 
+     * which a time dependent given BCType boundary condition was set. 
+     */ 
+
+    auto iterator_range = 
+      boundary_conditions.time_dependent_bcs_map.equal_range(
+        BCType::tangential_flux);
+
+    /*!
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * from which the the boundary_id is extracted to populate the
+     * std::map<boundary_id, const Function<dim> *> and 
+     * std::set<boundary_id> instances needed to 
+     * constraint the AffineConstraints instance.
+     */
+
+    for (auto multimap_pair = iterator_range.first;
+         multimap_pair != iterator_range.second;
+         ++multimap_pair)
+    {
+      function_map[multimap_pair->second] =
+        boundary_conditions.tangential_flux_bcs[multimap_pair->second].get();
+      boundary_id_set.insert(multimap_pair->second);
+    }
+    
+    VectorTools::compute_nonzero_tangential_flux_constraints(
+      this->dof_handler,
+      0,
+      boundary_id_set,
+      function_map,
+      tmp_constraints);
+  }
+
+  tmp_constraints.close();
+
+  this->constraints.merge(
+    tmp_constraints,
+    AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
+}
+
 
 template<int dim>
 Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
@@ -131,6 +372,118 @@ void ScalarEntity<dim>::setup_dofs()
 
   DoFTools::extract_locally_relevant_dofs(this->dof_handler,
                                           this->locally_relevant_dofs);
+  
+  this->hanging_nodes.clear();
+  this->hanging_nodes.reinit(this->locally_relevant_dofs);
+  DoFTools::make_hanging_node_constraints(this->dof_handler,
+                                          this->hanging_nodes);
+  this->hanging_nodes.close();
+}
+
+template <int dim>
+void ScalarEntity<dim>::apply_boundary_conditions()
+{
+  using FunctionMap = std::map<types::boundary_id, 
+                              const Function<dim> *>;
+  this->constraints.clear();
+  this->constraints.reinit(this->locally_relevant_dofs);
+  this->constraints.merge(this->hanging_nodes);
+  if (!boundary_conditions.periodic_bcs.empty())
+  {
+    FEValuesExtractors::Scalar extractor(0);
+
+    std::vector<unsigned int> first_vector_components;
+    first_vector_components.push_back(0);
+
+    std::vector<
+    GridTools::PeriodicFacePair<typename DoFHandler<dim>::cell_iterator>>
+      periodicity_vector;
+
+    for (auto const &periodic_bc : boundary_conditions.periodic_bcs)
+      GridTools::collect_periodic_faces(
+        this->dof_handler,
+        periodic_bc.boundary_pair.first,
+        periodic_bc.boundary_pair.second,
+        periodic_bc.direction,
+        periodicity_vector,
+        periodic_bc.offset,
+        periodic_bc.rotation_matrix);
+    
+    DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
+      periodicity_vector,
+      this->constraints,
+      fe.component_mask(extractor),
+      first_vector_components);
+  }
+  if (!boundary_conditions.dirichlet_bcs.empty())
+  {
+    FunctionMap function_map;
+
+    for (auto const &[boundary_id, function] : boundary_conditions.dirichlet_bcs)
+      function_map[boundary_id] = function.get();
+    
+    VectorTools::interpolate_boundary_values(
+      this->dof_handler,
+      function_map,
+      this->constraints);
+  }
+  this->constraints.close();
+}
+
+template <int dim>
+void ScalarEntity<dim>::update_boundary_conditions()
+{
+  if (boundary_conditions.time_dependent_bcs_map.empty())
+    return;
+
+  using FunctionMap = std::map<types::boundary_id, 
+                              const Function<dim> *>;
+
+  AffineConstraints<double>   tmp_constraints;
+
+  tmp_constraints.clear();
+
+  tmp_constraints.reinit(this->locally_relevant_dofs);
+
+  if (boundary_conditions.time_dependent_bcs_map.find(BCType::dirichlet)
+      != boundary_conditions.time_dependent_bcs_map.end())
+  {
+    FunctionMap   function_map;
+
+    /*!
+     * Extract an std::pair containing the upper and 
+     * lower limit of the iteration range of all the boundary ids on 
+     * which a time dependent given BCType boundary condition was set. 
+     */ 
+
+    auto iterator_range = 
+      boundary_conditions.time_dependent_bcs_map.equal_range(
+        BCType::dirichlet);
+
+    /*!
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * from which the the boundary_id is extracted to populate the
+     * std::map<boundary_id, const Function<dim> *> instance needed to 
+     * constraint the AffineConstraints instance.
+     */
+
+    for (auto multimap_pair = iterator_range.first;
+         multimap_pair != iterator_range.second;
+         ++multimap_pair)
+      function_map[multimap_pair->second] =
+        boundary_conditions.dirichlet_bcs[multimap_pair->second].get();
+
+    VectorTools::interpolate_boundary_values(
+      this->dof_handler,
+      function_map,
+      tmp_constraints);
+  }
+
+  tmp_constraints.close();
+
+  this->constraints.merge(
+    tmp_constraints,
+    AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
 }
 
 template<int dim>
