@@ -444,7 +444,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
           << " P_norm = "
           << navier_stokes.norm_projection_rhs
           << " CFL = "
-          << navier_stokes.compute_next_time_step()
+          << navier_stokes.get_cfl_number()
           << " Progress ["
           << std::setw(5) 
           << std::fixed
@@ -455,7 +455,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
                << navier_stokes.norm_diffusion_rhs << ","
                << navier_stokes.norm_projection_rhs << ","
                << time_stepping.get_next_step_size() << ","
-               << navier_stokes.compute_next_time_step() << std::endl;
+               << navier_stokes.get_cfl_number() << std::endl;
   }
 }
 
