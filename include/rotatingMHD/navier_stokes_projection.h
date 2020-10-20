@@ -148,25 +148,23 @@ public:
   void reinit_internal_entities();
 
   /*!
-   *  @brief Computes the next time step according to the Courant-Friedrichs-Lewy
-   *  condition.
+   *  @brief Computes the next time step according to the 
+   *  Courant-Friedrichs-Lewy (CFL) condition.
    *
    *  @details The next time step is given by 
    * \f[
-   *    \Delta t_{n-1} = C \min_{K \in \Omega_\textrm{h}}
-   *    \left\lbrace \frac{h_K}{\max_{P \in K} { \left\lVert \bs{v} \right\rVert}} \right\rbrace
+   *    \Delta t^{n-1}_\textrm{new} = \frac{C_\max}{C} \Delta t^{n-1}
    * \f] 
-   * where \f$ C \f$ is the Courant number, \f$ K\f$ denotes the 
-   * \f$ K\f$-th cell of the tessallation, \f$ \Omega_\textrm{h}\f$ the tessallation,
-   * \f$ P \f$ a quadrature point inside the \f$ K\f$-th cell,
-   * \f$ \bs{v} \f$ the velocity, \f$ h_K\f$ the largest diagonal of the \f$ K\f$-th
-   * cell.
-   *  @attention The Courant number is hardcoded to 1.
+   * where \f$ C_\max \f$ is the maximum CFL number and \f$ C\f$ is the
+   * CFL number computed from the current velocity field using the
+   * method @ref get_cfl_number
+   *  @attention The maximum Courant-Friedrichs-Lewy number is hardcoded to 1.
    */
   double compute_next_time_step();
 
   /*!
-   *  @brief Computes Courant-Friedrichs-Lewy number.
+   *  @brief Computes Courant-Friedrichs-Lewy number for the current
+   *  velocity field.
    *
    *  @details It is given by 
    * \f[
