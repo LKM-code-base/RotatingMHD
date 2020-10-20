@@ -154,7 +154,7 @@ public:
    *  @details The next time step is given by 
    * \f[
    *    \Delta t_{n-1} = C \min_{K \in \Omega_\textrm{h}}
-   *    \left\lbrace \frac{\max_{P \in K} { \left\lVert \bs{v} \right\rVert}}{h_K} \right\rbrace
+   *    \left\lbrace \frac{h_K}{\max_{P \in K} { \left\lVert \bs{v} \right\rVert}} \right\rbrace
    * \f] 
    * where \f$ C \f$ is the Courant number, \f$ K\f$ denotes the 
    * \f$ K\f$-th cell of the tessallation, \f$ \Omega_\textrm{h}\f$ the tessallation,
@@ -164,6 +164,22 @@ public:
    *  @attention The Courant number is hardcoded to 1.
    */
   double compute_next_time_step();
+
+  /*!
+   *  @brief Computes Courant-Friedrichs-Lewy number.
+   *
+   *  @details It is given by 
+   * \f[
+   *    C = \Delta t_{n-1} \min_{K \in \Omega_\textrm{h}}
+   *    \left\lbrace \frac{\max_{P \in K} { \left\lVert \bs{v} \right\rVert}}{h_K} \right\rbrace
+   * \f] 
+   * where \f$ C \f$ is the Courant number, \f$ K\f$ denotes the 
+   * \f$ K\f$-th cell of the tessallation, \f$ \Omega_\textrm{h}\f$ the tessallation,
+   * \f$ P \f$ a quadrature point inside the \f$ K\f$-th cell,
+   * \f$ \bs{v} \f$ the velocity, \f$ h_K\f$ the largest diagonal of the \f$ K\f$-th
+   * cell.
+   */
+  double get_cfl_number();
 
 private:
   /*!
