@@ -548,7 +548,7 @@ void TGV<dim>::solve(const unsigned int &level)
 
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-                              time_stepping.get_next_step_size());
+                              navier_stokes.compute_next_time_step());
     
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();

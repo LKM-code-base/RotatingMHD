@@ -234,7 +234,6 @@ void Step35<dim>::run(
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
     // snapshot stage
-    //this->pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
 
     time_stepping.set_desired_next_step_size(
                               navier_stokes.compute_next_time_step());
