@@ -170,17 +170,16 @@ template <int dim>
 class TGV : public Problem<dim>
 {
 public:
+
   TGV(const RunTimeParameters::ParameterSet &parameters);
+
   void run(const bool flag_convergence_test);
 
   std::ofstream outputFile;
 
 private:
-  const RunTimeParameters::ParameterSet             &prm;
 
-  ConditionalOStream                          pcout;
-
-  parallel::distributed::Triangulation<dim>   triangulation;
+  const RunTimeParameters::ParameterSet      &prm;
 
   std::vector<types::boundary_id>             boundary_ids;
 
@@ -235,16 +234,15 @@ TGV<dim>::TGV(const RunTimeParameters::ParameterSet &parameters)
 Problem<dim>(),
 outputFile("TGV_Log.csv"),
 prm(parameters),
-pcout(std::cout,
-      (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)),
-triangulation(MPI_COMM_WORLD,
-              typename Triangulation<dim>::MeshSmoothing(
-              Triangulation<dim>::smoothing_on_refinement |
-              Triangulation<dim>::smoothing_on_coarsening)),
-velocity(parameters.p_fe_degree + 1, triangulation),
-pressure(parameters.p_fe_degree, triangulation),
+velocity(parameters.p_fe_degree + 1, this->triangulation),
+pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters, velocity, pressure, time_stepping),
+navier_stokes(parameters,
+              velocity,
+              pressure,
+              time_stepping,
+              this->pcout,
+              this->computing_timer),
 velocity_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
 pressure_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
 velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
@@ -260,7 +258,7 @@ template <int dim>
 void TGV<dim>::
 make_grid(const unsigned int &n_global_refinements)
 {
-  GridGenerator::hyper_cube(triangulation,
+  GridGenerator::hyper_cube(this->triangulation,
                             0.0,
                             1.0,
                             true);
@@ -280,15 +278,15 @@ make_grid(const unsigned int &n_global_refinements)
   Tensor<1,dim> offset_y;
   offset_y[0] = 0.0;
   offset_y[1] = 1.0;
-  
-  GridTools::collect_periodic_faces(triangulation,
+
+  GridTools::collect_periodic_faces(this->triangulation,
                                     0,
                                     1,
                                     0,
                                     periodicity_vector,
                                     offset_x,
                                     rotation_matrix);
-  GridTools::collect_periodic_faces(triangulation,
+  GridTools::collect_periodic_faces(this->triangulation,
                                     2,
                                     3,
                                     1,
@@ -296,10 +294,10 @@ make_grid(const unsigned int &n_global_refinements)
                                     offset_y,
                                     rotation_matrix);
 
-  triangulation.add_periodicity(periodicity_vector);
+  this->triangulation.add_periodicity(periodicity_vector);
 
-  triangulation.refine_global(n_global_refinements);
-  boundary_ids = triangulation.get_boundary_ids();
+  this->triangulation.refine_global(n_global_refinements);
+  boundary_ids = this->triangulation.get_boundary_ids();
 }
 
 template <int dim>
@@ -307,19 +305,22 @@ void TGV<dim>::setup_dofs()
 {
   velocity.setup_dofs();
   pressure.setup_dofs();
-  pcout     << "  Number of active cells                = " 
-            << triangulation.n_global_active_cells() << std::endl;
-  pcout     << "  Number of velocity degrees of freedom = " 
-            << velocity.dof_handler.n_dofs()
-            << std::endl
-            << "  Number of pressure degrees of freedom = " 
-            << pressure.dof_handler.n_dofs()
-            << std::endl;
+  *(this->pcout)  << "  Number of active cells                = " 
+                  << this->triangulation.n_global_active_cells() << std::endl;
+  *(this->pcout)  << "  Number of velocity degrees of freedom = " 
+                  << velocity.dof_handler.n_dofs()
+                  << std::endl
+                  << "  Number of pressure degrees of freedom = " 
+                  << pressure.dof_handler.n_dofs()
+                  << std::endl;
 }
 
 template <int dim>
 void TGV<dim>::setup_constraints()
 {
+  velocity.boundary_conditions.clear();
+  pressure.boundary_conditions.clear();
+
   FullMatrix<double> rotation_matrix(dim);
   rotation_matrix[0][0] = 1.;
   rotation_matrix[1][1] = 1.;
@@ -392,7 +393,8 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
     {
       #ifdef USE_PETSC_LA
         LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure.locally_owned_dofs, MPI_COMM_WORLD);
+        tmp_analytical_pressure(pressure.locally_owned_dofs,
+                                this->mpi_communicator);
       #else
         LinearAlgebra::MPI::Vector
         tmp_analytical_pressure(pressure.locally_owned_dofs);
@@ -410,12 +412,12 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
       LinearAlgebra::MPI::Vector distributed_numerical_pressure;
       #ifdef USE_PETSC_LA
         distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
-                                        MPI_COMM_WORLD);
+                                               this->mpi_communicator);
       #else
         distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
-                                        pressure.locally_relevant_dofs,
-                                        MPI_COMM_WORLD,
-                                        true);
+                                               pressure.locally_relevant_dofs,
+                                               this->mpi_communicator,
+                                               true);
       #endif
       distributed_numerical_pressure.reinit(distributed_analytical_pressure);
 
@@ -433,23 +435,23 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
   if (flag_point_evaluation)
   {
     std::cout.precision(1);
-    pcout << "  Step = " 
-          << std::setw(4) 
-          << time_stepping.get_step_number() 
-          << " t = " 
-          << std::noshowpos << std::scientific
-          << time_stepping.get_next_time()
-          << " D_norm = "
-          << navier_stokes.norm_diffusion_rhs
-          << " P_norm = "
-          << navier_stokes.norm_projection_rhs
-          << " CFL = "
-          << navier_stokes.get_cfl_number()
-          << " Progress ["
-          << std::setw(5) 
-          << std::fixed
-          << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-          << "%] \r";
+    *(this->pcout)  << "  Step = " 
+                    << std::setw(4) 
+                    << time_stepping.get_step_number() 
+                    << " t = " 
+                    << std::noshowpos << std::scientific
+                    << time_stepping.get_next_time()
+                    << " D_norm = "
+                    << navier_stokes.norm_diffusion_rhs
+                    << " P_norm = "
+                    << navier_stokes.norm_projection_rhs
+                    << " CFL = "
+                    << navier_stokes.get_cfl_number()
+                    << " Progress ["
+                    << std::setw(5) 
+                    << std::fixed
+                    << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
+                    << "%] \r";
     outputFile << time_stepping.get_step_number() << ","
                << time_stepping.get_next_time() << ","
                << navier_stokes.norm_diffusion_rhs << ","
@@ -492,8 +494,11 @@ void TGV<dim>::output()
   data_out.build_patches(velocity.fe_degree);
   
   static int out_index = 0;
-  data_out.write_vtu_with_pvtu_record(
-    "./", "solution", out_index, MPI_COMM_WORLD, 5);
+  data_out.write_vtu_with_pvtu_record("./",
+                                      "solution",
+                                      out_index,
+                                      this->mpi_communicator,
+                                      5);
   out_index++;
 }
 
@@ -590,8 +595,8 @@ void TGV<dim>::solve(const unsigned int &level)
 
   outputFile << "\n";
 
-  pcout << std::endl;
-  pcout << std::endl;
+  *(this->pcout) << std::endl;
+  *(this->pcout) << std::endl;
 }
 
 template <int dim>
@@ -603,12 +608,13 @@ void TGV<dim>::run(const bool flag_convergence_test)
           level <= prm.final_refinement_level; ++level)
     {
       std::cout.precision(1);
-      pcout << "Solving until t = " 
-            << std::fixed << time_stepping.get_end_time()
-            << " with a refinement level of " << level << std::endl;
+      *(this->pcout)  << "Solving until t = " 
+                      << std::fixed << time_stepping.get_end_time()
+                      << " with a refinement level of " << level 
+                      << std::endl;
       time_stepping.restart();
       solve(level);
-      triangulation.refine_global();
+      this->triangulation.refine_global();
     }
   else
   {
@@ -618,9 +624,10 @@ void TGV<dim>::run(const bool flag_convergence_test)
       double time_step = prm.time_stepping_parameters.initial_time_step *
                          pow(prm.time_step_scaling_factor, cycle);
       std::cout.precision(1);
-      pcout << "Solving until t = " 
-            << std::fixed << time_stepping.get_end_time()
-            << " with a refinement level of " << prm.initial_refinement_level << std::endl;
+      *(this->pcout)  << "Solving until t = " 
+                      << std::fixed << time_stepping.get_end_time()
+                      << " with a refinement level of " 
+                      << prm.initial_refinement_level << std::endl;
       time_stepping.restart();
       time_stepping.set_desired_next_step_size(time_step);
       solve(prm.initial_refinement_level);
@@ -680,9 +687,6 @@ int main(int argc, char *argv[])
       return 1;
   }
   std::cout << "----------------------------------------------------"
-            << std::endl
-            << "Apparently everything went fine!" << std::endl
-            << "Don't forget to brush your teeth :-)" << std::endl
             << std::endl;
   return 0;
 }

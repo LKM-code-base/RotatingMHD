@@ -70,7 +70,12 @@ Problem<dim>(),
 velocity(parameters.p_fe_degree + 1, this->triangulation),
 pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters, velocity, pressure, time_stepping),
+navier_stokes(parameters,
+              velocity,
+              pressure,
+              time_stepping,
+              this->pcout,
+              this->computing_timer),
 inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
 velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
 pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
@@ -103,9 +108,9 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 
   boundary_ids = this->triangulation.get_boundary_ids();
 
-  this->pcout << "Number of refines                     = "
+  *(this->pcout) << "Number of refines                     = "
               << n_global_refinements << std::endl;
-  this->pcout << "Number of active cells                = "
+  *(this->pcout) << "Number of active cells                = "
               << this->triangulation.n_active_cells() << std::endl;
 }
 
@@ -115,7 +120,7 @@ void Step35<dim>::setup_dofs()
   velocity.setup_dofs();
   pressure.setup_dofs();
   
-  this->pcout << "Number of velocity degrees of freedom = "
+  *(this->pcout) << "Number of velocity degrees of freedom = "
               << velocity.dof_handler.n_dofs()
               << std::endl
               << "Number of pressure degrees of freedom = "
@@ -197,8 +202,11 @@ void Step35<dim>::output()
   data_out.build_patches(velocity.fe_degree);
   
   static int out_index = 0;
-  data_out.write_vtu_with_pvtu_record(
-    "./", "solution", out_index, MPI_COMM_WORLD, 5);
+  data_out.write_vtu_with_pvtu_record("./",
+                                      "solution",
+                                      out_index,
+                                      this->mpi_communicator,
+                                      5);
   out_index++;
 }
 
@@ -341,9 +349,6 @@ int main(int argc, char *argv[])
       return 1;
   }
   std::cout << "----------------------------------------------------"
-            << std::endl
-            << "Apparently everything went fine!" << std::endl
-            << "Don't forget to brush your teeth :-)" << std::endl
             << std::endl;
   return 0;
 }

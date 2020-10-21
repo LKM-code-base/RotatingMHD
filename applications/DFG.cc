@@ -261,7 +261,12 @@ Problem<dim>(),
 velocity(parameters.p_fe_degree + 1, this->triangulation),
 pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters, velocity, pressure, time_stepping),
+navier_stokes(parameters,
+              velocity,
+              pressure,
+              time_stepping,
+              this->pcout,
+              this->computing_timer),
 dfg_benchmark(),
 inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
 velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
@@ -296,8 +301,8 @@ make_grid()
   this->triangulation.set_all_manifold_ids_on_boundary(2, 1);
   this->triangulation.set_manifold(1, inner_boundary);
 
-  this->pcout << "Number of active cells                = "
-              << this->triangulation.n_active_cells() << std::endl;
+  *(this->pcout)  << "Number of active cells                = "
+                  << this->triangulation.n_active_cells() << std::endl;
 }
 
 template <int dim>
@@ -306,12 +311,12 @@ void DFG<dim>::setup_dofs()
   velocity.setup_dofs();
   pressure.setup_dofs();
   
-  this->pcout << "Number of velocity degrees of freedom = "
-              << velocity.dof_handler.n_dofs()
-              << std::endl
-              << "Number of pressure degrees of freedom = "
-              << pressure.dof_handler.n_dofs()
-              << std::endl;
+  *(this->pcout)  << "Number of velocity degrees of freedom = "
+                  << velocity.dof_handler.n_dofs()
+                  << std::endl
+                  << "Number of pressure degrees of freedom = "
+                  << pressure.dof_handler.n_dofs()
+                  << std::endl;
 }
 
 template <int dim>
@@ -409,8 +414,11 @@ void DFG<dim>::output()
   data_out.build_patches(velocity.fe_degree);
   
   static int out_index = 0;
-  data_out.write_vtu_with_pvtu_record(
-    "./", "solution", out_index, MPI_COMM_WORLD, 5);
+  data_out.write_vtu_with_pvtu_record("./",
+                                      "solution",
+                                      out_index,
+                                      this->mpi_communicator,
+                                      5);
   out_index++;
 }
 
@@ -430,7 +438,7 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
-  this->pcout << "Solving until t = 35..." << std::endl;
+  *(this->pcout) << "Solving until t = 35..." << std::endl;
   while (time_stepping.get_current_time() <= 35.0)
   {
     // snapshot stage
@@ -453,7 +461,7 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
     time_stepping.advance_time();
   }
 
-  this->pcout << "Restarting..." << std::endl;
+  *(this->pcout) << "Restarting..." << std::endl;
   time_stepping.restart();
   velocity.old_old_solution = velocity.solution;
   navier_stokes.reinit_internal_entities();
@@ -465,8 +473,8 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
-  this->pcout << "Solving until t = " << time_stepping.get_end_time()
-              << "..." << std::endl;
+  *(this->pcout)  << "Solving until t = " << time_stepping.get_end_time()
+                  << "..." << std::endl;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
@@ -545,9 +553,6 @@ int main(int argc, char *argv[])
       return 1;
   }
   std::cout << "----------------------------------------------------"
-            << std::endl
-            << "Apparently everything went fine!" << std::endl
-            << "Don't forget to brush your teeth :-)" << std::endl
             << std::endl;
   return 0;
 }
