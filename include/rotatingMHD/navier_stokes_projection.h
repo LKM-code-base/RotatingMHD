@@ -85,11 +85,6 @@ public:
    const std::shared_ptr<TimerOutput>       external_timer =
        std::shared_ptr<TimerOutput>());
 
-  double                            norm_diffusion_rhs;
-
-  double                            norm_projection_rhs;
-
-
   /*!
    *  @brief Setups and initializes all the internal entities for
    *  the projection method problem.
@@ -178,6 +173,16 @@ public:
    * cell.
    */
   double get_cfl_number();
+
+  /*!
+   * @brief Returns the norm of the right hand side of the diffusion step.
+   */ 
+  double get_diffusion_step_rhs_norm() const;
+
+  /*!
+   * @brief Returns the norm of the right hand side of the projection step.
+   */ 
+  double get_projection_step_rhs_norm() const;
 
 private:
   /*!
@@ -384,6 +389,21 @@ private:
   // SG thinks that all of these parameters can go into a parameter structure.
   const double                          absolute_tolerance = 1.0e-9;
   
+  /*!
+   * @brief The norm of the right hand side of the diffusion step.
+   * @details Its value is that of the last computed pressure-correction
+   * scheme step.
+   */ 
+  double                                  norm_diffusion_rhs;
+
+  /*!
+   * @brief The norm of the right hand side of the projection step.
+   * @details Its value is that of the last computed pressure-correction
+   * scheme step.
+   */ 
+  double                                  norm_projection_rhs;
+
+
   /*!
    * @brief A flag for the assembly of the diffusion step.
    * @details In the case of a constant time step, this flags avoids
@@ -704,6 +724,20 @@ private:
     const AdvectionAssembly::MappingData<dim>             &data);
   
 };
+
+// inline functions
+template <int dim>
+inline double NavierStokesProjection<dim>::get_diffusion_step_rhs_norm() const
+{
+  return (norm_diffusion_rhs);
+}
+
+// inline functions
+template <int dim>
+inline double NavierStokesProjection<dim>::get_projection_step_rhs_norm() const
+{
+  return (norm_projection_rhs);
+}
 
 } // namespace RMHD
 

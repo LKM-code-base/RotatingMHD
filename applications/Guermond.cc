@@ -381,9 +381,9 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
                     << std::noshowpos << std::scientific
                     << time_stepping.get_next_time()
                     << " D_norm = "
-                    << navier_stokes.norm_diffusion_rhs
+                    << navier_stokes.get_diffusion_step_rhs_norm()
                     << " P_norm = "
-                    << navier_stokes.norm_projection_rhs
+                    << navier_stokes.get_projection_step_rhs_norm()
                     << " CFL = "
                     << navier_stokes.get_cfl_number()
                     << " Progress ["
@@ -393,8 +393,8 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
                     << "%] \r";
     outputFile << time_stepping.get_step_number() << ","
                << time_stepping.get_next_time() << ","
-               << navier_stokes.norm_diffusion_rhs << ","
-               << navier_stokes.norm_projection_rhs << ","
+               << navier_stokes.get_diffusion_step_rhs_norm() << ","
+               << navier_stokes.get_projection_step_rhs_norm() << ","
                << time_stepping.get_next_step_size() << ","
                << navier_stokes.get_cfl_number() << std::endl;
   }
