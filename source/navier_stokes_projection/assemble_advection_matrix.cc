@@ -132,9 +132,6 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
           }
           case RunTimeParameters::ConvectionTermForm::rotational:
           {
-            // This form needs to be discussed, specifically which
-            // velocity instance is to be replaced by the extrapolated
-            // velocity The current implementation computes the total pressure.
             // The minus sign in the argument of cross_product_2d
             // method is due to how the method is defined.
             if constexpr(dim == 2)

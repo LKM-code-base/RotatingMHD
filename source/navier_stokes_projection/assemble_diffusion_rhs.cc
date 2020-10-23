@@ -369,9 +369,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
               }
               case RunTimeParameters::ConvectionTermForm::rotational:
               {
-                // This form needs to be discussed, specifically which
-                // velocity instance is to be replaced by the extrapolated
-                // velocity. The current implementation computes the total pressure.
                 // The minus sign in the argument of cross_product_2d
                 // method is due to how the method is defined.
                 if constexpr(dim == 2)
@@ -397,8 +394,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       }
     } // loop over local dofs
   } // loop over quadrature points
-  /*data.local_diffusion_step_rhs *= time_stepping.get_next_step_size();
-  data.local_matrix_for_inhomogeneous_bc *= time_stepping.get_next_step_size();*/
 }
 
 template <int dim>
