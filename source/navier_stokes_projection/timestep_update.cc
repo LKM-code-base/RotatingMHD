@@ -21,7 +21,7 @@ double NavierStokesProjection<dim>::
 get_cfl_number()
 {
   const QIterated<dim>  quadrature_formula(QTrapez<1>(),
-                                           velocity.fe_degree +1);
+                                           velocity.fe_degree);
   FEValues<dim>         fe_values(velocity.fe,
                                   quadrature_formula,
                                   update_values);
