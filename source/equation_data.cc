@@ -6,7 +6,6 @@
  */
 
 #include <rotatingMHD/equation_data.h>
-#include <cmath>
 
 namespace RMHD
 {
@@ -158,13 +157,14 @@ void VelocityExactSolution<dim>::vector_value
 (const Point<dim>  &point,
  Vector<double>    &values) const
 {
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
-  double k = 2.  *M_PI;
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
 
-  values[0] =  exp(-2.0 *k*k/ Re * t)*cos(k * x)*sin(k * y);
-  values[1] = -exp(-2.0 *k*k/ Re * t)*sin(k * x)*cos(k * y);
+  const double F = exp(-2.0 * k * k / Re * t);
+
+  values[0] =   F * cos(k * x) * sin(k * y);
+  values[1] = - F * sin(k * x) * cos(k * y);
 }
 
 template <int dim>
@@ -174,21 +174,22 @@ Tensor<1, dim> VelocityExactSolution<dim>::gradient
 {
   Tensor<1, dim>  return_value;
 
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
-  double k = 2.  *M_PI;
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  const double F = exp(-2.0 * k * k / Re * t);
 
   // The gradient has to match that of dealii, i.e. from the right.
   if (component == 0)
   {
-    return_value[0] = - exp(-2.0 *k*k/Re*t) * k * sin(k * x) * sin(k * y);
-    return_value[1] =   exp(-2.0 *k*k/Re*t) * k * cos(k * x) * cos(k * y);
+    return_value[0] = - F * k * sin(k * x) * sin(k * y);
+    return_value[1] =   F * k * cos(k * x) * cos(k * y);
   }
   else if (component == 1)
   {
-    return_value[0] = - exp(-2.0 *k*k/Re*t) * k * cos(k * x) * cos(k * y);
-    return_value[1] =   exp(-2.0 *k*k/Re*t) * k * sin(k * x) * sin(k * y);
+    return_value[0] = - F * k * cos(k * x) * cos(k * y);
+    return_value[1] =   F * k * sin(k * x) * sin(k * y);
   }
 
   return return_value;
@@ -208,12 +209,13 @@ double PressureExactSolution<dim>::value
 (const Point<dim> &point,
  const unsigned int /* component */) const
 {
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
-  double k = 2.  *M_PI;
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
 
-  return (-0.25*exp(-4.0 *k*k/ Re * t)*(cos(2. * k * x)+cos(2. * k * y)));
+  const double F = exp(-2.0 * k * k / Re * t);
+
+  return (-0.25 * F * F *(cos(2. * k * x) + cos(2. * k * y)));
 }
 
 template<int dim>
@@ -222,13 +224,14 @@ Tensor<1, dim> PressureExactSolution<dim>::gradient
  const unsigned int /* component */) const
 {
   Tensor<1, dim>  return_value;
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
-  double k = 2.  *M_PI;
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
 
-  return_value[0] = 0.5 * exp(-4.0*k*k / Re * t) * k * sin(2. * k * x);
-  return_value[1] = 0.5 * exp(-4.0*k*k / Re * t) * k * sin(2. * k * y);
+  const double F = exp(-2.0 * k * k / Re * t);
+
+  return_value[0] = 0.5 * F * F * k * sin(2. * k * x);
+  return_value[1] = 0.5 * F * F * k * sin(2. * k * y);
 
   return return_value;
 }
