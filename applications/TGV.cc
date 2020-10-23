@@ -353,15 +353,6 @@ void TGV<dim>::setup_constraints()
                                                 1,
                                                 rotation_matrix,
                                                 offset_y);
-
-  /*
-  for (auto const& boundary_id : boundary_ids)
-    velocity.boundary_conditions.set_dirichlet_bcs(
-      boundary_id,
-      std::shared_ptr<Function<dim>>
-        (new EquationData::TGV::VelocityExactSolution<dim>
-          (prm.Re, time_stepping.get_start_time())),
-      true);*/
   
   velocity.apply_boundary_conditions();
 
