@@ -435,13 +435,9 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
   if (flag_point_evaluation)
   {
     std::cout.precision(1);
-    *(this->pcout)  << "  Step = " 
-                    << std::setw(4) 
-                    << time_stepping.get_step_number() 
-                    << " t = " 
-                    << std::noshowpos << std::scientific
-                    << time_stepping.get_next_time()
+    *(this->pcout)  << time_stepping
                     << " D_norm = "
+                    << std::noshowpos << std::scientific
                     << navier_stokes.get_diffusion_step_rhs_norm()
                     << " P_norm = "
                     << navier_stokes.get_projection_step_rhs_norm()
@@ -453,7 +449,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
                     << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
                     << "%] \r";
     outputFile << time_stepping.get_step_number() << ","
-               << time_stepping.get_next_time() << ","
+               << time_stepping.get_current_time() << ","
                << navier_stokes.get_diffusion_step_rhs_norm() << ","
                << navier_stokes.get_projection_step_rhs_norm() << ","
                << time_stepping.get_next_step_size() << ","
@@ -544,7 +540,7 @@ void TGV<dim>::solve(const unsigned int &level)
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
-    // The whole while-scope is at t^{k-1}
+    // The VSIMEXMethod instance starts each loop at t^{k-1}
 
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
@@ -563,21 +559,22 @@ void TGV<dim>::solve(const unsigned int &level)
     // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve(time_stepping.get_step_number());
 
+    // Advances the VSIMEXMethod instance to t^{k}
+    update_entities();
+    time_stepping.advance_time();
+
+
     // Snapshot stage, all time calls should be done with get_next_time()
     postprocessing((time_stepping.get_step_number() %
                     prm.terminal_output_interval == 0) ||
-                    (time_stepping.get_next_time() == 
+                    (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()));
 
     if ((time_stepping.get_step_number() %
           prm.graphical_output_interval == 0) ||
-        (time_stepping.get_next_time() == 
+        (time_stepping.get_current_time() == 
           time_stepping.get_end_time()))
       output();
-    
-    // Advances the time to t^{k}
-    update_entities();
-    time_stepping.advance_time();
   }
   
   Assert(time_stepping.get_current_time() == velocity_exact_solution.get_time(),
