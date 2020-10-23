@@ -179,8 +179,6 @@ public:
 
 private:
 
-  const RunTimeParameters::ParameterSet      &prm;
-
   std::vector<types::boundary_id>             boundary_ids;
 
   Entities::VectorEntity<dim>                 velocity;
@@ -231,9 +229,8 @@ private:
 template <int dim>
 TGV<dim>::TGV(const RunTimeParameters::ParameterSet &parameters)
 :
-Problem<dim>(),
+Problem<dim>(parameters),
 outputFile("TGV_Log.csv"),
-prm(parameters),
 velocity(parameters.p_fe_degree + 1, this->triangulation),
 pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
@@ -535,7 +532,9 @@ void TGV<dim>::solve(const unsigned int &level)
 
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-                              navier_stokes.compute_next_time_step());
+      this->compute_next_time_step(
+        time_stepping, 
+        navier_stokes.get_cfl_number()));
     
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -557,12 +556,12 @@ void TGV<dim>::solve(const unsigned int &level)
 
     // Snapshot stage, all time calls should be done with get_next_time()
     postprocessing((time_stepping.get_step_number() %
-                    prm.terminal_output_interval == 0) ||
+                    this->prm.terminal_output_interval == 0) ||
                     (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()));
 
     if ((time_stepping.get_step_number() %
-          prm.graphical_output_interval == 0) ||
+          this->prm.graphical_output_interval == 0) ||
         (time_stepping.get_current_time() == 
           time_stepping.get_end_time()))
       output();
@@ -574,9 +573,9 @@ void TGV<dim>::solve(const unsigned int &level)
     ExcMessage("Time mismatch between the time stepping class and the pressure function"));
   
   velocity_convergence_table.update_table(
-    level, time_stepping.get_previous_step_size(), prm.flag_spatial_convergence_test);
+    level, time_stepping.get_previous_step_size(), this->prm.flag_spatial_convergence_test);
   pressure_convergence_table.update_table(
-    level, time_stepping.get_previous_step_size(), prm.flag_spatial_convergence_test);
+    level, time_stepping.get_previous_step_size(), this->prm.flag_spatial_convergence_test);
   
   velocity.boundary_conditions.clear();
   pressure.boundary_conditions.clear();
@@ -590,10 +589,10 @@ void TGV<dim>::solve(const unsigned int &level)
 template <int dim>
 void TGV<dim>::run(const bool flag_convergence_test)
 {
-  make_grid(prm.initial_refinement_level);
+  make_grid(this->prm.initial_refinement_level);
   if (flag_convergence_test)
-    for (unsigned int level = prm.initial_refinement_level; 
-          level <= prm.final_refinement_level; ++level)
+    for (unsigned int level = this->prm.initial_refinement_level; 
+          level <= this->prm.final_refinement_level; ++level)
     {
       std::cout.precision(1);
       *(this->pcout)  << "Solving until t = " 
@@ -607,18 +606,18 @@ void TGV<dim>::run(const bool flag_convergence_test)
   else
   {
     for (unsigned int cycle = 0; 
-         cycle < prm.temporal_convergence_cycles; ++cycle)
+         cycle < this->prm.temporal_convergence_cycles; ++cycle)
     {
-      double time_step = prm.time_stepping_parameters.initial_time_step *
-                         pow(prm.time_step_scaling_factor, cycle);
+      double time_step = this->prm.time_stepping_parameters.initial_time_step *
+                         pow(this->prm.time_step_scaling_factor, cycle);
       std::cout.precision(1);
       *(this->pcout)  << "Solving until t = " 
                       << std::fixed << time_stepping.get_end_time()
                       << " with a refinement level of " 
-                      << prm.initial_refinement_level << std::endl;
+                      << this->prm.initial_refinement_level << std::endl;
       time_stepping.restart();
       time_stepping.set_desired_next_step_size(time_step);
-      solve(prm.initial_refinement_level);
+      solve(this->prm.initial_refinement_level);
     }
   }
   

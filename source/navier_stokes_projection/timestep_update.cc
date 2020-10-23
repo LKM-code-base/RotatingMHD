@@ -5,19 +5,6 @@ namespace RMHD
 
 template <int dim>
 double NavierStokesProjection<dim>::
-compute_next_time_step()
-{
-  if (!parameters.time_stepping_parameters.adaptive_time_stepping)
-    return time_stepping.get_next_step_size();
-
-  double max_cfl_number = 1.0;
-
-  return max_cfl_number / get_cfl_number() * 
-         time_stepping.get_next_step_size();
-}
-
-template <int dim>
-double NavierStokesProjection<dim>::
 get_cfl_number()
 {
   const QIterated<dim>  quadrature_formula(QTrapez<1>(),
@@ -67,9 +54,6 @@ update_internal_entities()
 // explicit instantiations
 template double RMHD::NavierStokesProjection<2>::get_cfl_number();
 template double RMHD::NavierStokesProjection<3>::get_cfl_number();
-
-template double RMHD::NavierStokesProjection<2>::compute_next_time_step();
-template double RMHD::NavierStokesProjection<3>::compute_next_time_step();
 
 template void RMHD::NavierStokesProjection<2>::update_internal_entities();
 template void RMHD::NavierStokesProjection<3>::update_internal_entities();

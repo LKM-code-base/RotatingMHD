@@ -12,9 +12,10 @@ namespace RMHD
 using namespace dealii;
 
 template<int dim>
-Problem<dim>::Problem()
+Problem<dim>::Problem(const RunTimeParameters::ParameterSet &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
+prm(prm),
 triangulation(mpi_communicator,
               typename Triangulation<dim>::MeshSmoothing(
               Triangulation<dim>::smoothing_on_refinement |
@@ -142,6 +143,19 @@ void Problem<dim>::compute_error(
       distributed_error_vector(i) *= -1.0;
 
   error_vector = distributed_error_vector;
+}
+
+template <int dim>
+double Problem<dim>::compute_next_time_step
+(const TimeDiscretization::VSIMEXMethod &time_stepping,
+ const double                           cfl_number,
+ const double                           max_cfl_number) const
+{
+  if (!prm.time_stepping_parameters.adaptive_time_stepping)
+    return time_stepping.get_next_step_size();
+
+  return max_cfl_number / cfl_number * 
+         time_stepping.get_next_step_size();
 }
 
 } // namespace RMHD
