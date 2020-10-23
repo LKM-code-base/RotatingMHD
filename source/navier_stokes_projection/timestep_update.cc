@@ -1,5 +1,6 @@
 #include <rotatingMHD/navier_stokes_projection.h>
 
+#include <limits>
 namespace RMHD
 {
 
@@ -15,14 +16,14 @@ get_cfl_number()
 
   const unsigned int  n_q_points    = quadrature_formula.size();
   std::vector<Tensor<1, dim>>       velocity_values(n_q_points);
-  double max_cfl_number             = 1e-10;
+  double max_cfl_number             = std::numeric_limits<double>::lowest();
 
   const FEValuesExtractors::Vector  velocities(0);
   
   for (const auto &cell : velocity.dof_handler.active_cell_iterators())
     if (cell->is_locally_owned())
       {
-        double max_local_velocity = 1e-10;
+        double max_local_velocity = std::numeric_limits<double>::lowest();
         fe_values.reinit(cell);
         fe_values[velocities].get_function_values(velocity.old_solution,
                                                   velocity_values);
