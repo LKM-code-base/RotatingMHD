@@ -143,12 +143,12 @@ public:
   void reinit_internal_entities();
 
   /*!
-   *  @brief Computes the next time step according to the Courant-Friedrichs-Lewy
-   *  condition.
+   *  @brief Computes Courant-Friedrichs-Lewy number for the current
+   *  velocity field.
    *
-   *  @details The next time step is given by 
+   *  @details It is given by 
    * \f[
-   *    \Delta t_{n-1} = C \min_{K \in \Omega_\textrm{h}}
+   *    C = \Delta t_{n-1} \min_{K \in \Omega_\textrm{h}}
    *    \left\lbrace \frac{\max_{P \in K} { \left\lVert \bs{v} \right\rVert}}{h_K} \right\rbrace
    * \f] 
    * where \f$ C \f$ is the Courant number, \f$ K\f$ denotes the 
@@ -156,9 +156,18 @@ public:
    * \f$ P \f$ a quadrature point inside the \f$ K\f$-th cell,
    * \f$ \bs{v} \f$ the velocity, \f$ h_K\f$ the largest diagonal of the \f$ K\f$-th
    * cell.
-   *  @attention The Courant number is hardcoded to 1.
    */
-  double compute_next_time_step();
+  double get_cfl_number();
+
+  /*!
+   * @brief Returns the norm of the right hand side of the diffusion step.
+   */ 
+  double get_diffusion_step_rhs_norm() const;
+
+  /*!
+   * @brief Returns the norm of the right hand side of the projection step.
+   */ 
+  double get_projection_step_rhs_norm() const;
 
 private:
   /*!
@@ -365,6 +374,21 @@ private:
   // SG thinks that all of these parameters can go into a parameter structure.
   const double                          absolute_tolerance = 1.0e-9;
   
+  /*!
+   * @brief The norm of the right hand side of the diffusion step.
+   * @details Its value is that of the last computed pressure-correction
+   * scheme step.
+   */ 
+  double                                  norm_diffusion_rhs;
+
+  /*!
+   * @brief The norm of the right hand side of the projection step.
+   * @details Its value is that of the last computed pressure-correction
+   * scheme step.
+   */ 
+  double                                  norm_projection_rhs;
+
+
   /*!
    * @brief A flag for the assembly of the diffusion step.
    * @details In the case of a constant time step, this flags avoids
@@ -685,6 +709,20 @@ private:
     const AdvectionAssembly::MappingData<dim>             &data);
   
 };
+
+// inline functions
+template <int dim>
+inline double NavierStokesProjection<dim>::get_diffusion_step_rhs_norm() const
+{
+  return (norm_diffusion_rhs);
+}
+
+// inline functions
+template <int dim>
+inline double NavierStokesProjection<dim>::get_projection_step_rhs_norm() const
+{
+  return (norm_projection_rhs);
+}
 
 } // namespace RMHD
 

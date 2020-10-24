@@ -66,7 +66,7 @@ private:
 template <int dim>
 Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
 :
-Problem<dim>(),
+Problem<dim>(parameters),
 velocity(parameters.p_fe_degree + 1, this->triangulation),
 pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
@@ -234,10 +234,11 @@ void Step35<dim>::run(
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
     // snapshot stage
-    //this->pcout << "Desired time step: " << navier_stokes.compute_next_time_step() << std::endl;
 
     time_stepping.set_desired_next_step_size(
-                              navier_stokes.compute_next_time_step());
+      this->compute_next_time_step(
+        time_stepping, 
+        navier_stokes.get_cfl_number()));
 
     // update stage
     time_stepping.update_coefficients();
