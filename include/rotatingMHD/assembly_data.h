@@ -5,6 +5,7 @@
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping.h>
 #include <deal.II/numerics/matrix_tools.h>
 
 namespace RMHD
@@ -247,6 +248,168 @@ struct LocalCellData
 };
 
 }
+
+
+namespace TemperatureConstantMatricesAssembly
+{
+
+template <int dim>
+struct MappingData
+{
+  
+  unsigned int                          dofs_per_cell;
+  
+  FullMatrix<double>                    local_mass_matrix;
+
+  FullMatrix<double>                    local_stiffness_matrix;
+
+  std::vector<types::global_dof_index>  local_dof_indices;
+
+  MappingData(const unsigned int dofs_per_cell);
+  
+  MappingData(const MappingData &data);
+};
+
+template <int dim>
+struct LocalCellData
+{
+  
+  FEValues<dim>               fe_values;
+  
+  unsigned int                n_q_points;
+  
+  unsigned int                dofs_per_cell;
+  
+  std::vector<double>         phi;
+
+  std::vector<Tensor<1,dim>>  grad_phi;
+
+  LocalCellData(const Mapping<dim>   &mapping,
+                const FE_Q<dim>      &fe,
+                const Quadrature<dim>&quadrature_formula,
+                const UpdateFlags     update_flags);
+  
+  LocalCellData(const LocalCellData  &data);
+};
+
+} // namespace TemperatureMassMatrixAssembly
+
+namespace TemperatureAdvectionMatrixAssembly
+{
+
+template <int dim>
+struct MappingData
+{
+  
+  unsigned int                          dofs_per_cell;
+  
+  FullMatrix<double>                    local_matrix;
+  
+  std::vector<types::global_dof_index>  local_dof_indices;
+
+  MappingData(const unsigned int dofs_per_cell);
+  
+  MappingData(const MappingData &data);
+};
+
+template <int dim>
+struct LocalCellData
+{
+  FEValues<dim>               temperature_fe_values;
+
+  FEValues<dim>               velocity_fe_values;
+
+  unsigned int                n_q_points;
+  
+  unsigned int                dofs_per_cell;
+  
+  std::vector<Tensor<1,dim>>  velocity_values;
+  
+  std::vector<double>         phi;
+  
+  std::vector<Tensor<1,dim>>  grad_phi;
+
+  LocalCellData(const Mapping<dim>   &mapping,
+                const FE_Q<dim>      &temperature_fe,
+                const FESystem<dim>  &velocity_fe,
+                const Quadrature<dim>&quadrature_formula,
+                const UpdateFlags     temperature_update_flags,
+                const UpdateFlags     velocity_update_flags);
+  
+  LocalCellData(const LocalCellData  &data);
+};
+
+} // namespace TemperatureAdvectionMatrixAssembly
+
+namespace TemperatureRightHandSideAssembly
+{
+
+template <int dim>
+struct MappingData
+{
+  unsigned int                          dofs_per_cell;
+
+  Vector<double>                        local_rhs;
+
+  FullMatrix<double>                    local_matrix_for_inhomogeneous_bc;
+
+  std::vector<types::global_dof_index>  local_dof_indices;
+
+  MappingData(const unsigned int dofs_per_cell);
+
+  MappingData(const MappingData &data);
+};
+
+template <int dim>
+struct LocalCellData
+{
+  FEValues<dim>                         temperature_fe_values;
+
+  FEValues<dim>                         velocity_fe_values;
+
+  FEFaceValues<dim>                     temperatuer_fe_face_values;
+
+  unsigned int                          n_q_points;
+
+  unsigned int                          n_face_q_points;
+
+  unsigned int                          dofs_per_cell;
+
+  std::vector<double>                   temperature_tmp_values;
+
+  std::vector<double>                   supply_term_values;
+  
+  std::vector<double>                   neumann_bc_values;
+
+  std::vector<double>                   old_temperature_values;
+  
+  std::vector<double>                   old_old_temperature_values;
+
+  std::vector<Tensor<1,dim>>            old_temperature_gradients;
+
+  std::vector<Tensor<1,dim>>            old_old_temperature_gradients;
+
+  std::vector<Tensor<1,dim>>            velocity_values;
+
+  std::vector<double>                   phi;
+
+  std::vector<Tensor<1,dim>>            grad_phi;
+
+  std::vector<double>                   face_phi;
+
+  LocalCellData(const Mapping<dim>      &mapping,
+                const FE_Q<dim>         &temperature_fe,
+                const FESystem<dim>     &velocity_fe,
+                const Quadrature<dim>   &quadrature_formula,
+                const Quadrature<dim-1> &face_quadrature_formula,
+                const UpdateFlags        temperature_update_flags,
+                const UpdateFlags        velocity_update_flags,
+                const UpdateFlags        temperature_face_update_flags);
+
+  LocalCellData(const LocalCellData     &data);
+};
+
+} // namespace TemperatureRightHandSideAssembly
 
 } // namespace RMHD
 
