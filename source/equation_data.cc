@@ -381,16 +381,13 @@ template <int dim>
 Tensor<1, dim> VelocityExactSolution<dim>::value
 (const Point<dim>  &point) const
 {
-    Tensor<1, dim>  return_value;
+  Tensor<1, dim>  return_value;
 
-  const double t = this->get_time();
   const double x = point(0);
   const double y = point(1);
 
-  const double F = exp(-2.0 * k * k  * t);
-
-  return_value[0] = cos(k * x) * cos(k * y);//  F * cos(k * x) * sin(k * y);
-  return_value[1] = sin(k * x) * sin(k * y);//- F * sin(k * x) * cos(k * y);
+  return_value[0] = cos(k * x) * cos(k * y);
+  return_value[1] = sin(k * x) * sin(k * y);
 
   return return_value;
 }
@@ -398,9 +395,13 @@ Tensor<1, dim> VelocityExactSolution<dim>::value
 
 template <int dim>
 TemperatureExactSolution<dim>::TemperatureExactSolution
-(const double time)
+(const double Re,
+ const double Pr,
+ const double time)
 :
-Function<dim>(1, time)
+Function<dim>(1, time),
+Re(Re),
+Pr(Pr)
 {}
 
 template<int dim>
@@ -412,7 +413,7 @@ double TemperatureExactSolution<dim>::value
   const double x = point(0);
   const double y = point(1);
 
-  const double F = exp(-2.0 * k * k  * t);
+  const double F = exp(-2.0 * k * k  / Re / Pr * t);
 
   return (F *(cos(k * x) * sin(k * y)));
 }
@@ -427,7 +428,7 @@ Tensor<1, dim> TemperatureExactSolution<dim>::gradient
   const double x = point(0);
   const double y = point(1);
 
-  const double F = exp(-2.0 * k * k  * t);
+  const double F = exp(-2.0 * k * k  / Re / Pr * t);
 
   return_value[0] = - F * k * sin(k * x) * sin(k * y);
   return_value[1] = + F * k * cos(k * x) * cos(k * y);
@@ -447,14 +448,11 @@ void VelocityField<dim>::vector_value
 (const Point<dim>  &point,
  Vector<double>    &values) const
 {
-  const double t = this->get_time();
   const double x = point(0);
   const double y = point(1);
 
-  const double F = exp(-2.0 * k * k  * t);
-
-  values[0] = cos(k * x) * cos(k * y);//  F * cos(k * x) * sin(k * y);
-  values[1] = sin(k * x) * sin(k * y);//- F * sin(k * x) * cos(k * y);
+  values[0] = cos(k * x) * cos(k * y);
+  values[1] = sin(k * x) * sin(k * y);
 }
 
 } // namespace ThermalTGV

@@ -222,7 +222,9 @@ template <int dim>
 class TemperatureExactSolution : public Function<dim>
 {
 public:
-  TemperatureExactSolution(const double time = 0);
+  TemperatureExactSolution(const double Re,
+                           const double Pr,
+                           const double time = 0);
 
   virtual double value(const Point<dim> &p,
                        const unsigned int component = 0) const override;
@@ -231,6 +233,15 @@ public:
                                   const unsigned int = 0) const override;
 
 private:
+  /*!
+   * @brief The Reynolds number.
+   */ 
+  const double Re;
+
+  /*!
+   * @brief The Prandt number.
+   */ 
+  const double Pr;
 
   /*!
    * @brief The wave number.
