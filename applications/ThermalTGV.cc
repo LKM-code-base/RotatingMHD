@@ -80,10 +80,12 @@ ThermalTGV<dim>::ThermalTGV(
 :
 Problem<dim>(parameters),
 outputFile("ThermalTGV_Log.csv"),
-temperature(parameters.p_fe_degree, this->triangulation),
+temperature(parameters.temperature_fe_degree, this->triangulation),
 velocity(parameters.p_fe_degree + 1, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
-exact_solution(parameters.time_stepping_parameters.start_time),
+exact_solution(parameters.Re,
+               parameters.Pr,
+               parameters.time_stepping_parameters.start_time),
 velocity_field(parameters.time_stepping_parameters.start_time),
 //velocity(new EquationData::ThermalTGV::VelocityExactSolution<dim>(
 //    parameters.time_stepping_parameters.start_time)),
