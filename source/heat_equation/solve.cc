@@ -63,7 +63,7 @@ void HeatEquation<dim>::assemble_linear_system()
       mass_matrix);
 
     mass_plus_stiffness_matrix.add(
-      time_stepping.get_gamma()[0],
+      time_stepping.get_gamma()[0] / parameters.Re / parameters.Pr,
       stiffness_matrix);
 
     if (!parameters.time_stepping_parameters.adaptive_time_stepping)
