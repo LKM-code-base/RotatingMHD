@@ -136,14 +136,30 @@ The production term of the balance of internal energy, i.e. $\bs{T} \cdott (\nab
 \begin{equation}\label{Eqn:HeatEquation}
 	\pfrac{\vartheta}{t} + \bs{v} \cdot \nabla \vartheta = \alpha \Delta \vartheta + \frac{1}{c} r , \quad \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
 \end{equation}
-where $\alpha := \tfrac{\kappa}{\rho c}$ is the thermal diffusivity coefficient. The dimensionless form of \cref{Eqn:HeatEquation} is given by 
+with boundary conditions
+\begin{alignat*}{2}
+	\vartheta &= \vartheta_\textrm{D}, \quad& \forall (\bs{x}, t)&\in \Gamma_\textrm{D} \times \left[0, T \right] \\
+\alpha \nabla \vartheta \cdot \bs{n} &= g_\textrm{N}, \quad& \forall (\bs{x}, t)&\in \Gamma_\textrm{N} \times \left[0, T \right]\\
+\intertext{and initial condtion,} 
+{\vartheta}\big|_{t = 0} &= {\vartheta}_0,\quad &\forall {\bs{x}}& \in {\Omega} 
+\end{alignat*}
+where $\alpha := \tfrac{\kappa}{\rho c}$ is the thermal diffusivity coefficient, $ \vartheta_\textrm{D}$ denotes the temperature at the \textsc{Dirichlet} boundary $\Gamma_\textrm{D}\subset\partial\Omega$, $g_\textrm{N}$ the heat flux at the \textsc{Neumann} boundary $\Gamma_\textrm{N}\subset\partial\Omega$, $\bs{t}_\textrm{N}$, with $\partial \Omega = \Gamma_\textrm{D} \cup \Gamma_\textrm{N}$ and $ \Gamma_\textrm{D} \cap \Gamma_\textrm{N} = \emptyset$, and $ \vartheta_0$ is the initial temperature field. \\
+
+The dimensionless form of \cref{Eqn:HeatEquation} is given by 
 \begin{equation}\label{Eqn:DimensionlessHeatEquation}
 	\pfrac{\tilde{\vartheta}}{\tilde{t}} + \bs{\tilde{v}} \cdot \tilde{\nabla} \tilde{\vartheta} = \dfrac{1}{\mathrm{Re}\mathrm{Pr}} \tilde{\Delta} \tilde{\vartheta} + \tilde{r }, \quad \forall (\bs{\tilde{x}}, \tilde{t}) \in\tilde{ \Omega }\times [0,\tilde{ T} ]
 \end{equation}
+with boundary conditions
+\begin{alignat*}{2}
+\tilde{\vartheta} &= \tilde{\vartheta}_\textrm{D}, \quad& \forall (\tilde{\bs{x}}, \tilde{t})&\in \tilde{ \Gamma}_\textrm{D} \times [0,\tilde{ T}] \\
+ \dfrac{1}{\mathrm{Re}\mathrm{Pr}} \tilde{\nabla} \tilde{\vartheta} \cdot \bs{n} &= \tilde{g}_\textrm{N}, \quad& \forall (\tilde{\bs{x}}, \tilde{t})&\in \tilde{ \Gamma}_\textrm{N} \times [0, \tilde{ T} ]\\
+\intertext{and initial condtion,} 
+\tilde{\vartheta}\big|_{t = 0} &= \tilde{\vartheta}_0,\quad &\forall \tilde{\bs{x}}& \in \tilde{\Omega} 
+\end{alignat*}
 which is obtained by choosing
 \begin{equation*}
-	\tilde{\vartheta} = \dfrac{\vartheta-\vartheta_0}{\vartheta_1 - \vartheta_0}, \quad
-	 \hat{t} = \dfrac{L_\textrm{c}}{\hat{v}} \quad \textrm{and} \quad \hat{r} = \dfrac{c\hat{v} (\vartheta_1 - \vartheta_0)}{L_\textrm{c}}
+	\tilde{\vartheta} = \dfrac{\vartheta-\vartheta_{\min}}{\vartheta_{\max} - \vartheta_{\min}}, \quad
+	 \hat{t} = \dfrac{L_\textrm{c}}{\hat{v}} \quad \textrm{and} \quad \hat{r} = \dfrac{c\hat{v} (\vartheta_{\max} - \vartheta_{\min})}{L_\textrm{c}}
 \end{equation*}
  \textbf{From here on now the tildes are going to be obviated, but keep in mind we are working with the dimensionless form of the field equations}.\\
 \section{Projection methods: Pressure-correction schemes}
@@ -353,24 +369,41 @@ and treat the convective term outside of the VSIMEX scheme, as we did with the p
 \begin{equation*}
 	\bs{u}^{\star, k} \cdot (\nabla \otimes \bs{u}^{k}) + \dfrac{1}{2} (\nabla \cdot \bs{u}^{\star, k})\bs{u}^{k}
 \end{equation*}
-\subsection{Implementation of the VSIMEX multistep time discretization schemes to the heat equation}
+\subsection{Implementation of the VSIMEX multistep time discretization schemes to the heat equation}\label{Sec:TimeDiscretizationHeatEquation}
+For the heat equation, as seen in \cref{Eqn:DimensionlessHeatEquation}, we propose the following treatment:
 \begin{equation*}
 	\begin{aligned}
 		f(\vartheta, \bs{v}, \dots) &= -\bs{v} \cdot \nabla \vartheta + r(\dots) \\
 		g(\vartheta) &= \frac{1}{\textrm{Re}\textrm{Pr}} \Delta \vartheta
 	\end{aligned}
 \end{equation*}
-
+which leads to time discretized equation
 \begin{equation}
-	\begin{split}\label{Eqn:VSIMEXDiffusionStep}
+	\begin{split}\label{Eqn:VSIMEXHeatEquation}
 		\dfrac{\alpha_0^k}{\Delta t_{k-1}} \vartheta^{k} -\dfrac{\gamma_0^k}{\textrm{Re}\textrm{Pr}} \Delta \vartheta^{k} = \sum_{j=1}^{s} \beta_j^k \left(r - \bs{v}^{k-j} \cdot \nabla \vartheta^{k-j}\right) + 
-		\sum_{j=1}^{s} \dfrac{\gamma_j^k}{\textrm{Re}\textrm{Pr}} \Delta \vartheta^{k-j} - \\  \sum_{j=1}^{s} \dfrac{\alpha_i^k}{\Delta t_{k-1}}\vartheta^{k-j}, \qquad \forall(\bs{x},t)\in \Omega \times [0, T]
+		\sum_{j=1}^{s} \dfrac{\gamma_j^k}{\textrm{Re}\textrm{Pr}} \Delta \vartheta^{k-j} - \\  \sum_{j=1}^{s} \dfrac{\alpha_i^k}{\Delta t_{k-1}}\vartheta^{k-j}, \qquad \forall(\bs{x},t^k)\in \Omega \times [0, T]
 	\end{split}
 \end{equation}
-
+with boundary conditions
+\begin{equation*}
+\begin{aligned}
+\vartheta^{k} &= \vartheta_\textrm{D}^k, &\forall(\bs{x}, t^k) &\in \Gamma_\textrm{D} \times [0, T] \\
+\dfrac{1}{\textrm{Re}\textrm{Pr}}\nabla \vartheta^k \cdot \bs{n} &= g_\textrm{N}^k,  &\forall(\bs{x}, t^k) &\in \Gamma_\textrm{N} \times [0, T]
+\end{aligned}
+\end{equation*}
+and initial conditions $\lbrace\vartheta^{s-j} \rbrace$ with $j \in [1, s-1]\subset \mathbb{Z}$.
+\subsubsection{An implicit approach}\label{Sec:HeatEquationImplicit}
+Alternatively one can choose to treat the advection term implicitly and outside the VSIMEX scheme, i.e.
+\begin{equation*}
+\begin{aligned}
+f(\dots) &= r(\dots) \\
+g(\vartheta) &= \frac{1}{\textrm{Re}\textrm{Pr}} \Delta \vartheta \\
+h(\vartheta, \bs{v}) &= -\bs{v} \cdot \nabla \vartheta 
+\end{aligned}
+\end{equation*}
 \section{Spatial discretization}
 The problem described in the \cref{Sec:FluidMechanics} will be solved using the finite element method, which is based upon the weak formulation of the problem and the proper selection and discretization of the trial and test function spaces.
-\subsection{Weak formulation}
+\subsection{Weak formulation of the pressure-correction scheme}
 The weak formulation of diffusion and correction step is obtained by multiplying the \cref{Eqn:VSIMEXDiffusionStep,Eqn:VSIMEXProjectionStep} by the test functions $\bs{\nu}$ and $\omega$ respectively; applying the \textsc{Gauss} theorem where possible and assuming there are no \textsc{Neumann} boundary conditions; and applying a \textsc{Galerkin} space reduction the discrete problem becomes: Find $(\bs{u}^k_\textrm{h}, \phi^k_\textrm{h}) \in (V_{\bs{u}}, V_\phi)$ that fulfills
 \begin{equation*}
 \begin{split}
@@ -506,7 +539,126 @@ and the right hand side is given by
 	\end{split}
 \end{equation*}
 This linear equation system is obtained by setting the \texttt{vsimex\_method\_flag} and \\ \texttt{semi\_implicit\_convection\_flag} to \texttt{true}.
-
+\subsection{Weak formulation of the heat equation}
+The weak formulation of the heat equation is obtained by multiplying the \cref{Eqn:DimensionlessHeatEquation} by the test function $\zeta$ and applying the \textsc{Gauss} theorem where possible. The problem then becomes: Find $\vartheta \in V_\vartheta$ that fulfils
+\begin{equation}
+	\int_{\Omega}\left[ \zeta \pfrac{\vartheta}{t} + \zeta (\bs{v}\cdot \nabla \vartheta) + \dfrac{1}{\textrm{Re}\textrm{Pr}} \nabla \zeta  \cdot \nabla \vartheta \right] \d v = \int_{\Omega} \zeta r \d v + \int_{\Gamma_\textrm{N}} \zeta g_\textrm{N} \d a, \quad \forall \zeta \in V_\zeta
+\end{equation}
+where $V_\vartheta$ and $V_\zeta$ are the continuous trial and test function spaces respectively. Implementing the temporal discretization of \cref{Sec:TimeDiscretizationHeatEquation} and applying the \textsc{Galerkin} space reduction
+\begin{equation*}
+	\vartheta_\textrm{h} \in W_\vartheta \subset V_\vartheta, \quad \vartheta_\textrm{h} = \textstyle\sum_{i = 1}^{\dim W_\vartheta} \varTheta_i \psi_i,
+	\quad \textrm{and} \quad
+	\zeta_\textrm{h} \in W_\zeta \subset V_\zeta,
+\end{equation*}
+where $W_\vartheta$ and $W_\zeta$ are the discrete trial and test function spaces respectively, $\varTheta_i$ are the nodal values and $\psi_i$ the basis which span the trial and test function spaces, the fully discrete problem becomes: Find $\vartheta^k_\textrm{h} \in W_\vartheta$ that fulfils
+\begin{equation*}
+\begin{split}
+\dfrac{\alpha_0^k}{\Delta t^{k-1}} 
+\int_{\Omega}
+\zeta_\textrm{h} \vartheta^k_\textrm{h}
+\d v 
++ 
+\dfrac{\gamma_0^k}{\textrm{Re}\textrm{Pr}}
+\int_{\Omega} 
+\nabla \zeta_\textrm{h} \cdot \nabla\vartheta^k_\textrm{h}
+\d v
+=
+\\
+-
+\int_{\Omega}
+\sum_{j=1}^{s} 
+\left[
+\dfrac{\alpha_j^k}{\Delta t^{k-1}}\zeta_\textrm{h} \vartheta^{k-j}_\textrm{h}
++
+\beta_j^k \zeta_\textrm{h} \left[ \bs{v}^{k-j}_\textrm{h} \cdot \nabla \vartheta^{k-j}_\textrm{h} - r \right]
++
+\dfrac{\gamma_j^k}{\textrm{Re}\textrm{Pr}} \nabla \zeta_\textrm{h} \cdot \nabla \vartheta^{k-j}_\textrm{h}
+\right]
+\d v \\
++ 
+\int_{\Gamma_\textrm{N}}
+ \zeta_\textrm{h} g_\textrm{N}^k
+\d a, \quad \forall \zeta_\textrm{h} \in W_\zeta
+\end{split} 	
+\end{equation*}
+This leads to the linear equation system
+\begin{equation*}
+\left[
+\dfrac{\alpha_0^k}{\Delta t^{k-1}} 
+\mathcal{M}^\vartheta_{ij}
++
+\dfrac{\gamma_0^k}{\textrm{Re}\textrm{Pr}}
+\mathcal{K}^\vartheta_{ij}
+\right]
+\varTheta^k_j
+= 
+b^{\vartheta, k}_i
+\end{equation*}
+The matrices $\mathcal{M}^\vartheta$ and $\mathcal{K}^\vartheta$ are the mass matrices and stiffness matrix of the temperature, given by
+\begin{equation*}
+\mathcal{M}^\vartheta_{ij}= \int_{\Omega} \psi_i \cdot \psi_j \d v,
+\qquad
+\mathcal{K}^\vartheta_{ij} = \int_{\Omega} \nabla \psi_i \cdot \nabla \psi_j \d v,
+\end{equation*}
+and the right hand side is given by 
+\begin{equation*}
+\begin{split}
+b^\vartheta_i = -
+\int_{\Omega}
+\sum_{j=1}^{s} 
+\left[
+\dfrac{\alpha_j^k}{\Delta t^{k-1}}\psi_i \vartheta^{k-j}_\textrm{h}
++
+\beta_j^k \psi_i \left[ \bs{v}^{k-j}_\textrm{h} \cdot \nabla \vartheta^{k-j}_\textrm{h} - r \right]
++ 
+\dfrac{\gamma_j^k}{\textrm{Re}\textrm{Pr}} \nabla \psi_i \cdot \nabla \vartheta^{k-j}_\textrm{h}
+\right]
+\d v 
++ \\
+\int_{\Gamma_\textrm{N}}
+ \psi_i g_\textrm{N}^k
+\d a, \quad \forall \zeta_\textrm{h} \in W_\zeta
+\end{split}
+\end{equation*}
+\subsubsection{An implicit approach}
+If the implicit approach described in \cref{Sec:HeatEquationImplicit} is chosen, the linear equation system becomes
+\begin{equation*}
+\left[
+\dfrac{\alpha_0^k}{\Delta t^{k-1}} 
+\mathcal{M}^\vartheta_{ij}
++
+\dfrac{\gamma_0^k}{\textrm{Re}\textrm{Pr}}
+\mathcal{K}^\vartheta_{ij}
++
+\mathcal{C}^\vartheta_{ij}
+\right]
+\varTheta^k_j
+= 
+b^{\vartheta, k}_i
+\end{equation*}
+with the advection matrix $\mathcal{C}^\vartheta$ is given by
+\begin{equation*}
+	\mathcal{C}^\vartheta_{ij} = \int_{\Omega} \psi_i \bs{v}^{k}_\textrm{h} \cdot \nabla \psi_j \d v
+\end{equation*}
+and the right hand side by
+\begin{equation*}
+\begin{split}
+b^\vartheta_i = -
+\int_{\Omega}
+\sum_{j=1}^{s} 
+\left[
+\dfrac{\alpha_j^k}{\Delta t^{k-1}}\psi_i \vartheta^{k-j}_\textrm{h}
+-
+\beta_j^k \psi_i r
++ 
+\dfrac{\gamma_j^k}{\textrm{Re}\textrm{Pr}} \nabla \psi_i \cdot \nabla \vartheta^{k-j}_\textrm{h}
+\right]
+\d v 
++ \\
+\int_{\Gamma_\textrm{N}} \psi_i g_\textrm{N}^k
+\d a, \quad \forall \zeta_\textrm{h} \in W_\zeta
+\end{split}
+\end{equation*}
 \section{DFG benchmark}
 The DFG benchmark models the flow inside a pipe with a circular cylinder as obstacle (See Fig ). The field equations for the problem are those we obtained in section \ref{Sec:FluidMechanics}
 \begin{equation*}
