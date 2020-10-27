@@ -40,7 +40,8 @@ class HeatEquation
 
 public:
   /*!
-   * @brief The constructor of the HeatEquation class.
+   * @brief The constructor of the HeatEquation class where the velocity
+   * a VectorEntitty instance is.
    * 
    * @details Stores local references to the input parameters and 
    * pointers for terminal output entities.
@@ -57,6 +58,15 @@ public:
    const std::shared_ptr<TimerOutput>       external_timer =
        std::shared_ptr<TimerOutput>());
 
+  /*!
+   * @brief The constructor of the HeatEquation class where the velocity
+   * a TensorFunction instance is
+   * 
+   * @details Stores local references to the input parameters and 
+   * pointers for terminal output entities.
+   * 
+   * @warning This is still a WIP. It throws errors while executing.
+   */
   HeatEquation
   (const RunTimeParameters::ParameterSet        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
