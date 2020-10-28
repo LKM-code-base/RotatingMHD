@@ -62,6 +62,7 @@ ENDIF()
 SET(TARGET_SRC
     source/benchmark_data.cc
     source/boundary_conditions.cc
+    source/convergence_struct.cc
     source/entities_structs.cc
     source/equation_data.cc
     source/problem_class.cc
