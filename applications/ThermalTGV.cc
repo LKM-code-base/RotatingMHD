@@ -222,21 +222,6 @@ void ThermalTGV<dim>::initialize()
   this->set_initial_conditions(velocity,
                                velocity_field,
                                time_stepping);
-  /*#ifdef USE_PETSC_LA
-    LinearAlgebra::MPI::Vector
-    tmp_old_solution(velocity.locally_owned_dofs, velocity.mpi_communicator);
-  #else
-    LinearAlgebra::MPI::Vector
-    tmp_old_solution(velocity.locally_owned_dofs);
-  #endif
-
-  VectorTools::project(velocity.dof_handler,
-                        velocity.constraints,
-                        QGauss<dim>(velocity.fe_degree + 2),
-                        velocity_field,
-                        tmp_old_solution);
-
-  velocity.solution = tmp_old_solution;*/
 }
 
 template <int dim>
@@ -451,7 +436,15 @@ void ThermalTGV<dim>::run(const bool flag_convergence_test)
       heat_equation.set_linear_algebra_to_reset();
     }
   }
+
+  std::string tablefilename = (this->prm.flag_spatial_convergence_test) ?
+                              "ThermalTGVSpatialTest" : 
+                              "ThermalTGVTemporalTest_Level" + 
+                              std::to_string(this->prm.initial_refinement_level);
+  tablefilename += "_Pr" + std::to_string((int)this->prm.Pr);
+
   convergence_table.print_table_to_terminal();
+  convergence_table.print_table_to_file(tablefilename);
 }
 
 } // namespace RMHD
