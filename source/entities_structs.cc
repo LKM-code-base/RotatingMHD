@@ -390,8 +390,6 @@ void ScalarEntity<dim>::apply_boundary_conditions()
   this->constraints.merge(this->hanging_nodes);
   if (!boundary_conditions.periodic_bcs.empty())
   {
-    FEValuesExtractors::Scalar extractor(0);
-
     std::vector<unsigned int> first_vector_components;
     first_vector_components.push_back(0);
 
@@ -406,14 +404,11 @@ void ScalarEntity<dim>::apply_boundary_conditions()
         periodic_bc.boundary_pair.second,
         periodic_bc.direction,
         periodicity_vector,
-        periodic_bc.offset,
-        periodic_bc.rotation_matrix);
+        periodic_bc.offset);
     
     DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
       periodicity_vector,
-      this->constraints,
-      fe.component_mask(extractor),
-      first_vector_components);
+      this->constraints);
   }
   if (!boundary_conditions.dirichlet_bcs.empty())
   {
