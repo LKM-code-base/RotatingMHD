@@ -9,9 +9,14 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Assemble velocity matrices..." << std::endl;
+    *pcout << "  Navier Stokes: Assembling velocity mass and stiffness matrices..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Velocity matrix assembly");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Velocity");
+
+  // Polynomial degree of the integrand
+  const int p_degree = 2 * velocity.fe_degree;
+
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * (p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
@@ -40,7 +45,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
    worker,
    copier,
    VelocityMatricesAssembly::LocalCellData<dim>(velocity.fe,
-                                                velocity.quadrature_formula,
+                                                quadrature_formula,
                                                 update_values|
                                                 update_gradients|
                                                 update_JxW_values),
@@ -126,9 +131,14 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_pressure_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Assemble pressure matrices..." << std::endl;
+    *pcout << "  Navier Stokes: Assembling pressure mass and stiffness matrices..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Pressure matrix assembly");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Pressure");
+
+  // Polynomial degree of the integrand
+  const int p_degree = 2 * pressure.fe_degree;
+
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * (p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
@@ -157,7 +167,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
    worker,
    copier,
    PressureMatricesAssembly::LocalCellData<dim>(pressure.fe,
-                                                pressure.quadrature_formula,
+                                                quadrature_formula,
                                                 update_values|
                                                 update_gradients|
                                                 update_JxW_values),

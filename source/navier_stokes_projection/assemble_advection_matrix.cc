@@ -7,9 +7,14 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 {
-  TimerOutput::Scope  t(*computing_timer, "Assembly velocity advection matrix");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Advection matrix assembly");
 
   velocity_advection_matrix = 0.;
+
+  // Polynomial degree of the integrand
+  const int p_degree = 3 * velocity.fe_degree - 1;
+
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * (p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
@@ -38,7 +43,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
    worker,
    copier,
    AdvectionAssembly::LocalCellData<dim>(velocity.fe,
-                                         velocity.quadrature_formula,
+                                         quadrature_formula,
                                          update_values|
                                          update_JxW_values|
                                          update_gradients),

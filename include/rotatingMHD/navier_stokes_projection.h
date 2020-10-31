@@ -63,9 +63,8 @@ using namespace dealii;
  * \f]
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
  * incremental scheme respectively.
- * @todo Implement the complete generalized VSIMEX method.
  * @todo Implement a generalized extrapolation scheme.
- * @todo Implement the different forms of the convective term.
+ * @todo Implement Neumann boundary conditions.
  * @attention The code is hardcoded for a second order time discretization
  * scheme. Setting a first order scheme in the parameter file will cause
  * errors.

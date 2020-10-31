@@ -94,6 +94,8 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
 template <int dim>
 void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
+
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(this->triangulation);
 
@@ -117,6 +119,8 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 template <int dim>
 void Step35<dim>::setup_dofs()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
+
   velocity.setup_dofs();
   pressure.setup_dofs();
   
@@ -131,6 +135,8 @@ void Step35<dim>::setup_dofs()
 template <int dim>
 void Step35<dim>::setup_constraints()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
+
   velocity.boundary_conditions.set_dirichlet_bcs(
     1,
     std::shared_ptr<Function<dim>> 
@@ -162,6 +168,8 @@ void Step35<dim>::setup_constraints()
 template <int dim>
 void Step35<dim>::initialize()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
+
   this->set_initial_conditions(velocity, 
                                velocity_initial_conditions, 
                                time_stepping);
@@ -177,6 +185,8 @@ void Step35<dim>::initialize()
 template <int dim>
 void Step35<dim>::postprocessing(const bool flag_point_evaluation)
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
+
   static Point<dim> evaluation_point(2.0, 3.0);
   if (flag_point_evaluation)
   {
@@ -187,6 +197,8 @@ void Step35<dim>::postprocessing(const bool flag_point_evaluation)
 template <int dim>
 void Step35<dim>::output()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
+
   std::vector<std::string> names(dim, "velocity");
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
     component_interpretation(

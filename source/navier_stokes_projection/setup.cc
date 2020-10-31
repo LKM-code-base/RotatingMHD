@@ -30,9 +30,9 @@ template <int dim>
 void NavierStokesProjection<dim>::setup_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Setup matrices..." << std::endl;
+    *pcout << "  Navier Stokes: Setting up matrices..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Matrix setup");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Matrices");
 
   velocity_mass_matrix.clear();
   velocity_laplace_matrix.clear();
@@ -164,9 +164,9 @@ void NavierStokesProjection<dim>::
 setup_vectors()
 {
   if (parameters.verbose)
-    *pcout << "  Setup vectors..." << std::endl;
+    *pcout << "  Navier Stokes: Setting up vectors..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Setup vectors");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Vectors");
 
   #ifdef USE_PETSC_LA
     pressure_rhs.reinit(pressure.locally_owned_dofs,

@@ -20,7 +20,7 @@ template <int dim>
 void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 {
   if (parameters.verbose)
-    *pcout << "  Diffusion step..." << std::endl;
+    *pcout << "  Navier Stokes: Diffusion step..." << std::endl;
 
   // In the following scopes we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the sadd()
@@ -117,9 +117,9 @@ template <int dim>
 void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 {
   if (parameters.verbose)
-    *pcout << "  Pressure correction step..." << std::endl;
+    *pcout << "  Navier Stokes: Pressure correction step..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Pressure correction step");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Pressure correction step");
 
   switch (parameters.projection_method)
     {

@@ -67,13 +67,6 @@ struct EntityBase
   AffineConstraints<double>   constraints;
 
   /*!
-   * @brief The global quadrature formula of the entity
-   * @todo Delete this and define it locally as a function of 
-   * @ref fe_degree.
-   */
-  QGauss<dim>                 quadrature_formula;
-
-  /*!
    * @brief The set of the degrees of freedom owned by the processor.
    */
   IndexSet                    locally_owned_dofs;
