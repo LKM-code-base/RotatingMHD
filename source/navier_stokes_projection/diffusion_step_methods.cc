@@ -8,7 +8,7 @@ void NavierStokesProjection<dim>::
 assemble_diffusion_step()
 {
   if (parameters.verbose)
-    *pcout << "    Assemble diffusion step...";
+    *pcout << "    Navier Stokes: Assembling the diffusion step...";
 
   /* System matrix setup */
 
@@ -50,7 +50,9 @@ void NavierStokesProjection<dim>::
 solve_diffusion_step(const bool reinit_prec)
 {
   if (parameters.verbose)
-    *pcout << "    Solve diffusion step..." << std::endl;
+    *pcout << "    Navier Stokes: Solving the diffusion step..." << std::endl;
+
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Diffusion step - Solve");
 
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()

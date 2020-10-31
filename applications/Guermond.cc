@@ -120,6 +120,8 @@ template <int dim>
 void Guermond<dim>::
 make_grid(const unsigned int &n_global_refinements)
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
+
   if (flag_square_domain)
     GridGenerator::hyper_cube(this->triangulation,
                               0.0,
@@ -141,6 +143,8 @@ make_grid(const unsigned int &n_global_refinements)
 template <int dim>
 void Guermond<dim>::setup_dofs()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
+
   velocity.setup_dofs();
   pressure.setup_dofs();
   *(this->pcout)  << "  Number of active cells                = " 
@@ -156,6 +160,8 @@ void Guermond<dim>::setup_dofs()
 template <int dim>
 void Guermond<dim>::setup_constraints()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
+
   velocity.boundary_conditions.clear();
   pressure.boundary_conditions.clear();
 
@@ -174,6 +180,8 @@ void Guermond<dim>::setup_constraints()
 template <int dim>
 void Guermond<dim>::initialize()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
+
   this->set_initial_conditions(velocity, 
                                velocity_exact_solution, 
                                time_stepping);
@@ -186,6 +194,8 @@ void Guermond<dim>::initialize()
 template <int dim>
 void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
+
   if (flag_set_exact_pressure_constant)
   {
     LinearAlgebra::MPI::Vector  analytical_pressure(pressure.solution);
@@ -259,6 +269,8 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 template <int dim>
 void Guermond<dim>::output()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
+
   this->compute_error(velocity_error,
                        velocity,
                        velocity_exact_solution);

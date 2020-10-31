@@ -10,7 +10,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_projection_step()
 {
   if (parameters.verbose)
-    *pcout << "    Assemble projection step...";
+    *pcout << "    Navier Stokes: Assembling the projection step...";
 
   /* System matrix setup */
   // System matrix is constant and assembled in the
@@ -35,9 +35,9 @@ void NavierStokesProjection<dim>::solve_projection_step
 (const bool reinit_prec)
 {
   if (parameters.verbose)
-    *pcout << "    Solve projection step..." << std::endl;
+    *pcout << "    Navier Stokes: Solving the projection step..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Pressure projection solve");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - Solve");
 
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()

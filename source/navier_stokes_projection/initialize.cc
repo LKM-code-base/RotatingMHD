@@ -8,6 +8,11 @@ template <int dim>
 void NavierStokesProjection<dim>::
 initialize()
 {
+  if (parameters.verbose)
+    *pcout << "  Navier Stokes: Initializing the solver..." << std::endl;
+
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Initialize ");
+
   flag_initializing = true;
 
   if (body_force_ptr != nullptr)

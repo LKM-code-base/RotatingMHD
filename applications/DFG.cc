@@ -285,6 +285,8 @@ template <int dim>
 void DFG<dim>::
 make_grid()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
+
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(this->triangulation);
 
@@ -308,6 +310,8 @@ make_grid()
 template <int dim>
 void DFG<dim>::setup_dofs()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
+
   velocity.setup_dofs();
   pressure.setup_dofs();
   
@@ -322,6 +326,8 @@ void DFG<dim>::setup_dofs()
 template <int dim>
 void DFG<dim>::setup_constraints()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
+
   velocity.constraints.clear();
   velocity.constraints.reinit(velocity.locally_relevant_dofs);
   DoFTools::make_hanging_node_constraints(velocity.dof_handler,
@@ -372,6 +378,8 @@ void DFG<dim>::setup_constraints()
 template <int dim>
 void DFG<dim>::initialize()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
+
   this->set_initial_conditions(velocity, 
                                velocity_initial_conditions, 
                                time_stepping);
@@ -385,6 +393,8 @@ void DFG<dim>::initialize()
 template <int dim>
 void DFG<dim>::postprocessing(const bool flag_point_evaluation)
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
+
   if (flag_point_evaluation)
   {
     dfg_benchmark.compute_pressure_difference(pressure);
@@ -399,6 +409,8 @@ void DFG<dim>::postprocessing(const bool flag_point_evaluation)
 template <int dim>
 void DFG<dim>::output()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
+
   std::vector<std::string> names(dim, "velocity");
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
     component_interpretation(
