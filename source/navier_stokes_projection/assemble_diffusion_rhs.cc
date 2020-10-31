@@ -46,7 +46,7 @@ assemble_diffusion_step_rhs()
    copier,
    VelocityRightHandSideAssembly::LocalCellData<dim>(velocity.fe,
                                                      pressure.fe,
-                                                     velocity.quadrature_formula,
+                                                     quadrature_formula,
                                                      update_values|
                                                      update_gradients|
                                                      update_JxW_values|

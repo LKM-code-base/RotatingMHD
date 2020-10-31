@@ -47,7 +47,7 @@ assemble_projection_step_rhs()
                   PressureRightHandSideAssembly::LocalCellData<dim>(
                                           velocity.fe,
                                           pressure.fe,
-                                          pressure.quadrature_formula,
+                                          quadrature_formula,
                                           update_values |
                                           update_gradients,
                                           update_JxW_values |

@@ -45,7 +45,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
    worker,
    copier,
    VelocityMatricesAssembly::LocalCellData<dim>(velocity.fe,
-                                                velocity.quadrature_formula,
+                                                quadrature_formula,
                                                 update_values|
                                                 update_gradients|
                                                 update_JxW_values),
@@ -167,7 +167,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
    worker,
    copier,
    PressureMatricesAssembly::LocalCellData<dim>(pressure.fe,
-                                                pressure.quadrature_formula,
+                                                quadrature_formula,
                                                 update_values|
                                                 update_gradients|
                                                 update_JxW_values),

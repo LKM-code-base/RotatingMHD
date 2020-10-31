@@ -43,7 +43,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
    worker,
    copier,
    AdvectionAssembly::LocalCellData<dim>(velocity.fe,
-                                         velocity.quadrature_formula,
+                                         quadrature_formula,
                                          update_values|
                                          update_JxW_values|
                                          update_gradients),

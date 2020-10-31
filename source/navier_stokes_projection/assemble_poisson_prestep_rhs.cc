@@ -26,7 +26,7 @@ assemble_poisson_prestep_rhs()
   const int face_p_degree = std::max(pressure.fe_degree + p_degree_body_force,
                                      pressure.fe_degree + velocity.fe_degree -2);
 
-  const QGauss<dim>   face_quadrature_formula(std::ceil(0.5 * (face_p_degree + 1)));
+  const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * (face_p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
@@ -56,8 +56,8 @@ assemble_poisson_prestep_rhs()
                   PoissonPrestepRightHandSideAssembly::LocalCellData<dim>(
                                   velocity.fe,
                                   pressure.fe,
-                                  pressure.quadrature_formula,
-                                  QGauss<dim-1>(pressure.fe_degree + 1),
+                                  quadrature_formula,
+                                  face_quadrature_formula,
                                   update_hessians,
                                   update_values|
                                   update_gradients|
