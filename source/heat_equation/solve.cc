@@ -49,12 +49,12 @@ template <int dim>
 void HeatEquation<dim>::assemble_linear_system()
 {
   if (parameters.verbose)
-    *pcout << "  Assembling heat equation linear system..." << std::endl;
+    *pcout << "  Heat Equation: Assembling linear system..." << std::endl;
 
   // System matrix setup
   if (flag_assemble_mass_plus_stiffness_matrix)
   {
-      TimerOutput::Scope  t(*computing_timer, "Matrix summation");
+      TimerOutput::Scope  t(*computing_timer, "Heat Equation: Matrix summation");
 
     mass_plus_stiffness_matrix = 0.;
 
@@ -86,7 +86,9 @@ template <int dim>
 void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
 {
   if (parameters.verbose)
-  *pcout << "    Solve heat equation linear system..." << std::endl;
+  *pcout << "    Heat Equation: Solving linear system..." << std::endl;
+
+  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Solve");
 
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()

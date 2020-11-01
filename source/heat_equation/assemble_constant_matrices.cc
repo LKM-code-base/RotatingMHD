@@ -10,11 +10,14 @@ template <int dim>
 void HeatEquation<dim>::assemble_constant_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Assembling constant matrices..." << std::endl;
+    *pcout << "  Heat Equation: Assembling constant matrices..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Constant matrices assembly");
+  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Constant matrices assembly");
 
-  const QGauss<dim>  quadrature_formula(2 * temperature.fe_degree);
+  // Polynomial degree of the integrand
+  const int p_degree = 2 * temperature.fe_degree;
+
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * (p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;

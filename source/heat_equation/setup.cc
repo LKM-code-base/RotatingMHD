@@ -31,9 +31,9 @@ template <int dim>
 void HeatEquation<dim>::setup_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Setting up matrices..." << std::endl;
+    *pcout << "  Heat Equation: Setting up matrices..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Matrices setup");
+  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Setup - Matrices");
 
   mass_matrix.clear();
   stiffness_matrix.clear();
@@ -115,9 +115,9 @@ void HeatEquation<dim>::
 setup_vectors()
 {
   if (parameters.verbose)
-    *pcout << "  Setting up vectors..." << std::endl;
+    *pcout << "  Heat Equation: Setting up vectors..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Vectors setup");
+  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Setup - Vectors");
 
   #ifdef USE_PETSC_LA
     rhs.reinit(temperature.locally_owned_dofs,

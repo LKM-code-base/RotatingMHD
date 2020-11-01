@@ -10,17 +10,33 @@ template <int dim>
 void HeatEquation<dim>::assemble_rhs()
 {
   if (parameters.verbose)
-    *pcout << "    Assemble right hand side..." << std::endl;
+    *pcout << "    Heat Equation: Assembling right hand side..." << std::endl;
 
   TimerOutput::Scope  t(*computing_timer, 
-                        "Heat equation right hand side assembly");
+                        "Heat equation: RHS assembly");
 
   rhs = 0.;
 
-  const QGauss<dim>   quadrature_formula(2 * temperature.fe_degree);
+  // The polynomial degrees of the suply function and the neumann 
+  // boundary condition function are hardcoded to match those of the 
+  // temperature finite element.
 
-  const QGauss<dim-1> face_quadrature_formula(2 * temperature.fe_degree -
-                                              1);
+  const int p_degree_supply_function = temperature.fe_degree;
+
+  const int p_degree_neumann_function = temperature.fe_degree;
+
+  // Maximal polynomial degree of the volume integrands
+
+  const int p_degree = std::max(temperature.fe_degree + p_degree_supply_function,
+                                2 * temperature.fe_degree + velocity->fe_degree - 1);
+
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * (p_degree + 1)));
+
+  // Polynomial degree of the boundary integrand
+
+  const int face_p_degree = temperature.fe_degree + p_degree_neumann_function;
+
+  const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * (face_p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;

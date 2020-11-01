@@ -10,19 +10,16 @@ template <int dim>
 void HeatEquation<dim>::assemble_advection_matrix()
 {
   if (parameters.verbose)
-    *pcout << "    Assembling advection matrix..." << std::endl;
+    *pcout << "    Heat Equation: Assembling advection matrix..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Advection matrix assembly");
+  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Advection matrix assembly");
 
   advection_matrix = 0.;
 
-  const unsigned int velocity_fe_degree = (velocity == nullptr) ?
-                                            2 : velocity->fe_degree;
+  // Polynomial degree of the integrand
+  const int p_degree = velocity->fe_degree + 2 * temperature.fe_degree - 1;
 
-  const QGauss<dim>  quadrature_formula(
-                      temperature.fe_degree + 
-                      velocity_fe_degree +
-                      (temperature.fe_degree - 1));
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * (p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
