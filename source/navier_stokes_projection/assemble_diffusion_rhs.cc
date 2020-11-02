@@ -16,7 +16,7 @@ assemble_diffusion_step_rhs()
   // Polynomial degree of the integrand
   const int p_degree = 3 * velocity.fe_degree - 1;
 
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * (p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
