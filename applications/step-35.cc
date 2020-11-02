@@ -28,10 +28,9 @@ class Step35 : public Problem<dim>
 public:
   Step35(const RunTimeParameters::ParameterSet &parameters);
 
-  void run(const bool         flag_verbose_output           = false,
-           const unsigned int terminal_output_periodicity   = 10,
-           const unsigned int graphical_output_periodicity  = 10);
+  void run();
 private:
+  const RunTimeParameters::ParameterSet       &params;
 
   std::vector<types::boundary_id>             boundary_ids;
 
@@ -67,6 +66,7 @@ template <int dim>
 Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
+params(parameters),
 velocity(parameters.p_fe_degree + 1, this->triangulation),
 pressure(parameters.p_fe_degree, this->triangulation),
 time_stepping(parameters.time_stepping_parameters),
@@ -231,47 +231,42 @@ void Step35<dim>::update_solution_vectors()
 }
 
 template <int dim>
-void Step35<dim>::run(
-              const bool          /* flag_verbose_output */,
-              const unsigned int  terminal_output_periodicity,
-              const unsigned int  graphical_output_periodicity)
+void Step35<dim>::run()
 {
-  /*
-   * What is going on here? The fact that the initial time step is first order
-   * time step
-   */
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
-    // snapshot stage
+    // The VSIMEXMethod instance starts each loop at t^{k-1}
 
+    // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
       this->compute_next_time_step(
         time_stepping, 
         navier_stokes.get_cfl_number()));
 
-    // update stage
+    // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
+    // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve(time_stepping.get_step_number());
 
-    // snapshot stage
+    // Advances the VSIMEXMethod instance to t^{k}
+    update_solution_vectors();
+    time_stepping.advance_time();
+
+    // Snapshot stage
     postprocessing((time_stepping.get_step_number() % 
-                    terminal_output_periodicity == 0) ||
-                   (time_stepping.get_next_time() == 
+                    this->prm.terminal_output_interval == 0) ||
+                   (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()));
 
     if ((time_stepping.get_step_number() % 
-          graphical_output_periodicity == 0) ||
-        (time_stepping.get_next_time() == 
+          this->prm.graphical_output_interval == 0) ||
+        (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()))
       output();
-
-    update_solution_vectors();
-    
-    time_stepping.advance_time();
   }
 }
 
@@ -279,10 +274,6 @@ template <int dim>
 void Step35<dim>::
 point_evaluation(const Point<dim>   &point) const
 {
-  /*
-   * Is the point evaluation not duplicate? You have implemented
-   * a function mpi_point_value in auxiliary_functions.cc?
-   */
   const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
   cell_point =
   GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
@@ -303,7 +294,7 @@ point_evaluation(const Point<dim>   &point) const
     std::cout << "Step = " << std::setw(2)
               << time_stepping.get_step_number()
               << " Time = " << std::noshowpos << std::scientific
-              << time_stepping.get_next_time()
+              << time_stepping.get_current_time()
               << " Velocity = (" << std::showpos << std::scientific
               << point_value_velocity[0]
               << ", " << std::showpos << std::scientific
@@ -332,9 +323,7 @@ int main(int argc, char *argv[])
       deallog.depth_console(parameter_set.verbose ? 2 : 0);
 
       Step35<2> simulation(parameter_set);
-      simulation.run(parameter_set.verbose, 
-                     parameter_set.terminal_output_interval,
-                     parameter_set.graphical_output_interval);
+      simulation.run();
   }
   catch (std::exception &exc)
   {
