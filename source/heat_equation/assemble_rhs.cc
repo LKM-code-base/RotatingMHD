@@ -30,13 +30,13 @@ void HeatEquation<dim>::assemble_rhs()
   const int p_degree = std::max(temperature.fe_degree + p_degree_supply_function,
                                 2 * temperature.fe_degree + velocity->fe_degree - 1);
 
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * (p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   // Polynomial degree of the boundary integrand
 
   const int face_p_degree = temperature.fe_degree + p_degree_neumann_function;
 
-  const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * (face_p_degree + 1)));
+  const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
