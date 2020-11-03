@@ -22,6 +22,7 @@ EntityBase<dim>::EntityBase
 fe_degree(fe_degree),
 mpi_communicator(triangulation.get_communicator()),
 dof_handler(std::make_shared<DoFHandler<dim>>(triangulation)),
+flag_child_entity(false),
 triangulation(triangulation)
 {}
 
@@ -32,6 +33,7 @@ EntityBase<dim>::EntityBase
 fe_degree(entity.fe_degree),
 mpi_communicator(entity.mpi_communicator),
 dof_handler(entity.dof_handler),
+flag_child_entity(true),
 triangulation(entity.get_triangulation())
 {}
 
@@ -71,7 +73,8 @@ fe(FE_Q<dim>(entity.fe_degree), dim)
 template <int dim>
 void VectorEntity<dim>::setup_dofs()
 {
-  (this->dof_handler)->distribute_dofs(this->fe);
+  if (!this->flag_child_entity)
+    (this->dof_handler)->distribute_dofs(this->fe);
 
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
 
@@ -392,7 +395,8 @@ fe(entity.fe_degree)
 template <int dim>
 void ScalarEntity<dim>::setup_dofs()
 {
-  (this->dof_handler)->distribute_dofs(this->fe);
+  if (!this->flag_child_entity)
+    (this->dof_handler)->distribute_dofs(this->fe);
 
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
 

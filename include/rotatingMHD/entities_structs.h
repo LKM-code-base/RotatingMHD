@@ -147,6 +147,15 @@ public:
    */
   virtual void update_boundary_conditions(){};
 
+protected:
+  /*!
+   * @brief A flag indicating wether the entity is a child. Here is
+   * meant, that the entity was instanced with the copy constructor.
+   * @details This flag is used to avoid a double distribution of
+   * degrees of freedom.
+   */
+  const bool                                      flag_child_entity;
+
 private:
   /*!
    * @brief Reference to the underlying triangulation.
