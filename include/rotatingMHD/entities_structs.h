@@ -102,6 +102,11 @@ public:
              const parallel::distributed::Triangulation<dim> &triangulation);
 
   /*!
+   * @brief Copy constructor.
+   */
+  EntityBase(const EntityBase<dim>  &entity);
+
+  /*!
    * @brief Method returning.
    */
   const parallel::distributed::Triangulation<dim> &get_triangulation() const;
@@ -153,6 +158,12 @@ struct VectorEntity : EntityBase<dim>
    */
   VectorEntity(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation);
+
+  /*!
+   * @brief Copy constructor.
+   */
+  VectorEntity(const VectorEntity<dim>  &entity);
+
 
   /*!
    * @brief Set ups the degrees of freedom of the vector field.
@@ -219,6 +230,11 @@ struct ScalarEntity : EntityBase<dim>
    */
   ScalarEntity(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation);
+
+  /*!
+   * @brief Copy constructor.
+   */
+  ScalarEntity(const ScalarEntity<dim>  &entity);
 
   /*!
    * @brief Set ups the degrees of freedom of the scalar field.

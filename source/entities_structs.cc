@@ -26,6 +26,16 @@ triangulation(triangulation)
 {}
 
 template <int dim>
+EntityBase<dim>::EntityBase
+(const EntityBase<dim>  &entity)
+:
+fe_degree(entity.fe_degree),
+mpi_communicator(entity.mpi_communicator),
+dof_handler(entity.dof_handler),
+triangulation(entity.get_triangulation())
+{}
+
+template <int dim>
 void EntityBase<dim>::reinit()
 {
   solution.reinit(locally_relevant_dofs,
@@ -48,6 +58,14 @@ VectorEntity<dim>::VectorEntity
 :
 EntityBase<dim>(fe_degree, triangulation),
 fe(FE_Q<dim>(fe_degree), dim)
+{}
+
+template <int dim>
+VectorEntity<dim>::VectorEntity
+(const VectorEntity<dim>  &entity)
+:
+EntityBase<dim>(entity),
+fe(FE_Q<dim>(entity.fe_degree), dim)
 {}
 
 template <int dim>
@@ -361,6 +379,14 @@ ScalarEntity<dim>::ScalarEntity
 :
 EntityBase<dim>(fe_degree, triangulation),
 fe(fe_degree)
+{}
+
+template <int dim>
+ScalarEntity<dim>::ScalarEntity
+(const ScalarEntity<dim>  &entity)
+:
+EntityBase<dim>(entity),
+fe(entity.fe_degree)
 {}
 
 template <int dim>
