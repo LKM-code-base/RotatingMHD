@@ -177,6 +177,12 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
    */
   void clear();
 
+  /*!
+   * @brief Copies the the contents of another @ref ScalarBoundaryConditions
+   * instance
+   */
+  void copy(const ScalarBoundaryConditions<dim> &other);
+
 private:
 
   /*!
@@ -296,6 +302,12 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
    */
   void clear();
 
+  /*!
+   * @brief Copies the the contents of another @ref VectorBoundaryConditions
+   * instance
+   */
+  void copy(const VectorBoundaryConditions<dim> &other);
+  
 private:
 
   /*!

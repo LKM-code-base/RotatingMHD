@@ -105,6 +105,16 @@ void ScalarBoundaryConditions<dim>::clear()
 }
 
 template <int dim>
+void ScalarBoundaryConditions<dim>::copy(
+  const ScalarBoundaryConditions<dim> &other)
+{
+  this->dirichlet_bcs           = other.dirichlet_bcs;
+  this->neumann_bcs             = other.neumann_bcs;
+  this->periodic_bcs            = other.periodic_bcs;
+  this->time_dependent_bcs_map  = other.time_dependent_bcs_map;
+}
+
+template <int dim>
 void ScalarBoundaryConditions<dim>::check_boundary_id(
   types::boundary_id boundary_id) const
 {
@@ -286,6 +296,18 @@ void VectorBoundaryConditions<dim>::clear()
   this->periodic_bcs.clear();
   normal_flux_bcs.clear();
   tangential_flux_bcs.clear();
+}
+
+template <int dim>
+void VectorBoundaryConditions<dim>::copy(
+  const VectorBoundaryConditions<dim> &other)
+{
+  this->dirichlet_bcs           = other.dirichlet_bcs;
+  this->neumann_bcs             = other.neumann_bcs;
+  this->periodic_bcs            = other.periodic_bcs;
+  this->time_dependent_bcs_map  = other.time_dependent_bcs_map;
+  normal_flux_bcs               = other.normal_flux_bcs;
+  tangential_flux_bcs           = other.tangential_flux_bcs;
 }
 
 template <int dim>
