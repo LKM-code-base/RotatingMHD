@@ -122,6 +122,31 @@ public:
    */
   void update_solution_vectors();
 
+
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity in a vector and call
+   * @ref ScalarEntity::setup_dofs and @ref VectorEntity::setup_dofs
+   * respectively.
+   */
+  virtual void setup_dofs(){};
+
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity in a vector and call
+   * @ref ScalarEntity::apply_boundary_conditions and 
+   * @ref VectorEntity::apply_boundary_conditions respectively.
+   */
+  virtual void apply_boundary_conditions(){};
+
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity in a vector and call
+   * @ref ScalarEntity::update_boundary_conditions and 
+   * @ref VectorEntity::update_boundary_conditions respectively.
+   */
+  virtual void update_boundary_conditions(){};
+
 private:
   /*!
    * @brief Reference to the underlying triangulation.
@@ -171,7 +196,7 @@ struct VectorEntity : EntityBase<dim>
    * extracts the @ref locally_owned_dofs and the @ref locally_relevant_dofs;
    * and makes the hanging node constraints contained in @ref hanging_nodes.
    */
-  void setup_dofs();
+  virtual void setup_dofs() override;
 
   /*!
    * @brief Applies all the boundary conditions into the @ref constraints
@@ -182,7 +207,7 @@ struct VectorEntity : EntityBase<dim>
    * are applied as the method initiates @ref constraints, which is used
    * througout the solver. 
    */
-  void apply_boundary_conditions();
+  virtual void apply_boundary_conditions() override;
 
   /*!
    * @brief Updates the time dependent boundary conditions.
@@ -195,7 +220,7 @@ struct VectorEntity : EntityBase<dim>
    * calling this method. Otherwise the method will just reapply the
    * same boundary conditions.
    */
-  void update_boundary_conditions();
+  virtual void update_boundary_conditions() override;
 
   /*!
    * @brief This method evaluates the value of the continous vector 
@@ -242,7 +267,7 @@ struct ScalarEntity : EntityBase<dim>
    * extracts the @ref locally_owned_dofs and the @ref locally_relevant_dofs;
    * and makes the hanging node constraints contained in @ref hanging_nodes.
    */
-  void setup_dofs();
+  virtual void setup_dofs() override;
 
   /*!
    * @brief Applies all the boundary conditions into the @ref constraints
@@ -253,7 +278,7 @@ struct ScalarEntity : EntityBase<dim>
    * are applied as the method initiates @ref constraints, which is used
    * througout the solver. 
    */
-  void apply_boundary_conditions();
+  virtual void apply_boundary_conditions() override;
 
   /*!
    * @brief Updates the time dependent boundary conditions.
@@ -266,7 +291,7 @@ struct ScalarEntity : EntityBase<dim>
    * calling this method. Otherwise the method will just reapply the
    * same boundary conditions.
    */
-  void update_boundary_conditions();
+  virtual void update_boundary_conditions() override;
 
   /*!
    * @brief This method evaluates the value of the continous scalar 
