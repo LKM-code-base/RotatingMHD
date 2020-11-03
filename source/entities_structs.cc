@@ -21,7 +21,8 @@ EntityBase<dim>::EntityBase
 :
 fe_degree(fe_degree),
 mpi_communicator(triangulation.get_communicator()),
-dof_handler(triangulation)
+dof_handler(triangulation),
+triangulation(triangulation)
 {}
 
 template <int dim>

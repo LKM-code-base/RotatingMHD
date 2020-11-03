@@ -39,6 +39,7 @@ namespace Entities
 template <int dim>
 struct EntityBase
 {
+public:
   /*!
    * @brief The degree of the finite element.
    */
@@ -52,8 +53,8 @@ struct EntityBase
   /*!
    * @brief The DoFHandler<dim> instance of the entity.
    */
-  DoFHandler<dim>             dof_handler;
-
+  //std::shared_ptr<DoFHandler<dim>>  dof_handler;
+  DoFHandler<dim> dof_handler;
   /*!
    * @brief The AffineConstraints<double> instance handling the 
    * hanging nodes.
@@ -101,6 +102,11 @@ struct EntityBase
              const parallel::distributed::Triangulation<dim> &triangulation);
 
   /*!
+   * @brief Method returning.
+   */
+  const parallel::distributed::Triangulation<dim> &get_triangulation() const;
+
+  /*!
    * @brief Initializes the solution vectors by calling their respective
    * reinit method.
    */
@@ -110,7 +116,19 @@ struct EntityBase
    * @brief Passes the contents of a solution vector to the one prior to it.
    */
   void update_solution_vectors();
+
+private:
+  /*!
+   * @brief Reference to the underlying triangulation.
+   */
+  const parallel::distributed::Triangulation<dim> &triangulation;
 };
+
+template <int dim>
+inline const parallel::distributed::Triangulation<dim> &EntityBase<dim>::get_triangulation() const
+{
+  return (triangulation);
+}
 
   /*!
    * @struct VectorEntity
