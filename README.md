@@ -22,3 +22,4 @@ To do list
 - [ ] Interfacing of the entities and the solvers
 - [ ] Adding the buoyancy to the Navier-Stokes solver
 - [ ] Algebraic multigrid preconditioning in both solvers
+- [ ] Python or bash script for running convergence tests
