@@ -85,6 +85,15 @@ public:
        std::shared_ptr<TimerOutput>());
 
   /*!
+   * @attention The entity has to be public in order to be passed on 
+   * to the SolutionTransferContainer. Alternatively it could be private
+   * and be indirectly acceses though a get method returning a pointer 
+   * to it. Nonetheless from StackOverFlow I have read that one should 
+   * avoid such work arounds.
+   */ 
+  Entities::ScalarEntity<dim>   xi;
+
+  /*!
    *  @brief Setups and initializes all the internal entities for
    *  the projection method problem.
    *
