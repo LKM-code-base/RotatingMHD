@@ -125,10 +125,10 @@ void Step35<dim>::setup_dofs()
   pressure.setup_dofs();
   
   *(this->pcout) << "Number of velocity degrees of freedom = "
-              << velocity.dof_handler.n_dofs()
+              << velocity.dof_handler->n_dofs()
               << std::endl
               << "Number of pressure degrees of freedom = "
-              << pressure.dof_handler.n_dofs()
+              << pressure.dof_handler->n_dofs()
               << std::endl;
 }
 
@@ -204,11 +204,11 @@ void Step35<dim>::output()
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
   DataOut<dim>        data_out;
-  data_out.add_data_vector(velocity.dof_handler,
+  data_out.add_data_vector(*velocity.dof_handler,
                            velocity.solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(pressure.dof_handler, 
+  data_out.add_data_vector(*pressure.dof_handler, 
                            pressure.solution, 
                            "Pressure");
   data_out.build_patches(velocity.fe_degree);
@@ -277,18 +277,18 @@ point_evaluation(const Point<dim>   &point) const
   const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
   cell_point =
   GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
-                                           velocity.dof_handler,
+                                           *velocity.dof_handler,
                                            point);
   if (cell_point.first->is_locally_owned())
   {
     Vector<double> point_value_velocity(dim);
-    VectorTools::point_value(velocity.dof_handler,
+    VectorTools::point_value(*velocity.dof_handler,
                             velocity.solution,
                             point,
                             point_value_velocity);
 
     const double point_value_pressure
-    = VectorTools::point_value(pressure.dof_handler,
+    = VectorTools::point_value(*pressure.dof_handler,
                               pressure.solution,
                               point);
     std::cout << "Step = " << std::setw(2)

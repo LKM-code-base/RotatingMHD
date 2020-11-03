@@ -39,9 +39,9 @@ assemble_projection_step_rhs()
     };
 
   WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure.dof_handler.begin_active()),
+                             pressure.dof_handler->begin_active()),
                   CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure.dof_handler.end()),
+                             pressure.dof_handler->end()),
                   worker,
                   copier,
                   PressureRightHandSideAssembly::LocalCellData<dim>(
@@ -76,10 +76,10 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
   const FEValuesExtractors::Vector  velocities(0);
 
   typename DoFHandler<dim>::active_cell_iterator
-  velocity_cell(&velocity.dof_handler.get_triangulation(),
+  velocity_cell(&velocity.get_triangulation(),
                  cell->level(),
                  cell->index(),
-                &velocity.dof_handler);
+                velocity.dof_handler.get());
 
   scratch.velocity_fe_values.reinit(velocity_cell);
 

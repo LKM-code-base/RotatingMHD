@@ -48,9 +48,9 @@ assemble_poisson_prestep_rhs()
     };
 
   WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure.dof_handler.begin_active()),
+                             pressure.dof_handler->begin_active()),
                   CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure.dof_handler.end()),
+                             pressure.dof_handler->end()),
                   worker,
                   copier,
                   PoissonPrestepRightHandSideAssembly::LocalCellData<dim>(
@@ -133,16 +133,16 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       scratch.pressure_fe_face_values.reinit(cell, face);
 
       typename DoFHandler<dim>::active_cell_iterator
-      velocity_cell(&velocity.dof_handler.get_triangulation(),
+      velocity_cell(&velocity.get_triangulation(),
                      cell->level(),
                      cell->index(),
-                    &velocity.dof_handler);
+                    velocity.dof_handler.get());
 
       typename DoFHandler<dim>::active_face_iterator
-      velocity_face(&velocity.dof_handler.get_triangulation(),
+      velocity_face(&velocity.get_triangulation(),
                      face->level(),
                      face->index(),
-                    &velocity.dof_handler);
+                    velocity.dof_handler.get());
 
       scratch.velocity_fe_face_values.reinit(velocity_cell, velocity_face);
 

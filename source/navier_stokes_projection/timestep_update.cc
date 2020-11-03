@@ -20,7 +20,7 @@ get_cfl_number()
 
   const FEValuesExtractors::Vector  velocities(0);
   
-  for (const auto &cell : velocity.dof_handler.active_cell_iterators())
+  for (const auto &cell : velocity.dof_handler->active_cell_iterators())
     if (cell->is_locally_owned())
       {
         double max_local_velocity = std::numeric_limits<double>::lowest();

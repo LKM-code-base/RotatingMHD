@@ -93,7 +93,7 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
 
   Tensor<1, dim>              forces;
 
-  for (const auto &cell : velocity.dof_handler.active_cell_iterators())
+  for (const auto &cell : velocity.dof_handler->active_cell_iterators())
     if (cell->is_locally_owned())
       for (const auto &face : cell->face_iterators())
         if (face->at_boundary() && face->boundary_id() == 2)
@@ -101,15 +101,15 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
             velocity_face_fe_values.reinit(cell, face);
 
             typename DoFHandler<dim>::active_cell_iterator pressure_cell(
-                              &velocity.dof_handler.get_triangulation(), 
+                              &velocity.get_triangulation(), 
                               cell->level(), 
                               cell->index(), 
-                              &pressure.dof_handler);
+                              pressure.dof_handler.get());
             typename DoFHandler<dim>::active_face_iterator pressure_face(
-                              &velocity.dof_handler.get_triangulation(), 
+                              &velocity.get_triangulation(), 
                               face->level(), 
                               face->index(), 
-                              &pressure.dof_handler);
+                              pressure.dof_handler.get());
 
             pressure_face_fe_values.reinit(pressure_cell, pressure_face);
 

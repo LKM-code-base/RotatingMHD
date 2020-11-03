@@ -39,9 +39,9 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.begin_active()),
+              velocity.dof_handler->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.end()),
+              velocity.dof_handler->end()),
    worker,
    copier,
    VelocityMatricesAssembly::LocalCellData<dim>(velocity.fe,
@@ -161,9 +161,9 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              pressure.dof_handler.begin_active()),
+              pressure.dof_handler->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              pressure.dof_handler.end()),
+              pressure.dof_handler->end()),
    worker,
    copier,
    PressureMatricesAssembly::LocalCellData<dim>(pressure.fe,

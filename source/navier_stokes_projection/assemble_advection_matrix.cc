@@ -37,9 +37,9 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.begin_active()),
+              velocity.dof_handler->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.end()),
+              velocity.dof_handler->end()),
    worker,
    copier,
    AdvectionAssembly::LocalCellData<dim>(velocity.fe,

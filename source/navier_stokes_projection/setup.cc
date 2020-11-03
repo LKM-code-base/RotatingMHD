@@ -45,7 +45,7 @@ void NavierStokesProjection<dim>::setup_matrices()
       DynamicSparsityPattern
       sparsity_pattern(velocity.locally_relevant_dofs);
 
-      DoFTools::make_sparsity_pattern(velocity.dof_handler,
+      DoFTools::make_sparsity_pattern(*(velocity.dof_handler),
                                       sparsity_pattern,
                                       velocity.constraints,
                                       false,
@@ -90,7 +90,7 @@ void NavierStokesProjection<dim>::setup_matrices()
                        velocity.locally_relevant_dofs,
                        mpi_communicator);
 
-      DoFTools::make_sparsity_pattern(velocity.dof_handler,
+      DoFTools::make_sparsity_pattern(*(velocity.dof_handler),
                                       sparsity_pattern,
                                       velocity.constraints,
                                       false,
@@ -113,7 +113,7 @@ void NavierStokesProjection<dim>::setup_matrices()
       DynamicSparsityPattern
       sparsity_pattern(pressure.locally_relevant_dofs);
 
-      DoFTools::make_sparsity_pattern(pressure.dof_handler,
+      DoFTools::make_sparsity_pattern(*(pressure.dof_handler),
                                       sparsity_pattern,
                                       pressure.constraints,
                                       false,
@@ -143,7 +143,7 @@ void NavierStokesProjection<dim>::setup_matrices()
                        pressure.locally_relevant_dofs,
                        mpi_communicator);
 
-      DoFTools::make_sparsity_pattern(pressure.dof_handler,
+      DoFTools::make_sparsity_pattern(*(pressure.dof_handler),
                                       sparsity_pattern,
                                       pressure.constraints,
                                       false,

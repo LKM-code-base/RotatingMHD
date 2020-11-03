@@ -49,7 +49,7 @@ void Problem<dim>::set_initial_conditions
 
         function.set_time(time_stepping.get_start_time());
 
-        VectorTools::project(entity.dof_handler,
+        VectorTools::project(*(entity.dof_handler),
                              entity.constraints,
                              QGauss<dim>(entity.fe_degree + 2),
                              function,
@@ -73,7 +73,7 @@ void Problem<dim>::set_initial_conditions
 
         function.set_time(time_stepping.get_start_time());
 
-        VectorTools::project(entity.dof_handler,
+        VectorTools::project(*(entity.dof_handler),
                              entity.constraints,
                              QGauss<dim>(entity.fe_degree + 2),
                              function,
@@ -81,7 +81,7 @@ void Problem<dim>::set_initial_conditions
 
         function.advance_time(time_stepping.get_next_step_size());
 
-        VectorTools::project(entity.dof_handler,
+        VectorTools::project(*(entity.dof_handler),
                              entity.constraints,
                              QGauss<dim>(entity.fe_degree + 2),
                              function,
@@ -110,7 +110,7 @@ void Problem<dim>::compute_error(
     LinearAlgebra::MPI::Vector
     tmp_error_vector(entity.locally_owned_dofs);
   #endif
-  VectorTools::project(entity.dof_handler,
+  VectorTools::project(*(entity.dof_handler),
                        entity.constraints,
                        QGauss<dim>(entity.fe_degree + 2),
                        exact_solution,

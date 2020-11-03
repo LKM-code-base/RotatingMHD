@@ -316,10 +316,10 @@ void DFG<dim>::setup_dofs()
   pressure.setup_dofs();
   
   *(this->pcout)  << "Number of velocity degrees of freedom = "
-                  << velocity.dof_handler.n_dofs()
+                  << velocity.dof_handler->n_dofs()
                   << std::endl
                   << "Number of pressure degrees of freedom = "
-                  << pressure.dof_handler.n_dofs()
+                  << pressure.dof_handler->n_dofs()
                   << std::endl;
 }
 
@@ -330,14 +330,14 @@ void DFG<dim>::setup_constraints()
 
   velocity.constraints.clear();
   velocity.constraints.reinit(velocity.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(velocity.dof_handler,
+  DoFTools::make_hanging_node_constraints(*(velocity.dof_handler),
                                           velocity.constraints);
   for (const auto &boundary_id : boundary_ids)
     switch (boundary_id)
     {
       case 0:
         VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
+                                    *(velocity.dof_handler),
                                     boundary_id,
                                     inflow_boundary_condition,
                                     velocity.constraints);
@@ -346,14 +346,14 @@ void DFG<dim>::setup_constraints()
         break;
       case 2:
         VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
+                                    *(velocity.dof_handler),
                                     boundary_id,
                                     Functions::ZeroFunction<dim>(dim),
                                     velocity.constraints);
         break;
       case 3:
         VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
+                                    *(velocity.dof_handler),
                                     boundary_id,
                                     Functions::ZeroFunction<dim>(dim),
                                     velocity.constraints);
@@ -365,10 +365,10 @@ void DFG<dim>::setup_constraints()
 
   pressure.constraints.clear();
   pressure.constraints.reinit(pressure.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(pressure.dof_handler,
+  DoFTools::make_hanging_node_constraints(*(pressure.dof_handler),
                                           pressure.constraints);
   VectorTools::interpolate_boundary_values(
-                                      pressure.dof_handler,
+                                      *(pressure.dof_handler),
                                       1,
                                       Functions::ZeroFunction<dim>(),
                                       pressure.constraints);
@@ -416,11 +416,11 @@ void DFG<dim>::output()
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
   DataOut<dim>        data_out;
-  data_out.add_data_vector(velocity.dof_handler,
+  data_out.add_data_vector(*(velocity.dof_handler),
                            velocity.solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(pressure.dof_handler, 
+  data_out.add_data_vector(*(pressure.dof_handler), 
                            pressure.solution, 
                            "Pressure");
   data_out.build_patches(velocity.fe_degree);

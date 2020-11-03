@@ -170,10 +170,10 @@ void TGV<dim>::setup_dofs()
   *(this->pcout)  << "  Number of active cells                = " 
                   << this->triangulation.n_global_active_cells() << std::endl;
   *(this->pcout)  << "  Number of velocity degrees of freedom = " 
-                  << velocity.dof_handler.n_dofs()
+                  << velocity.dof_handler->n_dofs()
                   << std::endl
                   << "  Number of pressure degrees of freedom = " 
-                  << pressure.dof_handler.n_dofs()
+                  << pressure.dof_handler->n_dofs()
                   << std::endl;
 }
 
@@ -258,7 +258,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
         LinearAlgebra::MPI::Vector
         tmp_analytical_pressure(pressure.locally_owned_dofs);
       #endif
-      VectorTools::project(pressure.dof_handler,
+      VectorTools::project(*(pressure.dof_handler),
                           pressure.constraints,
                           QGauss<dim>(pressure.fe_degree + 2),
                           pressure_exact_solution,
@@ -334,18 +334,18 @@ void TGV<dim>::output()
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
   DataOut<dim>        data_out;
-  data_out.add_data_vector(velocity.dof_handler,
+  data_out.add_data_vector(*(velocity.dof_handler),
                            velocity.solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(velocity.dof_handler,
+  data_out.add_data_vector(*(velocity.dof_handler),
                            velocity_error,
                            error_name, 
                            component_interpretation);
-  data_out.add_data_vector(pressure.dof_handler, 
+  data_out.add_data_vector(*(pressure.dof_handler), 
                            pressure.solution, 
                            "pressure");
-  data_out.add_data_vector(pressure.dof_handler, 
+  data_out.add_data_vector(*(pressure.dof_handler), 
                            pressure_error, 
                            "pressure_error");
   data_out.build_patches(velocity.fe_degree);

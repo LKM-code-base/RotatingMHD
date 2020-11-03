@@ -43,57 +43,57 @@ public:
   /*!
    * @brief The degree of the finite element.
    */
-  const unsigned int          fe_degree;
+  const unsigned int                fe_degree;
 
   /*!
    * @brief The MPI communicator.
    */
-  const MPI_Comm              mpi_communicator;
+  const MPI_Comm                    mpi_communicator;
 
   /*!
    * @brief The DoFHandler<dim> instance of the entity.
    */
-  //std::shared_ptr<DoFHandler<dim>>  dof_handler;
-  DoFHandler<dim> dof_handler;
+  std::shared_ptr<DoFHandler<dim>>  dof_handler;
+
   /*!
    * @brief The AffineConstraints<double> instance handling the 
    * hanging nodes.
    */
-  AffineConstraints<double>   hanging_nodes;
+  AffineConstraints<double>         hanging_nodes;
 
   /*!
    * @brief The AffineConstraints<double> instance handling the 
    * hanging nodes and the boundary conditions.
    */
-  AffineConstraints<double>   constraints;
+  AffineConstraints<double>         constraints;
 
   /*!
    * @brief The set of the degrees of freedom owned by the processor.
    */
-  IndexSet                    locally_owned_dofs;
+  IndexSet                          locally_owned_dofs;
 
   /*!
    * @brief The set of the degrees of freedom that are relevant for
    * the processor.
    */
-  IndexSet                    locally_relevant_dofs;
+  IndexSet                          locally_relevant_dofs;
 
   /*!
    * @brief Vector containing the solution at the current time.
    */
-  LinearAlgebra::MPI::Vector  solution;
+  LinearAlgebra::MPI::Vector        solution;
 
   /*!
    * @brief Vector containing the solution one time step prior to the
    * current time.
    */
-  LinearAlgebra::MPI::Vector  old_solution;
+  LinearAlgebra::MPI::Vector        old_solution;
 
   /*!
    * @brief Vector containing the solution two time step prior to the
    * current time.
    */
-  LinearAlgebra::MPI::Vector  old_old_solution;
+  LinearAlgebra::MPI::Vector        old_old_solution;
 
   /*!
    * @brief Constructor.
