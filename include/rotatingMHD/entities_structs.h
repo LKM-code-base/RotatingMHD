@@ -122,7 +122,10 @@ public:
    */
   void update_solution_vectors();
 
-
+  /*!
+   * @brief Sets all the entries of the solution vectors to zero.
+   */
+  void set_solution_vectors_to_zero();
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
    * and @ref VectorEntity in a vector and call

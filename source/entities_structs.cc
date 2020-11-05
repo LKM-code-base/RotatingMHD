@@ -54,6 +54,14 @@ void EntityBase<dim>::update_solution_vectors()
 }
 
 template <int dim>
+void EntityBase<dim>::set_solution_vectors_to_zero()
+{
+  solution          = 0.;
+  old_solution      = 0.;
+  old_old_solution  = 0.;
+}
+
+template <int dim>
 VectorEntity<dim>::VectorEntity
 (const unsigned int                               fe_degree,
  const parallel::distributed::Triangulation<dim> &triangulation)
