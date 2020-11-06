@@ -84,6 +84,7 @@ struct ParameterSet
 
   unsigned int        graphical_output_interval;
   unsigned int        terminal_output_interval;
+  unsigned int        adaptive_meshing_interval;
   
   bool                flag_spatial_convergence_test;
   unsigned int        initial_refinement_level;

@@ -37,6 +37,7 @@ verbose(true),
 flag_semi_implicit_convection(true),
 graphical_output_interval(15),
 terminal_output_interval(1),
+adaptive_meshing_interval(20),
 flag_spatial_convergence_test(true),
 initial_refinement_level(3),
 final_refinement_level(8),
@@ -198,6 +199,11 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                     Patterns::Integer(1),
                     "Output frequency of diagnostic data on the terminal.");
 
+  prm.declare_entry("adaptive_meshing_frequency",
+                    "1",
+                    Patterns::Integer(1),
+                    "Frequency at which adaptive refinement and"
+                    " coarsening is perofmed");
 }
 
 
@@ -286,6 +292,7 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
 
   graphical_output_interval = prm.get_integer("graphical_output_frequency");
   terminal_output_interval  = prm.get_integer("diagnostics_output_frequency");
+  adaptive_meshing_interval = prm.get_integer("adaptive_meshing_frequency");
 }
 
 } // namespace RunTimeParameters
