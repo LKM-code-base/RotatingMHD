@@ -13,6 +13,9 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Velocity");
 
+  velocity_mass_matrix    = 0.;
+  velocity_laplace_matrix = 0.;
+
   // Polynomial degree of the integrand
   const int p_degree = 2 * velocity.fe_degree;
 
@@ -134,6 +137,9 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
     *pcout << "  Navier Stokes: Assembling pressure mass and stiffness matrices..." << std::endl;
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Pressure");
+
+  pressure_mass_matrix    = 0.;
+  pressure_laplace_matrix = 0.;
 
   // Polynomial degree of the integrand
   const int p_degree = 2 * pressure.fe_degree;
