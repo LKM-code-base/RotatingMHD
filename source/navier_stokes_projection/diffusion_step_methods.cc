@@ -14,7 +14,8 @@ assemble_diffusion_step()
 
   /* This if scope makes sure that if the time step did not change
      between solve calls, the following matrix summation is only done once */
-  if (time_stepping.coefficients_changed() == true)
+  if (time_stepping.coefficients_changed() == true ||
+      flag_add_mass_and_stiffness_matrices)
   {
     TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Mass and stiffness matrix addition");
     velocity_mass_plus_laplace_matrix = 0.;
@@ -26,6 +27,8 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix.add
     (time_stepping.get_gamma()[0] / parameters.Re,
      velocity_laplace_matrix);
+    
+    flag_add_mass_and_stiffness_matrices = false;
   }
 
   /* In case of a semi-implicit scheme, the advection matrix has to be

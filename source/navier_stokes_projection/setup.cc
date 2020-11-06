@@ -28,6 +28,8 @@ void NavierStokesProjection<dim>::setup()
     flag_normalize_pressure = true;
 
   flag_setup_solver = false;
+
+  flag_add_mass_and_stiffness_matrices = true;
 }
 
 template <int dim>

@@ -406,6 +406,12 @@ private:
   bool                                  flag_setup_solver;
 
   /*!
+   * @brief A flag indicating if the velocity's mass and stiffness 
+   * matrices are to be added.
+   */
+  bool                                  flag_add_mass_and_stiffness_matrices;
+
+  /*!
    * @brief A method initiating the scalar field  \f$ \phi\f$.
    * @details Extracts its locally owned and relevant degrees of freedom;
    * sets its boundary conditions and applies them to its AffineConstraints

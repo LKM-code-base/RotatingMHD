@@ -22,7 +22,8 @@ time_stepping(time_stepping),
 flag_initializing(false),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_setup_solver(true)
+flag_setup_solver(true),
+flag_add_mass_and_stiffness_matrices(true)
 {
   /*! @todo Include assertions concerning the Entities somehow checking
       if setup_dofs and reinit were already called */
