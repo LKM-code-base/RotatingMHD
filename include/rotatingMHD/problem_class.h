@@ -8,10 +8,80 @@
 #include <deal.II/base/function.h>
 #include <deal.II/base/timer.h>
 
+#include <deal.II/distributed/solution_transfer.h>
+#include <deal.II/distributed/grid_refinement.h>
+
+#include <deal.II/grid/grid_refinement.h>
+
+#include <deal.II/numerics/error_estimator.h>
+#include <deal.II/numerics/solution_transfer.h>
+
 namespace RMHD
 {
 
 using namespace dealii;
+
+template <int dim>
+struct SolutionTransferEntityContainer
+{
+  /*!
+   * @brief A typedef for the std::pair composed of a pointer to a
+   * @ref Entities::EntityBase instance and a boolean.
+   * @details The boolean indicates wheter the entity is to be 
+   * considered by the error estimation or not.
+   */ 
+  using EntityEntry = std::pair<Entities::EntityBase<dim> *, bool>;
+
+  /*!
+   * @brief A std::vector with all the entities to be considered in
+   * a solution transfer
+   */ 
+  std::vector<EntityEntry>  entities;
+
+  /*!
+   * @brief Default constructor.
+   */ 
+  SolutionTransferEntityContainer();
+
+  /*!
+   * @brief Inline returning the number of entities to be considered
+   * by the error estimation.
+   */ 
+  unsigned int get_error_vector_size() const;
+
+  /*!
+   * @brief Indicates wheter @ref entities is empty or not.
+   */ 
+  bool empty() const;
+
+  /*!
+   * @brief Adds the passed on EntityBase instance and flag to the
+   * entities struct member.
+   * @details If no boolean is passed, it is assumed that the entity
+   * is to be considered by the error estimation.
+   */ 
+  void add_entity(Entities::EntityBase<dim> &entity, bool flag = true);
+
+private:
+
+  /*!
+   * @brief The side of the std::vector instance containing all the
+   * Vector instances to be considered by the error estimation.
+   */
+  unsigned int              error_vector_size;
+};
+
+template <int dim>
+inline unsigned int SolutionTransferEntityContainer<dim>::get_error_vector_size() const
+{
+  return error_vector_size;
+}
+
+template <int dim>
+inline bool SolutionTransferEntityContainer<dim>::empty() const
+{
+  return entities.empty();
+}
 
 /*!
  * @class Problem
@@ -53,7 +123,11 @@ protected:
    */
   std::shared_ptr<TimerOutput>                computing_timer;
 
-
+  /*!
+   * Struct containing all the entities to be considered during a
+   * solution transfer. 
+   */
+  SolutionTransferEntityContainer<dim>      container;
 
 protected:
 
@@ -95,6 +169,11 @@ protected:
    const double                           cfl_number,
    const double                           max_cfl_number = 1.0) const;
 
+  /*!
+   * @brief Performs an adaptive mesh refinement.
+   * @details 
+   */
+  void adaptive_mesh_refinement();
 };
 
 } // namespace RMHD

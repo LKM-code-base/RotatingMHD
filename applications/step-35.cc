@@ -87,7 +87,9 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   pressure.reinit();
   initialize();
 
-  //this->pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
+  this->container.add_entity(velocity);
+  this->container.add_entity(pressure, false);
+  this->container.add_entity(navier_stokes.phi, false);
 }
 
 template <int dim>
@@ -246,6 +248,10 @@ void Step35<dim>::run()
                     this->prm.terminal_output_interval == 0) ||
                    (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()));
+
+    if (time_stepping.get_step_number() % 
+        this->prm.adaptive_meshing_interval == 0)
+      this->adaptive_mesh_refinement();
 
     if ((time_stepping.get_step_number() % 
           this->prm.graphical_output_interval == 0) ||

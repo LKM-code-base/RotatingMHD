@@ -12,6 +12,21 @@ namespace RMHD
 using namespace dealii;
 
 template<int dim>
+SolutionTransferEntityContainer<dim>::SolutionTransferEntityContainer()
+:
+error_vector_size(0)
+{}
+
+template<int dim>
+void SolutionTransferEntityContainer<dim>::add_entity(
+Entities::EntityBase<dim> &entity, bool flag)
+{
+  entities.emplace_back(std::make_pair(&entity, flag));
+  if (flag)
+    error_vector_size += 1;
+}
+
+template<int dim>
 Problem<dim>::Problem(const RunTimeParameters::ParameterSet &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
@@ -158,7 +173,164 @@ double Problem<dim>::compute_next_time_step
          time_stepping.get_next_step_size();
 }
 
+template <int dim>
+void Problem<dim>::adaptive_mesh_refinement()
+{
+  Assert(!container.empty(), 
+         ExcMessage("The entities container is empty."))
+
+  using SolutionTransferType = 
+  parallel::distributed::SolutionTransfer<dim, LinearAlgebra::MPI::Vector>;
+
+  using TransferVectorType = 
+  std::vector<const LinearAlgebra::MPI::Vector *>;
+
+  std::vector<SolutionTransferType> solution_transfers;
+  
+  /*! Initiates the objects responsible for the solution transfer */
+  for (auto const &entity: container.entities)
+    solution_transfers.emplace_back(*(entity.first->dof_handler));
+
+  {
+    TimerOutput::Scope t(*computing_timer, 
+                         "Problem: Adaptive mesh refinement Pt. 1");
+    
+    /*! Initiates the estimated error per cell of each entity, which
+     * is to be considered */
+    std::vector<Vector<float>> estimated_errors_per_cell(
+      container.get_error_vector_size(),
+      Vector<float>(triangulation.n_active_cells()));
+
+    /*! Initiates the estimated error per cell used in the refinement.
+     *  It is composed by the equally weighted sum of the estimated
+     *  error per cell of each entity to be considered */
+    Vector<float> estimated_error_per_cell(triangulation.n_active_cells());
+
+    unsigned int j = 0;
+
+    /*! Computes the estimated error per cell of all the pertinent 
+        entities */
+    for (unsigned int i = 0; i < container.entities.size(); ++i)
+    {
+      if (container.entities[i].second)
+      {
+        KellyErrorEstimator<dim>::estimate(
+          *(container.entities[i].first->dof_handler),
+          QGauss<dim-1>(container.entities[i].first->fe_degree + 1),
+          std::map<types::boundary_id, const Function<dim> *>(),
+          container.entities[i].first->solution,
+          estimated_errors_per_cell[j],
+          ComponentMask(),
+          nullptr,
+          0,
+          triangulation.locally_owned_subdomain());
+        
+        j += 1;
+      }
+      else
+        continue;
+    }
+
+    /*! Reset the estimated error per cell and fills it with the
+        equally weighted sum of the estimated error per cell of each
+        entity to be considered */
+    estimated_error_per_cell = 0.;
+
+    for (auto const &error_vector: estimated_errors_per_cell)
+      estimated_error_per_cell.add(1.0 / container.get_error_vector_size(),
+                                   error_vector);
+
+    /*! Indicates which cells are to be refine/coarsen */
+    parallel::distributed::
+    GridRefinement::refine_and_coarsen_fixed_fraction(
+      triangulation,
+      estimated_error_per_cell,
+      0.3,
+      0.1);
+
+    /*! Stores the current solutions into std::vector declared below
+        and prepare each entry for the solution transfer */
+    std::vector<TransferVectorType> x_solutions;
+
+    for (auto const &entity : container.entities)
+    {
+      TransferVectorType x_solution(3);
+      x_solution[0] = &(entity.first)->solution;
+      x_solution[1] = &(entity.first)->old_solution;
+      x_solution[2] = &(entity.first)->old_old_solution;
+      x_solutions.emplace_back(x_solution);
+    }
+
+    triangulation.prepare_coarsening_and_refinement();
+    for (unsigned int i = 0; i < solution_transfers.size(); ++i)
+      solution_transfers[i].prepare_for_coarsening_and_refinement(
+        x_solutions[i]);
+
+    /*! Execute the mesh refinement/coarsening */
+    triangulation.execute_coarsening_and_refinement();
+  }
+
+  /*! Reinitiate the entities to accomodate to the new mesh */
+  for (auto &entity: container.entities)
+  {
+    (entity.first)->setup_dofs();
+    (entity.first)->apply_boundary_conditions();
+    (entity.first)->reinit();
+  }
+
+  {
+    TimerOutput::Scope t(*computing_timer, 
+                         "Problem: Adaptive mesh refinement Pt. 2");
+
+  for (unsigned int i = 0; i < container.entities.size(); ++i)
+  {
+    /*! Temporary vectors to extract the interpolated solutions back
+        into the entities */
+    LinearAlgebra::MPI::Vector  distributed_tmp_solution;
+    LinearAlgebra::MPI::Vector  distributed_tmp_old_solution;
+    LinearAlgebra::MPI::Vector  distributed_tmp_old_old_solution;
+
+    #ifdef USE_PETSC_LA
+      distributed_tmp_solution.reinit(
+        (container.entities[i].first)->locally_owned_dofs,
+        (container.entities[i].first)->mpi_communicator);
+    #else
+      distributed_tmp_solution.reinit(
+        (container.entities[i].first)->locally_owned_dofs,
+        (container.entities[i].first)->locally_relevant_dofs,
+        (container.entities[i].first)->mpi_communicator,
+        true);
+    #endif
+
+    distributed_tmp_old_solution.reinit(distributed_tmp_solution);
+    distributed_tmp_old_old_solution.reinit(distributed_tmp_solution);
+
+    std::vector<LinearAlgebra::MPI::Vector *>  tmp(3);
+    tmp[0] = &(distributed_tmp_solution);
+    tmp[1] = &(distributed_tmp_old_solution);
+    tmp[2] = &(distributed_tmp_old_old_solution);
+    
+    /*! Interpolates and apply constraines to the temporary vectors */
+    solution_transfers[i].interpolate(tmp);
+
+    (container.entities[i].first)->constraints.distribute(distributed_tmp_solution);
+    (container.entities[i].first)->constraints.distribute(distributed_tmp_old_solution);
+    (container.entities[i].first)->constraints.distribute(distributed_tmp_old_old_solution);
+
+    /*! Passes the interpolated vectors to the entities' vector instances */
+    (container.entities[i].first)->solution          = distributed_tmp_solution;
+    (container.entities[i].first)->old_solution      = distributed_tmp_old_solution;
+    (container.entities[i].first)->old_old_solution  = distributed_tmp_old_old_solution;
+  }
+
+  }
+}
+
+
 } // namespace RMHD
+
+template struct RMHD::SolutionTransferEntityContainer<2>;
+template struct RMHD::SolutionTransferEntityContainer<3>;
 
 template class RMHD::Problem<2>;
 template class RMHD::Problem<3>;
