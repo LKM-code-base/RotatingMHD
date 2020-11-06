@@ -184,42 +184,13 @@ void TGV<dim>::setup_constraints()
 
   velocity.boundary_conditions.clear();
   pressure.boundary_conditions.clear();
-
-  FullMatrix<double> rotation_matrix(dim);
-  rotation_matrix[0][0] = 1.;
-  rotation_matrix[1][1] = 1.;
-
-  Tensor<1,dim> offset_x;
-  offset_x[0] = 1.0;
-  offset_x[1] = 0.0;
-
-  Tensor<1,dim> offset_y;
-  offset_y[0] = 0.0;
-  offset_y[1] = 1.0;
   
-  velocity.boundary_conditions.set_periodic_bcs(0,
-                                                1,
-                                                0,
-                                                rotation_matrix,
-                                                offset_x);
-  velocity.boundary_conditions.set_periodic_bcs(2,
-                                                3,
-                                                1,
-                                                rotation_matrix,
-                                                offset_y);
-  pressure.boundary_conditions.set_periodic_bcs(0,
-                                                1,
-                                                0,
-                                                rotation_matrix,
-                                                offset_x);
-  pressure.boundary_conditions.set_periodic_bcs(2,
-                                                3,
-                                                1,
-                                                rotation_matrix,
-                                                offset_y);
+  velocity.boundary_conditions.set_periodic_bcs(0, 1, 0);
+  velocity.boundary_conditions.set_periodic_bcs(2, 3, 1);
+  pressure.boundary_conditions.set_periodic_bcs(0, 1, 0);
+  pressure.boundary_conditions.set_periodic_bcs(2, 3, 1);
   
   velocity.apply_boundary_conditions();
-
   pressure.apply_boundary_conditions();
 }
 
@@ -364,7 +335,6 @@ void TGV<dim>::update_entities()
 {
   velocity.update_solution_vectors();
   pressure.update_solution_vectors();
-  navier_stokes.update_internal_entities();
 }
 
 template <int dim>
@@ -376,7 +346,6 @@ void TGV<dim>::solve(const unsigned int &level)
   pressure.reinit();
   velocity_error.reinit(velocity.solution);
   pressure_error.reinit(pressure.solution);
-  navier_stokes.setup(true);
   initialize();
 
   // Advances the time to t^{k-1}, either t^0 or t^1
@@ -420,14 +389,13 @@ void TGV<dim>::solve(const unsigned int &level)
     velocity.update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
-    navier_stokes.solve(time_stepping.get_step_number());
+    navier_stokes.solve();
 
     // Advances the VSIMEXMethod instance to t^{k}
     update_entities();
     time_stepping.advance_time();
 
-
-    // Snapshot stage, all time calls should be done with get_next_time()
+    // Snapshot stage, all time calls should be done with get_current_time()
     postprocessing((time_stepping.get_step_number() %
                     this->prm.terminal_output_interval == 0) ||
                     (time_stepping.get_current_time() == 
@@ -475,6 +443,7 @@ void TGV<dim>::run(const bool flag_convergence_test)
       time_stepping.restart();
       solve(level);
       this->triangulation.refine_global();
+      navier_stokes.reset_phi();
     }
   else
   {
@@ -491,6 +460,7 @@ void TGV<dim>::run(const bool flag_convergence_test)
       time_stepping.restart();
       time_stepping.set_desired_next_step_size(time_step);
       solve(this->prm.initial_refinement_level);
+      navier_stokes.reset_phi();
     }
   }
   

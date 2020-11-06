@@ -85,7 +85,6 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   setup_constraints();
   velocity.reinit();
   pressure.reinit();
-  navier_stokes.setup();
   initialize();
 
   //this->pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
@@ -137,27 +136,14 @@ void Step35<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity.boundary_conditions.set_dirichlet_bcs(
-    1,
-    std::shared_ptr<Function<dim>> 
-      (new Functions::ZeroFunction<dim>(dim)));
-  velocity.boundary_conditions.set_dirichlet_bcs(
-    2,
+  velocity.boundary_conditions.set_dirichlet_bcs(1);
+  velocity.boundary_conditions.set_dirichlet_bcs(2,
     std::shared_ptr<Function<dim>> 
       (new EquationData::Step35::VelocityInflowBoundaryCondition<dim>(dim)));
-  velocity.boundary_conditions.set_dirichlet_bcs(
-    4,
-    std::shared_ptr<Function<dim>> 
-      (new Functions::ZeroFunction<dim>(dim)));
-  velocity.boundary_conditions.set_tangential_flux_bcs(
-    3,
-    std::shared_ptr<Function<dim>> 
-      (new Functions::ZeroFunction<dim>(dim)));
+  velocity.boundary_conditions.set_dirichlet_bcs(4);
+  velocity.boundary_conditions.set_tangential_flux_bcs(3);
   
-  pressure.boundary_conditions.set_dirichlet_bcs(
-    3,
-    std::shared_ptr<Function<dim>> 
-      (new Functions::ZeroFunction<dim>()));
+  pressure.boundary_conditions.set_dirichlet_bcs(3);
 
   velocity.apply_boundary_conditions();
 
@@ -227,7 +213,6 @@ void Step35<dim>::update_solution_vectors()
 {
   velocity.update_solution_vectors();
   pressure.update_solution_vectors();
-  navier_stokes.update_internal_entities();
 }
 
 template <int dim>
@@ -250,7 +235,7 @@ void Step35<dim>::run()
     time_stepping.update_coefficients();
 
     // Solves the system, i.e. computes the fields at t^{k}
-    navier_stokes.solve(time_stepping.get_step_number());
+    navier_stokes.solve();
 
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
@@ -291,18 +276,13 @@ point_evaluation(const Point<dim>   &point) const
     = VectorTools::point_value(*pressure.dof_handler,
                               pressure.solution,
                               point);
-    std::cout << "Step = " << std::setw(2)
-              << time_stepping.get_step_number()
-              << " Time = " << std::noshowpos << std::scientific
-              << time_stepping.get_current_time()
+    std::cout << time_stepping
               << " Velocity = (" << std::showpos << std::scientific
               << point_value_velocity[0]
               << ", " << std::showpos << std::scientific
               << point_value_velocity[1]
               << ") Pressure = " << std::showpos << std::scientific
-              << point_value_pressure
-              << " Time step = " << std::showpos << std::scientific
-              << time_stepping.get_next_step_size() << std::endl;
+              << point_value_pressure  << std::endl;
   }
 }
 
