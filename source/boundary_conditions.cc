@@ -36,7 +36,7 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->dirichlet_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>());
+    this->dirichlet_bcs[boundary_id] = zero;
   else
   {
     AssertThrow(
@@ -66,12 +66,12 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->neumann_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    this->neumann_bcs[boundary_id] = zero;
   else
   {
     AssertThrow(
       function->n_components == 1,
-      ExcMessage("Neumann boundary function needs to have dim components."));
+      ExcMessage("Scalar boundary function need to have a single component."));
     
     this->neumann_bcs[boundary_id] = function;
   }
@@ -164,7 +164,7 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->dirichlet_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    this->dirichlet_bcs[boundary_id] = zero;
   else
   {
     AssertThrow(
@@ -194,7 +194,7 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->neumann_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    this->neumann_bcs[boundary_id] = zero;
   else
   {
     AssertThrow(
@@ -224,7 +224,7 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    normal_flux_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    normal_flux_bcs[boundary_id] = zero;
   else
   {
     AssertThrow(
@@ -254,7 +254,7 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    tangential_flux_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    tangential_flux_bcs[boundary_id] = zero;
   else
   {
     AssertThrow(

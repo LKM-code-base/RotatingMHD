@@ -184,6 +184,12 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
   void copy(const ScalarBoundaryConditions<dim> &other);
 
 private:
+  /*!
+   * @brief A scalar zero function used for homogeneous boundary
+   * conditions.
+   */
+  std::shared_ptr<Function<dim>>  zero = 
+                      std::make_shared<Functions::ZeroFunction<dim>>();
 
   /*!
    * @brief Checks if the passed boundary id was already constrained.
@@ -309,6 +315,13 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
   void copy(const VectorBoundaryConditions<dim> &other);
   
 private:
+
+  /*!
+   * @brief A vector zero function used for homogeneous boundary
+   * conditions.
+   */
+  std::shared_ptr<Function<dim>>  zero = 
+                      std::make_shared<Functions::ZeroFunction<dim>>(dim);
 
   /*!
    * @brief Checks if the passed boundary id was already constrained.
