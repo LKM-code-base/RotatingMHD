@@ -13,15 +13,16 @@ NavierStokesProjection<dim>::NavierStokesProjection
  const std::shared_ptr<ConditionalOStream>external_pcout,
  const std::shared_ptr<TimerOutput>       external_timer)
 :
-xi(pressure),
+phi(pressure),
 parameters(parameters),
 mpi_communicator(velocity.mpi_communicator),
 velocity(velocity),
 pressure(pressure),
 time_stepping(time_stepping),
-flag_diffusion_matrix_assembled(false),
 flag_initializing(false),
-flag_normalize_pressure(false)
+flag_normalize_pressure(false),
+flag_setup_phi(true),
+flag_setup_solver(true)
 {
   /*! @todo Include assertions concerning the Entities somehow checking
       if setup_dofs and reinit were already called */

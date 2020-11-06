@@ -43,7 +43,7 @@ void NavierStokesProjection<dim>::solve_projection_step
   // of the pertinent vectors to be able to perform the solve()
   // operation.
   LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
-  distributed_phi = phi;
+  distributed_phi = phi.solution;
 
   if (reinit_prec)
     projection_step_preconditioner.initialize(pressure_laplace_matrix);
@@ -95,7 +95,7 @@ void NavierStokesProjection<dim>::solve_projection_step
   if (flag_normalize_pressure)
     VectorTools::subtract_mean_value(distributed_phi);
 
-  phi = distributed_phi;
+  phi.solution = distributed_phi;
 
   if (parameters.verbose)
     *pcout << "   done." << std::endl;

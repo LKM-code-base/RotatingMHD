@@ -42,19 +42,8 @@ get_cfl_number()
   return max_cfl_number;
 }
 
-template <int dim>
-void NavierStokesProjection<dim>::
-update_internal_entities()
-{
-  old_old_phi = old_phi;
-  old_phi     = phi;
-}
-
 } // namespace RMHD
 
 // explicit instantiations
 template double RMHD::NavierStokesProjection<2>::get_cfl_number();
 template double RMHD::NavierStokesProjection<3>::get_cfl_number();
-
-template void RMHD::NavierStokesProjection<2>::update_internal_entities();
-template void RMHD::NavierStokesProjection<3>::update_internal_entities();

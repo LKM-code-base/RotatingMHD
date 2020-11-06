@@ -15,6 +15,9 @@ initialize()
 
   flag_initializing = true;
 
+  if (velocity.solution.size() != velocity_tmp.size() )
+    setup();
+
   if (body_force_ptr != nullptr)
     body_force_ptr->set_time(time_stepping.get_start_time());
 
@@ -87,7 +90,8 @@ projection_prestep()
   assemble_projection_step();
   /* Solve linear system */
   solve_projection_step(true);
-  old_phi = phi;
+
+  phi.old_solution = phi.solution;
 }
 
 template <int dim>
@@ -95,7 +99,7 @@ void NavierStokesProjection<dim>::
 pressure_correction_prestep()
 {
   pressure.old_solution = pressure.old_old_solution;
-  pressure.old_solution += old_phi;
+  pressure.old_solution += phi.old_solution;
 }
 
 } // namespace RMHD
