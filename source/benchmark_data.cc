@@ -167,7 +167,7 @@ void DFG<dim>::print_step_data(DiscreteTime &time)
         << time.get_step_number() 
         << " Time = " 
         << std::noshowpos << std::scientific
-        << time.get_next_time()
+        << time.get_current_time()
         << " dp = " 
         << std::showpos << std::scientific
         << pressure_difference
