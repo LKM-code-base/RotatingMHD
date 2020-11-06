@@ -194,22 +194,25 @@ void Problem<dim>::adaptive_mesh_refinement()
   {
     TimerOutput::Scope t(*computing_timer, 
                          "Problem: Adaptive mesh refinement Pt. 1");
-    
-    /*! Initiates the estimated error per cell of each entity, which
-     * is to be considered */
+
+    *pcout << std::endl
+           << "Preparing coarsening and refining..." << std::endl;
+
+    // Initiates the estimated error per cell of each entity, which
+    // is to be considered
     std::vector<Vector<float>> estimated_errors_per_cell(
       container.get_error_vector_size(),
       Vector<float>(triangulation.n_active_cells()));
 
-    /*! Initiates the estimated error per cell used in the refinement.
-     *  It is composed by the equally weighted sum of the estimated
-     *  error per cell of each entity to be considered */
+    // Initiates the estimated error per cell used in the refinement.
+    // It is composed by the equally weighted sum of the estimated
+    // error per cell of each entity to be considered 
     Vector<float> estimated_error_per_cell(triangulation.n_active_cells());
 
     unsigned int j = 0;
 
-    /*! Computes the estimated error per cell of all the pertinent 
-        entities */
+    // Computes the estimated error per cell of all the pertinent 
+    // entities
     for (unsigned int i = 0; i < container.entities.size(); ++i)
     {
       if (container.entities[i].second)
@@ -231,16 +234,16 @@ void Problem<dim>::adaptive_mesh_refinement()
         continue;
     }
 
-    /*! Reset the estimated error per cell and fills it with the
-        equally weighted sum of the estimated error per cell of each
-        entity to be considered */
+    // Reset the estimated error per cell and fills it with the
+    // equally weighted sum of the estimated error per cell of each
+    // entity to be considered 
     estimated_error_per_cell = 0.;
 
     for (auto const &error_vector: estimated_errors_per_cell)
       estimated_error_per_cell.add(1.0 / container.get_error_vector_size(),
                                    error_vector);
 
-    /*! Indicates which cells are to be refine/coarsen */
+    // Indicates which cells are to be refine/coarsen 
     parallel::distributed::
     GridRefinement::refine_and_coarsen_fixed_fraction(
       triangulation,
@@ -248,8 +251,34 @@ void Problem<dim>::adaptive_mesh_refinement()
       0.3,
       0.1);
 
-    /*! Stores the current solutions into std::vector declared below
-        and prepare each entry for the solution transfer */
+
+    // Clear refinement flags if refinement level exceeds maximum
+    if (triangulation.n_levels() > prm.refinement_and_coarsening_max_level)
+      for (auto cell: triangulation.active_cell_iterators_on_level(
+                        prm.refinement_and_coarsening_max_level))
+        cell->clear_refine_flag();
+
+    // Clear coarsen flags if level decreases minimum
+    for (auto cell: triangulation.active_cell_iterators_on_level(
+                      prm.refinement_and_coarsening_min_level))
+        cell->clear_coarsen_flag();
+
+    // Count number of cells to be refined and coarsened
+    unsigned int local_cell_counts[2] = {0, 0};
+    for (auto cell: triangulation.active_cell_iterators())
+        if (cell->is_locally_owned() && cell->refine_flag_set())
+            local_cell_counts[0] += 1;
+        else if (cell->is_locally_owned() && cell->coarsen_flag_set())
+            local_cell_counts[1] += 1;
+
+    unsigned int global_cell_counts[2];
+    Utilities::MPI::sum(local_cell_counts, mpi_communicator, global_cell_counts);
+
+    *pcout << "   Number of cells set for refinement: " << global_cell_counts[0] << std::endl
+           << "   Number of cells set for coarsening: " << global_cell_counts[1] << std::endl;
+
+    // Stores the current solutions into std::vector declared below
+    // and prepare each entry for the solution transfer
     std::vector<TransferVectorType> x_solutions;
 
     for (auto const &entity : container.entities)
@@ -266,11 +295,27 @@ void Problem<dim>::adaptive_mesh_refinement()
       solution_transfers[i].prepare_for_coarsening_and_refinement(
         x_solutions[i]);
 
-    /*! Execute the mesh refinement/coarsening */
+    // Execute the mesh refinement/coarsening
+    *pcout << "Executing coarsening and refining..." << std::endl;
     triangulation.execute_coarsening_and_refinement();
   }
 
-  /*! Reinitiate the entities to accomodate to the new mesh */
+  *pcout << "   Total number of cells:              " 
+         << triangulation.n_global_active_cells() << std::endl;
+
+  std::vector<unsigned int>   locally_active_cells(triangulation.n_global_levels());
+  for (unsigned int level = 0; level < triangulation.n_levels(); ++level)
+    for (auto cell: triangulation.active_cell_iterators_on_level(level))
+      if (cell->is_locally_owned())
+        locally_active_cells[level] += 1;
+  *pcout << "   Number of cells on each (level):    ";
+  for (unsigned int level=0; level < triangulation.n_global_levels(); ++level)
+  {
+      *pcout << Utilities::MPI::sum(locally_active_cells[level], mpi_communicator) << " (" << level << ")" << ", ";
+  }
+  *pcout << "\b\b \n" << std::endl;
+
+  // Reinitiate the entities to accomodate to the new mesh
   for (auto &entity: container.entities)
   {
     (entity.first)->setup_dofs();
@@ -284,8 +329,8 @@ void Problem<dim>::adaptive_mesh_refinement()
 
   for (unsigned int i = 0; i < container.entities.size(); ++i)
   {
-    /*! Temporary vectors to extract the interpolated solutions back
-        into the entities */
+    // Temporary vectors to extract the interpolated solutions back
+    //  into the entities
     LinearAlgebra::MPI::Vector  distributed_tmp_solution;
     LinearAlgebra::MPI::Vector  distributed_tmp_old_solution;
     LinearAlgebra::MPI::Vector  distributed_tmp_old_old_solution;
@@ -310,14 +355,14 @@ void Problem<dim>::adaptive_mesh_refinement()
     tmp[1] = &(distributed_tmp_old_solution);
     tmp[2] = &(distributed_tmp_old_old_solution);
     
-    /*! Interpolates and apply constraines to the temporary vectors */
+    // Interpolates and apply constraines to the temporary vectors 
     solution_transfers[i].interpolate(tmp);
 
     (container.entities[i].first)->constraints.distribute(distributed_tmp_solution);
     (container.entities[i].first)->constraints.distribute(distributed_tmp_old_solution);
     (container.entities[i].first)->constraints.distribute(distributed_tmp_old_old_solution);
 
-    /*! Passes the interpolated vectors to the entities' vector instances */
+    // Passes the interpolated vectors to the entities' vector instances
     (container.entities[i].first)->solution          = distributed_tmp_solution;
     (container.entities[i].first)->old_solution      = distributed_tmp_old_solution;
     (container.entities[i].first)->old_old_solution  = distributed_tmp_old_old_solution;
