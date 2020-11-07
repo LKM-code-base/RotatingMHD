@@ -300,10 +300,10 @@ void Problem<dim>::adaptive_mesh_refinement()
     triangulation.execute_coarsening_and_refinement();
   }
 
-  *pcout << "   Total number of cells:              " 
+  *pcout << "   Number of global active cells:      " 
          << triangulation.n_global_active_cells() << std::endl;
 
-  std::vector<unsigned int>   locally_active_cells(triangulation.n_global_levels());
+  std::vector<unsigned int> locally_active_cells(triangulation.n_global_levels());
   for (unsigned int level = 0; level < triangulation.n_levels(); ++level)
     for (auto cell: triangulation.active_cell_iterators_on_level(level))
       if (cell->is_locally_owned())
@@ -311,7 +311,8 @@ void Problem<dim>::adaptive_mesh_refinement()
   *pcout << "   Number of cells on each (level):    ";
   for (unsigned int level=0; level < triangulation.n_global_levels(); ++level)
   {
-      *pcout << Utilities::MPI::sum(locally_active_cells[level], mpi_communicator) << " (" << level << ")" << ", ";
+      *pcout << Utilities::MPI::sum(locally_active_cells[level], mpi_communicator) 
+             << " (" << level << ")" << ", ";
   }
   *pcout << "\b\b \n" << std::endl;
 
