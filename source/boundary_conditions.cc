@@ -187,22 +187,16 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
 
 template <int dim>
 void VectorBoundaryConditions<dim>::set_neumann_bcs(
-  const types::boundary_id             boundary_id,
-  const std::shared_ptr<Function<dim>> &function,
-  const bool                           time_dependent)
+  const types::boundary_id                      boundary_id,
+  const std::shared_ptr<TensorFunction<1, dim>> &function,
+  const bool                                    time_dependent)
 {
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->neumann_bcs[boundary_id] = zero;
+    this->neumann_bcs[boundary_id] = zero_vector;
   else
-  {
-    AssertThrow(
-      function->n_components == dim,
-      ExcMessage("Neumann boundary function needs to have dim components."));
-    
     this->neumann_bcs[boundary_id] = function;
-  }
 
   if (time_dependent)
   {

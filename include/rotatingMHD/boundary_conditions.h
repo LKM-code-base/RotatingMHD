@@ -4,6 +4,7 @@
 #include <rotatingMHD/global.h>
 
 #include <deal.II/base/function.h>
+#include <deal.II/base/tensor_function.h>
 
 #include <vector>
 #include <map>
@@ -96,12 +97,6 @@ struct BoundaryConditionsBase
   FunctionMapping                           dirichlet_bcs;
 
   /*!
-   * @brief A mapping of boundary ids on which Neumann boundary
-   * conditions are set and their respective function.
-   */
-  FunctionMapping                           neumann_bcs;
-
-  /*!
    * @brief A vector containing all the @ref PeriodicBoundaryData instances
    * to be applied as boundary condition.
    */
@@ -122,6 +117,18 @@ struct BoundaryConditionsBase
 template <int dim>
 struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
 {
+  /*!
+   * @brief A typdef for the a mapping using boundary ids as keys
+   * and functions shared pointers as value.
+   */
+  using FunctionMapping = std::map<types::boundary_id,
+                                   std::shared_ptr<Function<dim>>>;
+  /*!
+   * @brief A mapping of boundary ids on which Neumann boundary
+   * conditions are set and their respective function.
+   */
+  FunctionMapping                           neumann_bcs;
+
   /*!
    * @brief It sets a periodic boundary conditions by adding a 
    * @ref PeriodicBoundaryData into @ref BoundaryConditionsBase::periodic_bcs.
@@ -213,17 +220,30 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
    */
   using FunctionMapping = std::map<types::boundary_id,
                                    std::shared_ptr<Function<dim>>>;
+
+  /*!
+   * @brief A typdef for the a mapping using boundary ids as keys
+   * and tensor functions shared pointers as value.
+   */
+  using TensorFunctionMapping = std::map<types::boundary_id,
+                                   std::shared_ptr<TensorFunction<1,dim>>>;
+  /*!
+   * @brief A mapping of boundary ids on which Neumann boundary
+   * conditions are set and their respective function.
+   */
+  TensorFunctionMapping   neumann_bcs;
+
   /*!
    * @brief A mapping of boundary ids on which normal flux boundary
    * conditions are set and their respective function.
    */
-  FunctionMapping   normal_flux_bcs;
+  FunctionMapping         normal_flux_bcs;
 
   /*!
    * @brief A mapping of boundary ids on which tangential flux boundary
    * conditions are set and their respective function.
    */
-  FunctionMapping   tangential_flux_bcs;
+  FunctionMapping         tangential_flux_bcs;
 
   /*!
    * @brief It sets a periodic boundary conditions by adding a 
@@ -263,10 +283,10 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
    * @attention The passed function has to match \f$ \bs{g}(x,t) = \bs{T} 
    * \cdot \bs{n} \f$, i.e. a vector function.
    */
-  void set_neumann_bcs(const types::boundary_id             boundary_id,
-                       const std::shared_ptr<Function<dim>> &function
-                          = std::shared_ptr<Function<dim>>(),
-                       const bool                           time_depedent
+  void set_neumann_bcs(const types::boundary_id                       boundary_id,
+                       const std::shared_ptr<TensorFunction<1, dim>>  &function
+                          = std::shared_ptr<TensorFunction<1, dim>>(),
+                       const bool                                     time_depedent
                           = false);
 
   /*!
@@ -322,6 +342,14 @@ private:
    */
   std::shared_ptr<Function<dim>>  zero = 
                       std::make_shared<Functions::ZeroFunction<dim>>(dim);
+
+  /*!
+   * @brief A scalar zero tensor function used for homogeneous boundary
+   * conditions.
+   */
+  std::shared_ptr<TensorFunction<1, dim>>  zero_vector = 
+                      std::make_shared<ZeroTensorFunction<1,dim>>();
+
 
   /*!
    * @brief Checks if the passed boundary id was already constrained.
