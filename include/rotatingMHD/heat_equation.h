@@ -59,28 +59,6 @@ public:
        std::shared_ptr<TimerOutput>());
 
   /*!
-   * @brief The constructor of the HeatEquation class where the velocity
-   * a TensorFunction instance is
-   * 
-   * @details Stores local references to the input parameters and 
-   * pointers for terminal output entities.
-   * 
-   * @warning This is still a WIP. It throws errors while executing.
-   */
-  HeatEquation
-  (const RunTimeParameters::ParameterSet        &parameters,
-   TimeDiscretization::VSIMEXMethod             &time_stepping,
-   Entities::ScalarEntity<dim>                  &temperature,
-   const std::shared_ptr<TensorFunction<1,dim>> velocity_function =
-       std::shared_ptr<TensorFunction<1,dim>>(),
-   const std::shared_ptr<Mapping<dim>>          external_mapping =
-       std::shared_ptr<Mapping<dim>>(),
-   const std::shared_ptr<ConditionalOStream>    external_pcout =
-       std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>           external_timer =
-       std::shared_ptr<TimerOutput>());
-
-  /*!
    *  @brief Setups and initializes all the internal entities for
    *  the heat equation problem.
    *
@@ -161,11 +139,6 @@ private:
    * @brief A pointer to the entity of velocity field.
    */
   Entities::VectorEntity<dim>            *velocity;
-
-  /*!
-   * @brief A reference to the velocity function.
-   */
-  std::shared_ptr<TensorFunction<1,dim>>  velocity_function_ptr;
 
   /*!
    * @brief A pointer to the supply term function.

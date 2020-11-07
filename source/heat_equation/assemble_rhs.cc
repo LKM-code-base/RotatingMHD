@@ -134,7 +134,7 @@ void HeatEquation<dim>::assemble_local_rhs
       velocity->solution,
       scratch.velocity_values);
   else
-    velocity_function_ptr->value_list(
+    ZeroTensorFunction<1,dim>().value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.velocity_values);
   
@@ -228,7 +228,7 @@ void HeatEquation<dim>::assemble_local_rhs
 
       temperature.boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
         scratch.temperatuer_fe_face_values.get_quadrature_points(),
-        scratch.supply_term_values);
+        scratch.neumann_bc_values);
 
       for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
       {
@@ -239,7 +239,7 @@ void HeatEquation<dim>::assemble_local_rhs
         for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
           data.local_rhs(i) += scratch.temperatuer_fe_face_values.JxW(q) *
                               scratch.face_phi[i] *
-                              scratch.supply_term_values[q];
+                              scratch.neumann_bc_values[q];
       }
     }
 }

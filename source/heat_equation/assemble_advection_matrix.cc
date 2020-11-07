@@ -91,7 +91,7 @@ void HeatEquation<dim>::assemble_local_advection_matrix
     (velocity->solution,
     scratch.velocity_values);
   else
-    velocity_function_ptr->value_list(
+    ZeroTensorFunction<1,dim>().value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.velocity_values);
 
