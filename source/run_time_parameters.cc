@@ -117,12 +117,12 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
     prm.declare_entry("refinement_and_coarsening_max_level",
                       "0",
                       Patterns::Integer(0),
-                      "Maximum refinement and coarsening level."
+                      "Maximum refinement and coarsening level"
                       " allowed.");
     prm.declare_entry("refinement_and_coarsening_min_level",
                       "0",
                       Patterns::Integer(0),
-                      "Minimum refinement and coarsening level."
+                      "Minimum refinement and coarsening level"
                       " allowed.");
   }
   prm.leave_subsection();
