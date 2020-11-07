@@ -279,6 +279,7 @@ MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
 :
 pressure_dofs_per_cell(pressure_dofs_per_cell),
 local_projection_step_rhs(pressure_dofs_per_cell),
+local_pressure_space_projection_rhs(pressure_dofs_per_cell),
 local_matrix_for_inhomogeneous_bc(pressure_dofs_per_cell,
                                   pressure_dofs_per_cell),
 local_pressure_dof_indices(pressure_dofs_per_cell)
@@ -289,6 +290,7 @@ MappingData<dim>::MappingData(const MappingData &data)
 :
 pressure_dofs_per_cell(data.pressure_dofs_per_cell),
 local_projection_step_rhs(data.local_projection_step_rhs),
+local_pressure_space_projection_rhs(data.local_pressure_space_projection_rhs),
 local_matrix_for_inhomogeneous_bc(data.local_matrix_for_inhomogeneous_bc),
 local_pressure_dof_indices(data.local_pressure_dof_indices)
 {}

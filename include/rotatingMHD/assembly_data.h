@@ -170,6 +170,7 @@ struct MappingData
 {
   unsigned int                          pressure_dofs_per_cell;
   Vector<double>                        local_projection_step_rhs;
+  Vector<double>                        local_pressure_space_projection_rhs;
   FullMatrix<double>                    local_matrix_for_inhomogeneous_bc;
   std::vector<types::global_dof_index>  local_pressure_dof_indices;
 
