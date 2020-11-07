@@ -11,7 +11,7 @@ assemble_projection_step_rhs()
 {
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - RHS assembly");
 
-  pressure_rhs = 0.;
+  projection_step_rhs = 0.;
 
   // Polynomial degree of the integrand
 
@@ -54,7 +54,7 @@ assemble_projection_step_rhs()
                                           update_values),
                   PressureRightHandSideAssembly::MappingData<dim>(
                                             pressure.fe.dofs_per_cell));
-  pressure_rhs.compress(VectorOperation::add);
+  projection_step_rhs.compress(VectorOperation::add);
 }
 
 template <int dim>
@@ -115,7 +115,7 @@ copy_local_to_global_projection_step_rhs(
   pressure.constraints.distribute_local_to_global
   (data.local_projection_step_rhs,
    data.local_pressure_dof_indices,
-   pressure_rhs);
+   projection_step_rhs);
 }
 
 } // namespace Step35

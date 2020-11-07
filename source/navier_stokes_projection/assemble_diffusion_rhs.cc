@@ -11,7 +11,7 @@ assemble_diffusion_step_rhs()
 {
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Diffusion step - RHS assembly");
 
-  velocity_rhs  = 0.;
+  diffusion_step_rhs  = 0.;
 
   // Polynomial degree of the body force and the neumann function
 
@@ -72,7 +72,7 @@ assemble_diffusion_step_rhs()
                                                      update_quadrature_points),
    VelocityRightHandSideAssembly::MappingData<dim>(velocity.fe.dofs_per_cell));
 
-  velocity_rhs.compress(VectorOperation::add);
+  diffusion_step_rhs.compress(VectorOperation::add);
 }
 
 template <int dim>
@@ -451,7 +451,7 @@ void NavierStokesProjection<dim>::copy_local_to_global_diffusion_step_rhs
   velocity.constraints.distribute_local_to_global(
                                 data.local_diffusion_step_rhs,
                                 data.local_velocity_dof_indices,
-                                velocity_rhs,
+                                diffusion_step_rhs,
                                 data.local_matrix_for_inhomogeneous_bc);
 }
 

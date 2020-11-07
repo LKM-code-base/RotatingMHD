@@ -300,7 +300,7 @@ private:
    * @brief Vector representing the right-hand side of the linear system of the
    * diffusion step.
    */
-  LinearAlgebra::MPI::Vector        velocity_rhs;
+  LinearAlgebra::MPI::Vector        diffusion_step_rhs;
 
   /*!
    * @brief Mass matrix of the pressure field.
@@ -311,7 +311,7 @@ private:
    * @brief Stiffness matrix of the pressure field. Assembly of  the weak of the
    * Laplace operator.
    */
-  LinearAlgebra::MPI::SparseMatrix  pressure_laplace_matrix;
+  LinearAlgebra::MPI::SparseMatrix  phi_laplace_matrix;
 
   /*!
    * @brief Vector representing the pressure used in the diffusion step.
@@ -328,13 +328,19 @@ private:
    * @brief Vector representing the right-hand side of the linear system of the
    * projection step.
    */
-  LinearAlgebra::MPI::Vector        pressure_rhs;
+  LinearAlgebra::MPI::Vector        projection_step_rhs;
 
   /*!
    * @brief Vector representing the right-hand side of the linear system of the
    * poisson prestep.
    */
   LinearAlgebra::MPI::Vector        poisson_prestep_rhs;
+
+  /*!
+   * @brief Vector representing the right-hand side of the projection
+   * performed during the pressure-correction step. 
+   */
+  LinearAlgebra::MPI::Vector        pressure_space_projection_rhs;
 
   /*!
    * @brief The preconditioner of the diffusion step.

@@ -25,10 +25,10 @@ solve_poisson_prestep()
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure_rhs);
+  LinearAlgebra::MPI::Vector distributed_old_old_pressure(projection_step_rhs);
   distributed_old_old_pressure = pressure.old_old_solution;
 
-  projection_step_preconditioner.initialize(pressure_laplace_matrix);
+  projection_step_preconditioner.initialize(phi_laplace_matrix);
 
   SolverControl solver_control(parameters.n_maximum_iterations,
                                std::max(parameters.relative_tolerance * 
@@ -44,7 +44,7 @@ solve_poisson_prestep()
 
   try
   {
-    solver.solve(pressure_laplace_matrix,
+    solver.solve(phi_laplace_matrix,
                  distributed_old_old_pressure,
                  poisson_prestep_rhs,
                  projection_step_preconditioner);

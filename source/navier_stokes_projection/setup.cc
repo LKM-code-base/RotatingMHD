@@ -159,7 +159,7 @@ void NavierStokesProjection<dim>::setup_matrices()
   }
 
   pressure_mass_matrix.clear();
-  pressure_laplace_matrix.clear();
+  phi_laplace_matrix.clear();
   {
     #ifdef USE_PETSC_LA
       DynamicSparsityPattern
@@ -177,7 +177,7 @@ void NavierStokesProjection<dim>::setup_matrices()
        mpi_communicator,
        pressure.locally_relevant_dofs);
 
-      pressure_laplace_matrix.reinit
+      phi_laplace_matrix.reinit
       (pressure.locally_owned_dofs,
        pressure.locally_owned_dofs,
        sparsity_pattern,
@@ -202,7 +202,7 @@ void NavierStokesProjection<dim>::setup_matrices()
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
       sparsity_pattern.compress();
 
-      pressure_laplace_matrix.reinit(sparsity_pattern);
+      phi_laplace_matrix.reinit(sparsity_pattern);
       pressure_mass_matrix.reinit(sparsity_pattern);
     #endif
   }
@@ -221,22 +221,22 @@ setup_vectors()
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Vectors");
 
   #ifdef USE_PETSC_LA
-    pressure_rhs.reinit(pressure.locally_owned_dofs,
+    projection_step_rhs.reinit(pressure.locally_owned_dofs,
                         mpi_communicator);
   #else
-    pressure_rhs.reinit(pressure.locally_owned_dofs,
+    projection_step_rhs.reinit(pressure.locally_owned_dofs,
                         pressure.locally_relevant_dofs,
                         mpi_communicator,
                         true);
   #endif
-  poisson_prestep_rhs.reinit(pressure_rhs);
+  poisson_prestep_rhs.reinit(projection_step_rhs);
   pressure_tmp.reinit(pressure.solution);
 
   #ifdef USE_PETSC_LA
-    velocity_rhs.reinit(velocity.locally_owned_dofs,
+    diffusion_step_rhs.reinit(velocity.locally_owned_dofs,
                         mpi_communicator);
   #else
-    velocity_rhs.reinit(velocity.locally_owned_dofs,
+    diffusion_step_rhs.reinit(velocity.locally_owned_dofs,
                         velocity.locally_relevant_dofs,
                         mpi_communicator,
                         true);

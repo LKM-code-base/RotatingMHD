@@ -45,8 +45,8 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     AssertIsFinite(eta[0]);
     AssertIsFinite(eta[1]);
 
-    LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
-    LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
+    LinearAlgebra::MPI::Vector distributed_old_velocity(diffusion_step_rhs);
+    LinearAlgebra::MPI::Vector distributed_old_old_velocity(diffusion_step_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
     distributed_old_velocity.sadd(eta[0],
@@ -67,9 +67,9 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     AssertIsFinite(old_step_size[0]);
     AssertIsFinite(old_step_size[1]);
 
-    LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
-    LinearAlgebra::MPI::Vector distributed_old_phi(pressure_rhs);
-    LinearAlgebra::MPI::Vector distributed_old_old_phi(pressure_rhs);
+    LinearAlgebra::MPI::Vector distributed_old_pressure(projection_step_rhs);
+    LinearAlgebra::MPI::Vector distributed_old_phi(projection_step_rhs);
+    LinearAlgebra::MPI::Vector distributed_old_old_phi(projection_step_rhs);
     distributed_old_pressure  = pressure.old_solution;
     distributed_old_phi       = phi.old_solution;
     distributed_old_old_phi   = phi.old_old_solution;
@@ -97,8 +97,8 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     AssertIsFinite(alpha[1] / time_stepping.get_next_step_size());
     AssertIsFinite(alpha[2] / time_stepping.get_next_step_size());
 
-    LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
-    LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
+    LinearAlgebra::MPI::Vector distributed_old_velocity(diffusion_step_rhs);
+    LinearAlgebra::MPI::Vector distributed_old_old_velocity(diffusion_step_rhs);
     distributed_old_velocity      = velocity.old_solution;
     distributed_old_old_velocity  = velocity.old_old_solution;
     distributed_old_velocity.sadd(alpha[1] / time_stepping.get_next_step_size(),
@@ -110,7 +110,7 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   /* Assemble linear system */
   assemble_diffusion_step();
 
-  norm_diffusion_rhs = velocity_rhs.l2_norm();
+  norm_diffusion_rhs = diffusion_step_rhs.l2_norm();
 
   /* Solve linear system */
   solve_diffusion_step(reinit_prec);
@@ -122,7 +122,7 @@ void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
   /* Assemble linear system */
   assemble_projection_step();
 
-  norm_projection_rhs = pressure_rhs.l2_norm();
+  norm_projection_rhs = projection_step_rhs.l2_norm();
 
   /* Solve linear system */
   solve_projection_step(reinit_prec);
@@ -146,21 +146,21 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
         // of the pertinent vectors to be able to perform the solve()
         // operation.
         {
-          LinearAlgebra::MPI::Vector distributed_pressure(pressure_rhs);
-          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
-          LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
+          LinearAlgebra::MPI::Vector distributed_pressure(projection_step_rhs);
+          LinearAlgebra::MPI::Vector distributed_old_pressure(projection_step_rhs);
+          LinearAlgebra::MPI::Vector distributed_phi(projection_step_rhs);
 
           distributed_pressure      = pressure.solution;
           distributed_old_pressure  = pressure.old_solution;
           distributed_phi           = phi.solution; 
 
-          pressure_rhs /= (!flag_initializing ?
+          projection_step_rhs /= (!flag_initializing ?
                             time_stepping.get_alpha()[0] / 
                             time_stepping.get_next_step_size()  :
                             1.0 / time_stepping.get_next_step_size());
 
           SolverControl solver_control(parameters.n_maximum_iterations,
-                                       std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
+                                       std::max(parameters.relative_tolerance * projection_step_rhs.l2_norm(),
                                                 absolute_tolerance));
 
           if (reinit_prec)
@@ -177,7 +177,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           {
             solver.solve(pressure_mass_matrix,
                          distributed_pressure,
-                         pressure_rhs,
+                         projection_step_rhs,
                          correction_step_preconditioner);
           }
           catch (std::exception &exc)
