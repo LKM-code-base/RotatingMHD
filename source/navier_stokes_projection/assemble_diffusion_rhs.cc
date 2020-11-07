@@ -13,10 +13,24 @@ assemble_diffusion_step_rhs()
 
   velocity_rhs  = 0.;
 
+  // Polynomial degree of the body force and the neumann function
+
+  const int p_degree_body_force       = velocity.fe_degree;
+
+  const int p_degree_neumann_function = velocity.fe_degree;
+
   // Polynomial degree of the integrand
-  const int p_degree = 3 * velocity.fe_degree - 1;
+  const int p_degree = std::max(3 * velocity.fe_degree - 1,
+                                velocity.fe_degree + p_degree_body_force);
 
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+
+  // Polynomial degree of the boundary integrand
+
+  const int face_p_degree = velocity.fe_degree + p_degree_neumann_function;
+
+  const QGauss<dim-1> face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
+
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
@@ -47,11 +61,15 @@ assemble_diffusion_step_rhs()
    VelocityRightHandSideAssembly::LocalCellData<dim>(velocity.fe,
                                                      pressure.fe,
                                                      quadrature_formula,
+                                                     face_quadrature_formula,
                                                      update_values|
                                                      update_gradients|
                                                      update_JxW_values|
                                                      update_quadrature_points,
-                                                     update_values),
+                                                     update_values,
+                                                     update_JxW_values|
+                                                     update_values|
+                                                     update_quadrature_points),
    VelocityRightHandSideAssembly::MappingData<dim>(velocity.fe.dofs_per_cell));
 
   velocity_rhs.compress(VectorOperation::add);
@@ -399,6 +417,31 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       }
     } // loop over local dofs
   } // loop over quadrature points
+
+  for (const auto &face : cell->face_iterators())
+    if (face->at_boundary() && 
+        velocity.boundary_conditions.neumann_bcs.find(face->boundary_id()) 
+          != velocity.boundary_conditions.neumann_bcs.end())
+    {
+      scratch.velocity_fe_face_values.reinit(cell, face);
+
+      velocity.boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
+        scratch.velocity_fe_face_values.get_quadrature_points(),
+        scratch.neumann_function_values);
+
+      for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
+      {
+        for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
+          scratch.face_phi_velocity[i] = 
+                    scratch.velocity_fe_face_values.shape_value(i, q);
+        
+        for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
+          data.local_diffusion_step_rhs(i) += 
+                              scratch.velocity_fe_face_values.JxW(q) *
+                              scratch.face_phi_velocity[i] *
+                              scratch.neumann_function_values[q];
+      }
+    }
 }
 
 template <int dim>
