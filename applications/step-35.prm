@@ -55,6 +55,12 @@ subsection Spatial discretization parameters
 
   # The polynomial degree of the pressure finiteelement.
   set p_fe_degree          = 1
+
+  # Maximum refinement and coarsening level allowed.
+  set refinement_and_coarsening_max_level = 10
+
+  # Minimum refinement and coarsening level allowed.
+  set refinement_and_coarsening_min_level = 1
 end
 
 

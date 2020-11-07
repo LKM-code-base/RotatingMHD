@@ -114,7 +114,7 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
   *(this->pcout) << "Number of refines                     = "
               << n_global_refinements << std::endl;
   *(this->pcout) << "Number of active cells                = "
-              << this->triangulation.n_active_cells() << std::endl;
+              << this->triangulation.n_global_active_cells() << std::endl;
 }
 
 template <int dim>
