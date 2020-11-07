@@ -125,7 +125,7 @@ MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
 pressure_dofs_per_cell(pressure_dofs_per_cell),
 local_pressure_mass_matrix(pressure_dofs_per_cell,
                            pressure_dofs_per_cell),
-local_pressure_laplace_matrix(pressure_dofs_per_cell,
+local_phi_laplace_matrix(pressure_dofs_per_cell,
                               pressure_dofs_per_cell),
 local_pressure_dof_indices(pressure_dofs_per_cell)
 {}
@@ -135,7 +135,7 @@ MappingData<dim>::MappingData(const MappingData &data)
 :
 pressure_dofs_per_cell(data.pressure_dofs_per_cell),
 local_pressure_mass_matrix(data.local_pressure_mass_matrix),
-local_pressure_laplace_matrix(data.local_pressure_laplace_matrix),
+local_phi_laplace_matrix(data.local_phi_laplace_matrix),
 local_pressure_dof_indices(data.local_pressure_dof_indices)
 {}
 

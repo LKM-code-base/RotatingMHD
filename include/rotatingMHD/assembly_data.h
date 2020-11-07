@@ -83,7 +83,7 @@ struct MappingData
 {
   unsigned int                          pressure_dofs_per_cell;
   FullMatrix<double>                    local_pressure_mass_matrix;
-  FullMatrix<double>                    local_pressure_laplace_matrix;
+  FullMatrix<double>                    local_phi_laplace_matrix;
   std::vector<types::global_dof_index>  local_pressure_dof_indices;
 
   MappingData(const unsigned int pressure_dofs_per_cell);
