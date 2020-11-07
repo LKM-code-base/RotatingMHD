@@ -19,12 +19,6 @@ void NavierStokesProjection<dim>::assemble_projection_step()
   /* Right hand side setup */
   assemble_projection_step_rhs();
 
-  /* Zeros out the DoFs on the boundary where Dirichlet
-     boundary conditions on the pressure or Neumann boundary
-     conditions on the stress tensor are given
-   */
-  pressure.constraints.set_zero(projection_step_rhs);
-
   if (parameters.verbose)
     *pcout << "   done." << std::endl;
 
@@ -49,7 +43,8 @@ void NavierStokesProjection<dim>::solve_projection_step
     projection_step_preconditioner.initialize(phi_laplace_matrix);
 
   SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * projection_step_rhs.l2_norm(),
+                               std::max(parameters.relative_tolerance * 
+                                        projection_step_rhs.l2_norm(),
                                         absolute_tolerance));
 
   #ifdef USE_PETSC_LA
@@ -90,7 +85,7 @@ void NavierStokesProjection<dim>::solve_projection_step
     std::abort();
   }
 
-  pressure.constraints.distribute(distributed_phi);
+  phi.constraints.distribute(distributed_phi);
 
   if (flag_normalize_pressure)
     VectorTools::subtract_mean_value(distributed_phi);

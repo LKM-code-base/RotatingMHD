@@ -64,7 +64,6 @@ using namespace dealii;
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
  * incremental scheme respectively.
  * @todo Implement a generalized extrapolation scheme.
- * @todo Implement Neumann boundary conditions.
  * @attention The code is hardcoded for a second order time discretization
  * scheme. Setting a first order scheme in the parameter file will cause
  * errors.
@@ -311,6 +310,12 @@ private:
    * @brief Stiffness matrix of the pressure field. Assembly of  the weak of the
    * Laplace operator.
    */
+  LinearAlgebra::MPI::SparseMatrix  pressure_laplace_matrix;
+
+  /*!
+   * @brief Stiffness matrix of the phi field. Assembly of  the weak of the
+   * Laplace operator.
+   */
   LinearAlgebra::MPI::SparseMatrix  phi_laplace_matrix;
 
   /*!
@@ -353,7 +358,13 @@ private:
    * @attention Hardcoded for a ILU preconditioner.
    */
   LinearAlgebra::MPI::PreconditionILU     projection_step_preconditioner;
-  
+
+  /*!
+   * @brief The preconditioner of the poisson prestep.
+   * @attention Hardcoded for a ILU preconditioner.
+   */
+  LinearAlgebra::MPI::PreconditionILU     poisson_prestep_preconditioner;
+
   /*!
    * @brief The preconditioner of the correction step.
    * @attention Hardcoded for a Jacobi preconditioner.

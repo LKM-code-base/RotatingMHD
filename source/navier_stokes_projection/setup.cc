@@ -73,9 +73,6 @@ void NavierStokesProjection<dim>::setup_phi()
   phi.set_solution_vectors_to_zero();
 
   flag_setup_phi = false;
-  /*!
-   * @todo Replace pressure.constraint calls with phi.constraints
-   */ 
 }
 
 template <int dim>
@@ -159,51 +156,88 @@ void NavierStokesProjection<dim>::setup_matrices()
   }
 
   pressure_mass_matrix.clear();
+  pressure_laplace_matrix.clear();
   phi_laplace_matrix.clear();
+
   {
     #ifdef USE_PETSC_LA
       DynamicSparsityPattern
-      sparsity_pattern(pressure.locally_relevant_dofs);
+      pressure_sparsity_pattern(pressure.locally_relevant_dofs);
+
+      DynamicSparsityPattern
+      phi_sparsity_pattern(phi.locally_relevant_dofs);
 
       DoFTools::make_sparsity_pattern(*(pressure.dof_handler),
-                                      sparsity_pattern,
+                                      pressure_sparsity_pattern,
                                       pressure.constraints,
+                                      false,
+                                      Utilities::MPI::this_mpi_process(mpi_communicator));
+
+      DoFTools::make_sparsity_pattern(*(phi.dof_handler),
+                                      phi_sparsity_pattern,
+                                      phi.constraints,
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
       SparsityTools::distribute_sparsity_pattern
-      (sparsity_pattern,
+      (pressure_sparsity_pattern,
        pressure.locally_owned_dofs,
        mpi_communicator,
        pressure.locally_relevant_dofs);
 
+      SparsityTools::distribute_sparsity_pattern
+      (phi_sparsity_pattern,
+       phi.locally_owned_dofs,
+       mpi_communicator,
+       phi.locally_relevant_dofs);
+
       phi_laplace_matrix.reinit
-      (pressure.locally_owned_dofs,
-       pressure.locally_owned_dofs,
-       sparsity_pattern,
+      (phi.locally_owned_dofs,
+       phi.locally_owned_dofs,
+       phi_sparsity_pattern,
        mpi_communicator);
       pressure_mass_matrix.reinit
       (pressure.locally_owned_dofs,
        pressure.locally_owned_dofs,
-       sparsity_pattern,
+       pressure_sparsity_pattern,
+       mpi_communicator);
+      pressure_laplace_matrix.reinit
+      (pressure.locally_owned_dofs,
+       pressure.locally_owned_dofs,
+       pressure_sparsity_pattern,
        mpi_communicator);
 
     #else
       TrilinosWrappers::SparsityPattern
-      sparsity_pattern(pressure.locally_owned_dofs,
-                       pressure.locally_owned_dofs,
-                       pressure.locally_relevant_dofs,
-                       mpi_communicator);
+      pressure_sparsity_pattern(pressure.locally_owned_dofs,
+                                pressure.locally_owned_dofs,
+                                pressure.locally_relevant_dofs,
+                                mpi_communicator);
+
+      TrilinosWrappers::SparsityPattern
+      phi_sparsity_pattern(phi.locally_owned_dofs,
+                           phi.locally_owned_dofs,
+                           phi.locally_relevant_dofs,
+                           mpi_communicator);
 
       DoFTools::make_sparsity_pattern(*(pressure.dof_handler),
-                                      sparsity_pattern,
+                                      pressure_sparsity_pattern,
                                       pressure.constraints,
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
-      sparsity_pattern.compress();
 
-      phi_laplace_matrix.reinit(sparsity_pattern);
-      pressure_mass_matrix.reinit(sparsity_pattern);
+      DoFTools::make_sparsity_pattern(*(phi.dof_handler),
+                                      phi_sparsity_pattern,
+                                      phi.constraints,
+                                      false,
+                                      Utilities::MPI::this_mpi_process(mpi_communicator));
+
+      pressure_sparsity_pattern.compress();
+      phi_sparsity_pattern.compress();
+
+      phi_laplace_matrix.reinit(phi_sparsity_pattern);
+      pressure_mass_matrix.reinit(pressure_sparsity_pattern);
+      pressure_laplace_matrix.reinit(pressure_sparsity_pattern);
     #endif
   }
 
@@ -221,25 +255,31 @@ setup_vectors()
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Vectors");
 
   #ifdef USE_PETSC_LA
-    projection_step_rhs.reinit(pressure.locally_owned_dofs,
-                        mpi_communicator);
+    projection_step_rhs.reinit(phi.locally_owned_dofs,
+                               mpi_communicator);
+    pressure_space_projection_rhs.reinit(pressure.locally_owned_dofs,
+                                         mpi_communicator);
   #else
-    projection_step_rhs.reinit(pressure.locally_owned_dofs,
-                        pressure.locally_relevant_dofs,
-                        mpi_communicator,
-                        true);
+    projection_step_rhs.reinit(phi.locally_owned_dofs,
+                               phi.locally_relevant_dofs,
+                               mpi_communicator,
+                               true);
+    pressure_space_projection_rhs.reinit(pressure.locally_owned_dofs,
+                                         pressure.locally_relevant_dofs,
+                                         mpi_communicator,
+                                         true);
   #endif
-  poisson_prestep_rhs.reinit(projection_step_rhs);
+  poisson_prestep_rhs.reinit(pressure_space_projection_rhs);
   pressure_tmp.reinit(pressure.solution);
 
   #ifdef USE_PETSC_LA
     diffusion_step_rhs.reinit(velocity.locally_owned_dofs,
-                        mpi_communicator);
+                              mpi_communicator);
   #else
     diffusion_step_rhs.reinit(velocity.locally_owned_dofs,
-                        velocity.locally_relevant_dofs,
-                        mpi_communicator,
-                        true);
+                              velocity.locally_relevant_dofs,
+                              mpi_communicator,
+                              true);
   #endif
 
   extrapolated_velocity.reinit(velocity.solution);

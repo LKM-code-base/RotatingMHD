@@ -25,10 +25,10 @@ solve_poisson_prestep()
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_old_old_pressure(projection_step_rhs);
+  LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure_space_projection_rhs);
   distributed_old_old_pressure = pressure.old_old_solution;
 
-  projection_step_preconditioner.initialize(phi_laplace_matrix);
+  poisson_prestep_preconditioner.initialize(pressure_laplace_matrix);
 
   SolverControl solver_control(parameters.n_maximum_iterations,
                                std::max(parameters.relative_tolerance * 
@@ -44,7 +44,7 @@ solve_poisson_prestep()
 
   try
   {
-    solver.solve(phi_laplace_matrix,
+    solver.solve(pressure_laplace_matrix,
                  distributed_old_old_pressure,
                  poisson_prestep_rhs,
                  projection_step_preconditioner);
@@ -54,7 +54,7 @@ solve_poisson_prestep()
     std::cerr << std::endl << std::endl
               << "----------------------------------------------------"
               << std::endl;
-    std::cerr << "Exception in the solve method of the projection step: " << std::endl
+    std::cerr << "Exception in the solve method of the poisson pre-step: " << std::endl
               << exc.what() << std::endl
               << "Aborting!" << std::endl
               << "----------------------------------------------------"
@@ -66,7 +66,7 @@ solve_poisson_prestep()
     std::cerr << std::endl << std::endl
               << "----------------------------------------------------"
                 << std::endl;
-    std::cerr << "Unknown exception in the solve method of the projection step!" << std::endl
+    std::cerr << "Unknown exception in the solve method of the poisson pre-step!" << std::endl
               << "Aborting!" << std::endl
               << "----------------------------------------------------"
               << std::endl;

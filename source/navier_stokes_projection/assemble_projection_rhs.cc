@@ -11,7 +11,8 @@ assemble_projection_step_rhs()
 {
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - RHS assembly");
 
-  projection_step_rhs = 0.;
+  projection_step_rhs           = 0.;
+  pressure_space_projection_rhs = 0.;
 
   // Polynomial degree of the integrand
 
@@ -55,6 +56,7 @@ assemble_projection_step_rhs()
                   PressureRightHandSideAssembly::MappingData<dim>(
                                             pressure.fe.dofs_per_cell));
   projection_step_rhs.compress(VectorOperation::add);
+  pressure_space_projection_rhs.compress(VectorOperation::add);
 }
 
 template <int dim>
@@ -64,8 +66,9 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
  PressureRightHandSideAssembly::MappingData<dim>       &data)
 {
   // reset local rhs
-  data.local_projection_step_rhs = 0.;
-  data.local_matrix_for_inhomogeneous_bc = 0.;
+  data.local_projection_step_rhs            = 0.;
+  data.local_pressure_space_projection_rhs  = 0.;
+  data.local_matrix_for_inhomogeneous_bc    = 0.;
 
   // initialize pressure part
   scratch.pressure_fe_values.reinit(cell);
@@ -96,14 +99,20 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
 
     // loop over local dofs
     for (unsigned int i = 0; i < scratch.pressure_dofs_per_cell; ++i)
+    {
+      const double phi_div_v = - scratch.pressure_fe_values.JxW(q) *
+                                  scratch.velocity_divergence_values[q] *
+                                  scratch.phi_pressure[i];
+
       data.local_projection_step_rhs(i) += 
-                          - (!flag_initializing ?
-                              time_stepping.get_alpha()[0] / 
-                              time_stepping.get_next_step_size() :
-                              1.0 / time_stepping.get_next_step_size()) *
-                          scratch.pressure_fe_values.JxW(q) *
-                          scratch.velocity_divergence_values[q] *
-                          scratch.phi_pressure[i];
+                          (!flag_initializing ?
+                            time_stepping.get_alpha()[0] / 
+                            time_stepping.get_next_step_size() :
+                            1.0 / time_stepping.get_next_step_size()) *
+                          phi_div_v;
+      data.local_pressure_space_projection_rhs(i) += phi_div_v;
+    }
+
   } // loop over quadrature points
 }
 
@@ -112,10 +121,15 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_projection_step_rhs(
   const PressureRightHandSideAssembly::MappingData<dim>  &data)
 {
-  pressure.constraints.distribute_local_to_global
+  phi.constraints.distribute_local_to_global
   (data.local_projection_step_rhs,
    data.local_pressure_dof_indices,
    projection_step_rhs);
+
+  pressure.constraints.distribute_local_to_global
+  (data.local_pressure_space_projection_rhs,
+   data.local_pressure_dof_indices,
+   pressure_space_projection_rhs);
 }
 
 } // namespace Step35

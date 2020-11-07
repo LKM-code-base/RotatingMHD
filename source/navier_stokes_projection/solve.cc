@@ -146,21 +146,17 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
         // of the pertinent vectors to be able to perform the solve()
         // operation.
         {
-          LinearAlgebra::MPI::Vector distributed_pressure(projection_step_rhs);
-          LinearAlgebra::MPI::Vector distributed_old_pressure(projection_step_rhs);
-          LinearAlgebra::MPI::Vector distributed_phi(projection_step_rhs);
+          LinearAlgebra::MPI::Vector distributed_pressure(pressure_space_projection_rhs);
+          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_space_projection_rhs);
+          LinearAlgebra::MPI::Vector distributed_phi(pressure_space_projection_rhs);
 
           distributed_pressure      = pressure.solution;
           distributed_old_pressure  = pressure.old_solution;
           distributed_phi           = phi.solution; 
 
-          projection_step_rhs /= (!flag_initializing ?
-                            time_stepping.get_alpha()[0] / 
-                            time_stepping.get_next_step_size()  :
-                            1.0 / time_stepping.get_next_step_size());
-
           SolverControl solver_control(parameters.n_maximum_iterations,
-                                       std::max(parameters.relative_tolerance * projection_step_rhs.l2_norm(),
+                                       std::max(parameters.relative_tolerance * 
+                                                pressure_space_projection_rhs.l2_norm(),
                                                 absolute_tolerance));
 
           if (reinit_prec)
@@ -177,7 +173,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           {
             solver.solve(pressure_mass_matrix,
                          distributed_pressure,
-                         projection_step_rhs,
+                         pressure_space_projection_rhs,
                          correction_step_preconditioner);
           }
           catch (std::exception &exc)

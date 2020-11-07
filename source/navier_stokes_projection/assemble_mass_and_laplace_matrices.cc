@@ -139,7 +139,8 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Pressure");
 
   pressure_mass_matrix    = 0.;
-  phi_laplace_matrix = 0.;
+  pressure_laplace_matrix = 0.;
+  phi_laplace_matrix      = 0.;
 
   // Polynomial degree of the integrand
   const int p_degree = 2 * pressure.fe_degree;
@@ -180,6 +181,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
    PressureMatricesAssembly::MappingData<dim>(pressure.fe.dofs_per_cell));
 
   pressure_mass_matrix.compress(VectorOperation::add);
+  pressure_laplace_matrix.compress(VectorOperation::add);
   phi_laplace_matrix.compress(VectorOperation::add);
 
   if (parameters.verbose)
@@ -194,7 +196,7 @@ void NavierStokesProjection<dim>::assemble_local_pressure_matrices
 {
   // reset local matrices
   data.local_pressure_mass_matrix = 0.;
-  data.local_phi_laplace_matrix = 0.;
+  data.local_phi_laplace_matrix   = 0.;
 
   // prepare pressure part
   scratch.pressure_fe_values.reinit(cell);
@@ -247,6 +249,10 @@ void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
                                       data.local_pressure_dof_indices,
                                       pressure_mass_matrix);
   pressure.constraints.distribute_local_to_global(
+                                      data.local_phi_laplace_matrix,
+                                      data.local_pressure_dof_indices,
+                                      pressure_laplace_matrix);
+  phi.constraints.distribute_local_to_global(
                                       data.local_phi_laplace_matrix,
                                       data.local_pressure_dof_indices,
                                       phi_laplace_matrix);
