@@ -367,7 +367,7 @@ struct LocalCellData
 
   FEValues<dim>                         velocity_fe_values;
 
-  FEFaceValues<dim>                     temperatuer_fe_face_values;
+  FEFaceValues<dim>                     temperature_fe_face_values;
 
   unsigned int                          n_q_points;
 

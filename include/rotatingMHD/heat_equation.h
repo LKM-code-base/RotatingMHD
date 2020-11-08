@@ -92,12 +92,6 @@ public:
    * step.
    */
   double get_rhs_norm() const;
-  
-  /*!
-   *  @brief Indicates the solver to reinitialize the matrices and
-   *  vectors before solving. 
-   */ 
-  void set_linear_algebra_to_reset();
 
 private:
   /*!
@@ -230,12 +224,6 @@ private:
   const double                          absolute_tolerance = 1.0e-9;
 
   /*!
-   * @brief A flag indicating if the solver is to be set up, i.e.
-   * the matrices and vectors to be initialize.
-   */ 
-  bool                                  flag_setup_solver;
-
-  /*!
    * @brief A flag indicating if the preconditioner is to be
    * initiated.
    */ 
@@ -245,7 +233,7 @@ private:
    * @brief A flag indicating if the sum of the mass and stiffness matrix
    * is to be performed.
    */ 
-  bool                                  flag_assemble_mass_plus_stiffness_matrix;
+  bool                                  flag_add_mass_and_stiffness_matrices;
 
   /*!
    * @brief A flag indicating if the advection term is to be ignored.

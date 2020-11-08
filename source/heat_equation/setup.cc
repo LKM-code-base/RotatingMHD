@@ -20,8 +20,6 @@ void HeatEquation<dim>::setup()
   setup_vectors();
 
   assemble_constant_matrices();
-
-  flag_setup_solver = false;
 }
 
 template <int dim>
@@ -135,15 +133,6 @@ void HeatEquation<dim>::set_supply_term(
   supply_term_ptr = &supply_term;
 }
 
-template <int dim>
-void HeatEquation<dim>::set_linear_algebra_to_reset()
-{
-  flag_setup_solver                       = true;
-  flag_reinit_preconditioner              = true;
-  flag_assemble_mass_plus_stiffness_matrix  = true;
-}
-
-
 } // namespace RMHD
 
 // explicit instantiations
@@ -158,6 +147,3 @@ template void RMHD::HeatEquation<3>::setup_vectors();
 
 template void RMHD::HeatEquation<2>::set_supply_term(Function<2> &);
 template void RMHD::HeatEquation<3>::set_supply_term(Function<3> &);
-
-template void RMHD::HeatEquation<2>::set_linear_algebra_to_reset();
-template void RMHD::HeatEquation<3>::set_linear_algebra_to_reset();

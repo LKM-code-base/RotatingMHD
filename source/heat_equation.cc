@@ -22,9 +22,8 @@ mpi_communicator(temperature.mpi_communicator),
 time_stepping(time_stepping),
 temperature(temperature),
 velocity(&velocity),
-flag_setup_solver(true),
 flag_reinit_preconditioner(true),
-flag_assemble_mass_plus_stiffness_matrix(true),
+flag_add_mass_and_stiffness_matrices(true),
 flag_ignore_advection(false)
 {
   if (external_mapping.get() != 0)

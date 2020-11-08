@@ -8,8 +8,12 @@ namespace RMHD
 template <int dim>
 void HeatEquation<dim>::solve()
 {
-  if (flag_setup_solver)
+  if (temperature.solution.size() != temperature_tmp.size())
+  {
     setup();
+    flag_reinit_preconditioner            = true;
+    flag_add_mass_and_stiffness_matrices  = true;
+  }
 
   // In the following scope we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the sadd()
@@ -52,7 +56,8 @@ void HeatEquation<dim>::assemble_linear_system()
     *pcout << "  Heat Equation: Assembling linear system..." << std::endl;
 
   // System matrix setup
-  if (flag_assemble_mass_plus_stiffness_matrix)
+  if (time_stepping.coefficients_changed() == true ||
+      flag_add_mass_and_stiffness_matrices)
   {
       TimerOutput::Scope  t(*computing_timer, "Heat Equation: Matrix summation");
 
@@ -66,8 +71,7 @@ void HeatEquation<dim>::assemble_linear_system()
       time_stepping.get_gamma()[0] / parameters.Re / parameters.Pr,
       stiffness_matrix);
 
-    if (!parameters.time_stepping_parameters.adaptive_time_stepping)
-      flag_assemble_mass_plus_stiffness_matrix = false;
+      flag_add_mass_and_stiffness_matrices = false;
   }
 
   if (parameters.flag_semi_implicit_convection &&

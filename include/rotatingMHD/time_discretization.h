@@ -186,8 +186,14 @@ public:
    */
   const std::vector<double>& get_eta() const;
 
+  /*!
+   * @brief A method returning the previous \f$\alpha_0 \f$.
+   */
   const std::vector<double>& get_old_alpha_zero() const;
 
+  /*!
+   * @brief A method returning the previous step sizes.
+   */
   const std::vector<double>& get_old_step_size() const;
 
   /*!
@@ -225,6 +231,14 @@ public:
   *  @details Here goes a longer explanation with the formulas.
   */
   void update_coefficients();
+
+  /*!
+   * @brief Returns the flag indicating if the VSIMEX coefficients changed from
+   * the last step.
+   * @details The flag is set as true if @ref omega is anything other
+   * than 1.0 and is set as false if @ref is equal to 1.0. 
+   */
+  bool coefficients_changed() const;
 
 private:
 
@@ -297,6 +311,13 @@ private:
    */ 
   std::vector<double> old_step_size_values;
 
+  /*!
+   * @brief A flag indicating if the VSIMEX coefficients changed from
+   * the last step.
+   * @details The flag is set as true if @ref omega is anything other
+   * than 1.0 and is set as false if @ref is equal to 1.0. 
+   */
+  bool                flag_coefficients_changed;
 };
 
 template<typename Stream>
@@ -336,6 +357,11 @@ inline const std::vector<double>& VSIMEXMethod::get_old_alpha_zero() const
 inline const std::vector<double>& VSIMEXMethod::get_old_step_size() const
 {
   return (old_step_size_values);
+}
+
+inline bool VSIMEXMethod::coefficients_changed() const
+{
+  return (flag_coefficients_changed);
 }
 
 } // namespace TimeDiscretization

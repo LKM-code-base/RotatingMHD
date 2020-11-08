@@ -224,20 +224,20 @@ void HeatEquation<dim>::assemble_local_rhs
         temperature.boundary_conditions.neumann_bcs.find(face->boundary_id()) 
           != temperature.boundary_conditions.neumann_bcs.end())
     {
-      scratch.temperatuer_fe_face_values.reinit(cell, face);
+      scratch.temperature_fe_face_values.reinit(cell, face);
 
       temperature.boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-        scratch.temperatuer_fe_face_values.get_quadrature_points(),
+        scratch.temperature_fe_face_values.get_quadrature_points(),
         scratch.neumann_bc_values);
 
       for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
       {
         for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
           scratch.face_phi[i] = 
-                    scratch.temperatuer_fe_face_values.shape_value(i, q);
+                    scratch.temperature_fe_face_values.shape_value(i, q);
         
         for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-          data.local_rhs(i) += scratch.temperatuer_fe_face_values.JxW(q) *
+          data.local_rhs(i) += scratch.temperature_fe_face_values.JxW(q) *
                               scratch.face_phi[i] *
                               scratch.neumann_bc_values[q];
       }

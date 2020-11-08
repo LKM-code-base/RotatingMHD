@@ -102,6 +102,8 @@ template <int dim>
 void ThermalTGV<dim>::
 make_grid(const unsigned int &n_global_refinements)
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
+
   GridGenerator::hyper_cube(this->triangulation,
                             0.0,
                             1.0,
@@ -147,6 +149,8 @@ make_grid(const unsigned int &n_global_refinements)
 template <int dim>
 void ThermalTGV<dim>::setup_dofs()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
+
   temperature.setup_dofs();
   velocity.setup_dofs();
   *(this->pcout)  << "  Number of active cells                   = " 
@@ -160,6 +164,8 @@ void ThermalTGV<dim>::setup_dofs()
 template <int dim>
 void ThermalTGV<dim>::setup_constraints()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
+
   temperature.boundary_conditions.clear();
   velocity.boundary_conditions.clear();
   
@@ -177,6 +183,8 @@ void ThermalTGV<dim>::setup_constraints()
 template <int dim>
 void ThermalTGV<dim>::initialize()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
+
   this->set_initial_conditions(temperature, 
                                exact_solution, 
                                time_stepping);
@@ -188,6 +196,8 @@ void ThermalTGV<dim>::initialize()
 template <int dim>
 void ThermalTGV<dim>::postprocessing()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
+
   std::cout.precision(1);
   *(this->pcout)  << time_stepping
                   << " Norm = "
@@ -203,6 +213,8 @@ void ThermalTGV<dim>::postprocessing()
 template <int dim>
 void ThermalTGV<dim>::output()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
+
   this->compute_error(error,
                       temperature,
                       exact_solution);
@@ -327,7 +339,6 @@ void ThermalTGV<dim>::run(const bool flag_convergence_test)
       time_stepping.restart();
       solve(level);
       this->triangulation.refine_global();
-      heat_equation.set_linear_algebra_to_reset();
     }
   }
   else
@@ -347,7 +358,6 @@ void ThermalTGV<dim>::run(const bool flag_convergence_test)
       time_stepping.restart();
       time_stepping.set_desired_next_step_size(time_step);
       solve(this->prm.initial_refinement_level);
-      heat_equation.set_linear_algebra_to_reset();
     }
   }
 
