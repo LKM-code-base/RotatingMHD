@@ -21,9 +21,6 @@ void HeatEquation<dim>::setup()
 
   assemble_constant_matrices();
 
-  if (temperature.boundary_conditions.dirichlet_bcs.empty())
-    flag_zero_mean_value = true;
-
   flag_setup_solver = false;
 }
 
