@@ -65,6 +65,11 @@ protected:
    Function<dim>                          &function,
    const TimeDiscretization::VSIMEXMethod &time_stepping);
 
+  void set_initial_conditions
+  (std::shared_ptr<Entities::EntityBase<dim>>              entity,
+   Function<dim>                          &function,
+   const TimeDiscretization::VSIMEXMethod &time_stepping);
+
   /*!
    * @brief Computes the error of the numerical solution against
    * the analytical solution.
@@ -75,6 +80,11 @@ protected:
   void compute_error
   (LinearAlgebra::MPI::Vector  &error_vector,
    Entities::EntityBase<dim>   &entity,
+   Function<dim>               &exact_solution);
+
+  void compute_error
+  (LinearAlgebra::MPI::Vector  &error_vector,
+   std::shared_ptr<Entities::EntityBase<dim>>   entity,
    Function<dim>               &exact_solution);
 
   /*!
