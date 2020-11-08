@@ -8,7 +8,7 @@ namespace RMHD
 template <int dim>
 void HeatEquation<dim>::solve()
 {
-  if (temperature.solution.size() != temperature_tmp.size())
+  if (temperature->solution.size() != temperature_tmp.size())
   {
     setup();
     flag_reinit_preconditioner            = true;
@@ -31,8 +31,8 @@ void HeatEquation<dim>::solve()
 
     LinearAlgebra::MPI::Vector distributed_old_temperature(rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_temperature(rhs);
-    distributed_old_temperature      = temperature.old_solution;
-    distributed_old_old_temperature  = temperature.old_old_solution;
+    distributed_old_temperature      = temperature->old_solution;
+    distributed_old_old_temperature  = temperature->old_old_solution;
     distributed_old_temperature.sadd(
       alpha[1] / time_stepping.get_next_step_size(),
       alpha[2] / time_stepping.get_next_step_size(),
@@ -98,7 +98,7 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
   // of the pertinent vectors to be able to perform the solve()
   // operation.
   LinearAlgebra::MPI::Vector distributed_temperature(rhs);
-  distributed_temperature = temperature.solution;
+  distributed_temperature = temperature->solution;
 
   /* The following pointer holds the address to the correct matrix 
   depending on if the semi-implicit scheme is chosen or not */
@@ -154,9 +154,9 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
     std::abort();
   }
 
-  temperature.constraints.distribute(distributed_temperature);
+  temperature->constraints.distribute(distributed_temperature);
 
-  temperature.solution = distributed_temperature;
+  temperature->solution = distributed_temperature;
 
   if (parameters.verbose)
   {

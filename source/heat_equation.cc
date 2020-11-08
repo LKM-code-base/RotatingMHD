@@ -9,23 +9,34 @@ namespace RMHD
 
 template <int dim>
 HeatEquation<dim>::HeatEquation
-(const RunTimeParameters::ParameterSet   &parameters,
- TimeDiscretization::VSIMEXMethod        &time_stepping,
- Entities::ScalarEntity<dim>             &temperature,
- Entities::VectorEntity<dim>             &velocity,
- const std::shared_ptr<Mapping<dim>>      external_mapping,
- const std::shared_ptr<ConditionalOStream>external_pcout,
- const std::shared_ptr<TimerOutput>       external_timer)
+(const RunTimeParameters::ParameterSet        &parameters,
+ TimeDiscretization::VSIMEXMethod             &time_stepping,
+ std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+ std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+ const std::shared_ptr<Mapping<dim>>          external_mapping,
+ const std::shared_ptr<ConditionalOStream>    external_pcout,
+ const std::shared_ptr<TimerOutput>           external_timer)
 :
 parameters(parameters),
-mpi_communicator(temperature.mpi_communicator),
+mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
 temperature(temperature),
-velocity(&velocity),
 flag_reinit_preconditioner(true),
 flag_add_mass_and_stiffness_matrices(true),
 flag_ignore_advection(false)
 {
+  Assert(temperature.get() != 0,
+         ExcMessage("The temperature's shared pointer has not be"
+                    " initialized."));
+
+  if (velocity.get() != 0)
+    this->velocity = velocity;
+  else
+  {
+    velocity              = nullptr;
+    flag_ignore_advection = true;
+  }
+
   if (external_mapping.get() != 0)
     mapping = external_mapping;
   else
@@ -44,6 +55,7 @@ flag_ignore_advection(false)
       computing_timer.reset(new TimerOutput(*pcout,
                                             TimerOutput::summary,
                                             TimerOutput::wall_times));
+  
   supply_term_ptr       = nullptr;
 }
 

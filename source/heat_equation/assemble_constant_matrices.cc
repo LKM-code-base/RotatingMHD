@@ -15,7 +15,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
   TimerOutput::Scope  t(*computing_timer, "Heat Equation: Constant matrices assembly");
 
   // Polynomial degree of the integrand
-  const int p_degree = 2 * temperature.fe_degree;
+  const int p_degree = 2 * temperature->fe_degree;
 
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
@@ -40,20 +40,20 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              temperature.dof_handler.begin_active()),
+              temperature->dof_handler.begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              temperature.dof_handler.end()),
+              temperature->dof_handler.end()),
    worker,
    copier,
    TemperatureConstantMatricesAssembly::LocalCellData<dim>(
     *mapping,
-    temperature.fe,
+    temperature->fe,
     quadrature_formula,
     update_values|
     update_gradients|
     update_JxW_values),
    TemperatureConstantMatricesAssembly::MappingData<dim>(
-     temperature.fe.dofs_per_cell));
+     temperature->fe.dofs_per_cell));
 
   mass_matrix.compress(VectorOperation::add);
   stiffness_matrix.compress(VectorOperation::add);
@@ -115,11 +115,11 @@ template <int dim>
 void HeatEquation<dim>::copy_local_to_global_constant_matrices
 (const TemperatureConstantMatricesAssembly::MappingData<dim> &data)
 {
-  temperature.constraints.distribute_local_to_global(
+  temperature->constraints.distribute_local_to_global(
                                       data.local_mass_matrix,
                                       data.local_dof_indices,
                                       mass_matrix);
-  temperature.constraints.distribute_local_to_global(
+  temperature->constraints.distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       stiffness_matrix);

@@ -47,15 +47,16 @@ public:
    * pointers for terminal output entities.
    */
   HeatEquation
-  (const RunTimeParameters::ParameterSet   &parameters,
-   TimeDiscretization::VSIMEXMethod        &time_stepping,
-   Entities::ScalarEntity<dim>             &temperature,
-   Entities::VectorEntity<dim>             &velocity,
-   const std::shared_ptr<Mapping<dim>>     external_mapping =
+  (const RunTimeParameters::ParameterSet        &parameters,
+   TimeDiscretization::VSIMEXMethod             &time_stepping,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+   std::shared_ptr<Entities::VectorEntity<dim>> &velocity =
+       std::shared_ptr<Entities::VectorEntity<dim>>(),
+   const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
-   const std::shared_ptr<ConditionalOStream>external_pcout =
+   const std::shared_ptr<ConditionalOStream>    external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>       external_timer =
+   const std::shared_ptr<TimerOutput>           external_timer =
        std::shared_ptr<TimerOutput>());
 
   /*!
@@ -127,12 +128,12 @@ private:
   /*!
    * @brief A reference to the entity of the temperature field.
    */
-  Entities::ScalarEntity<dim>            &temperature;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
 
   /*!
    * @brief A pointer to the entity of velocity field.
    */
-  Entities::VectorEntity<dim>            *velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   /*!
    * @brief A pointer to the supply term function.

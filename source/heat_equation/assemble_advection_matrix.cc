@@ -17,7 +17,7 @@ void HeatEquation<dim>::assemble_advection_matrix()
   advection_matrix = 0.;
 
   // Polynomial degree of the integrand
-  const int p_degree = velocity->fe_degree + 2 * temperature.fe_degree - 1;
+  const int p_degree = velocity->fe_degree + 2 * temperature->fe_degree - 1;
 
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
@@ -43,14 +43,14 @@ void HeatEquation<dim>::assemble_advection_matrix()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              temperature.dof_handler.begin_active()),
+              temperature->dof_handler.begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              temperature.dof_handler.end()),
+              temperature->dof_handler.end()),
    worker,
    copier,
    TemperatureAdvectionMatrixAssembly::LocalCellData<dim>(
     *mapping,
-    temperature.fe,
+    temperature->fe,
     velocity->fe,
     quadrature_formula,
     update_values|
@@ -58,7 +58,7 @@ void HeatEquation<dim>::assemble_advection_matrix()
     update_JxW_values,
     update_values | update_quadrature_points),
    TemperatureAdvectionMatrixAssembly::MappingData<dim>(
-     temperature.fe.dofs_per_cell));
+     temperature->fe.dofs_per_cell));
 
   advection_matrix.compress(VectorOperation::add);
 }
@@ -77,7 +77,7 @@ void HeatEquation<dim>::assemble_local_advection_matrix
 
   // Prepare velocity part
   typename DoFHandler<dim>::active_cell_iterator
-  velocity_cell(&temperature.dof_handler.get_triangulation(),
+  velocity_cell(&temperature->dof_handler.get_triangulation(),
                  cell->level(),
                  cell->index(),
                 &velocity->dof_handler);
@@ -122,7 +122,7 @@ template <int dim>
 void HeatEquation<dim>::copy_local_to_global_advection_matrix
 (const TemperatureAdvectionMatrixAssembly::MappingData<dim> &data)
 {
-  temperature.constraints.distribute_local_to_global(
+  temperature->constraints.distribute_local_to_global(
                                       data.local_matrix,
                                       data.local_dof_indices,
                                       advection_matrix);
