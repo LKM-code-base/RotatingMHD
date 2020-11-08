@@ -230,14 +230,6 @@ private:
   const double                          absolute_tolerance = 1.0e-9;
 
   /*!
-   * @brief A flag to normalize the temperature field.
-   * @details In the case of an unconstrained formulation in the 
-   * temperature space, i.e. no Dirichlet boundary conditions, this flag
-   * has to be set to true in order to constraint the temperature field.
-   */
-  bool                                  flag_zero_mean_value;
-
-  /*!
    * @brief A flag indicating if the solver is to be set up, i.e.
    * the matrices and vectors to be initialize.
    */ 

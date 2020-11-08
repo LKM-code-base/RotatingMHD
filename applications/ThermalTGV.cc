@@ -47,15 +47,11 @@ private:
 
   EquationData::ThermalTGV::VelocityField<dim> velocity_field;
 
-  //std::shared_ptr<TensorFunction<1,dim>>      velocity;
-
   std::shared_ptr<Mapping<dim>>               mapping;
 
   HeatEquation<dim>                           heat_equation;
 
   ConvergenceAnalysisData<dim>                convergence_table;
-
-  const bool                                  flag_set_exact_temperature_constant;
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -87,8 +83,6 @@ exact_solution(parameters.Re,
                parameters.Pr,
                parameters.time_stepping_parameters.start_time),
 velocity_field(parameters.time_stepping_parameters.start_time),
-//velocity(new EquationData::ThermalTGV::VelocityExactSolution<dim>(
-//    parameters.time_stepping_parameters.start_time)),
 mapping(new MappingQ<dim>(1)),
 heat_equation(parameters,
               time_stepping,
@@ -97,8 +91,7 @@ heat_equation(parameters,
               mapping,
               this->pcout,
               this->computing_timer),
-convergence_table(temperature, exact_solution, "Temperature"),
-flag_set_exact_temperature_constant(true)
+convergence_table(temperature, exact_solution, "Temperature")
 {
 outputFile << "Step" << "," << "Time" << ","
            << "Norm_diffusion" << "," << "Norm_projection"
@@ -169,44 +162,12 @@ void ThermalTGV<dim>::setup_constraints()
 {
   temperature.boundary_conditions.clear();
   velocity.boundary_conditions.clear();
-
-  FullMatrix<double> rotation_matrix(dim);
-  rotation_matrix[0][0] = 1.;
-  rotation_matrix[1][1] = 1.;
-
-  Tensor<1,dim> offset_x;
-  offset_x[0] = 1.0;
-  offset_x[1] = 0.0;
-
-  Tensor<1,dim> offset_y;
-  offset_y[0] = 0.0;
-  offset_y[1] = 1.0;
   
-  temperature.boundary_conditions.set_periodic_bcs(
-    0,
-    1,
-    0,
-    rotation_matrix,
-    offset_x);
-  temperature.boundary_conditions.set_periodic_bcs(
-    2,
-    3,
-    1,
-    rotation_matrix,
-    offset_y);
+  temperature.boundary_conditions.set_periodic_bcs(0, 1, 0);
+  temperature.boundary_conditions.set_periodic_bcs(2, 3, 1);
 
-  velocity.boundary_conditions.set_periodic_bcs(
-    0,
-    1,
-    0,
-    rotation_matrix,
-    offset_x);
-  velocity.boundary_conditions.set_periodic_bcs(
-    2,
-    3,
-    1,
-    rotation_matrix,
-    offset_y);
+  velocity.boundary_conditions.set_periodic_bcs(0, 1, 0);
+  velocity.boundary_conditions.set_periodic_bcs(2, 3, 1);
 
   temperature.apply_boundary_conditions();
 
@@ -227,53 +188,6 @@ void ThermalTGV<dim>::initialize()
 template <int dim>
 void ThermalTGV<dim>::postprocessing()
 {
-  if (flag_set_exact_temperature_constant)
-  {
-    LinearAlgebra::MPI::Vector  analytical_temperature(temperature.solution);
-    {
-      #ifdef USE_PETSC_LA
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_temperature(temperature.locally_owned_dofs,
-                                   this->mpi_communicator);
-      #else
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_temperature(temperature.locally_owned_dofs);
-      #endif
-      VectorTools::project(temperature.dof_handler,
-                          temperature.constraints,
-                          QGauss<dim>(temperature.fe_degree + 2),
-                          exact_solution,
-                          tmp_analytical_temperature);
-
-      analytical_temperature = tmp_analytical_temperature;
-    }
-    {
-      LinearAlgebra::MPI::Vector distributed_analytical_temperature;
-      LinearAlgebra::MPI::Vector distributed_numerical_temperature;
-      #ifdef USE_PETSC_LA
-        distributed_analytical_temperature.reinit(
-          temperature.locally_owned_dofs,
-          this->mpi_communicator);
-      #else
-        distributed_analytical_temperature.reinit(
-          temperature.locally_owned_dofs,
-          temperature.locally_relevant_dofs,
-          this->mpi_communicator,
-          true);
-      #endif
-      distributed_numerical_temperature.reinit(distributed_analytical_temperature);
-
-      distributed_analytical_temperature = analytical_temperature;
-      distributed_numerical_temperature  = temperature.solution;
-
-      distributed_numerical_temperature.add(  
-        distributed_analytical_temperature.mean_value() -
-        distributed_numerical_temperature.mean_value());
-
-      temperature.solution = distributed_numerical_temperature;
-    }
-  }
-
   std::cout.precision(1);
   *(this->pcout)  << time_stepping
                   << " Norm = "

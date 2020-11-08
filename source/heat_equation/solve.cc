@@ -152,9 +152,6 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
 
   temperature.constraints.distribute(distributed_temperature);
 
-  if (flag_zero_mean_value)
-    VectorTools::subtract_mean_value(distributed_temperature);
-
   temperature.solution = distributed_temperature;
 
   if (parameters.verbose)
