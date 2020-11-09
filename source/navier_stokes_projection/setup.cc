@@ -82,6 +82,11 @@ void NavierStokesProjection<dim>::setup_matrices()
        velocity.locally_owned_dofs,
        sparsity_pattern,
        mpi_communicator);
+      grad_div_method_matrix.reinit
+      (velocity.locally_owned_dofs,
+       velocity.locally_owned_dofs,
+       sparsity_pattern,
+       mpi_communicator);
 
     #else
       TrilinosWrappers::SparsityPattern
@@ -103,6 +108,7 @@ void NavierStokesProjection<dim>::setup_matrices()
       velocity_mass_matrix.reinit(sparsity_pattern);
       velocity_laplace_matrix.reinit(sparsity_pattern);
       velocity_advection_matrix.reinit(sparsity_pattern);
+      grad_div_method_matrix.reinit(sparsity_pattern);
    #endif
   }
 

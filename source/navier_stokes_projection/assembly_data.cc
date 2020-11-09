@@ -75,6 +75,8 @@ local_velocity_mass_matrix(velocity_dofs_per_cell,
                            velocity_dofs_per_cell),
 local_velocity_laplace_matrix(velocity_dofs_per_cell,
                               velocity_dofs_per_cell),
+local_grad_div_matrix(velocity_dofs_per_cell,
+                      velocity_dofs_per_cell),
 local_velocity_dof_indices(velocity_dofs_per_cell)
 {}
 
@@ -84,6 +86,7 @@ MappingData<dim>::MappingData(const MappingData &data)
 velocity_dofs_per_cell(data.velocity_dofs_per_cell),
 local_velocity_mass_matrix(data.local_velocity_mass_matrix),
 local_velocity_laplace_matrix(data.local_velocity_laplace_matrix),
+local_grad_div_matrix(data.local_grad_div_matrix),
 local_velocity_dof_indices(data.local_velocity_dof_indices)
 {}
 
@@ -99,7 +102,8 @@ velocity_fe_values(velocity_fe,
 n_q_points(velocity_quadrature_formula.size()),
 velocity_dofs_per_cell(velocity_fe.dofs_per_cell),
 phi_velocity(velocity_dofs_per_cell),
-grad_phi_velocity(velocity_dofs_per_cell)
+grad_phi_velocity(velocity_dofs_per_cell),
+div_phi_velocity(velocity_dofs_per_cell)
 {}
 
 template <int dim>
@@ -111,7 +115,8 @@ velocity_fe_values(data.velocity_fe_values.get_fe(),
 n_q_points(data.n_q_points),
 velocity_dofs_per_cell(data.velocity_dofs_per_cell),
 phi_velocity(velocity_dofs_per_cell),
-grad_phi_velocity(velocity_dofs_per_cell)
+grad_phi_velocity(velocity_dofs_per_cell),
+div_phi_velocity(velocity_dofs_per_cell)
 {}
 
 } // namespace VelocityMatricesAssembly

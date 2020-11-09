@@ -258,6 +258,16 @@ private:
   LinearAlgebra::MPI::SparseMatrix  velocity_advection_matrix;
 
   /*!
+   * @brief The matrix of the Grad-Div method.
+   *
+   * @details This matrix does not change in every timestep. It is stored in
+   * memory because otherwise an assembly would be required if the timestep
+   * changes.
+   */
+  LinearAlgebra::MPI::SparseMatrix  grad_div_method_matrix;
+
+
+  /*!
    * @brief A vector representing the extrapolated velocity at the
    * current timestep using a Taylor expansion
    * @details The Taylor expansion is given by

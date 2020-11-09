@@ -54,6 +54,7 @@ struct MappingData
   unsigned int                          velocity_dofs_per_cell;
   FullMatrix<double>                    local_velocity_mass_matrix;
   FullMatrix<double>                    local_velocity_laplace_matrix;
+  FullMatrix<double>                    local_grad_div_matrix;
   std::vector<types::global_dof_index>  local_velocity_dof_indices;
 
   MappingData(const unsigned int velocity_dofs_per_cell);
@@ -68,6 +69,7 @@ struct LocalCellData
   unsigned int                velocity_dofs_per_cell;
   std::vector<Tensor<1,dim>>  phi_velocity;
   std::vector<Tensor<2,dim>>  grad_phi_velocity;
+  std::vector<double>         div_phi_velocity;
 
   LocalCellData(const FESystem<dim>  &velocity_fe,
                 const Quadrature<dim>&velocity_quadrature_formula,
