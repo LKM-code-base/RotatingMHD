@@ -18,6 +18,9 @@ set semi_implicit_convection_flag = true
 # Verbosity flag.
 set verbosity_flag               = false
 
+# The parameter of the Grad-Div stabilization method.
+set grad_div_parameter           = 0.0
+
 subsection Parameters of the diffusion-step solver
   # Parameter which controls the size of the Krylov subspace in the GMRES
   # algorithm.

@@ -68,6 +68,8 @@ struct ParameterSet
 
   double              Re;
 
+  double              grad_div_parameter;
+
   unsigned int        n_global_refinements;
 
   unsigned int        p_fe_degree;

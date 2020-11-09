@@ -25,6 +25,7 @@ time_stepping_parameters(),
 projection_method(ProjectionMethod::rotational),
 convection_term_form(ConvectionTermForm::skewsymmetric),
 Re(1.0),
+grad_div_parameter(0.2),
 n_global_refinements(0),
 p_fe_degree(1),
 n_maximum_iterations(1000),
@@ -177,6 +178,11 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+    prm.declare_entry("grad_div_parameter",
+                      "0.2",
+                      Patterns::Double(0.),
+                      "The parameter of the Grad-Div stabilization method.");
+
   prm.declare_entry("verbosity_flag",
                     "true",
                     Patterns::Bool(),
@@ -281,11 +287,14 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
+  grad_div_parameter            = prm.get_double("grad_div_parameter");
   verbose                       = prm.get_bool("verbosity_flag");
   flag_semi_implicit_convection = prm.get_bool("semi_implicit_convection_flag");
 
   graphical_output_interval = prm.get_integer("graphical_output_frequency");
   terminal_output_interval  = prm.get_integer("diagnostics_output_frequency");
+
+  Assert(grad_div_parameter >= 0., ExcLowerRangeType(grad_div_parameter, 0.));
 }
 
 } // namespace RunTimeParameters
