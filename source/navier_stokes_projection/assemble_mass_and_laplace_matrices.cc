@@ -53,6 +53,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   velocity_mass_matrix.compress(VectorOperation::add);
   velocity_laplace_matrix.compress(VectorOperation::add);
+  grad_div_method_matrix.compress(VectorOperation::add);
 
   if (parameters.verbose)
       *pcout << " done." << std::endl;
@@ -67,6 +68,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_matrices
   // reset local matrices
   data.local_velocity_mass_matrix = 0.;
   data.local_velocity_laplace_matrix = 0.;
+  data.local_grad_div_matrix = 0.;
 
   // prepare velocity part
   const FEValuesExtractors::Vector  velocities(0);
@@ -84,6 +86,8 @@ void NavierStokesProjection<dim>::assemble_local_velocity_matrices
                     scratch.velocity_fe_values[velocities].value(i, q);
       scratch.grad_phi_velocity[i] =
                     scratch.velocity_fe_values[velocities].gradient(i, q);
+      scratch.div_phi_velocity[i] =
+                    scratch.velocity_fe_values[velocities].divergence(i,q);
     }
     // loop over local dofs
     for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
@@ -99,6 +103,10 @@ void NavierStokesProjection<dim>::assemble_local_velocity_matrices
                                     scalar_product(
                                       scratch.grad_phi_velocity[i],
                                       scratch.grad_phi_velocity[j]);
+        data.local_grad_div_matrix(i, j) +=
+                                    scratch.velocity_fe_values.JxW(q) *
+                                    scratch.div_phi_velocity[i] *
+                                    scratch.div_phi_velocity[j];
       } // loop over local dofs
   } // loop over quadrature points
 
@@ -110,6 +118,8 @@ void NavierStokesProjection<dim>::assemble_local_velocity_matrices
                             data.local_velocity_mass_matrix(j, i);
       data.local_velocity_laplace_matrix(i, j) =
                             data.local_velocity_laplace_matrix(j, i);
+      data.local_grad_div_matrix(i, j) =
+                            data.local_grad_div_matrix(j, i);
     }
 }
 
@@ -125,6 +135,10 @@ void NavierStokesProjection<dim>::copy_local_to_global_velocity_matrices
                                       data.local_velocity_laplace_matrix,
                                       data.local_velocity_dof_indices,
                                       velocity_laplace_matrix);
+  velocity.constraints.distribute_local_to_global(
+                                      data.local_grad_div_matrix,
+                                      data.local_velocity_dof_indices,
+                                      grad_div_method_matrix);
 }
 
 template <int dim>
