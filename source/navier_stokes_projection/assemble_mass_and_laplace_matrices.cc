@@ -9,7 +9,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Navier Stokes: Assembling velocity mass and stiffness matrices..." << std::endl;
+    *pcout << "  Navier Stokes: Assembling velocity mass and stiffness matrices...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Velocity");
 
@@ -55,7 +55,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   velocity_laplace_matrix.compress(VectorOperation::add);
 
   if (parameters.verbose)
-      *pcout << "    done." << std::endl;
+      *pcout << " done." << std::endl;
 }
 
 template <int dim>
@@ -131,7 +131,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_pressure_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Navier Stokes: Assembling pressure mass and stiffness matrices..." << std::endl;
+    *pcout << "  Navier Stokes: Assembling pressure mass and stiffness matrices...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Pressure");
 
@@ -177,7 +177,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   pressure_laplace_matrix.compress(VectorOperation::add);
 
   if (parameters.verbose)
-      *pcout << "    done." << std::endl;
+      *pcout << " done." << std::endl;
 }
 
 template <int dim>

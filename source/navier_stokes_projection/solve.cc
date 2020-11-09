@@ -104,6 +104,9 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 template <int dim>
 void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
 {
+  if (parameters.verbose)
+    *pcout << "  Navier Stokes: Projection step..." << std::endl;
+
   /* Assemble linear system */
   assemble_projection_step();
 
@@ -200,6 +203,12 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             VectorTools::subtract_mean_value(distributed_pressure);
 
           pressure.solution = distributed_pressure;
+
+          if (parameters.verbose)
+            *pcout << "    Number of CG iterations: " << solver_control.last_step()
+                   << ", "
+                   << "final residual: " << solver_control.last_value() << "."
+                   << std::endl;
         }
 
         break;

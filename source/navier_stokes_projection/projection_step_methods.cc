@@ -35,7 +35,7 @@ void NavierStokesProjection<dim>::solve_projection_step
 (const bool reinit_prec)
 {
   if (parameters.verbose)
-    *pcout << "    Navier Stokes: Solving the projection step..." << std::endl;
+    *pcout << "    Navier Stokes: Solving the projection step...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - Solve");
 
@@ -98,10 +98,10 @@ void NavierStokesProjection<dim>::solve_projection_step
   phi = distributed_phi;
 
   if (parameters.verbose)
-    *pcout << "   done." << std::endl;
+    *pcout << " done." << std::endl;
 
   if (parameters.verbose)
-    *pcout << "    Number of GMRES iterations: " << solver_control.last_step()
+    *pcout << "    Number of CG iterations: " << solver_control.last_step()
            << ", "
            << "final residual: " << solver_control.last_value() << "."
            << std::endl;
