@@ -88,11 +88,6 @@ public:
    * @brief The entity for the scalar field \f$ \phi \f$, which is
    * the field computed during the projection step and later used in
    * the pressure-correction step. 
-   * @attention The entity has to be public in order to be passed on 
-   * to the SolutionTransferContainer. Alternatively it could be private
-   * and be indirectly acceses though a get method returning a pointer 
-   * to it. Nonetheless from StackOverFlow I have read that one should 
-   * avoid such work arounds.
    */ 
   Entities::ScalarEntity<dim>   phi;
 
@@ -105,8 +100,6 @@ public:
    *  in the constructor (The velocity and the pressure respectively).
    *  The boolean passed as argument control if the pressure is to be
    *  normalized.
-   * 
-   * @attention Should I leave this public?
    */
   void setup();
 
@@ -153,7 +146,6 @@ public:
    * \f$ P \f$ a quadrature point inside the \f$ K\f$-th cell,
    * \f$ \bs{v} \f$ the velocity, \f$ h_K\f$ the largest diagonal of the \f$ K\f$-th
    * cell.
-   * @attention Should I move this to the Problem class?
    */
   double get_cfl_number();
 
@@ -397,13 +389,6 @@ private:
    * @details The initiation is done by the @ref setup_phi method.
    */
   bool                                  flag_setup_phi;
-
-  /*!
-   * @brief A flag indicating if the solver is to be set up.ors
-   * are to be assembled.
-   * @details The setup is done by the @ref setup_solver method.
-   */
-  bool                                  flag_setup_solver;
 
   /*!
    * @brief A flag indicating if the velocity's mass and stiffness 

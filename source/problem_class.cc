@@ -12,13 +12,13 @@ namespace RMHD
 using namespace dealii;
 
 template<int dim>
-SolutionTransferEntityContainer<dim>::SolutionTransferEntityContainer()
+SolutionTransferContainer<dim>::SolutionTransferContainer()
 :
 error_vector_size(0)
 {}
 
 template<int dim>
-void SolutionTransferEntityContainer<dim>::add_entity(
+void SolutionTransferContainer<dim>::add_entity(
 Entities::EntityBase<dim> &entity, bool flag)
 {
   entities.emplace_back(std::make_pair(&entity, flag));
@@ -375,8 +375,8 @@ void Problem<dim>::adaptive_mesh_refinement()
 
 } // namespace RMHD
 
-template struct RMHD::SolutionTransferEntityContainer<2>;
-template struct RMHD::SolutionTransferEntityContainer<3>;
+template struct RMHD::SolutionTransferContainer<2>;
+template struct RMHD::SolutionTransferContainer<3>;
 
 template class RMHD::Problem<2>;
 template class RMHD::Problem<3>;

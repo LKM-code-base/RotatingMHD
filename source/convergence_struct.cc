@@ -49,7 +49,7 @@ void ConvergenceAnalysisData<dim>::update_table(
   Vector<double> cellwise_difference(
     entity.get_triangulation().n_active_cells());
 
-  QGauss<dim>    quadrature_formula(entity.fe_degree + 2);
+  const QGauss<dim>    quadrature_formula(entity.fe_degree + 2);
   const QTrapez<1>     trapezoidal_rule;
   const QIterated<dim> iterated_quadrature_rule(trapezoidal_rule,
                                                 entity.fe_degree * 2 + 1);
