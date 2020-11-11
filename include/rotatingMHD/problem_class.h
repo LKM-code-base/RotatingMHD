@@ -60,7 +60,7 @@ struct SolutionTransferEntityContainer
    * @details If no boolean is passed, it is assumed that the entity
    * is to be considered by the error estimation.
    */ 
-  void add_entity(Entities::EntityBase<dim> &entity, bool flag = true);
+  void add_entity(std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag = true);
 
 private:
 
@@ -135,9 +135,9 @@ protected:
    * @attention Purpose of the method is not clear...
    */
   void set_initial_conditions
-  (Entities::EntityBase<dim>              &entity,
-   Function<dim>                          &function,
-   const TimeDiscretization::VSIMEXMethod &time_stepping);
+  (std::shared_ptr<Entities::EntityBase<dim>> entity,
+   Function<dim>                              &function,
+   const TimeDiscretization::VSIMEXMethod     &time_stepping);
 
   /*!
    * @brief Computes the error of the numerical solution against
@@ -146,10 +146,11 @@ protected:
    * projection of the given function from the solution vector and
    * computing the absolute value of the residum.
    */
+
   void compute_error
-  (LinearAlgebra::MPI::Vector  &error_vector,
-   Entities::EntityBase<dim>   &entity,
-   Function<dim>               &exact_solution);
+  (LinearAlgebra::MPI::Vector                 &error_vector,
+   std::shared_ptr<Entities::EntityBase<dim>> entity,
+   Function<dim>                              &exact_solution);
 
   /*!
    *  @brief Computes the next time step according to the 

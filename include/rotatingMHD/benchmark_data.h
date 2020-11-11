@@ -197,7 +197,8 @@ struct DFG
   /*!
    * @brief The method computes the @ref pressure_difference.
    */
-  void compute_pressure_difference(const Entities::ScalarEntity<dim> &pressure);
+  void compute_pressure_difference(
+    const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure);
 
   /*!
    * @brief This method computes the @ref drag_force and @ref lift_force
@@ -220,8 +221,8 @@ struct DFG
    * \f]
    */
   void compute_drag_and_lift_forces_and_coefficients
-  (const Entities::VectorEntity<dim> &velocity,
-   const Entities::ScalarEntity<dim> &pressure);
+  (const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure);
 
   /*!
    * @brief A method that updates @ref data_table with the step number,

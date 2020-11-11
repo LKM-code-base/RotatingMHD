@@ -15,7 +15,7 @@ initialize()
 
   flag_initializing = true;
 
-  if (velocity.solution.size() != velocity_tmp.size() )
+  if (velocity->solution.size() != velocity_tmp.size() )
     setup();
 
   if (body_force_ptr != nullptr)
@@ -57,20 +57,20 @@ diffusion_prestep()
      the velocity at t = t_0 */
   {
     TrilinosWrappers::MPI::Vector distributed_old_old_velocity(velocity_rhs);
-    distributed_old_old_velocity  = velocity.old_old_solution;
+    distributed_old_old_velocity  = velocity->old_old_solution;
     extrapolated_velocity = distributed_old_old_velocity;
   }
   /* The temporary pressure reduces to the pressure at t = t_0 */
   {
     TrilinosWrappers::MPI::Vector distributed_old_old_pressure(pressure_rhs);
-    distributed_old_old_pressure  = pressure.old_old_solution;
+    distributed_old_old_pressure  = pressure->old_old_solution;
     pressure_tmp = distributed_old_old_pressure;
   }
   /* The temporary velocity reduces to that of a first order IMEX
      method */
   {
     TrilinosWrappers::MPI::Vector distributed_old_old_velocity(velocity_rhs);
-    distributed_old_old_velocity  = velocity.old_old_solution;
+    distributed_old_old_velocity  = velocity->old_old_solution;
     distributed_old_old_velocity  *= -1.0 / time_stepping.get_next_step_size();
     velocity_tmp                  = distributed_old_old_velocity;
   }
@@ -79,7 +79,7 @@ diffusion_prestep()
   assemble_diffusion_prestep();
   /* Solve linear system */
   solve_diffusion_step(true);
-  velocity.old_solution = velocity.solution;
+  velocity->old_solution = velocity->solution;
 }
 
 template <int dim>
@@ -91,15 +91,15 @@ projection_prestep()
   /* Solve linear system */
   solve_projection_step(true);
 
-  phi.old_solution = phi.solution;
+  phi->old_solution = phi->solution;
 }
 
 template <int dim>
 void NavierStokesProjection<dim>::
 pressure_correction_prestep()
 {
-  pressure.old_solution = pressure.old_old_solution;
-  pressure.old_solution += phi.old_solution;
+  pressure->old_solution = pressure->old_old_solution;
+  pressure->old_solution += phi->old_solution;
 }
 
 } // namespace RMHD

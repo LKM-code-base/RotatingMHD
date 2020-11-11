@@ -22,11 +22,11 @@ struct ConvergenceAnalysisData
 
   const std::string               entity_name;
 
-  const Entities::EntityBase<dim> &entity;
+  const std::shared_ptr<Entities::EntityBase<dim>> entity;
 
   const Function<dim>             &exact_solution;
 
-  ConvergenceAnalysisData(const Entities::EntityBase<dim> &entity,
+  ConvergenceAnalysisData(const std::shared_ptr<Entities::EntityBase<dim>> &entity,
                           const Function<dim>             &exact_solution,
                           const std::string entity_name = "Entity");
 

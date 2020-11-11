@@ -12,7 +12,7 @@ using namespace dealii;
 
 template <int dim>
 ConvergenceAnalysisData<dim>::ConvergenceAnalysisData(
-  const Entities::EntityBase<dim> &entity,
+  const std::shared_ptr<Entities::EntityBase<dim>> &entity,
   const Function<dim>             &exact_solution,
   const std::string               entity_name)
 :
@@ -47,54 +47,54 @@ void ConvergenceAnalysisData<dim>::update_table(
   const bool          &flag_spatial_convergence)
 {
   Vector<double> cellwise_difference(
-    entity.get_triangulation().n_active_cells());
+    entity->get_triangulation().n_active_cells());
 
-  QGauss<dim>    quadrature_formula(entity.fe_degree + 2);
+  QGauss<dim>    quadrature_formula(entity->fe_degree + 2);
   const QTrapez<1>     trapezoidal_rule;
   const QIterated<dim> iterated_quadrature_rule(trapezoidal_rule,
-                                                entity.fe_degree * 2 + 1);
+                                                entity->fe_degree * 2 + 1);
   
-  VectorTools::integrate_difference(*entity.dof_handler,
-                                    entity.solution,
+  VectorTools::integrate_difference(*entity->dof_handler,
+                                    entity->solution,
                                     exact_solution,
                                     cellwise_difference,
                                     quadrature_formula,
                                     VectorTools::L2_norm);
   
   const double L2_error =
-    VectorTools::compute_global_error(entity.get_triangulation(),
+    VectorTools::compute_global_error(entity->get_triangulation(),
                                       cellwise_difference,
                                       VectorTools::L2_norm);
 
-  VectorTools::integrate_difference(*entity.dof_handler,
-                                    entity.solution,
+  VectorTools::integrate_difference(*entity->dof_handler,
+                                    entity->solution,
                                     exact_solution,
                                     cellwise_difference,
                                     quadrature_formula,
                                     VectorTools::H1_norm);
   
   const double H1_error =
-    VectorTools::compute_global_error(entity.get_triangulation(),
+    VectorTools::compute_global_error(entity->get_triangulation(),
                                       cellwise_difference,
                                       VectorTools::H1_norm);
 
-  VectorTools::integrate_difference(*entity.dof_handler,
-                                    entity.solution,
+  VectorTools::integrate_difference(*entity->dof_handler,
+                                    entity->solution,
                                     exact_solution,
                                     cellwise_difference,
                                     iterated_quadrature_rule,
                                     VectorTools::Linfty_norm);
   
   const double Linfty_error =
-    VectorTools::compute_global_error(entity.get_triangulation(),
+    VectorTools::compute_global_error(entity->get_triangulation(),
                                       cellwise_difference,
                                       VectorTools::Linfty_norm);
 
   convergence_table.add_value("level", level);
   convergence_table.add_value("dt", time_step);
-  convergence_table.add_value("cells", entity.get_triangulation().n_global_active_cells());
-  convergence_table.add_value("dofs", entity.dof_handler->n_dofs());
-  convergence_table.add_value("hmax", GridTools::maximal_cell_diameter(entity.get_triangulation()));
+  convergence_table.add_value("cells", entity->get_triangulation().n_global_active_cells());
+  convergence_table.add_value("dofs", (entity->dof_handler)->n_dofs());
+  convergence_table.add_value("hmax", GridTools::maximal_cell_diameter(entity->get_triangulation()));
   convergence_table.add_value("L2", L2_error);
   convergence_table.add_value("H1", H1_error);
   convergence_table.add_value("Linfty", Linfty_error);

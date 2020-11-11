@@ -19,9 +19,9 @@ error_vector_size(0)
 
 template<int dim>
 void SolutionTransferEntityContainer<dim>::add_entity(
-Entities::EntityBase<dim> &entity, bool flag)
+std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
 {
-  entities.emplace_back(std::make_pair(&entity, flag));
+  entities.emplace_back(std::make_pair(entity.get(), flag));
   if (flag)
     error_vector_size += 1;
 }
@@ -46,9 +46,9 @@ computing_timer(
 
 template <int dim>
 void Problem<dim>::set_initial_conditions
-(Entities::EntityBase<dim>              &entity,
- Function<dim>                          &function,
- const TimeDiscretization::VSIMEXMethod &time_stepping)
+(std::shared_ptr<Entities::EntityBase<dim>> entity,
+ Function<dim>                              &function,
+ const TimeDiscretization::VSIMEXMethod     &time_stepping)
 {
   switch (time_stepping.get_order())
   {
@@ -56,21 +56,21 @@ void Problem<dim>::set_initial_conditions
       {
         #ifdef USE_PETSC_LA
           LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity.locally_owned_dofs, mpi_communicator);
+          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
         #else
           LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity.locally_owned_dofs);
+          tmp_old_solution(entity->locally_owned_dofs);
         #endif
 
         function.set_time(time_stepping.get_start_time());
 
-        VectorTools::project(*(entity.dof_handler),
-                             entity.constraints,
-                             QGauss<dim>(entity.fe_degree + 2),
+        VectorTools::project(*entity->dof_handler,
+                             entity->constraints,
+                             QGauss<dim>(entity->fe_degree + 2),
                              function,
                              tmp_old_solution);
 
-        entity.old_solution = tmp_old_solution;
+        entity->old_solution = tmp_old_solution;
         break;
       }
     case 2 :
@@ -78,32 +78,32 @@ void Problem<dim>::set_initial_conditions
       {
         #ifdef USE_PETSC_LA
           LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity.locally_owned_dofs, mpi_communicator);
+          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
           LinearAlgebra::MPI::Vector
-          tmp_old_old_solution(entity.locally_owned_dofs, mpi_communicator);
+          tmp_old_old_solution(entity->locally_owned_dofs, mpi_communicator);
         #else
-          LinearAlgebra::MPI::Vector tmp_old_old_solution(entity.locally_owned_dofs);
-          LinearAlgebra::MPI::Vector tmp_old_solution(entity.locally_owned_dofs);
+          LinearAlgebra::MPI::Vector tmp_old_old_solution(entity->locally_owned_dofs);
+          LinearAlgebra::MPI::Vector tmp_old_solution(entity->locally_owned_dofs);
         #endif
 
         function.set_time(time_stepping.get_start_time());
 
-        VectorTools::project(*(entity.dof_handler),
-                             entity.constraints,
-                             QGauss<dim>(entity.fe_degree + 2),
+        VectorTools::project(*entity->dof_handler,
+                             entity->constraints,
+                             QGauss<dim>(entity->fe_degree + 2),
                              function,
                              tmp_old_old_solution);
 
         function.advance_time(time_stepping.get_next_step_size());
 
-        VectorTools::project(*(entity.dof_handler),
-                             entity.constraints,
-                             QGauss<dim>(entity.fe_degree + 2),
+        VectorTools::project(*entity->dof_handler,
+                             entity->constraints,
+                             QGauss<dim>(entity->fe_degree + 2),
                              function,
                              tmp_old_solution);
 
-        entity.old_old_solution = tmp_old_old_solution;
-        entity.old_solution     = tmp_old_solution;
+        entity->old_old_solution = tmp_old_old_solution;
+        entity->old_solution     = tmp_old_solution;
         break;
       }
     default:
@@ -114,20 +114,20 @@ void Problem<dim>::set_initial_conditions
 
 template <int dim>
 void Problem<dim>::compute_error(
-  LinearAlgebra::MPI::Vector  &error_vector,
-  Entities::EntityBase<dim>   &entity,
-  Function<dim>               &exact_solution)
+  LinearAlgebra::MPI::Vector                  &error_vector,
+  std::shared_ptr<Entities::EntityBase<dim>>  entity,
+  Function<dim>                               &exact_solution)
 {
   #ifdef USE_PETSC_LA
     LinearAlgebra::MPI::Vector
-    tmp_error_vector(entity.locally_owned_dofs, mpi_communicator);
+    tmp_error_vector(entity->locally_owned_dofs, mpi_communicator);
   #else
     LinearAlgebra::MPI::Vector
-    tmp_error_vector(entity.locally_owned_dofs);
+    tmp_error_vector(entity->locally_owned_dofs);
   #endif
-  VectorTools::project(*(entity.dof_handler),
-                       entity.constraints,
-                       QGauss<dim>(entity.fe_degree + 2),
+  VectorTools::project(*entity->dof_handler,
+                       entity->constraints,
+                       QGauss<dim>(entity->fe_degree + 2),
                        exact_solution,
                        tmp_error_vector);
 
@@ -137,18 +137,18 @@ void Problem<dim>::compute_error(
   LinearAlgebra::MPI::Vector distributed_solution;
 
   #ifdef USE_PETSC_LA
-    distributed_error_vector.reinit(entity.locally_owned_dofs,
+    distributed_error_vector.reinit(entity->locally_owned_dofs,
                                     mpi_communicator);
   #else
-    distributed_error_vector.reinit(entity.locally_owned_dofs,
-                                    entity.locally_relevant_dofs,
+    distributed_error_vector.reinit(entity->locally_owned_dofs,
+                                    entity->locally_relevant_dofs,
                                     mpi_communicator,
                                     true);
   #endif
   distributed_solution.reinit(distributed_error_vector);
 
   distributed_error_vector  = error_vector;
-  distributed_solution      = entity.solution;
+  distributed_solution      = entity->solution;
 
   distributed_error_vector.add(-1.0, distributed_solution);
   

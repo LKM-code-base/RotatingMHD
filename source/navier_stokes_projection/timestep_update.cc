@@ -9,8 +9,8 @@ double NavierStokesProjection<dim>::
 get_cfl_number()
 {
   const QIterated<dim>  quadrature_formula(QTrapez<1>(),
-                                           velocity.fe_degree);
-  FEValues<dim>         fe_values(velocity.fe,
+                                           velocity->fe_degree);
+  FEValues<dim>         fe_values(velocity->fe,
                                   quadrature_formula,
                                   update_values);
 
@@ -20,12 +20,12 @@ get_cfl_number()
 
   const FEValuesExtractors::Vector  velocities(0);
   
-  for (const auto &cell : velocity.dof_handler->active_cell_iterators())
+  for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
     if (cell->is_locally_owned())
       {
         double max_local_velocity = std::numeric_limits<double>::lowest();
         fe_values.reinit(cell);
-        fe_values[velocities].get_function_values(velocity.old_solution,
+        fe_values[velocities].get_function_values(velocity->old_solution,
                                                   velocity_values);
         for (unsigned int q = 0; q < n_q_points; ++q)
           max_local_velocity =
