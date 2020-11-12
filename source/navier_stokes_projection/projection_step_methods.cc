@@ -23,7 +23,7 @@ void NavierStokesProjection<dim>::assemble_projection_step()
      boundary conditions on the pressure or Neumann boundary
      conditions on the stress tensor are given
    */
-  pressure.constraints.set_zero(pressure_rhs);
+  pressure->constraints.set_zero(pressure_rhs);
 
   if (parameters.verbose)
     *pcout << "   done." << std::endl;
@@ -43,7 +43,7 @@ void NavierStokesProjection<dim>::solve_projection_step
   // of the pertinent vectors to be able to perform the solve()
   // operation.
   LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
-  distributed_phi = phi;
+  distributed_phi = phi->solution;
 
   if (reinit_prec)
     projection_step_preconditioner.initialize(pressure_laplace_matrix);
@@ -90,12 +90,12 @@ void NavierStokesProjection<dim>::solve_projection_step
     std::abort();
   }
 
-  pressure.constraints.distribute(distributed_phi);
+  pressure->constraints.distribute(distributed_phi);
 
   if (flag_normalize_pressure)
     VectorTools::subtract_mean_value(distributed_phi);
 
-  phi = distributed_phi;
+  phi->solution = distributed_phi;
 
   if (parameters.verbose)
     *pcout << "   done." << std::endl;

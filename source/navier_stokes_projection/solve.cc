@@ -6,14 +6,29 @@ namespace RMHD
 {
 
 template <int dim>
-void NavierStokesProjection<dim>::solve(const unsigned int step)
+void NavierStokesProjection<dim>::solve()
 {
-  diffusion_step((step % parameters.solver_update_preconditioner == 0) ||
-                 (step == (time_stepping.get_order()-1)));
+  if (velocity->solution.size() != velocity_tmp.size())
+  {
+    setup();
 
-  projection_step((step == (time_stepping.get_order()-1)));
+    diffusion_step(true);
 
-  pressure_correction((step == (time_stepping.get_order()-1)));
+    projection_step(true);
+
+    pressure_correction(true);
+  }
+  else 
+  {
+    diffusion_step(time_stepping.get_step_number() % 
+                    parameters.solver_update_preconditioner == 0);
+
+    projection_step(false);
+
+    pressure_correction(false);
+  }
+
+  phi->update_solution_vectors();
 }
 
 template <int dim>
@@ -32,8 +47,8 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 
     LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
-    distributed_old_velocity      = velocity.old_solution;
-    distributed_old_old_velocity  = velocity.old_old_solution;
+    distributed_old_velocity      = velocity->old_solution;
+    distributed_old_old_velocity  = velocity->old_old_solution;
     distributed_old_velocity.sadd(eta[0],
                                   eta[1],
                                   distributed_old_old_velocity);
@@ -55,9 +70,9 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
     LinearAlgebra::MPI::Vector distributed_old_phi(pressure_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_phi(pressure_rhs);
-    distributed_old_pressure  = pressure.old_solution;
-    distributed_old_phi       = old_phi;
-    distributed_old_old_phi   = old_old_phi;
+    distributed_old_pressure  = pressure->old_solution;
+    distributed_old_phi       = phi->old_solution;
+    distributed_old_old_phi   = phi->old_old_solution;
 
     distributed_old_pressure.sadd(1.,
                                   - old_step_size[0] /
@@ -84,8 +99,8 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 
     LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
-    distributed_old_velocity      = velocity.old_solution;
-    distributed_old_old_velocity  = velocity.old_old_solution;
+    distributed_old_velocity      = velocity->old_solution;
+    distributed_old_old_velocity  = velocity->old_old_solution;
     distributed_old_velocity.sadd(alpha[1] / time_stepping.get_next_step_size(),
                                   alpha[2] / time_stepping.get_next_step_size(),
                                   distributed_old_old_velocity);
@@ -124,7 +139,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
   switch (parameters.projection_method)
     {
       case RunTimeParameters::ProjectionMethod::standard:
-        pressure.solution += phi;
+        pressure->solution += phi->solution;
         break;
       case RunTimeParameters::ProjectionMethod::rotational:
         // In the following scope we create temporal non ghosted copies
@@ -135,9 +150,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
           LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
 
-          distributed_pressure      = pressure.solution;
-          distributed_old_pressure  = pressure.old_solution;
-          distributed_phi           = phi;
+          distributed_pressure      = pressure->solution;
+          distributed_old_pressure  = pressure->old_solution;
+          distributed_phi           = phi->solution; 
 
           pressure_rhs /= (!flag_initializing ?
                             time_stepping.get_alpha()[0] / 
@@ -191,7 +206,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             std::abort();
           }
 
-          pressure.constraints.distribute(distributed_pressure);
+          pressure->constraints.distribute(distributed_pressure);
 
           distributed_pressure.sadd(1.0 / parameters.Re, 1., distributed_old_pressure);
           distributed_pressure += distributed_phi;
@@ -199,7 +214,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           if (flag_normalize_pressure)
             VectorTools::subtract_mean_value(distributed_pressure);
 
-          pressure.solution = distributed_pressure;
+          pressure->solution = distributed_pressure;
         }
 
         break;
@@ -212,8 +227,8 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 } // namespace RMHD
 
 // explicit instantiations
-template void RMHD::NavierStokesProjection<2>::solve(const unsigned int);
-template void RMHD::NavierStokesProjection<3>::solve(const unsigned int);
+template void RMHD::NavierStokesProjection<2>::solve();
+template void RMHD::NavierStokesProjection<3>::solve();
 
 template void RMHD::NavierStokesProjection<2>::diffusion_step(const bool);
 template void RMHD::NavierStokesProjection<3>::diffusion_step(const bool);

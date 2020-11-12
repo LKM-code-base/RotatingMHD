@@ -6,6 +6,9 @@ set diagnostics_output_frequency = 1
 # Graphical output frequency.
 set graphical_output_frequency   = 1000
 
+# Adaptive meshing frequency.
+set adaptive_meshing_frequency   = 20
+
 # Projection method to implement.
 set projection_method            = rotational
 
@@ -43,7 +46,7 @@ end
 
 subsection Physical parameters
   # The kinetic Reynolds number.
-  set Reynolds_number = 197.39208802178717237668981999752302270627398814481581252826698752
+  set Reynolds_number = 100.
 end
 
 
@@ -53,6 +56,12 @@ subsection Spatial discretization parameters
 
   # The polynomial degree of the pressure finiteelement.
   set p_fe_degree          = 1
+
+  # Maximum refinement and coarsening level allowed.
+  set refinement_and_coarsening_max_level = 10
+
+  # Minimum refinement and coarsening level allowed.
+  set refinement_and_coarsening_min_level = 1
 end
 
 
@@ -67,7 +76,7 @@ subsection Time stepping settings
   set final_time                = 1.
 
   # Size of the initial time step.
-  set initial_time_step         = 1e-2
+  set initial_time_step         = 1e-1
 
   # Size of the maximum time step.
   set maximum_time_step         = 7.5e-3
@@ -90,13 +99,13 @@ end
 
 subsection Convergence test parameters
 
-  set flag_spatial_convergence_test = true
+  set flag_spatial_convergence_test = false
 
   set initial_refinement_level = 5
 
-  set final_refinement_level = 8
+  set final_refinement_level = 6
 
-  set temporal_convergence_cycles = 6
+  set temporal_convergence_cycles = 2
 
   set time_step_scaling_factor = 0.5
 

@@ -28,16 +28,15 @@ class Step35 : public Problem<dim>
 public:
   Step35(const RunTimeParameters::ParameterSet &parameters);
 
-  void run(const bool         flag_verbose_output           = false,
-           const unsigned int terminal_output_periodicity   = 10,
-           const unsigned int graphical_output_periodicity  = 10);
+  void run();
 private:
+  const RunTimeParameters::ParameterSet       &params;
 
   std::vector<types::boundary_id>             boundary_ids;
 
-  Entities::VectorEntity<dim>                 velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
-  Entities::ScalarEntity<dim>                 pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
@@ -67,8 +66,9 @@ template <int dim>
 Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
-velocity(parameters.p_fe_degree + 1, this->triangulation),
-pressure(parameters.p_fe_degree, this->triangulation),
+params(parameters),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1, this->triangulation)),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree, this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
               velocity,
@@ -83,12 +83,13 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   make_grid(parameters.n_global_refinements);
   setup_dofs();
   setup_constraints();
-  velocity.reinit();
-  pressure.reinit();
-  navier_stokes.setup();
+  velocity->reinit();
+  pressure->reinit();
   initialize();
 
-  //this->pcout << "Time step: " << time_stepping.get_next_step_size() << std::endl;
+  this->container.add_entity(velocity);
+  this->container.add_entity(pressure, false);
+  this->container.add_entity(navier_stokes.phi, false);
 }
 
 template <int dim>
@@ -113,7 +114,7 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
   *(this->pcout) << "Number of refines                     = "
               << n_global_refinements << std::endl;
   *(this->pcout) << "Number of active cells                = "
-              << this->triangulation.n_active_cells() << std::endl;
+              << this->triangulation.n_global_active_cells() << std::endl;
 }
 
 template <int dim>
@@ -121,14 +122,14 @@ void Step35<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
-  velocity.setup_dofs();
-  pressure.setup_dofs();
+  velocity->setup_dofs();
+  pressure->setup_dofs();
   
   *(this->pcout) << "Number of velocity degrees of freedom = "
-              << velocity.dof_handler.n_dofs()
+              << (velocity->dof_handler)->n_dofs()
               << std::endl
               << "Number of pressure degrees of freedom = "
-              << pressure.dof_handler.n_dofs()
+              << pressure->dof_handler->n_dofs()
               << std::endl;
 }
 
@@ -137,31 +138,18 @@ void Step35<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity.boundary_conditions.set_dirichlet_bcs(
-    1,
-    std::shared_ptr<Function<dim>> 
-      (new Functions::ZeroFunction<dim>(dim)));
-  velocity.boundary_conditions.set_dirichlet_bcs(
-    2,
+  velocity->boundary_conditions.set_dirichlet_bcs(1);
+  velocity->boundary_conditions.set_dirichlet_bcs(2,
     std::shared_ptr<Function<dim>> 
       (new EquationData::Step35::VelocityInflowBoundaryCondition<dim>(dim)));
-  velocity.boundary_conditions.set_dirichlet_bcs(
-    4,
-    std::shared_ptr<Function<dim>> 
-      (new Functions::ZeroFunction<dim>(dim)));
-  velocity.boundary_conditions.set_tangential_flux_bcs(
-    3,
-    std::shared_ptr<Function<dim>> 
-      (new Functions::ZeroFunction<dim>(dim)));
+  velocity->boundary_conditions.set_dirichlet_bcs(4);
+  velocity->boundary_conditions.set_tangential_flux_bcs(3);
   
-  pressure.boundary_conditions.set_dirichlet_bcs(
-    3,
-    std::shared_ptr<Function<dim>> 
-      (new Functions::ZeroFunction<dim>()));
+  pressure->boundary_conditions.set_dirichlet_bcs(3);
 
-  velocity.apply_boundary_conditions();
+  velocity->apply_boundary_conditions();
 
-  pressure.apply_boundary_conditions();
+  pressure->apply_boundary_conditions();
 
 }
 
@@ -177,8 +165,8 @@ void Step35<dim>::initialize()
                                pressure_initial_conditions, 
                                time_stepping);
   //navier_stokes.initialize();
-  velocity.solution = velocity.old_solution;
-  pressure.solution = pressure.old_solution;
+  velocity->solution = velocity->old_solution;
+  pressure->solution = pressure->old_solution;
   output();
 }
 
@@ -204,14 +192,14 @@ void Step35<dim>::output()
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
   DataOut<dim>        data_out;
-  data_out.add_data_vector(velocity.dof_handler,
-                           velocity.solution,
+  data_out.add_data_vector(*velocity->dof_handler,
+                           velocity->solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(pressure.dof_handler, 
-                           pressure.solution, 
+  data_out.add_data_vector(*pressure->dof_handler, 
+                           pressure->solution, 
                            "Pressure");
-  data_out.build_patches(velocity.fe_degree);
+  data_out.build_patches(velocity->fe_degree);
   
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record("./",
@@ -225,53 +213,51 @@ void Step35<dim>::output()
 template <int dim>
 void Step35<dim>::update_solution_vectors()
 {
-  velocity.update_solution_vectors();
-  pressure.update_solution_vectors();
-  navier_stokes.update_internal_entities();
+  velocity->update_solution_vectors();
+  pressure->update_solution_vectors();
 }
 
 template <int dim>
-void Step35<dim>::run(
-              const bool          /* flag_verbose_output */,
-              const unsigned int  terminal_output_periodicity,
-              const unsigned int  graphical_output_periodicity)
+void Step35<dim>::run()
 {
-  /*
-   * What is going on here? The fact that the initial time step is first order
-   * time step
-   */
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
-    // snapshot stage
+    // The VSIMEXMethod instance starts each loop at t^{k-1}
 
+    // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
       this->compute_next_time_step(
         time_stepping, 
         navier_stokes.get_cfl_number()));
 
-    // update stage
+    // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
-    navier_stokes.solve(time_stepping.get_step_number());
+    // Solves the system, i.e. computes the fields at t^{k}
+    navier_stokes.solve();
 
-    // snapshot stage
+    // Advances the VSIMEXMethod instance to t^{k}
+    update_solution_vectors();
+    time_stepping.advance_time();
+
+    // Snapshot stage
     postprocessing((time_stepping.get_step_number() % 
-                    terminal_output_periodicity == 0) ||
-                   (time_stepping.get_next_time() == 
+                    this->prm.terminal_output_interval == 0) ||
+                   (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()));
 
+    if (time_stepping.get_step_number() % 
+        this->prm.adaptive_meshing_interval == 0)
+      this->adaptive_mesh_refinement();
+
     if ((time_stepping.get_step_number() % 
-          graphical_output_periodicity == 0) ||
-        (time_stepping.get_next_time() == 
+          this->prm.graphical_output_interval == 0) ||
+        (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()))
       output();
-
-    update_solution_vectors();
-    
-    time_stepping.advance_time();
   }
 }
 
@@ -279,39 +265,30 @@ template <int dim>
 void Step35<dim>::
 point_evaluation(const Point<dim>   &point) const
 {
-  /*
-   * Is the point evaluation not duplicate? You have implemented
-   * a function mpi_point_value in auxiliary_functions.cc?
-   */
   const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
   cell_point =
   GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
-                                           velocity.dof_handler,
+                                           *velocity->dof_handler,
                                            point);
   if (cell_point.first->is_locally_owned())
   {
     Vector<double> point_value_velocity(dim);
-    VectorTools::point_value(velocity.dof_handler,
-                            velocity.solution,
+    VectorTools::point_value(*velocity->dof_handler,
+                            velocity->solution,
                             point,
                             point_value_velocity);
 
     const double point_value_pressure
-    = VectorTools::point_value(pressure.dof_handler,
-                              pressure.solution,
+    = VectorTools::point_value(*pressure->dof_handler,
+                              pressure->solution,
                               point);
-    std::cout << "Step = " << std::setw(2)
-              << time_stepping.get_step_number()
-              << " Time = " << std::noshowpos << std::scientific
-              << time_stepping.get_next_time()
+    std::cout << time_stepping
               << " Velocity = (" << std::showpos << std::scientific
               << point_value_velocity[0]
               << ", " << std::showpos << std::scientific
               << point_value_velocity[1]
               << ") Pressure = " << std::showpos << std::scientific
-              << point_value_pressure
-              << " Time step = " << std::showpos << std::scientific
-              << time_stepping.get_next_step_size() << std::endl;
+              << point_value_pressure  << std::endl;
   }
 }
 
@@ -332,9 +309,7 @@ int main(int argc, char *argv[])
       deallog.depth_console(parameter_set.verbose ? 2 : 0);
 
       Step35<2> simulation(parameter_set);
-      simulation.run(parameter_set.verbose, 
-                     parameter_set.terminal_output_interval,
-                     parameter_set.graphical_output_interval);
+      simulation.run();
   }
   catch (std::exception &exc)
   {

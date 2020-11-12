@@ -73,12 +73,12 @@ SET(TARGET_SRC
     source/navier_stokes_projection.cc
     source/navier_stokes_projection/assemble_advection_matrix.cc
     source/navier_stokes_projection/assemble_diffusion_rhs.cc
-    source/navier_stokes_projection/assemble_projection_rhs.cc
-    source/navier_stokes_projection/assemble_poisson_prestep_rhs.cc
     source/navier_stokes_projection/assemble_mass_and_laplace_matrices.cc
+    source/navier_stokes_projection/assemble_poisson_prestep_rhs.cc
+    source/navier_stokes_projection/assemble_projection_rhs.cc
     source/navier_stokes_projection/assembly_data.cc
-    source/navier_stokes_projection/diffusion_step_methods.cc
     source/navier_stokes_projection/diffusion_prestep_methods.cc
+    source/navier_stokes_projection/diffusion_step_methods.cc
     source/navier_stokes_projection/initialize.cc
     source/navier_stokes_projection/poisson_prestep_methods.cc
     source/navier_stokes_projection/projection_step_methods.cc

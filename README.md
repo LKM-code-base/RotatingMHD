@@ -12,3 +12,14 @@ which are to be tested with the following benchmarks
 1. Christon, Gresho und Sutton (2002)
 1. Christensen et. al (2000), Case 0
 1. Christensen et. al (2000), Case 1 and Jackson et. al (2014)
+
+To do list
+- [ ] Removing the bug in the adaptive mesh refinement branch
+- [ ] Adaptive timestepping
+- [ ] High Reynolds number tests and inspection of the solution w.r.t. instabilities
+- [ ] High Peclet number test and interpretation of the result
+- [ ] Neumann boundary conditions in the incremental pressure projection scheme (Navier-Stokes solver)
+- [ ] Interfacing of the entities and the solvers
+- [ ] Adding the buoyancy to the Navier-Stokes solver
+- [ ] Algebraic multigrid preconditioning in both solvers
+- [ ] Python or bash script for running convergence tests
