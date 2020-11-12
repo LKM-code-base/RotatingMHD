@@ -36,7 +36,7 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->dirichlet_bcs[boundary_id] = zero;
+    this->dirichlet_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -66,7 +66,7 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->neumann_bcs[boundary_id] = zero;
+    this->neumann_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -164,7 +164,7 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->dirichlet_bcs[boundary_id] = zero;
+    this->dirichlet_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -194,7 +194,7 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->neumann_bcs[boundary_id] = zero;
+    this->neumann_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -224,7 +224,7 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    normal_flux_bcs[boundary_id] = zero;
+    normal_flux_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -254,7 +254,7 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    tangential_flux_bcs[boundary_id] = zero;
+    tangential_flux_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(

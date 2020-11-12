@@ -109,11 +109,13 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
                               &velocity->get_triangulation(), 
                               cell->level(), 
                               cell->index(), 
+                              //Pointer to the pressure's DoFHandler
                               pressure->dof_handler.get());
             typename DoFHandler<dim>::active_face_iterator pressure_face(
                               &velocity->get_triangulation(), 
                               face->level(), 
                               face->index(), 
+                              //Pointer to the pressure's DoFHandler
                               pressure->dof_handler.get());
 
             pressure_face_fe_values.reinit(pressure_cell, pressure_face);

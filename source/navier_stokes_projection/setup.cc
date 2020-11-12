@@ -27,8 +27,6 @@ void NavierStokesProjection<dim>::setup()
   if (pressure->boundary_conditions.dirichlet_bcs.empty())
     flag_normalize_pressure = true;
 
-  flag_setup_solver = false;
-
   flag_add_mass_and_stiffness_matrices = true;
 }
 
@@ -53,11 +51,8 @@ void NavierStokesProjection<dim>::setup_phi()
    * translate into homogeneous Dirichlet boundary conditions in the 
    * phi space
    */
-  /*! @attention Should I write a get method for the ZeroFunction 
-      inside the BoundaryCondition struct? */
   for (auto &dirichlet_bc : phi->boundary_conditions.dirichlet_bcs)
-    dirichlet_bc.second = std::shared_ptr<Function<dim>>
-                            (new Functions::ZeroFunction<dim>());
+    dirichlet_bc.second = std::make_shared<Functions::ZeroFunction<dim>>();
 
   /*!
    * Neumann boundary conditions in the velocity space translate into

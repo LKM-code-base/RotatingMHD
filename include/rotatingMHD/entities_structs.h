@@ -132,7 +132,7 @@ public:
    * @ref ScalarEntity::setup_dofs and @ref VectorEntity::setup_dofs
    * respectively.
    */
-  virtual void setup_dofs(){};
+  virtual void setup_dofs() = 0;
 
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
@@ -140,7 +140,7 @@ public:
    * @ref ScalarEntity::apply_boundary_conditions and 
    * @ref VectorEntity::apply_boundary_conditions respectively.
    */
-  virtual void apply_boundary_conditions(){};
+  virtual void apply_boundary_conditions() = 0;
 
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
@@ -148,7 +148,7 @@ public:
    * @ref ScalarEntity::update_boundary_conditions and 
    * @ref VectorEntity::update_boundary_conditions respectively.
    */
-  virtual void update_boundary_conditions(){};
+  virtual void update_boundary_conditions() = 0;
 
 protected:
   /*!

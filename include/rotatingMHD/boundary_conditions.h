@@ -188,7 +188,7 @@ private:
    * @brief A scalar zero function used for homogeneous boundary
    * conditions.
    */
-  std::shared_ptr<Function<dim>>  zero = 
+  const std::shared_ptr<Function<dim>>  zero_function_ptr = 
                       std::make_shared<Functions::ZeroFunction<dim>>();
 
   /*!
@@ -320,7 +320,7 @@ private:
    * @brief A vector zero function used for homogeneous boundary
    * conditions.
    */
-  std::shared_ptr<Function<dim>>  zero = 
+  const std::shared_ptr<Function<dim>>  zero_function_ptr = 
                       std::make_shared<Functions::ZeroFunction<dim>>(dim);
 
   /*!
