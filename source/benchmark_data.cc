@@ -49,13 +49,13 @@ lift_coefficient(0)
 
 template <int dim>
 void DFG<dim>::compute_pressure_difference
-(const Entities::ScalarEntity<dim> &pressure)
+(const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure)
 {
   const double front_point_pressure_value
-  = pressure.point_value(front_evaluation_point);
+  = pressure->point_value(front_evaluation_point);
 
   const double rear_point_pressure_value
-  = pressure.point_value(rear_evaluation_point);
+  = pressure->point_value(rear_evaluation_point);
 
   pressure_difference = front_point_pressure_value - 
                         rear_point_pressure_value;
@@ -63,15 +63,20 @@ void DFG<dim>::compute_pressure_difference
 
 template <int dim>
 void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
-                          const Entities::VectorEntity<dim> &velocity,
-                          const Entities::ScalarEntity<dim> &pressure)
+  const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+  const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure)
 {
   const MappingQ<dim> mapping(3);
 
-  QGauss<dim-1>     face_quadrature_formula(velocity.fe_degree + 1);
+  /*! @attention What would be the polynomial degree of the normal
+      vector? */
+  const int face_p_degree = 2 * velocity->fe_degree;
+
+  const QGauss<dim-1>   face_quadrature_formula(
+                            std::ceil(0.5 * double(face_p_degree + 1)));
 
   FEFaceValues<dim> velocity_face_fe_values(mapping,
-                                            velocity.fe,
+                                            velocity->fe,
                                             face_quadrature_formula,
                                             update_values |
                                             update_gradients |
@@ -79,7 +84,7 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
                                             update_normal_vectors);
 
   FEFaceValues<dim> pressure_face_fe_values(mapping,
-                                            pressure.fe,
+                                            pressure->fe,
                                             face_quadrature_formula,
                                             update_values);
 
@@ -93,7 +98,7 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
 
   Tensor<1, dim>              forces;
 
-  for (const auto &cell : velocity.dof_handler->active_cell_iterators())
+  for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
     if (cell->is_locally_owned())
       for (const auto &face : cell->face_iterators())
         if (face->at_boundary() && face->boundary_id() == 2)
@@ -101,25 +106,25 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
             velocity_face_fe_values.reinit(cell, face);
 
             typename DoFHandler<dim>::active_cell_iterator pressure_cell(
-                              &velocity.get_triangulation(), 
+                              &velocity->get_triangulation(), 
                               cell->level(), 
                               cell->index(), 
                               //Pointer to the pressure's DoFHandler
-                              pressure.dof_handler.get());
+                              pressure->dof_handler.get());
             typename DoFHandler<dim>::active_face_iterator pressure_face(
-                              &velocity.get_triangulation(), 
+                              &velocity->get_triangulation(), 
                               face->level(), 
-                              face->index(),
+                              face->index(), 
                               //Pointer to the pressure's DoFHandler
-                              pressure.dof_handler.get());
+                              pressure->dof_handler.get());
 
             pressure_face_fe_values.reinit(pressure_cell, pressure_face);
 
             velocity_face_fe_values[velocities].get_function_gradients(
-                                                  velocity.solution,
+                                                  velocity->solution,
                                                   velocity_gradients);
             pressure_face_fe_values.get_function_values(
-                                                  pressure.solution,
+                                                  pressure->solution,
                                                   pressure_values);
             normal_vectors = velocity_face_fe_values.get_normal_vectors();
 

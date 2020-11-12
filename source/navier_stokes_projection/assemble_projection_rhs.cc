@@ -15,7 +15,7 @@ assemble_projection_step_rhs()
 
   // Polynomial degree of the integrand
 
-  const int p_degree = velocity.fe_degree + pressure.fe_degree - 1;
+  const int p_degree = velocity->fe_degree + pressure->fe_degree - 1;
 
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
@@ -39,21 +39,21 @@ assemble_projection_step_rhs()
     };
 
   WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure.dof_handler->begin_active()),
+                             (pressure->dof_handler)->begin_active()),
                   CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure.dof_handler->end()),
+                             (pressure->dof_handler)->end()),
                   worker,
                   copier,
                   PressureRightHandSideAssembly::LocalCellData<dim>(
-                                          velocity.fe,
-                                          pressure.fe,
+                                          velocity->fe,
+                                          pressure->fe,
                                           quadrature_formula,
                                           update_values |
                                           update_gradients,
                                           update_JxW_values |
                                           update_values),
                   PressureRightHandSideAssembly::MappingData<dim>(
-                                            pressure.fe.dofs_per_cell));
+                                            pressure->fe.dofs_per_cell));
   pressure_rhs.compress(VectorOperation::add);
 }
 
@@ -76,15 +76,15 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
   const FEValuesExtractors::Vector  velocities(0);
 
   typename DoFHandler<dim>::active_cell_iterator
-  velocity_cell(&velocity.get_triangulation(),
+  velocity_cell(&velocity->get_triangulation(),
                  cell->level(),
                  cell->index(),
-                velocity.dof_handler.get());
+                velocity->dof_handler.get());
 
   scratch.velocity_fe_values.reinit(velocity_cell);
 
   scratch.velocity_fe_values[velocities].get_function_divergences(
-                              velocity.solution,
+                              velocity->solution,
                               scratch.velocity_divergence_values);
 
   // loop over quadrature points
@@ -112,7 +112,7 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_projection_step_rhs(
   const PressureRightHandSideAssembly::MappingData<dim>  &data)
 {
-  pressure.constraints.distribute_local_to_global
+  pressure->constraints.distribute_local_to_global
   (data.local_projection_step_rhs,
    data.local_pressure_dof_indices,
    pressure_rhs);

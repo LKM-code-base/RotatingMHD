@@ -34,9 +34,9 @@ private:
 
   std::vector<types::boundary_id>             boundary_ids;
 
-  Entities::VectorEntity<dim>                 velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
-  Entities::ScalarEntity<dim>                 pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
@@ -67,8 +67,8 @@ Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
 params(parameters),
-velocity(parameters.p_fe_degree + 1, this->triangulation),
-pressure(parameters.p_fe_degree, this->triangulation),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1, this->triangulation)),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree, this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
               velocity,
@@ -83,8 +83,8 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   make_grid(parameters.n_global_refinements);
   setup_dofs();
   setup_constraints();
-  velocity.reinit();
-  pressure.reinit();
+  velocity->reinit();
+  pressure->reinit();
   initialize();
 
   this->container.add_entity(velocity);
@@ -122,14 +122,14 @@ void Step35<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
-  velocity.setup_dofs();
-  pressure.setup_dofs();
+  velocity->setup_dofs();
+  pressure->setup_dofs();
   
   *(this->pcout) << "Number of velocity degrees of freedom = "
-              << velocity.dof_handler->n_dofs()
+              << (velocity->dof_handler)->n_dofs()
               << std::endl
               << "Number of pressure degrees of freedom = "
-              << pressure.dof_handler->n_dofs()
+              << pressure->dof_handler->n_dofs()
               << std::endl;
 }
 
@@ -138,18 +138,18 @@ void Step35<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity.boundary_conditions.set_dirichlet_bcs(1);
-  velocity.boundary_conditions.set_dirichlet_bcs(2,
+  velocity->boundary_conditions.set_dirichlet_bcs(1);
+  velocity->boundary_conditions.set_dirichlet_bcs(2,
     std::shared_ptr<Function<dim>> 
       (new EquationData::Step35::VelocityInflowBoundaryCondition<dim>(dim)));
-  velocity.boundary_conditions.set_dirichlet_bcs(4);
-  velocity.boundary_conditions.set_tangential_flux_bcs(3);
+  velocity->boundary_conditions.set_dirichlet_bcs(4);
+  velocity->boundary_conditions.set_tangential_flux_bcs(3);
   
-  pressure.boundary_conditions.set_dirichlet_bcs(3);
+  pressure->boundary_conditions.set_dirichlet_bcs(3);
 
-  velocity.apply_boundary_conditions();
+  velocity->apply_boundary_conditions();
 
-  pressure.apply_boundary_conditions();
+  pressure->apply_boundary_conditions();
 
 }
 
@@ -165,8 +165,8 @@ void Step35<dim>::initialize()
                                pressure_initial_conditions, 
                                time_stepping);
   //navier_stokes.initialize();
-  velocity.solution = velocity.old_solution;
-  pressure.solution = pressure.old_solution;
+  velocity->solution = velocity->old_solution;
+  pressure->solution = pressure->old_solution;
   output();
 }
 
@@ -192,14 +192,14 @@ void Step35<dim>::output()
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*velocity.dof_handler,
-                           velocity.solution,
+  data_out.add_data_vector(*velocity->dof_handler,
+                           velocity->solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(*pressure.dof_handler, 
-                           pressure.solution, 
+  data_out.add_data_vector(*pressure->dof_handler, 
+                           pressure->solution, 
                            "Pressure");
-  data_out.build_patches(velocity.fe_degree);
+  data_out.build_patches(velocity->fe_degree);
   
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record("./",
@@ -213,8 +213,8 @@ void Step35<dim>::output()
 template <int dim>
 void Step35<dim>::update_solution_vectors()
 {
-  velocity.update_solution_vectors();
-  pressure.update_solution_vectors();
+  velocity->update_solution_vectors();
+  pressure->update_solution_vectors();
 }
 
 template <int dim>
@@ -268,19 +268,19 @@ point_evaluation(const Point<dim>   &point) const
   const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
   cell_point =
   GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
-                                           *velocity.dof_handler,
+                                           *velocity->dof_handler,
                                            point);
   if (cell_point.first->is_locally_owned())
   {
     Vector<double> point_value_velocity(dim);
-    VectorTools::point_value(*velocity.dof_handler,
-                            velocity.solution,
+    VectorTools::point_value(*velocity->dof_handler,
+                            velocity->solution,
                             point,
                             point_value_velocity);
 
     const double point_value_pressure
-    = VectorTools::point_value(*pressure.dof_handler,
-                              pressure.solution,
+    = VectorTools::point_value(*pressure->dof_handler,
+                              pressure->solution,
                               point);
     std::cout << time_stepping
               << " Velocity = (" << std::showpos << std::scientific

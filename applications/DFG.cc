@@ -220,9 +220,9 @@ private:
 
   std::vector<types::boundary_id>             boundary_ids;
 
-  Entities::VectorEntity<dim>                 velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
-  Entities::ScalarEntity<dim>                 pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
@@ -255,8 +255,10 @@ template <int dim>
 DFG<dim>::DFG(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
-velocity(parameters.p_fe_degree + 1, this->triangulation),
-pressure(parameters.p_fe_degree, this->triangulation),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(
+              parameters.p_fe_degree + 1, this->triangulation)),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+              parameters.p_fe_degree, this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
               velocity,
@@ -271,8 +273,8 @@ pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
   make_grid();
   setup_dofs();
   setup_constraints();
-  velocity.reinit();
-  pressure.reinit();
+  velocity->reinit();
+  pressure->reinit();
   initialize();
 }
 
@@ -307,14 +309,14 @@ void DFG<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
-  velocity.setup_dofs();
-  pressure.setup_dofs();
+  velocity->setup_dofs();
+  pressure->setup_dofs();
   
   *(this->pcout)  << "Number of velocity degrees of freedom = "
-                  << velocity.dof_handler->n_dofs()
+                  << (velocity->dof_handler)->n_dofs()
                   << std::endl
                   << "Number of pressure degrees of freedom = "
-                  << pressure.dof_handler->n_dofs()
+                  << (pressure->dof_handler)->n_dofs()
                   << std::endl;
 }
 
@@ -323,17 +325,17 @@ void DFG<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity.boundary_conditions.set_dirichlet_bcs(0,
+  velocity->boundary_conditions.set_dirichlet_bcs(0,
     std::shared_ptr<Function<dim>> 
       (new EquationData::DFG::VelocityInflowBoundaryCondition<dim>(
         this->prm.time_stepping_parameters.start_time)));
-  velocity.boundary_conditions.set_dirichlet_bcs(2);
-  velocity.boundary_conditions.set_dirichlet_bcs(3);
+  velocity->boundary_conditions.set_dirichlet_bcs(2);
+  velocity->boundary_conditions.set_dirichlet_bcs(3);
 
-  pressure.boundary_conditions.set_dirichlet_bcs(1);
+  pressure->boundary_conditions.set_dirichlet_bcs(1);
 
-  velocity.apply_boundary_conditions();
-  pressure.apply_boundary_conditions();
+  velocity->apply_boundary_conditions();
+  pressure->apply_boundary_conditions();
 }
 
 template <int dim>
@@ -377,14 +379,14 @@ void DFG<dim>::output()
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*(velocity.dof_handler),
-                           velocity.solution,
+  data_out.add_data_vector(*(velocity->dof_handler),
+                           velocity->solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(*(pressure.dof_handler), 
-                           pressure.solution, 
+  data_out.add_data_vector(*(pressure->dof_handler), 
+                           pressure->solution, 
                            "Pressure");
-  data_out.build_patches(velocity.fe_degree);
+  data_out.build_patches(velocity->fe_degree);
   
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record("./",
@@ -398,8 +400,8 @@ void DFG<dim>::output()
 template <int dim>
 void DFG<dim>::update_solution_vectors()
 {
-  velocity.update_solution_vectors();
-  pressure.update_solution_vectors();
+  velocity->update_solution_vectors();
+  pressure->update_solution_vectors();
 }
 
 template <int dim>
@@ -441,11 +443,11 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
 
   *(this->pcout) << "Restarting..." << std::endl;
   time_stepping.restart();
-  velocity.old_old_solution = velocity.solution;
+  velocity->old_old_solution = velocity->solution;
   navier_stokes.reset_phi();
   navier_stokes.initialize();
-  velocity.solution = velocity.old_solution;
-  pressure.solution = pressure.old_solution;
+  velocity->solution = velocity->old_solution;
+  pressure->solution = pressure->old_solution;
   output();
 
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)

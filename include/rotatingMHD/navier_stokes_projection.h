@@ -75,13 +75,13 @@ class NavierStokesProjection
 
 public:
   NavierStokesProjection
-  (const RunTimeParameters::ParameterSet   &parameters,
-   Entities::VectorEntity<dim>             &velocity,
-   Entities::ScalarEntity<dim>             &pressure,
-   TimeDiscretization::VSIMEXMethod        &time_stepping,
-   const std::shared_ptr<ConditionalOStream>external_pcout =
+  (const RunTimeParameters::ParameterSet        &parameters,
+   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   TimeDiscretization::VSIMEXMethod             &time_stepping,
+   const std::shared_ptr<ConditionalOStream>    external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>       external_timer =
+   const std::shared_ptr<TimerOutput>           external_timer =
        std::shared_ptr<TimerOutput>());
 
   /*!
@@ -89,7 +89,7 @@ public:
    * the field computed during the projection step and later used in
    * the pressure-correction step. 
    */ 
-  Entities::ScalarEntity<dim>   phi;
+  std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
 
   /*!
    *  @brief Setups and initializes all the internal entities for
@@ -183,12 +183,12 @@ private:
   /*!
    * @brief A reference to the entity of velocity field.
    */
-  Entities::VectorEntity<dim>            &velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  &velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  Entities::ScalarEntity<dim>            &pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure;
 
   /*!
    * @brief A pointer to the body force function.

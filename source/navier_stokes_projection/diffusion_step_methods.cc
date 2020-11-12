@@ -59,7 +59,7 @@ solve_diffusion_step(const bool reinit_prec)
   // of the pertinent vectors to be able to perform the solve()
   // operation.
   LinearAlgebra::MPI::Vector distributed_velocity(velocity_rhs);
-  distributed_velocity = velocity.solution;
+  distributed_velocity = velocity->solution;
 
   /* The following pointer holds the address to the correct matrix 
   depending on if the semi-implicit scheme is chosen or not */
@@ -115,9 +115,9 @@ solve_diffusion_step(const bool reinit_prec)
     std::abort();
   }
 
-  velocity.constraints.distribute(distributed_velocity);
+  velocity->constraints.distribute(distributed_velocity);
 
-  velocity.solution = distributed_velocity;
+  velocity->solution = distributed_velocity;
 
   if (parameters.verbose)
     *pcout << "    done." << std::endl;

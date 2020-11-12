@@ -42,9 +42,9 @@ private:
 
   std::vector<types::boundary_id>             boundary_ids;
 
-  Entities::VectorEntity<dim>                 velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
-  Entities::ScalarEntity<dim>                 pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
   LinearAlgebra::MPI::Vector                  velocity_error;
 
@@ -92,8 +92,10 @@ TGV<dim>::TGV(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
 outputFile("TGV_Log.csv"),
-velocity(parameters.p_fe_degree + 1, this->triangulation),
-pressure(parameters.p_fe_degree, this->triangulation),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(
+            parameters.p_fe_degree + 1, this->triangulation)),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+            parameters.p_fe_degree, this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
               velocity,
@@ -165,15 +167,15 @@ void TGV<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
-  velocity.setup_dofs();
-  pressure.setup_dofs();
+  velocity->setup_dofs();
+  pressure->setup_dofs();
   *(this->pcout)  << "  Number of active cells                = " 
                   << this->triangulation.n_global_active_cells() << std::endl;
   *(this->pcout)  << "  Number of velocity degrees of freedom = " 
-                  << velocity.dof_handler->n_dofs()
+                  << (velocity->dof_handler)->n_dofs()
                   << std::endl
                   << "  Number of pressure degrees of freedom = " 
-                  << pressure.dof_handler->n_dofs()
+                  << (pressure->dof_handler)->n_dofs()
                   << std::endl;
 }
 
@@ -182,16 +184,16 @@ void TGV<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity.boundary_conditions.clear();
-  pressure.boundary_conditions.clear();
+  velocity->boundary_conditions.clear();
+  pressure->boundary_conditions.clear();
   
-  velocity.boundary_conditions.set_periodic_bcs(0, 1, 0);
-  velocity.boundary_conditions.set_periodic_bcs(2, 3, 1);
-  pressure.boundary_conditions.set_periodic_bcs(0, 1, 0);
-  pressure.boundary_conditions.set_periodic_bcs(2, 3, 1);
+  velocity->boundary_conditions.set_periodic_bcs(0, 1, 0);
+  velocity->boundary_conditions.set_periodic_bcs(2, 3, 1);
+  pressure->boundary_conditions.set_periodic_bcs(0, 1, 0);
+  pressure->boundary_conditions.set_periodic_bcs(2, 3, 1);
   
-  velocity.apply_boundary_conditions();
-  pressure.apply_boundary_conditions();
+  velocity->apply_boundary_conditions();
+  pressure->apply_boundary_conditions();
 }
 
 template <int dim>
@@ -219,19 +221,19 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
 
   if (flag_set_exact_pressure_constant)
   {
-    LinearAlgebra::MPI::Vector  analytical_pressure(pressure.solution);
+    LinearAlgebra::MPI::Vector  analytical_pressure(pressure->solution);
     {
       #ifdef USE_PETSC_LA
         LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure.locally_owned_dofs,
+        tmp_analytical_pressure(pressure->locally_owned_dofs,
                                 this->mpi_communicator);
       #else
         LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure.locally_owned_dofs);
+        tmp_analytical_pressure(pressure->locally_owned_dofs);
       #endif
-      VectorTools::project(*(pressure.dof_handler),
-                          pressure.constraints,
-                          QGauss<dim>(pressure.fe_degree + 2),
+      VectorTools::project(*(pressure->dof_handler),
+                          pressure->constraints,
+                          QGauss<dim>(pressure->fe_degree + 2),
                           pressure_exact_solution,
                           tmp_analytical_pressure);
 
@@ -241,24 +243,24 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
       LinearAlgebra::MPI::Vector distributed_analytical_pressure;
       LinearAlgebra::MPI::Vector distributed_numerical_pressure;
       #ifdef USE_PETSC_LA
-        distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
+        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
                                                this->mpi_communicator);
       #else
-        distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
-                                               pressure.locally_relevant_dofs,
+        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
+                                               pressure->locally_relevant_dofs,
                                                this->mpi_communicator,
                                                true);
       #endif
       distributed_numerical_pressure.reinit(distributed_analytical_pressure);
 
       distributed_analytical_pressure = analytical_pressure;
-      distributed_numerical_pressure  = pressure.solution;
+      distributed_numerical_pressure  = pressure->solution;
 
       distributed_numerical_pressure.add(  
         distributed_analytical_pressure.mean_value() -
         distributed_numerical_pressure.mean_value());
 
-      pressure.solution = distributed_numerical_pressure;
+      pressure->solution = distributed_numerical_pressure;
     }
   }
 
@@ -305,21 +307,21 @@ void TGV<dim>::output()
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*(velocity.dof_handler),
-                           velocity.solution,
+  data_out.add_data_vector(*(velocity->dof_handler),
+                           velocity->solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(*(velocity.dof_handler),
+  data_out.add_data_vector(*(velocity->dof_handler),
                            velocity_error,
                            error_name, 
                            component_interpretation);
-  data_out.add_data_vector(*(pressure.dof_handler), 
-                           pressure.solution, 
+  data_out.add_data_vector(*(pressure->dof_handler), 
+                           pressure->solution, 
                            "pressure");
-  data_out.add_data_vector(*(pressure.dof_handler), 
+  data_out.add_data_vector(*(pressure->dof_handler), 
                            pressure_error, 
                            "pressure_error");
-  data_out.build_patches(velocity.fe_degree);
+  data_out.build_patches(velocity->fe_degree);
   
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record("./",
@@ -333,8 +335,8 @@ void TGV<dim>::output()
 template <int dim>
 void TGV<dim>::update_entities()
 {
-  velocity.update_solution_vectors();
-  pressure.update_solution_vectors();
+  velocity->update_solution_vectors();
+  pressure->update_solution_vectors();
 }
 
 template <int dim>
@@ -342,10 +344,10 @@ void TGV<dim>::solve(const unsigned int &level)
 {
   setup_dofs();
   setup_constraints();
-  velocity.reinit();
-  pressure.reinit();
-  velocity_error.reinit(velocity.solution);
-  pressure_error.reinit(pressure.solution);
+  velocity->reinit();
+  pressure->reinit();
+  velocity_error.reinit(velocity->solution);
+  pressure_error.reinit(pressure->solution);
   initialize();
 
   // Advances the time to t^{k-1}, either t^0 or t^1
@@ -354,13 +356,13 @@ void TGV<dim>::solve(const unsigned int &level)
   
   // Outputs the fields at t_0, i.e. the initial conditions.
   { 
-    velocity.solution = velocity.old_old_solution;
-    pressure.solution = pressure.old_old_solution;
+    velocity->solution = velocity->old_old_solution;
+    pressure->solution = pressure->old_old_solution;
     velocity_exact_solution.set_time(time_stepping.get_start_time());
     pressure_exact_solution.set_time(time_stepping.get_start_time());
     output();
-    velocity.solution = velocity.old_solution;
-    pressure.solution = pressure.old_solution;
+    velocity->solution = velocity->old_solution;
+    pressure->solution = pressure->old_solution;
     velocity_exact_solution.set_time(time_stepping.get_start_time() + 
                                      time_stepping.get_next_step_size());
     pressure_exact_solution.set_time(time_stepping.get_start_time() + 
@@ -385,8 +387,8 @@ void TGV<dim>::solve(const unsigned int &level)
     velocity_exact_solution.set_time(time_stepping.get_next_time());
     pressure_exact_solution.set_time(time_stepping.get_next_time());
 
-    velocity.boundary_conditions.set_time(time_stepping.get_next_time());
-    velocity.update_boundary_conditions();
+    velocity->boundary_conditions.set_time(time_stepping.get_next_time());
+    velocity->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve();
@@ -418,8 +420,8 @@ void TGV<dim>::solve(const unsigned int &level)
   pressure_convergence_table.update_table(
     level, time_stepping.get_previous_step_size(), this->prm.flag_spatial_convergence_test);
   
-  velocity.boundary_conditions.clear();
-  pressure.boundary_conditions.clear();
+  velocity->boundary_conditions.clear();
+  pressure->boundary_conditions.clear();
 
   outputFile << "\n";
 
