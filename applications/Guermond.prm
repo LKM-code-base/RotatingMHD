@@ -6,6 +6,9 @@ set diagnostics_output_frequency = 1
 # Graphical output frequency.
 set graphical_output_frequency   = 20
 
+# Adaptive meshing frequency.
+set adaptive_meshing_frequency   = 20
+
 # Projection method to implement.
 set projection_method            = rotational
 
@@ -52,6 +55,12 @@ subsection Spatial discretization parameters
 
   # The polynomial degree of the pressure finiteelement.
   set p_fe_degree          = 1
+
+  # Maximum refinement and coarsening level allowed.
+  set refinement_and_coarsening_max_level = 10
+
+  # Minimum refinement and coarsening level allowed.
+  set refinement_and_coarsening_min_level = 1
 end
 
 
@@ -89,11 +98,11 @@ end
 
 subsection Convergence test parameters
 
-  set flag_spatial_convergence_test = false
+  set flag_spatial_convergence_test = true
 
   set initial_refinement_level      = 5
 
-  set final_refinement_level        = 3
+  set final_refinement_level        = 6
 
   set temporal_convergence_cycles   = 2
 

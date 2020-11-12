@@ -39,66 +39,77 @@ namespace Entities
 template <int dim>
 struct EntityBase
 {
+public:
   /*!
    * @brief The degree of the finite element.
    */
-  const unsigned int          fe_degree;
+  const unsigned int                fe_degree;
 
   /*!
    * @brief The MPI communicator.
    */
-  const MPI_Comm              mpi_communicator;
+  const MPI_Comm                    mpi_communicator;
 
   /*!
    * @brief The DoFHandler<dim> instance of the entity.
    */
-  DoFHandler<dim>             dof_handler;
+  std::shared_ptr<DoFHandler<dim>>  dof_handler;
 
   /*!
    * @brief The AffineConstraints<double> instance handling the 
    * hanging nodes.
    */
-  AffineConstraints<double>   hanging_nodes;
+  AffineConstraints<double>         hanging_nodes;
 
   /*!
    * @brief The AffineConstraints<double> instance handling the 
    * hanging nodes and the boundary conditions.
    */
-  AffineConstraints<double>   constraints;
+  AffineConstraints<double>         constraints;
 
   /*!
    * @brief The set of the degrees of freedom owned by the processor.
    */
-  IndexSet                    locally_owned_dofs;
+  IndexSet                          locally_owned_dofs;
 
   /*!
    * @brief The set of the degrees of freedom that are relevant for
    * the processor.
    */
-  IndexSet                    locally_relevant_dofs;
+  IndexSet                          locally_relevant_dofs;
 
   /*!
    * @brief Vector containing the solution at the current time.
    */
-  LinearAlgebra::MPI::Vector  solution;
+  LinearAlgebra::MPI::Vector        solution;
 
   /*!
    * @brief Vector containing the solution one time step prior to the
    * current time.
    */
-  LinearAlgebra::MPI::Vector  old_solution;
+  LinearAlgebra::MPI::Vector        old_solution;
 
   /*!
    * @brief Vector containing the solution two time step prior to the
    * current time.
    */
-  LinearAlgebra::MPI::Vector  old_old_solution;
+  LinearAlgebra::MPI::Vector        old_old_solution;
 
   /*!
    * @brief Constructor.
    */
   EntityBase(const unsigned int                               fe_degree,
              const parallel::distributed::Triangulation<dim> &triangulation);
+
+  /*!
+   * @brief Copy constructor.
+   */
+  EntityBase(const EntityBase<dim>  &entity);
+
+  /*!
+   * @brief Method returning.
+   */
+  const parallel::distributed::Triangulation<dim> &get_triangulation() const;
 
   /*!
    * @brief Initializes the solution vectors by calling their respective
@@ -110,7 +121,56 @@ struct EntityBase
    * @brief Passes the contents of a solution vector to the one prior to it.
    */
   void update_solution_vectors();
+
+  /*!
+   * @brief Sets all the entries of the solution vectors to zero.
+   */
+  void set_solution_vectors_to_zero();
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity in a vector and call
+   * @ref ScalarEntity::setup_dofs and @ref VectorEntity::setup_dofs
+   * respectively.
+   */
+  virtual void setup_dofs() = 0;
+
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity in a vector and call
+   * @ref ScalarEntity::apply_boundary_conditions and 
+   * @ref VectorEntity::apply_boundary_conditions respectively.
+   */
+  virtual void apply_boundary_conditions() = 0;
+
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity in a vector and call
+   * @ref ScalarEntity::update_boundary_conditions and 
+   * @ref VectorEntity::update_boundary_conditions respectively.
+   */
+  virtual void update_boundary_conditions() = 0;
+
+protected:
+  /*!
+   * @brief A flag indicating wether the entity is a child. Here is
+   * meant, that the entity was instanced with the copy constructor.
+   * @details This flag is used to avoid a double distribution of
+   * degrees of freedom.
+   */
+  const bool                                      flag_child_entity;
+
+private:
+  /*!
+   * @brief Reference to the underlying triangulation.
+   */
+  const parallel::distributed::Triangulation<dim> &triangulation;
 };
+
+template <int dim>
+inline const parallel::distributed::Triangulation<dim> &EntityBase<dim>::get_triangulation() const
+{
+  return (triangulation);
+}
 
   /*!
    * @struct VectorEntity
@@ -137,12 +197,18 @@ struct VectorEntity : EntityBase<dim>
                const parallel::distributed::Triangulation<dim> &triangulation);
 
   /*!
+   * @brief Copy constructor.
+   */
+  VectorEntity(const VectorEntity<dim>  &entity);
+
+
+  /*!
    * @brief Set ups the degrees of freedom of the vector field.
    * @details It distributes the degrees of freedom bases on @ref fe;
    * extracts the @ref locally_owned_dofs and the @ref locally_relevant_dofs;
    * and makes the hanging node constraints contained in @ref hanging_nodes.
    */
-  void setup_dofs();
+  virtual void setup_dofs() override;
 
   /*!
    * @brief Applies all the boundary conditions into the @ref constraints
@@ -153,7 +219,7 @@ struct VectorEntity : EntityBase<dim>
    * are applied as the method initiates @ref constraints, which is used
    * througout the solver. 
    */
-  void apply_boundary_conditions();
+  virtual void apply_boundary_conditions() override;
 
   /*!
    * @brief Updates the time dependent boundary conditions.
@@ -166,7 +232,7 @@ struct VectorEntity : EntityBase<dim>
    * calling this method. Otherwise the method will just reapply the
    * same boundary conditions.
    */
-  void update_boundary_conditions();
+  virtual void update_boundary_conditions() override;
 
   /*!
    * @brief This method evaluates the value of the continous vector 
@@ -203,12 +269,17 @@ struct ScalarEntity : EntityBase<dim>
                const parallel::distributed::Triangulation<dim> &triangulation);
 
   /*!
+   * @brief Copy constructor.
+   */
+  ScalarEntity(const ScalarEntity<dim>  &entity);
+
+  /*!
    * @brief Set ups the degrees of freedom of the scalar field.
    * @details It distributes the degrees of freedom bases on @ref fe;
    * extracts the @ref locally_owned_dofs and the @ref locally_relevant_dofs;
    * and makes the hanging node constraints contained in @ref hanging_nodes.
    */
-  void setup_dofs();
+  virtual void setup_dofs() override;
 
   /*!
    * @brief Applies all the boundary conditions into the @ref constraints
@@ -219,7 +290,7 @@ struct ScalarEntity : EntityBase<dim>
    * are applied as the method initiates @ref constraints, which is used
    * througout the solver. 
    */
-  void apply_boundary_conditions();
+  virtual void apply_boundary_conditions() override;
 
   /*!
    * @brief Updates the time dependent boundary conditions.
@@ -232,7 +303,7 @@ struct ScalarEntity : EntityBase<dim>
    * calling this method. Otherwise the method will just reapply the
    * same boundary conditions.
    */
-  void update_boundary_conditions();
+  virtual void update_boundary_conditions() override;
 
   /*!
    * @brief This method evaluates the value of the continous scalar 

@@ -150,10 +150,10 @@ void Guermond<dim>::setup_dofs()
   *(this->pcout)  << "  Number of active cells                = " 
                   << this->triangulation.n_global_active_cells() << std::endl;
   *(this->pcout)  << "  Number of velocity degrees of freedom = " 
-                  << velocity.dof_handler.n_dofs()
+                  << velocity.dof_handler->n_dofs()
                   << std::endl
                   << "  Number of pressure degrees of freedom = " 
-                  << pressure.dof_handler.n_dofs()
+                  << pressure.dof_handler->n_dofs()
                   << std::endl;
 }
 
@@ -208,7 +208,7 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
         LinearAlgebra::MPI::Vector
         tmp_analytical_pressure(pressure.locally_owned_dofs);
       #endif
-      VectorTools::project(pressure.dof_handler,
+      VectorTools::project(*(pressure.dof_handler),
                           pressure.constraints,
                           QGauss<dim>(pressure.fe_degree + 2),
                           pressure_exact_solution,
@@ -286,18 +286,18 @@ void Guermond<dim>::output()
                            DataComponentInterpretation::component_is_part_of_vector);
 
   DataOut<dim>        data_out;
-  data_out.add_data_vector(velocity.dof_handler,
+  data_out.add_data_vector(*(velocity.dof_handler),
                            velocity.solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(velocity.dof_handler,
+  data_out.add_data_vector(*(velocity.dof_handler),
                            velocity_error,
                            error_name, 
                            component_interpretation);
-  data_out.add_data_vector(pressure.dof_handler, 
+  data_out.add_data_vector(*(pressure.dof_handler), 
                            pressure.solution, 
                            "pressure");
-  data_out.add_data_vector(pressure.dof_handler, 
+  data_out.add_data_vector(*(pressure.dof_handler), 
                            pressure_error, 
                            "pressure_error");
   data_out.build_patches(velocity.fe_degree);
@@ -316,7 +316,6 @@ void Guermond<dim>::update_entities()
 {
   velocity.update_solution_vectors();
   pressure.update_solution_vectors();
-  navier_stokes.update_internal_entities();
 }
 
 template <int dim>
@@ -328,7 +327,6 @@ void Guermond<dim>::solve(const unsigned int &level)
   pressure.reinit();
   velocity_error.reinit(velocity.solution);
   pressure_error.reinit(pressure.solution);
-  navier_stokes.setup(true);
   initialize();
 
   // Advances the time to t^{k-1}, either t^0 or t^1
@@ -373,7 +371,7 @@ void Guermond<dim>::solve(const unsigned int &level)
     velocity.update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
-    navier_stokes.solve(time_stepping.get_step_number());
+    navier_stokes.solve();
 
     // Advances the VSIMEXMethod instance to t^{k}
     update_entities();
@@ -425,6 +423,7 @@ void Guermond<dim>::run(const bool flag_convergence_test)
       time_stepping.restart();
       solve(level);
       this->triangulation.refine_global();
+      navier_stokes.reset_phi();
     }
   else
   {
@@ -441,6 +440,7 @@ void Guermond<dim>::run(const bool flag_convergence_test)
       time_stepping.restart();
       time_stepping.set_desired_next_step_size(time_step);
       solve(this->prm.initial_refinement_level);
+      navier_stokes.reset_phi();
     }
   }
 

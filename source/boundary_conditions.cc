@@ -36,7 +36,7 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->dirichlet_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>());
+    this->dirichlet_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -66,12 +66,12 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->neumann_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    this->neumann_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
       function->n_components == 1,
-      ExcMessage("Neumann boundary function needs to have dim components."));
+      ExcMessage("Scalar boundary function need to have a single component."));
     
     this->neumann_bcs[boundary_id] = function;
   }
@@ -102,6 +102,16 @@ void ScalarBoundaryConditions<dim>::clear()
   this->dirichlet_bcs.clear();
   this->neumann_bcs.clear();
   this->periodic_bcs.clear();
+}
+
+template <int dim>
+void ScalarBoundaryConditions<dim>::copy(
+  const ScalarBoundaryConditions<dim> &other)
+{
+  this->dirichlet_bcs           = other.dirichlet_bcs;
+  this->neumann_bcs             = other.neumann_bcs;
+  this->periodic_bcs            = other.periodic_bcs;
+  this->time_dependent_bcs_map  = other.time_dependent_bcs_map;
 }
 
 template <int dim>
@@ -154,7 +164,7 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->dirichlet_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    this->dirichlet_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -184,7 +194,7 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    this->neumann_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    this->neumann_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -214,7 +224,7 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    normal_flux_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    normal_flux_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -244,7 +254,7 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == 0)
-    tangential_flux_bcs[boundary_id] = std::shared_ptr<Function<dim> >(new Functions::ZeroFunction<dim>(dim));
+    tangential_flux_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
@@ -286,6 +296,18 @@ void VectorBoundaryConditions<dim>::clear()
   this->periodic_bcs.clear();
   normal_flux_bcs.clear();
   tangential_flux_bcs.clear();
+}
+
+template <int dim>
+void VectorBoundaryConditions<dim>::copy(
+  const VectorBoundaryConditions<dim> &other)
+{
+  this->dirichlet_bcs           = other.dirichlet_bcs;
+  this->neumann_bcs             = other.neumann_bcs;
+  this->periodic_bcs            = other.periodic_bcs;
+  this->time_dependent_bcs_map  = other.time_dependent_bcs_map;
+  normal_flux_bcs               = other.normal_flux_bcs;
+  tangential_flux_bcs           = other.tangential_flux_bcs;
 }
 
 template <int dim>

@@ -39,9 +39,9 @@ assemble_diffusion_step_rhs()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.begin_active()),
+              velocity.dof_handler->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.end()),
+              velocity.dof_handler->end()),
    worker,
    copier,
    VelocityRightHandSideAssembly::LocalCellData<dim>(velocity.fe,
@@ -115,10 +115,10 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
   // prepare pressure part
   typename DoFHandler<dim>::active_cell_iterator
-  pressure_cell(&velocity.dof_handler.get_triangulation(),
+  pressure_cell(&velocity.get_triangulation(),
                  cell->level(),
                  cell->index(),
-                &pressure.dof_handler);
+                pressure.dof_handler.get());
 
   scratch.pressure_fe_values.reinit(pressure_cell);
   

@@ -20,7 +20,7 @@ get_cfl_number()
 
   const FEValuesExtractors::Vector  velocities(0);
   
-  for (const auto &cell : velocity.dof_handler.active_cell_iterators())
+  for (const auto &cell : velocity.dof_handler->active_cell_iterators())
     if (cell->is_locally_owned())
       {
         double max_local_velocity = std::numeric_limits<double>::lowest();
@@ -42,19 +42,8 @@ get_cfl_number()
   return max_cfl_number;
 }
 
-template <int dim>
-void NavierStokesProjection<dim>::
-update_internal_entities()
-{
-  old_old_phi = old_phi;
-  old_phi     = phi;
-}
-
 } // namespace RMHD
 
 // explicit instantiations
 template double RMHD::NavierStokesProjection<2>::get_cfl_number();
 template double RMHD::NavierStokesProjection<3>::get_cfl_number();
-
-template void RMHD::NavierStokesProjection<2>::update_internal_entities();
-template void RMHD::NavierStokesProjection<3>::update_internal_entities();

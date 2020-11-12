@@ -85,6 +85,13 @@ public:
        std::shared_ptr<TimerOutput>());
 
   /*!
+   * @brief The entity for the scalar field \f$ \phi \f$, which is
+   * the field computed during the projection step and later used in
+   * the pressure-correction step. 
+   */ 
+  Entities::ScalarEntity<dim>   phi;
+
+  /*!
    *  @brief Setups and initializes all the internal entities for
    *  the projection method problem.
    *
@@ -94,7 +101,7 @@ public:
    *  The boolean passed as argument control if the pressure is to be
    *  normalized.
    */
-  void setup(const bool normalize_pressure = false);
+  void setup();
 
   /*!
    *  @brief Sets the body force of the problem.
@@ -110,37 +117,21 @@ public:
    */
   void initialize();
 
-
   /*!
    *  @brief Solves the problem for one single timestep.
    *
    *  @details Performs the diffusion and the projection step for one single
    *  time step and updates the member variables at the end.
    */
-  void solve(const unsigned int step);
+  void solve();
 
   /*!
-   *  @brief Prepares the internal entities for the next time step.
-   *
-   *  @details The internal vectors of the variable \f$ \phi \f$ are
-   *  updated by taking the values from the vector of the next time step
-   *  relative to them, i.e.
-   *  \f{eqnarray*}{
-   *  \phi^{n-2} &=& \phi^{n-1}, \\
-   *  \phi^{n-1} &=& \phi^{n}.
-   *  \f}
-   */
-  void update_internal_entities();
-
-  /*!
-   *  @brief Restarts the internal entities.
-   *
-   *  @details The internal vectors of the variable \f$ \phi \f$ are
-   *  set to zero and @ref flag_diffusion_matrix_assembled is set
-   *  to false.
-   */
-  void reinit_internal_entities();
-
+   *  @brief Resets the internal entity \f$ \phi \f$
+   *  @details Sets all its solution vectors to zero and signals
+   *  the solver to set up the entity on the next solve call.
+   */ 
+  void reset_phi();
+  
   /*!
    *  @brief Computes Courant-Friedrichs-Lewy number for the current
    *  velocity field.
@@ -338,21 +329,6 @@ private:
   LinearAlgebra::MPI::Vector        poisson_prestep_rhs;
 
   /*!
-   * @brief Vector representing the pressure update of the current timestep.
-   */
-  LinearAlgebra::MPI::Vector        phi;
-
-  /*!
-   * @brief Vector representing the pressure update of the previous timestep.
-   */
-  LinearAlgebra::MPI::Vector        old_phi;
-
-  /*!
-   * @brief Vector representing the pressure update of two timesteps prior.
-   */
-  LinearAlgebra::MPI::Vector        old_old_phi;
-
-  /*!
    * @brief The preconditioner of the diffusion step.
    * @attention Hardcoded for a ILU preconditioner.
    */
@@ -370,7 +346,11 @@ private:
    */
   LinearAlgebra::MPI::PreconditionJacobi  correction_step_preconditioner;
 
-  // SG thinks that all of these parameters can go into a parameter structure.
+  /*!
+   * @brief The aboslute tolerance of all internal solvers used
+   * for the pressure-correction scheme.
+   * @attention Its value is hardcoded to \f$ \num{1e-9}\f$.
+   */
   const double                          absolute_tolerance = 1.0e-9;
   
   /*!
@@ -387,14 +367,6 @@ private:
    */ 
   double                                  norm_projection_rhs;
 
-
-  /*!
-   * @brief A flag for the assembly of the diffusion step.
-   * @details In the case of a constant time step, this flags avoids
-   * assembling the system matrix in each time step.
-   */
-  bool                                  flag_diffusion_matrix_assembled;
-
   /*!
    * @brief A flag for the initializing of the solver.
    * @details It is only set as true while initializing in order to 
@@ -409,6 +381,28 @@ private:
    * has to be set to true in order to constraint the pressure field.
    */
   bool                                  flag_normalize_pressure;
+
+
+  /*!
+   * @brief A flag indicating if the scalar field  \f$ \phi\f$ is to 
+   * be initiated.
+   * @details The initiation is done by the @ref setup_phi method.
+   */
+  bool                                  flag_setup_phi;
+
+  /*!
+   * @brief A flag indicating if the velocity's mass and stiffness 
+   * matrices are to be added.
+   */
+  bool                                  flag_add_mass_and_stiffness_matrices;
+
+  /*!
+   * @brief A method initiating the scalar field  \f$ \phi\f$.
+   * @details Extracts its locally owned and relevant degrees of freedom;
+   * sets its boundary conditions and applies them to its AffineConstraints
+   * instance.
+   */
+  void setup_phi();
 
   /*!
    * @brief Setup of the sparsity spatterns of the matrices of the diffusion and

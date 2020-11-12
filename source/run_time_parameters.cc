@@ -37,6 +37,9 @@ verbose(true),
 flag_semi_implicit_convection(true),
 graphical_output_interval(15),
 terminal_output_interval(1),
+adaptive_meshing_interval(20),
+refinement_and_coarsening_max_level(10),
+refinement_and_coarsening_min_level(1),
 flag_spatial_convergence_test(true),
 initial_refinement_level(3),
 final_refinement_level(8),
@@ -111,6 +114,16 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                       Patterns::Integer(1, 5),
                       " The polynomial degree of the pressure finite" 
                         "element. ");
+    prm.declare_entry("refinement_and_coarsening_max_level",
+                      "0",
+                      Patterns::Integer(0),
+                      "Maximum refinement and coarsening level"
+                      " allowed.");
+    prm.declare_entry("refinement_and_coarsening_min_level",
+                      "0",
+                      Patterns::Integer(0),
+                      "Minimum refinement and coarsening level"
+                      " allowed.");
   }
   prm.leave_subsection();
 
@@ -198,6 +211,11 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                     Patterns::Integer(1),
                     "Output frequency of diagnostic data on the terminal.");
 
+  prm.declare_entry("adaptive_meshing_frequency",
+                    "1",
+                    Patterns::Integer(1),
+                    "Frequency at which adaptive refinement and"
+                    " coarsening is perofmed");
 }
 
 
@@ -240,7 +258,15 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
 
     p_fe_degree           = prm.get_integer("p_fe_degree");
 
+    refinement_and_coarsening_max_level = prm.get_integer("refinement_and_coarsening_max_level");
+
+    refinement_and_coarsening_min_level = prm.get_integer("refinement_and_coarsening_min_level");
+
     Assert(n_global_refinements > 0, ExcLowerRange(n_global_refinements, 0));
+    Assert(refinement_and_coarsening_max_level > 0, 
+           ExcLowerRange(refinement_and_coarsening_max_level, 0));
+    Assert(refinement_and_coarsening_min_level > 0, 
+           ExcLowerRange(refinement_and_coarsening_min_level, 0));
   }
   prm.leave_subsection();
 
@@ -286,6 +312,14 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
 
   graphical_output_interval = prm.get_integer("graphical_output_frequency");
   terminal_output_interval  = prm.get_integer("diagnostics_output_frequency");
+  adaptive_meshing_interval = prm.get_integer("adaptive_meshing_frequency");
+
+  Assert(graphical_output_interval > 0, 
+         ExcLowerRange(graphical_output_interval, 0));
+  Assert(terminal_output_interval > 0, 
+         ExcLowerRange(terminal_output_interval, 0));
+  Assert(adaptive_meshing_interval > 0, 
+         ExcLowerRange(adaptive_meshing_interval, 0));
 }
 
 } // namespace RunTimeParameters

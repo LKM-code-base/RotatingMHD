@@ -13,28 +13,37 @@ NavierStokesProjection<dim>::NavierStokesProjection
  const std::shared_ptr<ConditionalOStream>external_pcout,
  const std::shared_ptr<TimerOutput>       external_timer)
 :
+phi(pressure),
 parameters(parameters),
 mpi_communicator(velocity.mpi_communicator),
 velocity(velocity),
 pressure(pressure),
 time_stepping(time_stepping),
-flag_diffusion_matrix_assembled(false),
 flag_initializing(false),
-flag_normalize_pressure(false)
+flag_normalize_pressure(false),
+flag_setup_phi(true),
+flag_add_mass_and_stiffness_matrices(true)
 {
+  /*! @todo Include assertions concerning the Entities somehow checking
+      if setup_dofs and reinit were already called */
+
+  // Initiating the internal ConditionalOStream and TimerOutput instances.
   if (external_pcout.get() != 0)
     pcout = external_pcout;
   else
-    pcout.reset(new ConditionalOStream(std::cout,
-                                       Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
+    pcout.reset(new ConditionalOStream(
+      std::cout,
+      Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
 
   if (external_timer.get() != 0)
-      computing_timer  = external_timer;
+    computing_timer  = external_timer;
   else
-      computing_timer.reset(new TimerOutput(*pcout,
-                                            TimerOutput::summary,
-                                            TimerOutput::wall_times));
-
+    computing_timer.reset(new TimerOutput(
+      *pcout,
+      TimerOutput::summary,
+      TimerOutput::wall_times));
+  
+  // Explicitly set the body force pointer to null
   body_force_ptr = nullptr;
 }
 

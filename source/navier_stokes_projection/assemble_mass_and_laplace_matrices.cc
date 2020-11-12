@@ -13,6 +13,9 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Velocity");
 
+  velocity_mass_matrix    = 0.;
+  velocity_laplace_matrix = 0.;
+
   // Polynomial degree of the integrand
   const int p_degree = 2 * velocity.fe_degree;
 
@@ -39,9 +42,9 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.begin_active()),
+              velocity.dof_handler->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.end()),
+              velocity.dof_handler->end()),
    worker,
    copier,
    VelocityMatricesAssembly::LocalCellData<dim>(velocity.fe,
@@ -135,6 +138,9 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Pressure");
 
+  pressure_mass_matrix    = 0.;
+  pressure_laplace_matrix = 0.;
+
   // Polynomial degree of the integrand
   const int p_degree = 2 * pressure.fe_degree;
 
@@ -161,9 +167,9 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              pressure.dof_handler.begin_active()),
+              pressure.dof_handler->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              pressure.dof_handler.end()),
+              pressure.dof_handler->end()),
    worker,
    copier,
    PressureMatricesAssembly::LocalCellData<dim>(pressure.fe,
