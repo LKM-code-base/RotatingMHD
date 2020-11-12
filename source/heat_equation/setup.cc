@@ -41,7 +41,7 @@ void HeatEquation<dim>::setup_matrices()
       sparsity_pattern(temperature->locally_relevant_dofs);
 
       DoFTools::make_sparsity_pattern(
-        temperature->dof_handler,
+        *temperature->dof_handler,
         sparsity_pattern,
         temperature->constraints,
         false,
@@ -87,7 +87,7 @@ void HeatEquation<dim>::setup_matrices()
                        mpi_communicator);
 
       DoFTools::make_sparsity_pattern(
-        temperature->dof_handler,
+        *temperature->dof_handler,
         sparsity_pattern,
         temperature->constraints,
         false,

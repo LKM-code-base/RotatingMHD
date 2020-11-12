@@ -59,9 +59,9 @@ void HeatEquation<dim>::assemble_rhs()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              temperature->dof_handler.begin_active()),
+              (temperature->dof_handler)->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              temperature->dof_handler.end()),
+              (temperature->dof_handler)->end()),
    worker,
    copier,
    TemperatureRightHandSideAssembly::LocalCellData<dim>(
@@ -120,10 +120,11 @@ void HeatEquation<dim>::assemble_local_rhs
 
   // Prepare velocity part
   typename DoFHandler<dim>::active_cell_iterator
-  velocity_cell(&temperature->dof_handler.get_triangulation(),
+  velocity_cell(&temperature->get_triangulation(),
                  cell->level(),
                  cell->index(),
-                &velocity->dof_handler);
+                //Pointer to the velocity's DoFHandler
+                velocity->dof_handler.get());
 
   const FEValuesExtractors::Vector velocities(0);
 

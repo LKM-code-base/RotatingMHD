@@ -111,74 +111,6 @@ void Problem<dim>::set_initial_conditions
 }
 
 template <int dim>
-void Problem<dim>::set_initial_conditions
-(std::shared_ptr<Entities::EntityBase<dim>>              entity,
- Function<dim>                          &function,
- const TimeDiscretization::VSIMEXMethod &time_stepping)
-{
-  switch (time_stepping.get_order())
-  {
-    case 1 :
-      {
-        #ifdef USE_PETSC_LA
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
-        #else
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs);
-        #endif
-
-        function.set_time(time_stepping.get_start_time());
-
-        VectorTools::project(entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_solution);
-
-        entity->old_solution = tmp_old_solution;
-        break;
-      }
-    case 2 :
-
-      {
-        #ifdef USE_PETSC_LA
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
-          LinearAlgebra::MPI::Vector
-          tmp_old_old_solution(entity->locally_owned_dofs, mpi_communicator);
-        #else
-          LinearAlgebra::MPI::Vector tmp_old_old_solution(entity->locally_owned_dofs);
-          LinearAlgebra::MPI::Vector tmp_old_solution(entity->locally_owned_dofs);
-        #endif
-
-        function.set_time(time_stepping.get_start_time());
-
-        VectorTools::project(entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_old_solution);
-
-        function.advance_time(time_stepping.get_next_step_size());
-
-        VectorTools::project(entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_solution);
-
-        entity->old_old_solution = tmp_old_old_solution;
-        entity->old_solution     = tmp_old_solution;
-        break;
-      }
-    default:
-      Assert(false, ExcNotImplemented());
-  };
-
-}
-
-template <int dim>
 void Problem<dim>::compute_error(
   LinearAlgebra::MPI::Vector                  &error_vector,
   std::shared_ptr<Entities::EntityBase<dim>>  entity,
@@ -192,54 +124,6 @@ void Problem<dim>::compute_error(
     tmp_error_vector(entity->locally_owned_dofs);
   #endif
   VectorTools::project(*entity->dof_handler,
-                       entity->constraints,
-                       QGauss<dim>(entity->fe_degree + 2),
-                       exact_solution,
-                       tmp_error_vector);
-
-  error_vector = tmp_error_vector;
-
-  LinearAlgebra::MPI::Vector distributed_error_vector;
-  LinearAlgebra::MPI::Vector distributed_solution;
-
-  #ifdef USE_PETSC_LA
-    distributed_error_vector.reinit(entity->locally_owned_dofs,
-                                    mpi_communicator);
-  #else
-    distributed_error_vector.reinit(entity->locally_owned_dofs,
-                                    entity->locally_relevant_dofs,
-                                    mpi_communicator,
-                                    true);
-  #endif
-  distributed_solution.reinit(distributed_error_vector);
-
-  distributed_error_vector  = error_vector;
-  distributed_solution      = entity->solution;
-
-  distributed_error_vector.add(-1.0, distributed_solution);
-  
-  for (unsigned int i = distributed_error_vector.local_range().first; 
-       i < distributed_error_vector.local_range().second; ++i)
-    if (distributed_error_vector(i) < 0)
-      distributed_error_vector(i) *= -1.0;
-
-  error_vector = distributed_error_vector;
-}
-
-template <int dim>
-void Problem<dim>::compute_error(
-  LinearAlgebra::MPI::Vector  &error_vector,
-  std::shared_ptr<Entities::EntityBase<dim>>   entity,
-  Function<dim>               &exact_solution)
-{
-  #ifdef USE_PETSC_LA
-    LinearAlgebra::MPI::Vector
-    tmp_error_vector(entity->locally_owned_dofs, mpi_communicator);
-  #else
-    LinearAlgebra::MPI::Vector
-    tmp_error_vector(entity->locally_owned_dofs);
-  #endif
-  VectorTools::project(entity->dof_handler,
                        entity->constraints,
                        QGauss<dim>(entity->fe_degree + 2),
                        exact_solution,

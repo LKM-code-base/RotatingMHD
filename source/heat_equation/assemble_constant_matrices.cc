@@ -40,9 +40,9 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              temperature->dof_handler.begin_active()),
+              (temperature->dof_handler)->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              temperature->dof_handler.end()),
+              (temperature->dof_handler)->end()),
    worker,
    copier,
    TemperatureConstantMatricesAssembly::LocalCellData<dim>(
