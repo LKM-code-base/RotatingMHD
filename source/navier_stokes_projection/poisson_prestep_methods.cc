@@ -26,12 +26,13 @@ solve_poisson_prestep()
   // of the pertinent vectors to be able to perform the solve()
   // operation.
   LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure_rhs);
-  distributed_old_old_pressure = pressure.old_old_solution;
+  distributed_old_old_pressure = pressure->old_old_solution;
 
   projection_step_preconditioner.initialize(pressure_laplace_matrix);
 
   SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
+                               std::max(parameters.relative_tolerance * 
+                                        poisson_prestep_rhs.l2_norm(),
                                         absolute_tolerance));
 
   #ifdef USE_PETSC_LA
@@ -72,12 +73,12 @@ solve_poisson_prestep()
     std::abort();
   }
 
-  pressure.constraints.distribute(distributed_old_old_pressure);
+  pressure->constraints.distribute(distributed_old_old_pressure);
 
   if (flag_normalize_pressure)
     VectorTools::subtract_mean_value(distributed_old_old_pressure);
 
-  pressure.old_old_solution = distributed_old_old_pressure;
+  pressure->old_old_solution = distributed_old_old_pressure;
 }
 
 } // namespace RMHD

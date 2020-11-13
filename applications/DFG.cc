@@ -220,18 +220,15 @@ private:
 
   std::vector<types::boundary_id>             boundary_ids;
 
-  Entities::VectorEntity<dim>                 velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
-  Entities::ScalarEntity<dim>                 pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
   NavierStokesProjection<dim>                 navier_stokes;
 
   BenchmarkData::DFG<dim>                     dfg_benchmark;
-
-  EquationData::DFG::VelocityInflowBoundaryCondition<dim>  
-                                      inflow_boundary_condition;
 
   EquationData::DFG::VelocityInitialCondition<dim>         
                                       velocity_initial_conditions;
@@ -257,9 +254,11 @@ private:
 template <int dim>
 DFG<dim>::DFG(const RunTimeParameters::ParameterSet &parameters)
 :
-Problem<dim>(),
-velocity(parameters.p_fe_degree + 1, this->triangulation),
-pressure(parameters.p_fe_degree, this->triangulation),
+Problem<dim>(parameters),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(
+              parameters.p_fe_degree + 1, this->triangulation)),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+              parameters.p_fe_degree, this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
               velocity,
@@ -268,16 +267,14 @@ navier_stokes(parameters,
               this->pcout,
               this->computing_timer),
 dfg_benchmark(),
-inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
 velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
 pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
 {
   make_grid();
   setup_dofs();
   setup_constraints();
-  velocity.reinit();
-  pressure.reinit();
-  navier_stokes.setup();
+  velocity->reinit();
+  pressure->reinit();
   initialize();
 }
 
@@ -285,6 +282,8 @@ template <int dim>
 void DFG<dim>::
 make_grid()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
+
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(this->triangulation);
 
@@ -308,70 +307,42 @@ make_grid()
 template <int dim>
 void DFG<dim>::setup_dofs()
 {
-  velocity.setup_dofs();
-  pressure.setup_dofs();
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
+
+  velocity->setup_dofs();
+  pressure->setup_dofs();
   
   *(this->pcout)  << "Number of velocity degrees of freedom = "
-                  << velocity.dof_handler.n_dofs()
+                  << (velocity->dof_handler)->n_dofs()
                   << std::endl
                   << "Number of pressure degrees of freedom = "
-                  << pressure.dof_handler.n_dofs()
+                  << (pressure->dof_handler)->n_dofs()
                   << std::endl;
 }
 
 template <int dim>
 void DFG<dim>::setup_constraints()
 {
-  velocity.constraints.clear();
-  velocity.constraints.reinit(velocity.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(velocity.dof_handler,
-                                          velocity.constraints);
-  for (const auto &boundary_id : boundary_ids)
-    switch (boundary_id)
-    {
-      case 0:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    inflow_boundary_condition,
-                                    velocity.constraints);
-        break;
-      case 1:
-        break;
-      case 2:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    Functions::ZeroFunction<dim>(dim),
-                                    velocity.constraints);
-        break;
-      case 3:
-        VectorTools::interpolate_boundary_values(
-                                    velocity.dof_handler,
-                                    boundary_id,
-                                    Functions::ZeroFunction<dim>(dim),
-                                    velocity.constraints);
-        break;
-      default:
-        Assert(false, ExcNotImplemented());
-    }
-  velocity.constraints.close();
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  pressure.constraints.clear();
-  pressure.constraints.reinit(pressure.locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(pressure.dof_handler,
-                                          pressure.constraints);
-  VectorTools::interpolate_boundary_values(
-                                      pressure.dof_handler,
-                                      1,
-                                      Functions::ZeroFunction<dim>(),
-                                      pressure.constraints);
-  pressure.constraints.close();
+  velocity->boundary_conditions.set_dirichlet_bcs(0,
+    std::shared_ptr<Function<dim>> 
+      (new EquationData::DFG::VelocityInflowBoundaryCondition<dim>(
+        this->prm.time_stepping_parameters.start_time)));
+  velocity->boundary_conditions.set_dirichlet_bcs(2);
+  velocity->boundary_conditions.set_dirichlet_bcs(3);
+
+  pressure->boundary_conditions.set_dirichlet_bcs(1);
+
+  velocity->apply_boundary_conditions();
+  pressure->apply_boundary_conditions();
 }
 
 template <int dim>
 void DFG<dim>::initialize()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
+
   this->set_initial_conditions(velocity, 
                                velocity_initial_conditions, 
                                time_stepping);
@@ -385,6 +356,8 @@ void DFG<dim>::initialize()
 template <int dim>
 void DFG<dim>::postprocessing(const bool flag_point_evaluation)
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
+
   if (flag_point_evaluation)
   {
     dfg_benchmark.compute_pressure_difference(pressure);
@@ -399,19 +372,21 @@ void DFG<dim>::postprocessing(const bool flag_point_evaluation)
 template <int dim>
 void DFG<dim>::output()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
+
   std::vector<std::string> names(dim, "velocity");
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
   DataOut<dim>        data_out;
-  data_out.add_data_vector(velocity.dof_handler,
-                           velocity.solution,
+  data_out.add_data_vector(*(velocity->dof_handler),
+                           velocity->solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(pressure.dof_handler, 
-                           pressure.solution, 
+  data_out.add_data_vector(*(pressure->dof_handler), 
+                           pressure->solution, 
                            "Pressure");
-  data_out.build_patches(velocity.fe_degree);
+  data_out.build_patches(velocity->fe_degree);
   
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record("./",
@@ -425,9 +400,8 @@ void DFG<dim>::output()
 template <int dim>
 void DFG<dim>::update_solution_vectors()
 {
-  velocity.update_solution_vectors();
-  pressure.update_solution_vectors();
-  navier_stokes.update_internal_entities();
+  velocity->update_solution_vectors();
+  pressure->update_solution_vectors();
 }
 
 template <int dim>
@@ -435,39 +409,45 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
                    const unsigned int  terminal_output_periodicity,
                    const unsigned int  graphical_output_periodicity)
 {
+  // Advances the time to t^{k-1}, either t^0 or t^1
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
-  *(this->pcout) << "Solving until t = 35..." << std::endl;
-  while (time_stepping.get_current_time() <= 35.0)
+  *(this->pcout) << "Solving until t = 350..." << std::endl;
+  while (time_stepping.get_current_time() <= 350.0)
   {
-    // snapshot stage
-    time_stepping.set_desired_next_step_size(
-                          navier_stokes.compute_next_time_step());
+    // The VSIMEXMethod instance starts each loop at t^{k-1}
 
-    // update stage
+    // Updates the time step, i.e sets the value of t^{k}    time_stepping.set_desired_next_step_size(
+    time_stepping.set_desired_next_step_size(
+      this->compute_next_time_step(
+        time_stepping, 
+        navier_stokes.get_cfl_number()));
+
+    // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
-    navier_stokes.solve(time_stepping.get_step_number());
+    // Solves the system, i.e. computes the fields at t^{k}
+    navier_stokes.solve();
 
-    // snapshot stage
+    // Advances the VSIMEXMethod instance to t^{k}
+    update_solution_vectors();
+    time_stepping.advance_time();
+
+    // Snapshot stage, all time calls should be done with get_current_time()
     postprocessing((time_stepping.get_step_number() %
                     terminal_output_periodicity == 0) ||
-                    (time_stepping.get_next_time() == 
+                    (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()));
-
-    update_solution_vectors();
-
-    time_stepping.advance_time();
   }
 
   *(this->pcout) << "Restarting..." << std::endl;
   time_stepping.restart();
-  velocity.old_old_solution = velocity.solution;
-  navier_stokes.reinit_internal_entities();
+  velocity->old_old_solution = velocity->solution;
+  navier_stokes.reset_phi();
   navier_stokes.initialize();
-  velocity.solution = velocity.old_solution;
-  pressure.solution = pressure.old_solution;
+  velocity->solution = velocity->old_solution;
+  pressure->solution = pressure->old_solution;
   output();
 
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
@@ -478,17 +458,28 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
-    time_stepping.set_desired_next_step_size(
-                              navier_stokes.compute_next_time_step());
+    // The VSIMEXMethod instance starts each loop at t^{k-1}
 
+    // Updates the time step, i.e sets the value of t^{k}    time_stepping.set_desired_next_step_size(
+    time_stepping.set_desired_next_step_size(
+      this->compute_next_time_step(
+        time_stepping, 
+        navier_stokes.get_cfl_number()));
+
+    // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
-    navier_stokes.solve(time_stepping.get_step_number());
+    // Solves the system, i.e. computes the fields at t^{k}
+    navier_stokes.solve();
 
-    // snapshot stage
+    // Advances the VSIMEXMethod instance to t^{k}
+    update_solution_vectors();
+    time_stepping.advance_time();
+
+    // Snapshot stage, all time calls should be done with get_current_time()
     postprocessing((time_stepping.get_step_number() %
                     terminal_output_periodicity == 0) ||
-                    (time_stepping.get_next_time() == 
+                    (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()));
 
     if ((time_stepping.get_step_number() %
@@ -496,10 +487,6 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
         (time_stepping.get_next_time() == 
           time_stepping.get_end_time()))
       output();
-
-    update_solution_vectors();
-
-    time_stepping.advance_time();
   }
 
   dfg_benchmark.write_table_to_file("dfg_benchmark.tex");

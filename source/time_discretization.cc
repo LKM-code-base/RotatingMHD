@@ -425,7 +425,8 @@ DiscreteTime(params.start_time,
              params.final_time,
              params.initial_time_step),
 parameters(params),
-omega(1.0)
+omega(1.0),
+flag_coefficients_changed(true)
 {
 
   if ((parameters.initial_time_step > parameters.maximum_time_step) ||
@@ -508,6 +509,21 @@ void VSIMEXMethod::update_coefficients()
   }
   old_alpha_zero[0] = alpha[0];
   old_step_size_values[0] = get_previous_step_size();
+
+  /*! @attention I had to explicitly cast omega to a float. Otherwise
+      the boolean does not work as expected. Can you check this? */
+
+  // The second boolean, i.e. get_step_number() == (get_order() - 1),
+  // takes the first step into account.
+  if ((float)omega != 1. || get_step_number() == (get_order() - 1))
+  {
+    flag_coefficients_changed = true;
+  }
+  else
+  {
+    flag_coefficients_changed = false;
+    return;  
+  }
 
   switch (order)
   {

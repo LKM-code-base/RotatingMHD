@@ -21,8 +21,20 @@ EntityBase<dim>::EntityBase
 :
 fe_degree(fe_degree),
 mpi_communicator(triangulation.get_communicator()),
-dof_handler(triangulation),
-quadrature_formula(fe_degree + 1)
+dof_handler(std::make_shared<DoFHandler<dim>>(triangulation)),
+flag_child_entity(false),
+triangulation(triangulation)
+{}
+
+template <int dim>
+EntityBase<dim>::EntityBase
+(const EntityBase<dim>  &entity)
+:
+fe_degree(entity.fe_degree),
+mpi_communicator(entity.mpi_communicator),
+dof_handler(entity.dof_handler),
+flag_child_entity(true),
+triangulation(entity.get_triangulation())
 {}
 
 template <int dim>
@@ -42,6 +54,14 @@ void EntityBase<dim>::update_solution_vectors()
 }
 
 template <int dim>
+void EntityBase<dim>::set_solution_vectors_to_zero()
+{
+  solution          = 0.;
+  old_solution      = 0.;
+  old_old_solution  = 0.;
+}
+
+template <int dim>
 VectorEntity<dim>::VectorEntity
 (const unsigned int                               fe_degree,
  const parallel::distributed::Triangulation<dim> &triangulation)
@@ -51,17 +71,26 @@ fe(FE_Q<dim>(fe_degree), dim)
 {}
 
 template <int dim>
+VectorEntity<dim>::VectorEntity
+(const VectorEntity<dim>  &entity)
+:
+EntityBase<dim>(entity),
+fe(FE_Q<dim>(entity.fe_degree), dim)
+{}
+
+template <int dim>
 void VectorEntity<dim>::setup_dofs()
 {
-  this->dof_handler.distribute_dofs(this->fe);
+  if (!this->flag_child_entity)
+    (this->dof_handler)->distribute_dofs(this->fe);
 
-  this->locally_owned_dofs = this->dof_handler.locally_owned_dofs();
+  this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
 
-  DoFTools::extract_locally_relevant_dofs(this->dof_handler,
+  DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
   this->hanging_nodes.clear();
   this->hanging_nodes.reinit(this->locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(this->dof_handler,
+  DoFTools::make_hanging_node_constraints(*(this->dof_handler),
                                           this->hanging_nodes);
   this->hanging_nodes.close();
 }
@@ -88,7 +117,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
 
     for (auto const &periodic_bc : boundary_conditions.periodic_bcs)
       GridTools::collect_periodic_faces(
-        this->dof_handler,
+        *(this->dof_handler),
         periodic_bc.boundary_pair.first,
         periodic_bc.boundary_pair.second,
         periodic_bc.direction,
@@ -111,7 +140,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
       function_map[boundary_id] = function.get();
     
     VectorTools::interpolate_boundary_values(
-      this->dof_handler,
+      *(this->dof_handler),
       function_map,
       this->constraints);
   }
@@ -129,7 +158,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
     }
 
     VectorTools::compute_nonzero_normal_flux_constraints(
-      this->dof_handler,
+      *(this->dof_handler),
       0,
       boundary_id_set,
       function_map,
@@ -149,7 +178,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
     }
 
     VectorTools::compute_nonzero_tangential_flux_constraints(
-      this->dof_handler,
+      *(this->dof_handler),
       0,
       boundary_id_set,
       function_map,
@@ -203,7 +232,7 @@ void VectorEntity<dim>::update_boundary_conditions()
         boundary_conditions.dirichlet_bcs[multimap_pair->second].get();
 
     VectorTools::interpolate_boundary_values(
-      this->dof_handler,
+      *(this->dof_handler),
       function_map,
       tmp_constraints);
   }
@@ -243,7 +272,7 @@ void VectorEntity<dim>::update_boundary_conditions()
     }
     
     VectorTools::compute_nonzero_normal_flux_constraints(
-      this->dof_handler,
+      *(this->dof_handler),
       0,
       boundary_id_set,
       function_map,
@@ -285,7 +314,7 @@ void VectorEntity<dim>::update_boundary_conditions()
     }
     
     VectorTools::compute_nonzero_tangential_flux_constraints(
-      this->dof_handler,
+      *(this->dof_handler),
       0,
       boundary_id_set,
       function_map,
@@ -313,7 +342,7 @@ Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 
   try
   {
-    VectorTools::point_value(this->dof_handler,
+    VectorTools::point_value(*(this->dof_handler),
                              this->solution,
                              point,
                              point_value);
@@ -364,18 +393,27 @@ fe(fe_degree)
 {}
 
 template <int dim>
+ScalarEntity<dim>::ScalarEntity
+(const ScalarEntity<dim>  &entity)
+:
+EntityBase<dim>(entity),
+fe(entity.fe_degree)
+{}
+
+template <int dim>
 void ScalarEntity<dim>::setup_dofs()
 {
-  this->dof_handler.distribute_dofs(this->fe);
+  if (!this->flag_child_entity)
+    (this->dof_handler)->distribute_dofs(this->fe);
 
-  this->locally_owned_dofs = this->dof_handler.locally_owned_dofs();
+  this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
 
-  DoFTools::extract_locally_relevant_dofs(this->dof_handler,
+  DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
   
   this->hanging_nodes.clear();
   this->hanging_nodes.reinit(this->locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(this->dof_handler,
+  DoFTools::make_hanging_node_constraints(*(this->dof_handler),
                                           this->hanging_nodes);
   this->hanging_nodes.close();
 }
@@ -390,8 +428,6 @@ void ScalarEntity<dim>::apply_boundary_conditions()
   this->constraints.merge(this->hanging_nodes);
   if (!boundary_conditions.periodic_bcs.empty())
   {
-    FEValuesExtractors::Scalar extractor(0);
-
     std::vector<unsigned int> first_vector_components;
     first_vector_components.push_back(0);
 
@@ -401,19 +437,16 @@ void ScalarEntity<dim>::apply_boundary_conditions()
 
     for (auto const &periodic_bc : boundary_conditions.periodic_bcs)
       GridTools::collect_periodic_faces(
-        this->dof_handler,
+        *(this->dof_handler),
         periodic_bc.boundary_pair.first,
         periodic_bc.boundary_pair.second,
         periodic_bc.direction,
         periodicity_vector,
-        periodic_bc.offset,
-        periodic_bc.rotation_matrix);
+        periodic_bc.offset);
     
     DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
       periodicity_vector,
-      this->constraints,
-      fe.component_mask(extractor),
-      first_vector_components);
+      this->constraints);
   }
   if (!boundary_conditions.dirichlet_bcs.empty())
   {
@@ -423,7 +456,7 @@ void ScalarEntity<dim>::apply_boundary_conditions()
       function_map[boundary_id] = function.get();
     
     VectorTools::interpolate_boundary_values(
-      this->dof_handler,
+      *(this->dof_handler),
       function_map,
       this->constraints);
   }
@@ -474,7 +507,7 @@ void ScalarEntity<dim>::update_boundary_conditions()
         boundary_conditions.dirichlet_bcs[multimap_pair->second].get();
 
     VectorTools::interpolate_boundary_values(
-      this->dof_handler,
+      *(this->dof_handler),
       function_map,
       tmp_constraints);
   }
@@ -499,7 +532,7 @@ double ScalarEntity<dim>::point_value(const Point<dim> &point) const
 
   try
   {
-      point_value = VectorTools::point_value(this->dof_handler,
+      point_value = VectorTools::point_value(*(this->dof_handler),
                                              this->solution,
                                              point);
     point_found = true;

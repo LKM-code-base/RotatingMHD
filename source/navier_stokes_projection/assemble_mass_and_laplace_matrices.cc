@@ -9,9 +9,17 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Assemble velocity matrices..." << std::endl;
+    *pcout << "  Navier Stokes: Assembling velocity mass and stiffness matrices..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Velocity matrix assembly");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Velocity");
+
+  velocity_mass_matrix    = 0.;
+  velocity_laplace_matrix = 0.;
+
+  // Polynomial degree of the integrand
+  const int p_degree = 2 * velocity->fe_degree;
+
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
@@ -34,17 +42,17 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.begin_active()),
+              (velocity->dof_handler)->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.end()),
+              (velocity->dof_handler)->end()),
    worker,
    copier,
-   VelocityMatricesAssembly::LocalCellData<dim>(velocity.fe,
-                                                velocity.quadrature_formula,
+   VelocityMatricesAssembly::LocalCellData<dim>(velocity->fe,
+                                                quadrature_formula,
                                                 update_values|
                                                 update_gradients|
                                                 update_JxW_values),
-   VelocityMatricesAssembly::MappingData<dim>(velocity.fe.dofs_per_cell));
+   VelocityMatricesAssembly::MappingData<dim>(velocity->fe.dofs_per_cell));
 
   velocity_mass_matrix.compress(VectorOperation::add);
   velocity_laplace_matrix.compress(VectorOperation::add);
@@ -112,11 +120,11 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_matrices
 (const VelocityMatricesAssembly::MappingData<dim> &data)
 {
-  velocity.constraints.distribute_local_to_global(
+  velocity->constraints.distribute_local_to_global(
                                       data.local_velocity_mass_matrix,
                                       data.local_velocity_dof_indices,
                                       velocity_mass_matrix);
-  velocity.constraints.distribute_local_to_global(
+  velocity->constraints.distribute_local_to_global(
                                       data.local_velocity_laplace_matrix,
                                       data.local_velocity_dof_indices,
                                       velocity_laplace_matrix);
@@ -126,9 +134,17 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_pressure_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Assemble pressure matrices..." << std::endl;
+    *pcout << "  Navier Stokes: Assembling pressure mass and stiffness matrices..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Pressure matrix assembly");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Pressure");
+
+  pressure_mass_matrix    = 0.;
+  pressure_laplace_matrix = 0.;
+
+  // Polynomial degree of the integrand
+  const int p_degree = 2 * pressure->fe_degree;
+
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
@@ -151,17 +167,17 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              pressure.dof_handler.begin_active()),
+              (pressure->dof_handler)->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              pressure.dof_handler.end()),
+              (pressure->dof_handler)->end()),
    worker,
    copier,
-   PressureMatricesAssembly::LocalCellData<dim>(pressure.fe,
-                                                pressure.quadrature_formula,
+   PressureMatricesAssembly::LocalCellData<dim>(pressure->fe,
+                                                quadrature_formula,
                                                 update_values|
                                                 update_gradients|
                                                 update_JxW_values),
-   PressureMatricesAssembly::MappingData<dim>(pressure.fe.dofs_per_cell));
+   PressureMatricesAssembly::MappingData<dim>(pressure->fe.dofs_per_cell));
 
   pressure_mass_matrix.compress(VectorOperation::add);
   pressure_laplace_matrix.compress(VectorOperation::add);
@@ -226,11 +242,11 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
 (const PressureMatricesAssembly::MappingData<dim> &data)
 {
-  pressure.constraints.distribute_local_to_global(
+  pressure->constraints.distribute_local_to_global(
                                       data.local_pressure_mass_matrix,
                                       data.local_pressure_dof_indices,
                                       pressure_mass_matrix);
-  pressure.constraints.distribute_local_to_global(
+  pressure->constraints.distribute_local_to_global(
                                       data.local_pressure_laplace_matrix,
                                       data.local_pressure_dof_indices,
                                       pressure_laplace_matrix);

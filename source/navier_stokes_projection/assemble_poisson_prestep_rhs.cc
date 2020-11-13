@@ -10,6 +10,24 @@ void NavierStokesProjection<dim>::
 assemble_poisson_prestep_rhs()
 {
   poisson_prestep_rhs = 0.;
+
+  // Polynomial degree of the body force
+
+  const int p_degree_body_force = velocity->fe_degree;
+
+  // Polynomial degree of the integrand
+
+  const int p_degree = p_degree_body_force + pressure->fe_degree - 1;
+
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+
+  // Polynomial degree of the boundary integrand
+
+  const int face_p_degree = std::max(pressure->fe_degree + p_degree_body_force,
+                                     pressure->fe_degree + velocity->fe_degree -2);
+
+  const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
+
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
@@ -30,16 +48,16 @@ assemble_poisson_prestep_rhs()
     };
 
   WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure.dof_handler.begin_active()),
+                             (pressure->dof_handler)->begin_active()),
                   CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             pressure.dof_handler.end()),
+                             (pressure->dof_handler)->end()),
                   worker,
                   copier,
                   PoissonPrestepRightHandSideAssembly::LocalCellData<dim>(
-                                  velocity.fe,
-                                  pressure.fe,
-                                  pressure.quadrature_formula,
-                                  QGauss<dim-1>(pressure.fe_degree + 1),
+                                  velocity->fe,
+                                  pressure->fe,
+                                  quadrature_formula,
+                                  face_quadrature_formula,
                                   update_hessians,
                                   update_values|
                                   update_gradients|
@@ -50,7 +68,7 @@ assemble_poisson_prestep_rhs()
                                   update_normal_vectors|
                                   update_quadrature_points),
                   PoissonPrestepRightHandSideAssembly::MappingData<dim>(
-                                          pressure.fe.dofs_per_cell));
+                                          pressure->fe.dofs_per_cell));
   poisson_prestep_rhs.compress(VectorOperation::add);
 }
 
@@ -90,7 +108,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                           scratch.pressure_fe_values.JxW(q) *
                           scratch.body_force_divergence_values[q] *
                           scratch.phi_pressure[i];
-      if (pressure.constraints.is_inhomogeneously_constrained(
+      if (pressure->constraints.is_inhomogeneously_constrained(
         data.local_pressure_dof_indices[i]))
       {
         for (unsigned int k = 0; k < scratch.pressure_dofs_per_cell; ++k)
@@ -115,16 +133,16 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       scratch.pressure_fe_face_values.reinit(cell, face);
 
       typename DoFHandler<dim>::active_cell_iterator
-      velocity_cell(&velocity.dof_handler.get_triangulation(),
+      velocity_cell(&velocity->get_triangulation(),
                      cell->level(),
                      cell->index(),
-                    &velocity.dof_handler);
+                    velocity->dof_handler.get());
 
       typename DoFHandler<dim>::active_face_iterator
-      velocity_face(&velocity.dof_handler.get_triangulation(),
+      velocity_face(&velocity->get_triangulation(),
                      face->level(),
                      face->index(),
-                    &velocity.dof_handler);
+                    velocity->dof_handler.get());
 
       scratch.velocity_fe_face_values.reinit(velocity_cell, velocity_face);
 
@@ -138,7 +156,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                                                      Tensor<1,dim>());
 
       scratch.velocity_fe_face_values[velocities].get_function_laplacians(
-                                    velocity.old_old_solution,
+                                    velocity->old_old_solution,
                                     scratch.velocity_laplacian_values);
 
       scratch.normal_vectors = 
@@ -168,7 +186,7 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_poisson_prestep_rhs(
   const PoissonPrestepRightHandSideAssembly::MappingData<dim>  &data)
 {
-  pressure.constraints.distribute_local_to_global(
+  pressure->constraints.distribute_local_to_global(
                                 data.local_poisson_prestep_rhs,
                                 data.local_pressure_dof_indices,
                                 poisson_prestep_rhs,

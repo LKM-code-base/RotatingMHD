@@ -63,9 +63,8 @@ using namespace dealii;
  * \f]
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
  * incremental scheme respectively.
- * @todo Implement the complete generalized VSIMEX method.
  * @todo Implement a generalized extrapolation scheme.
- * @todo Implement the different forms of the convective term.
+ * @todo Implement Neumann boundary conditions.
  * @attention The code is hardcoded for a second order time discretization
  * scheme. Setting a first order scheme in the parameter file will cause
  * errors.
@@ -76,14 +75,21 @@ class NavierStokesProjection
 
 public:
   NavierStokesProjection
-  (const RunTimeParameters::ParameterSet   &parameters,
-   Entities::VectorEntity<dim>             &velocity,
-   Entities::ScalarEntity<dim>             &pressure,
-   TimeDiscretization::VSIMEXMethod        &time_stepping,
-   const std::shared_ptr<ConditionalOStream>external_pcout =
+  (const RunTimeParameters::ParameterSet        &parameters,
+   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   TimeDiscretization::VSIMEXMethod             &time_stepping,
+   const std::shared_ptr<ConditionalOStream>    external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>       external_timer =
+   const std::shared_ptr<TimerOutput>           external_timer =
        std::shared_ptr<TimerOutput>());
+
+  /*!
+   * @brief The entity for the scalar field \f$ \phi \f$, which is
+   * the field computed during the projection step and later used in
+   * the pressure-correction step. 
+   */ 
+  std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
 
   /*!
    *  @brief Setups and initializes all the internal entities for
@@ -95,7 +101,7 @@ public:
    *  The boolean passed as argument control if the pressure is to be
    *  normalized.
    */
-  void setup(const bool normalize_pressure = false);
+  void setup();
 
   /*!
    *  @brief Sets the body force of the problem.
@@ -111,44 +117,28 @@ public:
    */
   void initialize();
 
-
   /*!
    *  @brief Solves the problem for one single timestep.
    *
    *  @details Performs the diffusion and the projection step for one single
    *  time step and updates the member variables at the end.
    */
-  void solve(const unsigned int step);
+  void solve();
 
   /*!
-   *  @brief Prepares the internal entities for the next time step.
-   *
-   *  @details The internal vectors of the variable \f$ \phi \f$ are
-   *  updated by taking the values from the vector of the next time step
-   *  relative to them, i.e.
-   *  \f{eqnarray*}{
-   *  \phi^{n-2} &=& \phi^{n-1}, \\
-   *  \phi^{n-1} &=& \phi^{n}.
-   *  \f}
-   */
-  void update_internal_entities();
-
+   *  @brief Resets the internal entity \f$ \phi \f$
+   *  @details Sets all its solution vectors to zero and signals
+   *  the solver to set up the entity on the next solve call.
+   */ 
+  void reset_phi();
+  
   /*!
-   *  @brief Restarts the internal entities.
+   *  @brief Computes Courant-Friedrichs-Lewy number for the current
+   *  velocity field.
    *
-   *  @details The internal vectors of the variable \f$ \phi \f$ are
-   *  set to zero and @ref flag_diffusion_matrix_assembled is set
-   *  to false.
-   */
-  void reinit_internal_entities();
-
-  /*!
-   *  @brief Computes the next time step according to the Courant-Friedrichs-Lewy
-   *  condition.
-   *
-   *  @details The next time step is given by 
+   *  @details It is given by 
    * \f[
-   *    \Delta t_{n-1} = C \min_{K \in \Omega_\textrm{h}}
+   *    C = \Delta t_{n-1} \min_{K \in \Omega_\textrm{h}}
    *    \left\lbrace \frac{\max_{P \in K} { \left\lVert \bs{v} \right\rVert}}{h_K} \right\rbrace
    * \f] 
    * where \f$ C \f$ is the Courant number, \f$ K\f$ denotes the 
@@ -156,9 +146,18 @@ public:
    * \f$ P \f$ a quadrature point inside the \f$ K\f$-th cell,
    * \f$ \bs{v} \f$ the velocity, \f$ h_K\f$ the largest diagonal of the \f$ K\f$-th
    * cell.
-   *  @attention The Courant number is hardcoded to 1.
    */
-  double compute_next_time_step();
+  double get_cfl_number();
+
+  /*!
+   * @brief Returns the norm of the right hand side of the diffusion step.
+   */ 
+  double get_diffusion_step_rhs_norm() const;
+
+  /*!
+   * @brief Returns the norm of the right hand side of the projection step.
+   */ 
+  double get_projection_step_rhs_norm() const;
 
 private:
   /*!
@@ -184,12 +183,12 @@ private:
   /*!
    * @brief A reference to the entity of velocity field.
    */
-  Entities::VectorEntity<dim>            &velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  &velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  Entities::ScalarEntity<dim>            &pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure;
 
   /*!
    * @brief A pointer to the body force function.
@@ -330,21 +329,6 @@ private:
   LinearAlgebra::MPI::Vector        poisson_prestep_rhs;
 
   /*!
-   * @brief Vector representing the pressure update of the current timestep.
-   */
-  LinearAlgebra::MPI::Vector        phi;
-
-  /*!
-   * @brief Vector representing the pressure update of the previous timestep.
-   */
-  LinearAlgebra::MPI::Vector        old_phi;
-
-  /*!
-   * @brief Vector representing the pressure update of two timesteps prior.
-   */
-  LinearAlgebra::MPI::Vector        old_old_phi;
-
-  /*!
    * @brief The preconditioner of the diffusion step.
    * @attention Hardcoded for a ILU preconditioner.
    */
@@ -362,15 +346,26 @@ private:
    */
   LinearAlgebra::MPI::PreconditionJacobi  correction_step_preconditioner;
 
-  // SG thinks that all of these parameters can go into a parameter structure.
+  /*!
+   * @brief The aboslute tolerance of all internal solvers used
+   * for the pressure-correction scheme.
+   * @attention Its value is hardcoded to \f$ \num{1e-9}\f$.
+   */
   const double                          absolute_tolerance = 1.0e-9;
   
   /*!
-   * @brief A flag for the assembly of the diffusion step.
-   * @details In the case of a constant time step, this flags avoids
-   * assembling the system matrix in each time step.
-   */
-  bool                                  flag_diffusion_matrix_assembled;
+   * @brief The norm of the right hand side of the diffusion step.
+   * @details Its value is that of the last computed pressure-correction
+   * scheme step.
+   */ 
+  double                                  norm_diffusion_rhs;
+
+  /*!
+   * @brief The norm of the right hand side of the projection step.
+   * @details Its value is that of the last computed pressure-correction
+   * scheme step.
+   */ 
+  double                                  norm_projection_rhs;
 
   /*!
    * @brief A flag for the initializing of the solver.
@@ -386,6 +381,28 @@ private:
    * has to be set to true in order to constraint the pressure field.
    */
   bool                                  flag_normalize_pressure;
+
+
+  /*!
+   * @brief A flag indicating if the scalar field  \f$ \phi\f$ is to 
+   * be initiated.
+   * @details The initiation is done by the @ref setup_phi method.
+   */
+  bool                                  flag_setup_phi;
+
+  /*!
+   * @brief A flag indicating if the velocity's mass and stiffness 
+   * matrices are to be added.
+   */
+  bool                                  flag_add_mass_and_stiffness_matrices;
+
+  /*!
+   * @brief A method initiating the scalar field  \f$ \phi\f$.
+   * @details Extracts its locally owned and relevant degrees of freedom;
+   * sets its boundary conditions and applies them to its AffineConstraints
+   * instance.
+   */
+  void setup_phi();
 
   /*!
    * @brief Setup of the sparsity spatterns of the matrices of the diffusion and
@@ -685,6 +702,20 @@ private:
     const AdvectionAssembly::MappingData<dim>             &data);
   
 };
+
+// inline functions
+template <int dim>
+inline double NavierStokesProjection<dim>::get_diffusion_step_rhs_norm() const
+{
+  return (norm_diffusion_rhs);
+}
+
+// inline functions
+template <int dim>
+inline double NavierStokesProjection<dim>::get_projection_step_rhs_norm() const
+{
+  return (norm_projection_rhs);
+}
 
 } // namespace RMHD
 

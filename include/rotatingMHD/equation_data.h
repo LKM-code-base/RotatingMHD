@@ -13,6 +13,8 @@
 #include <deal.II/base/tensor_function.h>
 #include <deal.II/lac/vector.h>
 
+#include <cmath>
+
 namespace RMHD
 {
 
@@ -116,7 +118,16 @@ public:
   virtual Tensor<1, dim> gradient(const Point<dim> &point,
                                   const unsigned int component) const;
 
+private:
+  /*!
+   * @brief The Reynolds number.
+   */ 
   const double Re;
+
+  /*!
+   * @brief The wave number.
+   */ 
+  const double k = 2. * M_PI;
 };
 
 template <int dim>
@@ -132,7 +143,16 @@ public:
   virtual Tensor<1, dim> gradient(const Point<dim> &point,
                                   const unsigned int = 0) const;
 
+private:
+  /*!
+   * @brief The Reynolds number.
+   */ 
   const double Re;
+
+  /*!
+   * @brief The wave number.
+   */ 
+  const double k = 2. * M_PI;
 };
 } // namespace TGV
 

@@ -208,20 +208,6 @@ public:
   */
   void set_desired_next_step_size(const double time_step_size);
 
-  template<typename DataType>
-  DataType extrapolate(const DataType &old_values,
-                       const DataType &old_old_values) const;
-
-  template<typename DataType>
-  void extrapolate(const DataType &old_values,
-                   const DataType &old_old_values,
-                   DataType       &extrapolated_values) const;
-
-  template<typename DataType>
-  void extrapolate_list(const std::vector<DataType> &old_values,
-                        const std::vector<DataType> &old_old_values,
-                        std::vector<DataType>       &extrapolated_values) const;
-
   /*!
    * @brief Output of the current step number, the current time and the size of
    * the time step.
@@ -303,14 +289,14 @@ private:
   double              omega;
 
   /*!
-   * @brief A vector containing the \f$ \alpha_0 \f$ of the previous time steps.
+   * @brief A vector containing the \f$ \alpha_0 \f$ of previous time steps.
    * @attention This member is only useful in the NavierStokesProjection
    * class. 
    */ 
   std::vector<double> old_alpha_zero;
 
   /*!
-   * @brief A vector containing the sizes of the previous time steps.
+   * @brief A vector containing the previous time steps.
    * @details The DiscreteTime class stores only the previous time step.
    * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
    * is the order of the scheme.

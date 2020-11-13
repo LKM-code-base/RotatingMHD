@@ -10,7 +10,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_projection_step()
 {
   if (parameters.verbose)
-    *pcout << "    Assemble projection step...";
+    *pcout << "    Navier Stokes: Assembling the projection step...";
 
   /* System matrix setup */
   // System matrix is constant and assembled in the
@@ -23,7 +23,7 @@ void NavierStokesProjection<dim>::assemble_projection_step()
      boundary conditions on the pressure or Neumann boundary
      conditions on the stress tensor are given
    */
-  pressure.constraints.set_zero(pressure_rhs);
+  pressure->constraints.set_zero(pressure_rhs);
 
   if (parameters.verbose)
     *pcout << "   done." << std::endl;
@@ -35,15 +35,15 @@ void NavierStokesProjection<dim>::solve_projection_step
 (const bool reinit_prec)
 {
   if (parameters.verbose)
-    *pcout << "    Solve projection step..." << std::endl;
+    *pcout << "    Navier Stokes: Solving the projection step..." << std::endl;
 
-  TimerOutput::Scope  t(*computing_timer, "Pressure projection solve");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - Solve");
 
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
   LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
-  distributed_phi = phi;
+  distributed_phi = phi->solution;
 
   if (reinit_prec)
     projection_step_preconditioner.initialize(pressure_laplace_matrix);
@@ -90,12 +90,12 @@ void NavierStokesProjection<dim>::solve_projection_step
     std::abort();
   }
 
-  pressure.constraints.distribute(distributed_phi);
+  pressure->constraints.distribute(distributed_phi);
 
   if (flag_normalize_pressure)
     VectorTools::subtract_mean_value(distributed_phi);
 
-  phi = distributed_phi;
+  phi->solution = distributed_phi;
 
   if (parameters.verbose)
     *pcout << "   done." << std::endl;

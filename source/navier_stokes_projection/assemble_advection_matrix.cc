@@ -7,9 +7,14 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 {
-  TimerOutput::Scope  t(*computing_timer, "Assembly velocity advection matrix");
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Advection matrix assembly");
 
   velocity_advection_matrix = 0.;
+
+  // Polynomial degree of the integrand
+  const int p_degree = 3 * velocity->fe_degree - 1;
+
+  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
@@ -32,17 +37,17 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.begin_active()),
+              (*velocity->dof_handler).begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler.end()),
+              (*velocity->dof_handler).end()),
    worker,
    copier,
-   AdvectionAssembly::LocalCellData<dim>(velocity.fe,
-                                         velocity.quadrature_formula,
+   AdvectionAssembly::LocalCellData<dim>(velocity->fe,
+                                         quadrature_formula,
                                          update_values|
                                          update_JxW_values|
                                          update_gradients),
-   AdvectionAssembly::MappingData<dim>(velocity.fe.dofs_per_cell));
+   AdvectionAssembly::MappingData<dim>(velocity->fe.dofs_per_cell));
 
   velocity_advection_matrix.compress(VectorOperation::add);
 
@@ -132,9 +137,6 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
           }
           case RunTimeParameters::ConvectionTermForm::rotational:
           {
-            // This form needs to be discussed, specifically which
-            // velocity instance is to be replaced by the extrapolated
-            // velocity The current implementation computes the total pressure.
             // The minus sign in the argument of cross_product_2d
             // method is due to how the method is defined.
             if constexpr(dim == 2)
@@ -164,7 +166,7 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_advection_matrix
 (const AdvectionAssembly::MappingData<dim> &data)
 {
-  velocity.constraints.distribute_local_to_global(
+  velocity->constraints.distribute_local_to_global(
                                       data.local_matrix,
                                       data.local_dof_indices,
                                       velocity_advection_matrix);
