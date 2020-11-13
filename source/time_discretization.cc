@@ -408,7 +408,7 @@ std::string VSIMEXMethod::get_name() const
       name.assign("Crank-Nicolson-Leap-Frog");
       break;
   case VSIMEXScheme::BDF2:
-      name.assign("Second order backward differentiation");
+      name.assign("second order backward differentiation");
       break;
   default:
     AssertThrow(false,
@@ -428,9 +428,16 @@ parameters(params),
 omega(1.0)
 {
 
-  Assert(((parameters.initial_time_step <= parameters.maximum_time_step) &&
-          (parameters.initial_time_step >= parameters.minimum_time_step)),
-         ExcMessage("The desired start step is not inside the given bonded range."));
+  if ((parameters.initial_time_step > parameters.maximum_time_step) ||
+      (parameters.initial_time_step < parameters.minimum_time_step))
+  {
+      std::ostringstream message;
+      message << "The desired start step of " << parameters.initial_time_step
+              << " is not inside the given bonded range (" << parameters.minimum_time_step
+              << ", " << parameters.maximum_time_step << ").";
+
+      AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
 
   switch (parameters.vsimex_scheme)
   {
