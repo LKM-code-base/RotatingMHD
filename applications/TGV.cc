@@ -485,7 +485,7 @@ void TGV<dim>::run(const bool flag_convergence_test)
                 << this->prm.Re;
 
   velocity_convergence_table.write_text(tablefilename.str() + "_Velocity");
-  pressure_convergence_table.print_table_to_file(tablefilename.str() + "_Pressure");
+  pressure_convergence_table.write_text(tablefilename.str() + "_Pressure");
 }
 
 } // namespace RMHD

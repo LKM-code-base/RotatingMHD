@@ -34,9 +34,9 @@ struct ConvergenceAnalysisData
   /*!
    * @brief Output of the convergence table to a stream object,
    */
-  template<typename Stream>
+  template<typename Stream, int dimension>
   friend Stream& operator<<(Stream &stream,
-                            const ConvergenceAnalysisData<dim> &data);
+                            const ConvergenceAnalysisData<dimension> &data);
 
   void write_text(std::string filename) const;
 

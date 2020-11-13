@@ -159,7 +159,7 @@ void ConvergenceAnalysisData<dim>::update_table
    1);
 }
 
-template <typename Stream, int dim>
+template<typename Stream, int dim>
 Stream& operator<<(Stream &stream,
                    const ConvergenceAnalysisData<dim> &data)
 {
@@ -201,18 +201,19 @@ void ConvergenceAnalysisData<dim>::write_text(std::string filename) const
   }
 }
 
-
 } // namespace RMHD
 
+
+// explicit instantiations
 template struct RMHD::ConvergenceAnalysisData<2>;
 template struct RMHD::ConvergenceAnalysisData<3>;
 
-template std::ostream & RMHD::operator<<
-(std::ostream &, const ConvergenceAnalysisData<2> &);
-template std::ostream & RMHD::operator<<
-(std::ostream &, const ConvergenceAnalysisData<3> &);
+template std::ostream& RMHD::operator<<
+(std::ostream &, const RMHD::ConvergenceAnalysisData<2> &);
+template std::ostream& RMHD::operator<<
+(std::ostream &, const RMHD::ConvergenceAnalysisData<3> &);
 
-template dealii::ConditionalOStream & RMHD::operator<<
-(dealii::ConditionalOStream &, const ConvergenceAnalysisData<2> &);
-template dealii::ConditionalOStream & RMHD::operator<<
-(dealii::ConditionalOStream &, const ConvergenceAnalysisData<3> &);
+template dealii::ConditionalOStream& RMHD::operator<<
+(dealii::ConditionalOStream &, const RMHD::ConvergenceAnalysisData<2> &);
+template dealii::ConditionalOStream& RMHD::operator<<
+(dealii::ConditionalOStream &, const RMHD::ConvergenceAnalysisData<3> &);
