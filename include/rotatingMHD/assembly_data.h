@@ -31,8 +31,8 @@ struct LocalCellData
   using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
 
   FEValues<dim>               fe_values;
-  unsigned int                n_q_points;
-  unsigned int                dofs_per_cell;
+  const unsigned int          n_q_points;
+  const unsigned int          dofs_per_cell;
   std::vector<double>         extrapolated_velocity_divergences;
   std::vector<Tensor<1,dim>>  extrapolated_velocity_values;
   std::vector<CurlType>       extrapolated_velocity_curls;
@@ -65,8 +65,8 @@ template <int dim>
 struct LocalCellData
 {
   FEValues<dim>               velocity_fe_values;
-  unsigned int                n_q_points;
-  unsigned int                velocity_dofs_per_cell;
+  const unsigned int          n_q_points;
+  const unsigned int          velocity_dofs_per_cell;
   std::vector<Tensor<1,dim>>  phi_velocity;
   std::vector<Tensor<2,dim>>  grad_phi_velocity;
 
@@ -95,8 +95,8 @@ template <int dim>
 struct LocalCellData
 {
   FEValues<dim>               pressure_fe_values;
-  unsigned int                n_q_points;
-  unsigned int                pressure_dofs_per_cell;
+  const unsigned int          n_q_points;
+  const unsigned int          pressure_dofs_per_cell;
   std::vector<double>         phi_pressure;
   std::vector<Tensor<1,dim>>  grad_phi_pressure;
 
@@ -128,8 +128,8 @@ struct LocalCellData
 
   FEValues<dim>                         velocity_fe_values;
   FEValues<dim>                         pressure_fe_values;
-  unsigned int                          n_q_points;
-  unsigned int                          velocity_dofs_per_cell;
+  const unsigned int                    n_q_points;
+  const unsigned int                    velocity_dofs_per_cell;
   std::vector<double>                   pressure_tmp_values;
   std::vector<Tensor<1, dim>>           velocity_tmp_values;
   std::vector<Tensor<1, dim>>           phi_velocity;
@@ -177,8 +177,8 @@ struct LocalCellData
 {
   FEValues<dim>                         velocity_fe_values;
   FEValues<dim>                         pressure_fe_values;
-  unsigned int                          n_q_points;
-  unsigned int                          pressure_dofs_per_cell;
+  const unsigned int                    n_q_points;
+  const unsigned int                    pressure_dofs_per_cell;
   std::vector<double>                   velocity_divergence_values;
   std::vector<double>                   phi_pressure;
   std::vector<Tensor<1, dim>>           grad_phi_pressure;
@@ -230,9 +230,9 @@ struct LocalCellData
 
   FEFaceValues<dim>                     pressure_fe_face_values;
 
-  unsigned int                          n_q_points;
-  unsigned int                          n_face_q_points;
-  unsigned int                          pressure_dofs_per_cell;
+  const unsigned int                    n_q_points;
+  const unsigned int                    n_face_q_points;
+  const unsigned int                    pressure_dofs_per_cell;
 
   std::vector<double>                   body_force_divergence_values;
   
@@ -276,9 +276,9 @@ struct LocalCellData
   
   FEValues<dim>               fe_values;
   
-  unsigned int                n_q_points;
+  const unsigned int          n_q_points;
   
-  unsigned int                dofs_per_cell;
+  const unsigned int          dofs_per_cell;
   
   std::vector<double>         phi;
 
@@ -319,9 +319,9 @@ struct LocalCellData
 
   FEValues<dim>               velocity_fe_values;
 
-  unsigned int                n_q_points;
+  const unsigned int          n_q_points;
   
-  unsigned int                dofs_per_cell;
+  const unsigned int          dofs_per_cell;
   
   std::vector<Tensor<1,dim>>  velocity_values;
   
@@ -369,11 +369,11 @@ struct LocalCellData
 
   FEFaceValues<dim>                     temperature_fe_face_values;
 
-  unsigned int                          n_q_points;
+  const unsigned int                    n_q_points;
 
-  unsigned int                          n_face_q_points;
+  const unsigned int                    n_face_q_points;
 
-  unsigned int                          dofs_per_cell;
+  const unsigned int                    dofs_per_cell;
 
   std::vector<double>                   temperature_tmp_values;
 
