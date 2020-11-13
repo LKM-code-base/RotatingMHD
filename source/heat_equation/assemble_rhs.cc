@@ -143,11 +143,11 @@ void HeatEquation<dim>::assemble_local_rhs
   if (supply_term_ptr != nullptr)
     supply_term_ptr->value_list(
       scratch.temperature_fe_values.get_quadrature_points(),
-      scratch.supply_term_values);
+      scratch.source_term_values);
   else
     ZeroFunction<dim>().value_list(
       scratch.temperature_fe_values.get_quadrature_points(),
-      scratch.supply_term_values);
+      scratch.source_term_values);
 
   cell->get_dof_indices(data.local_dof_indices);
 
@@ -166,7 +166,7 @@ void HeatEquation<dim>::assemble_local_rhs
     {
       data.local_rhs(i) +=  scratch.temperature_fe_values.JxW(q) *
                             (scratch.phi[i]*
-                             scratch.supply_term_values[q]
+                             scratch.source_term_values[q]
                              -
                              scratch.phi[i] *
                              scratch.temperature_tmp_values[q]

@@ -377,7 +377,7 @@ struct LocalCellData
 
   std::vector<double>                   temperature_tmp_values;
 
-  std::vector<double>                   supply_term_values;
+  std::vector<double>                   source_term_values;
   
   std::vector<double>                   neumann_bc_values;
 
