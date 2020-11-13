@@ -36,7 +36,9 @@ struct PeriodicBoundaryData
   unsigned int                                      direction;
 
   /*!
-   * @brief The rotation to be done before pairing.
+   * @brief A matrix describing a transformation of the degrees of freedom
+   * to be done before pairing. This matrix is only meaningful for vector
+   * fields.
    */
   FullMatrix<double>                                rotation_matrix;
 
@@ -48,21 +50,16 @@ struct PeriodicBoundaryData
   /*!
    * @brief Constructor.
    */
-  PeriodicBoundaryData(types::boundary_id first_boundary,
-                       types::boundary_id second_boundary,
-                       unsigned int       direction,
-                       FullMatrix<double> rotation_matrix,
-                       Tensor<1,dim>      offset)
-  : boundary_pair(std::make_pair(first_boundary, second_boundary)),
-    direction(direction),
-    rotation_matrix(rotation_matrix),
-    offset(offset)
-  {}
+  PeriodicBoundaryData(const types::boundary_id first_boundary,
+                       const types::boundary_id second_boundary,
+                       const unsigned int       direction,
+                       const FullMatrix<double> rotation_matrix = FullMatrix<double>(IdentityMatrix(dim)),
+                       const Tensor<1,dim>      offset = Tensor<1,dim>());
 };
 
 /*!
  * @enum BCType
- * @brief An enum class listing the possible boundary types.
+ * @brief An enum class listing the possible types of boundary conditions.
  */
 enum class BCType
 {
@@ -75,7 +72,7 @@ enum class BCType
 
 /*!
  * @struct BoundaryConditionsBase
- * @brief An struct containing all the instances related to the 
+ * @brief A structure containing all instances related to the
  * boundary conditions which are independent
  * of the rank of the tensor field.
  */
@@ -83,8 +80,8 @@ template <int dim>
 struct BoundaryConditionsBase
 {
   /*!
-   * @brief A typdef for the a mapping using boundary ids as keys
-   * and functions shared pointers as value.
+   * @brief A typedef for a mapping using boundary ids as keys
+   * and shared pointers to functions as values.
    */
   using FunctionMapping = std::map<types::boundary_id,
                                    std::shared_ptr<Function<dim>>>;
@@ -103,7 +100,7 @@ struct BoundaryConditionsBase
 
   /*!
    * @brief A vector containing all the @ref PeriodicBoundaryData instances
-   * to be applied as boundary condition.
+   * to be applied as boundary conditions.
    */
   std::vector<PeriodicBoundaryData<dim>>    periodic_bcs;
 
@@ -116,15 +113,17 @@ struct BoundaryConditionsBase
 
 /*!
  * @struct ScalarBoundaryConditions
- * @brief An struct containing all the instances related to the 
+ * @brief A structure containing all the instances related to the
  * boundary conditions of a scalar field.
  */
 template <int dim>
 struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
 {
   /*!
-   * @brief It sets a periodic boundary conditions by adding a 
-   * @ref PeriodicBoundaryData into @ref BoundaryConditionsBase::periodic_bcs.
+   * @brief This method sets a periodic boundary condition by adding a
+   * @ref PeriodicBoundaryData object to the member variable
+   * @ref BoundaryConditionsBase::periodic_bcs.
+   *
    * @details It calls the @ref check_boundary_id method before
    * adding the entry.
    */
@@ -133,15 +132,15 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
                         const unsigned int        direction,
                         const FullMatrix<double>  rotation_matrix = 
                                 FullMatrix<double>(IdentityMatrix(dim)),
-                        const Tensor<1,dim>       offset = 
-                                Tensor<1,dim>());
+                        const Tensor<1,dim>       offset = Tensor<1,dim>());
 
   /*!
-   * @brief Sets a Dirichlet boundary conditions by adding a boundary id
-   * and function pair to @ref BoundaryConditionsBase::dirichlet_bcs.
-   * @details If no function is explicitly passed, it assumes that the 
-   * degrees of freedom are homogenously constrained. It calls the 
-   * @ref check_boundary_id method before adding the entry and marks
+   * @brief This method sets a Dirichlet boundary condition by adding pair of a
+   * boundary id and a function to @ref BoundaryConditionsBase::dirichlet_bcs.
+   *
+   * @details If no function is explicitly passed, it assumes that a
+   * homogeneous boundary condition should be applied on the given boundary.
+   * It calls the @ref check_boundary_id method before adding the entry and marks
    * the boundary as time dependent according to the boolean passed.
    */
   void set_dirichlet_bcs(const types::boundary_id             boundary_id,
@@ -151,34 +150,36 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
                           = false);
 
   /*!
-   * @brief Sets a Neumann boundary conditions by adding a boundary id
-   * and function pair to @ref BoundaryConditionsBase::dirichlet_bcs.
-   * @details If no function is explicitly passed, it assumes that the 
-   * degrees of freedom are homogenously constrained. It calls the 
-   * @ref check_boundary_id method before adding the entry and marks
+   * @brief This method sets a Neumann boundary condition by adding a pair of a
+   * boundary id and function to @ref BoundaryConditionsBase::dirichlet_bcs.
+   *
+   * @details If no function is explicitly passed, it assumes that a
+   * homogeneous boundary condition should be applied on the given boundary.
+   * It calls the @ref check_boundary_id method before adding the entry and marks
    * the boundary as time dependent according to the boolean passed.
+   *
    * @attention The passed function has to match \f$ g(x,t) = \nabla u 
-   * \cdot \bs{n} \f$, i.e. a scalar function.
+   * \cdot \bs{n} \f$, i.e., a scalar function.
    */
   void set_neumann_bcs(const types::boundary_id             boundary_id,
                        const std::shared_ptr<Function<dim>> &function
-                          = std::shared_ptr<Function<dim>>(),
+                         = std::shared_ptr<Function<dim>>(),
                        const bool                           time_depedent
-                          = false);
+                         = false);
 
   /*!
-   * @brief Sets the time of the functions by calling their respective
-   * set_time method in a loop.
+   * @brief This method sets the time of the functions by calling their
+   * respective methods in a loop.
    */
   void set_time(const double time);
 
   /*!
-   * @brief Clears all the boundary conditions.
+   * @brief This method clears all boundary conditions.
    */
   void clear();
 
   /*!
-   * @brief Copies the the contents of another @ref ScalarBoundaryConditions
+   * @brief This method copies the content of another @ref ScalarBoundaryConditions
    * instance
    */
   void copy(const ScalarBoundaryConditions<dim> &other);
@@ -188,63 +189,66 @@ private:
    * @brief A scalar zero function used for homogeneous boundary
    * conditions.
    */
-  const std::shared_ptr<Function<dim>>  zero_function_ptr = 
-                      std::make_shared<Functions::ZeroFunction<dim>>();
+  const std::shared_ptr<Function<dim>>  zero_function_ptr
+    = std::make_shared<Functions::ZeroFunction<dim>>();
 
   /*!
-   * @brief Checks if the passed boundary id was already constrained.
-   * @details It returns an error if it was.
+   * @brief This method checks if the passed boundary id is already constrained.
+   *
+   * @details It returns an error if the passed boundary id is constrained.
    */
-  void check_boundary_id(types::boundary_id boundary_id) const;
+  void check_boundary_id(const types::boundary_id boundary_id) const;
 
 };
 
 /*!
- * @struct ScalarBoundaryConditions
- * @brief An struct containing all the instances related to the 
+ * @struct VectorBoundaryConditions
+ * @brief A structure containing all the instances related to the
  * boundary conditions of a vector field.
  */
 template <int dim>
 struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
 {
-    /*!
-   * @brief A typdef for the a mapping using boundary ids as keys
-   * and functions shared pointers as value.
+  /*!
+   * @brief A typedef for the a mapping using boundary ids as keys
+   * and shared pointers to functions as values.
    */
   using FunctionMapping = std::map<types::boundary_id,
                                    std::shared_ptr<Function<dim>>>;
   /*!
    * @brief A mapping of boundary ids on which normal flux boundary
-   * conditions are set and their respective function.
+   * conditions are set and their respective functions.
    */
   FunctionMapping   normal_flux_bcs;
 
   /*!
    * @brief A mapping of boundary ids on which tangential flux boundary
-   * conditions are set and their respective function.
+   * conditions are set and their respective functions.
    */
   FunctionMapping   tangential_flux_bcs;
 
   /*!
-   * @brief It sets a periodic boundary conditions by adding a 
-   * @ref PeriodicBoundaryData into @ref BoundaryConditionsBase::periodic_bcs.
+   * @brief This method sets a periodic boundary condition by adding a
+   * @ref PeriodicBoundaryData to @ref BoundaryConditionsBase::periodic_bcs.
+   *
    * @details It calls the @ref check_boundary_id method before
    * adding the entry.
    */
   void set_periodic_bcs(const types::boundary_id  first_boundary,
                         const types::boundary_id  second_boundary,
                         const unsigned int        direction,
-                        const FullMatrix<double>  rotation_matrix = 
-                                FullMatrix<double>(IdentityMatrix(dim)),
-                        const Tensor<1,dim>       offset = 
-                                Tensor<1,dim>());
+                        const FullMatrix<double>  rotation_matrix
+                          = FullMatrix<double>(IdentityMatrix(dim)),
+                        const Tensor<1,dim>       offset
+                          = Tensor<1,dim>());
 
   /*!
-   * @brief Sets a Dirichlet boundary conditions by adding a boundary id
-   * and function pair to @ref BoundaryConditionsBase::dirichlet_bcs.
-   * @details If no function is explicitly passed, it assumes that the 
-   * degrees of freedom are homogenously constrained. It calls the 
-   * @ref check_boundary_id method before adding the entry and marks
+   * @brief This method sets a Dirichlet boundary conditions by adding a
+   * boundary id and function pair to @ref BoundaryConditionsBase::dirichlet_bcs.
+   *
+   * @details If no function is explicitly passed, it assumes that a
+   * homogeneous boundary condition should be applied on the given boundary.
+   * It calls the @ref check_boundary_id method before adding the entry and marks
    * the boundary as time dependent according to the boolean passed.
    */
   void set_dirichlet_bcs(const types::boundary_id             boundary_id,
@@ -254,14 +258,16 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
                           = false);
 
   /*!
-   * @brief Sets a Neumann boundary conditions by adding a boundary id
-   * and function pair to @ref BoundaryConditionsBase::dirichlet_bcs.
-   * @details If no function is explicitly passed, it assumes that the 
-   * degrees of freedom are homogenously constrained. It calls the 
-   * @ref check_boundary_id method before adding the entry and marks
-   * the boundary as time dependent according to the boolean passed.
+   * @brief This methods sets a Neumann boundary conditions by adding a boundary
+   * id and function pair to @ref BoundaryConditionsBase::dirichlet_bcs.
+   *
+   * @details If no function is explicitly passed, it assumes that a
+   * homogeneous boundary condition should be applied on the given boundary.
+   * It calls the @ref check_boundary_id method before adding the entry and marks
+   * the boundary as time-dependent according to the boolean passed.
+   *
    * @attention The passed function has to match \f$ \bs{g}(x,t) = \bs{T} 
-   * \cdot \bs{n} \f$, i.e. a vector function.
+   * \cdot \bs{n} \f$, i.e., a vector function.
    */
   void set_neumann_bcs(const types::boundary_id             boundary_id,
                        const std::shared_ptr<Function<dim>> &function
@@ -270,8 +276,9 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
                           = false);
 
   /*!
-   * @brief Sets a normal flux boundary conditions by adding a boundary id
-   * and function pair to @ref normal_flux_bcs.
+   * @brief This method sets a normal flux boundary condition by adding a
+   * boundary id and function pair to @ref normal_flux_bcs.
+   *
    * @details If no function is explicitly passed, it assumes that the 
    * degrees of freedom are homogenously constrained. It calls the 
    * @ref check_boundary_id method before adding the entry and marks
@@ -284,11 +291,12 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
                               = false);
 
   /*!
-   * @brief Sets a tangential flux boundary conditions by adding a boundary id
-   * and function pair to @ref tangential_flux_bcs.
-   * @details If no function is explicitly passed, it assumes that the 
-   * degrees of freedom are homogenously constrained. It calls the 
-   * @ref check_boundary_id method before adding the entry and marks
+   * @brief This method sets a tangential flux boundary condition by adding
+   * a boundary id and function pair to @ref tangential_flux_bcs.
+   *
+   * @details If no function is explicitly passed, it assumes that a
+   * homogeneous boundary condition should be applied on the given boundary.
+   * It calls the @ref check_boundary_id method before adding the entry and marks
    * the boundary as time dependent according to the boolean passed.
    */
   void set_tangential_flux_bcs(const types::boundary_id             boundary_id,
@@ -298,19 +306,19 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
                                   = false);
 
   /*!
-   * @brief Sets the time of the functions by calling their respective
-   * set_time method in a loop.
+   * @brief This method sets the time of the functions by calling their
+   * respective methods in a loop.
    */
   void set_time(const double time);
 
   /*!
-   * @brief Clears all the boundary conditions.
+   * @brief This method clears all boundary conditions.
    */
   void clear();
 
   /*!
-   * @brief Copies the the contents of another @ref VectorBoundaryConditions
-   * instance
+   * @brief This method copies the content of another @ref VectorBoundaryConditions
+   * instance.
    */
   void copy(const VectorBoundaryConditions<dim> &other);
   
@@ -320,14 +328,15 @@ private:
    * @brief A vector zero function used for homogeneous boundary
    * conditions.
    */
-  const std::shared_ptr<Function<dim>>  zero_function_ptr = 
-                      std::make_shared<Functions::ZeroFunction<dim>>(dim);
+  const std::shared_ptr<Function<dim>>  zero_function_ptr
+    = std::make_shared<Functions::ZeroFunction<dim>>(dim);
 
   /*!
    * @brief Checks if the passed boundary id was already constrained.
+   *
    * @details It returns an error if it was.
    */
-  void check_boundary_id(types::boundary_id boundary_id) const;
+  void check_boundary_id(const types::boundary_id boundary_id) const;
 
 };
 
