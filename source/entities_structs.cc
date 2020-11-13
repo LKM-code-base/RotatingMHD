@@ -17,22 +17,26 @@ namespace Entities
 template <int dim>
 EntityBase<dim>::EntityBase
 (const unsigned int                               fe_degree,
- const parallel::distributed::Triangulation<dim> &triangulation)
+ const parallel::distributed::Triangulation<dim> &triangulation,
+ const std::string                               &name)
 :
 fe_degree(fe_degree),
 mpi_communicator(triangulation.get_communicator()),
 dof_handler(std::make_shared<DoFHandler<dim>>(triangulation)),
+name(name),
 flag_child_entity(false),
 triangulation(triangulation)
 {}
 
 template <int dim>
 EntityBase<dim>::EntityBase
-(const EntityBase<dim>  &entity)
+(const EntityBase<dim>  &entity,
+ const std::string      &new_name)
 :
 fe_degree(entity.fe_degree),
 mpi_communicator(entity.mpi_communicator),
 dof_handler(entity.dof_handler),
+name(new_name),
 flag_child_entity(true),
 triangulation(entity.get_triangulation())
 {}

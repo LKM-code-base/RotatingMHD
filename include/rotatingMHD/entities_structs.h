@@ -41,6 +41,19 @@ struct EntityBase
 {
 public:
   /*!
+   * @brief Constructor.
+   */
+  EntityBase(const unsigned int                               fe_degree,
+             const parallel::distributed::Triangulation<dim> &triangulation,
+             const std::string                               &name = "entity");
+
+  /*!
+   * @brief Copy constructor.
+   */
+  EntityBase(const EntityBase<dim>  &entity,
+             const std::string      &new_name = "entity");
+
+  /*!
    * @brief The degree of the finite element.
    */
   const unsigned int                fe_degree;
@@ -54,6 +67,11 @@ public:
    * @brief The DoFHandler<dim> instance of the entity.
    */
   std::shared_ptr<DoFHandler<dim>>  dof_handler;
+
+  /*!
+   * @brief Name of the physical field which is contained in the entity.
+   */
+  const std::string                 name;
 
   /*!
    * @brief The AffineConstraints<double> instance handling the 
@@ -94,17 +112,6 @@ public:
    * current time.
    */
   LinearAlgebra::MPI::Vector        old_old_solution;
-
-  /*!
-   * @brief Constructor.
-   */
-  EntityBase(const unsigned int                               fe_degree,
-             const parallel::distributed::Triangulation<dim> &triangulation);
-
-  /*!
-   * @brief Copy constructor.
-   */
-  EntityBase(const EntityBase<dim>  &entity);
 
   /*!
    * @brief Method returning.
