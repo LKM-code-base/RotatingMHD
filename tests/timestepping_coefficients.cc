@@ -22,7 +22,11 @@ void checkTimeStepper(const TimeSteppingParameters &parameters)
         std::cout << "Adaptive time stepping with "
                   << timestepper.get_name() << " scheme" << std::endl;
 
-        const std::vector<double> timesteps({0.1,0.1,0.1,0.05,0.15,0.9});
+        const std::vector<double> timesteps(
+            {1.0,
+             0.5,0.5,0.5,0.25,
+             0.5,0.5,
+             2.0,1.0,1.0});
 
         do
         {
@@ -30,7 +34,7 @@ void checkTimeStepper(const TimeSteppingParameters &parameters)
 
           timestepper.update_coefficients();
 
-          timestepper.print_coefficients(std::cout);
+          timestepper.print_coefficients(std::cout, "   ");
 
           timestepper.set_desired_next_step_size(timesteps[timestepper.get_step_number()]);
 
@@ -38,6 +42,8 @@ void checkTimeStepper(const TimeSteppingParameters &parameters)
 
         } while (timestepper.is_at_end() == false &&
                  timestepper.get_step_number() < parameters.n_maximum_steps);
+
+        std::cout << timestepper << std::endl;
 
     }
     else
@@ -51,12 +57,15 @@ void checkTimeStepper(const TimeSteppingParameters &parameters)
 
           timestepper.update_coefficients();
 
-          timestepper.print_coefficients(std::cout);
+          timestepper.print_coefficients(std::cout, "   ");
 
           timestepper.advance_time();
 
         } while (timestepper.is_at_end() == false &&
                  timestepper.get_step_number() < parameters.n_maximum_steps);
+
+        std::cout << timestepper << std::endl;
+
     }
 
     return;
@@ -103,14 +112,12 @@ int main(int /* argc */, char **/* argv[] */)
 
 
     // adaptive time steps
-    parameters.final_time = 1.0;
-    parameters.initial_time_step = 0.1;
+    parameters.final_time = 4.0;
+    parameters.n_maximum_steps = 40;
+    parameters.initial_time_step = 1.0;
     parameters.maximum_time_step = 1.0;
     parameters.minimum_time_step = 0.001;
 
-    /*
-     * To be performed when the adaptivity is implemented...
-     *
     parameters.adaptive_time_stepping = true;
 
     std::cout << "================================="
@@ -133,8 +140,6 @@ int main(int /* argc */, char **/* argv[] */)
     parameters.vsimex_scheme = VSIMEXScheme::CNLF;
     checkTimeStepper(parameters);
 
-    *
-    */
   }
   catch (std::exception &exc)
   {

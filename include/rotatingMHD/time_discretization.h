@@ -208,6 +208,20 @@ public:
   */
   void set_desired_next_step_size(const double time_step_size);
 
+  template<typename DataType>
+  DataType extrapolate(const DataType &old_values,
+                       const DataType &old_old_values) const;
+
+  template<typename DataType>
+  void extrapolate(const DataType &old_values,
+                   const DataType &old_old_values,
+                   DataType       &extrapolated_values) const;
+
+  template<typename DataType>
+  void extrapolate_list(const std::vector<DataType> &old_values,
+                        const std::vector<DataType> &old_old_values,
+                        std::vector<DataType>       &extrapolated_values) const;
+
   /*!
    * @brief Output of the current step number, the current time and the size of
    * the time step.
@@ -220,7 +234,7 @@ public:
    * size IMEX scheme to a stream object.
    */
   template<typename Stream>
-  void print_coefficients(Stream &stream) const;
+  void print_coefficients(Stream &stream, const std::string prefix="") const;
 
   /*!
    * @brief Returns a string with the name of the variable step size IMEX
@@ -233,6 +247,14 @@ public:
   *  @details Here goes a longer explanation with the formulas.
   */
   void update_coefficients();
+
+  /*!
+   * @brief Returns the flag indicating if the VSIMEX coefficients changed from
+   * the last step.
+   * @details The flag is set as true if @ref omega is anything other
+   * than 1.0 and is set as false if @ref is equal to 1.0.
+   */
+  bool coefficients_changed() const;
 
 private:
 
@@ -289,14 +311,14 @@ private:
   double              omega;
 
   /*!
-   * @brief A vector containing the \f$ \alpha_0 \f$ of previous time steps.
+   * @brief A vector containing the \f$ \alpha_0 \f$ of the previous time steps.
    * @attention This member is only useful in the NavierStokesProjection
    * class. 
    */ 
   std::vector<double> old_alpha_zero;
 
   /*!
-   * @brief A vector containing the previous time steps.
+   * @brief A vector containing the sizes of the previous time steps.
    * @details The DiscreteTime class stores only the previous time step.
    * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
    * is the order of the scheme.
@@ -304,6 +326,14 @@ private:
    * class. 
    */ 
   std::vector<double> old_step_size_values;
+
+  /*!
+   * @brief A flag indicating if the VSIMEX coefficients changed from
+   * the last step.
+   * @details The flag is set as true if @ref omega is anything other
+   * than 1.0 and is set as false if @ref is equal to 1.0.
+   */
+  bool                flag_coefficients_changed;
 
 };
 
@@ -344,6 +374,11 @@ inline const std::vector<double>& VSIMEXMethod::get_old_alpha_zero() const
 inline const std::vector<double>& VSIMEXMethod::get_old_step_size() const
 {
   return (old_step_size_values);
+}
+
+inline bool VSIMEXMethod::coefficients_changed() const
+{
+  return (flag_coefficients_changed);
 }
 
 } // namespace TimeDiscretization

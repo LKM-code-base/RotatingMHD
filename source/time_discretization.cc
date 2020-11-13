@@ -281,21 +281,21 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
 }
 
 template<typename Stream>
-void VSIMEXMethod::print_coefficients(Stream &stream) const
+void VSIMEXMethod::print_coefficients(Stream &stream, const std::string prefix) const
 {
   switch (beta.size())
   {
     case 1:
-      stream << "+-------------+------------+------------+\n"
-             << "|    Index    |     n      |    n-1     |\n"
-             << "+-------------+------------+------------+\n"
-             << "|    alpha    | ";
+      stream << prefix << "+-------------+------------+------------+\n"
+             << prefix << "|    Index    |     n      |    n-1     |\n"
+             << prefix<< "+-------------+------------+------------+\n"
+             << prefix << "|    alpha    | ";
       break;
     case 2:
-      stream << "+-------------+------------+------------+------------+\n"
-             << "|    Index    |     n      |    n-1     |     n-2    |\n"
-             << "+-------------+------------+------------+------------+\n"
-             << "|    alpha    | ";
+      stream << prefix << "+-------------+------------+------------+------------+\n"
+             << prefix << "|    Index    |     n      |    n-1     |     n-2    |\n"
+             << prefix << "+-------------+------------+------------+------------+\n"
+             << prefix << "|    alpha    | ";
       break;
     default:
       Assert(false,
@@ -314,7 +314,8 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|    beta     |     -      | ";
+  stream << std::endl
+         << prefix << "|    beta     |     -      | ";
   for (const auto it: beta)
   {
     stream << std::setw(10)
@@ -325,7 +326,8 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|    gamma    | ";
+  stream << std::endl
+         << prefix << "|    gamma    | ";
   for (const auto it: gamma)
   {
     stream << std::setw(10)
@@ -336,7 +338,8 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|  extra_pol  |     -      | ";
+  stream << std::endl
+         << prefix << "|  extra_pol  |     -      | ";
   for (const auto it: eta)
   {
     stream << std::setw(10)
@@ -347,7 +350,8 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|  alpha_zero |     -      | ";
+  stream << std::endl
+         << prefix << "|  alpha_zero |     -      | ";
   for (const auto it: old_alpha_zero)
   {
     stream << std::setw(10)
@@ -358,7 +362,8 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|old_step_size|     -      | ";
+  stream << std::endl
+         << prefix << "|old_step_size|     -      | ";
   for (const auto it: old_step_size_values)
   {
     stream << std::setw(10)
@@ -373,10 +378,10 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
   switch (beta.size())
   {
     case 1:
-      stream << "+-------------+------------+------------+\n";
+      stream << prefix << "+-------------+------------+------------+\n";
       break;
     case 2:
-      stream << "+-------------+------------+------------+------------+\n";
+      stream << prefix << "+-------------+------------+------------+------------+\n";
       break;
 
     default:
@@ -643,9 +648,9 @@ template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
 (dealii::ConditionalOStream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
 
 template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
-(std::ostream &) const;
+(std::ostream &, const std::string prefix) const;
 template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
-(dealii::ConditionalOStream &) const;
+(dealii::ConditionalOStream &, const std::string prefix) const;
 
 template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
 (const double &,
