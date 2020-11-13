@@ -25,7 +25,7 @@ time_stepping_parameters(),
 projection_method(ProjectionMethod::rotational),
 convection_term_form(ConvectionTermForm::skewsymmetric),
 Re(1.0),
-Pr(1.0),
+Pe(1.0),
 n_global_refinements(0),
 p_fe_degree(1),
 temperature_fe_degree(1),
@@ -101,10 +101,10 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                       "1.",
                       Patterns::Double(0.),
                       "The kinetic Reynolds number.");
-    prm.declare_entry("Prandt_number",
+    prm.declare_entry("Peclet_number",
                       "1.",
                       Patterns::Double(0.),
-                      "The Prandt number.");
+                      "The Peclet number.");
   }
   prm.leave_subsection();
 
@@ -261,9 +261,9 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
 
     Assert(Re > 0, ExcLowerRange(Re, 0));
 
-    Pr  = prm.get_double("Prandt_number");
+    Pe  = prm.get_double("Peclet_number");
 
-    Assert(Pr > 0, ExcLowerRange(Pr, 0));
+    Assert(Pe > 0, ExcLowerRange(Pe, 0));
   }
   prm.leave_subsection();
 

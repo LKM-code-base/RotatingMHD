@@ -81,8 +81,7 @@ outputFile("ThermalTGV_Log.csv"),
 temperature(std::make_shared<Entities::ScalarEntity<dim>>(parameters.temperature_fe_degree, this->triangulation)),
 velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1, this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
-exact_solution(parameters.Re,
-               parameters.Pr,
+exact_solution(parameters.Pe,
                parameters.time_stepping_parameters.start_time),
 velocity_field(parameters.time_stepping_parameters.start_time),
 mapping(new MappingQ<dim>(1)),
@@ -367,7 +366,7 @@ void ThermalTGV<dim>::run(const bool flag_convergence_test)
                               "ThermalTGVSpatialTest" : 
                               "ThermalTGVTemporalTest_Level" + 
                               std::to_string(this->prm.initial_refinement_level);
-  tablefilename += "_Pr" + std::to_string((int)this->prm.Pr);
+  tablefilename += "_Pr" + std::to_string((int)this->prm.Pe);
 
   convergence_table.print_table_to_terminal();
   convergence_table.print_table_to_file(tablefilename);

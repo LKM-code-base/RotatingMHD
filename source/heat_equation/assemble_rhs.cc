@@ -173,13 +173,13 @@ void HeatEquation<dim>::assemble_local_rhs
                              -
                              time_stepping.get_gamma()[1] /
                              parameters.Re /
-                             parameters.Pr *
+                             parameters.Pe *
                              scratch.grad_phi[i] *
                              scratch.old_temperature_gradients[q]
                              -
                              time_stepping.get_gamma()[2] /
                              parameters.Re /
-                             parameters.Pr *
+                             parameters.Pe *
                              scratch.grad_phi[i] *
                              scratch.old_old_temperature_gradients[q]);
       if (!parameters.flag_semi_implicit_convection &&
@@ -207,7 +207,7 @@ void HeatEquation<dim>::assemble_local_rhs
                 +
                 time_stepping.get_gamma()[0] /
                 parameters.Re /
-                parameters.Pr *
+                parameters.Pe *
                 scratch.grad_phi[j] *
                 scratch.grad_phi[i]);
           if (parameters.flag_semi_implicit_convection &&

@@ -395,13 +395,11 @@ Tensor<1, dim> VelocityExactSolution<dim>::value
 
 template <int dim>
 TemperatureExactSolution<dim>::TemperatureExactSolution
-(const double Re,
- const double Pr,
+(const double Pe,
  const double time)
 :
 Function<dim>(1, time),
-Re(Re),
-Pr(Pr)
+Pe(Pe)
 {}
 
 template<int dim>
@@ -413,7 +411,7 @@ double TemperatureExactSolution<dim>::value
   const double x = point(0);
   const double y = point(1);
 
-  const double F = exp(-2.0 * k * k  / Re / Pr * t);
+  const double F = exp(-2.0 * k * k  / Pe * t);
 
   return (F *(cos(k * x) * sin(k * y)));
 }
@@ -428,7 +426,7 @@ Tensor<1, dim> TemperatureExactSolution<dim>::gradient
   const double x = point(0);
   const double y = point(1);
 
-  const double F = exp(-2.0 * k * k  / Re / Pr * t);
+  const double F = exp(-2.0 * k * k  / Pe * t);
 
   return_value[0] = - F * k * sin(k * x) * sin(k * y);
   return_value[1] = + F * k * cos(k * x) * cos(k * y);

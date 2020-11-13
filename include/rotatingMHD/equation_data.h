@@ -222,8 +222,7 @@ template <int dim>
 class TemperatureExactSolution : public Function<dim>
 {
 public:
-  TemperatureExactSolution(const double Re,
-                           const double Pr,
+  TemperatureExactSolution(const double Pe,
                            const double time = 0);
 
   virtual double value(const Point<dim> &p,
@@ -234,14 +233,9 @@ public:
 
 private:
   /*!
-   * @brief The Reynolds number.
+   * @brief The Peclet number.
    */ 
-  const double Re;
-
-  /*!
-   * @brief The Prandt number.
-   */ 
-  const double Pr;
+  const double Pe;
 
   /*!
    * @brief The wave number.

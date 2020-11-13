@@ -67,7 +67,7 @@ struct ParameterSet
   ConvectionTermForm  convection_term_form;
 
   double              Re;
-  double              Pr;
+  double              Pe;
 
   unsigned int        n_global_refinements;
 

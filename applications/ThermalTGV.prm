@@ -28,7 +28,7 @@ subsection Convergence test parameters
   set final_refinement_level        = 6
 
   # Choses between an spatial or temporal convergence test
-  set flag_spatial_convergence_test = true
+  set flag_spatial_convergence_test = false
 
   # The initial refinement level of the test
   set initial_refinement_level      = 5
@@ -68,7 +68,7 @@ subsection Physical parameters
   set Reynolds_number = 1.
 
   # The Prandt number.
-  set Prandt_number = 100.
+  set Peclet_number = 100.
 end
 
 
