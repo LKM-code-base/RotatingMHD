@@ -17,9 +17,18 @@ void HeatEquation<dim>::assemble_rhs()
 
   rhs = 0.;
 
+  const FESystem<dim> dummy_fe_system(FE_Q<dim>(2), dim);
+
+  const FESystem<dim>* const velocity_fe = 
+              (velocity != nullptr) ? &velocity->fe : &dummy_fe_system;
+
   // The polynomial degrees of the suply function and the neumann 
   // boundary condition function are hardcoded to match those of the 
   // temperature finite element.
+
+  const unsigned int velocity_fe_degree =
+                        (velocity != nullptr) ? velocity->fe_degree : 2;
+
 
   const int p_degree_supply_function = temperature->fe_degree;
 
@@ -28,7 +37,7 @@ void HeatEquation<dim>::assemble_rhs()
   // Maximal polynomial degree of the volume integrands
 
   const int p_degree = std::max(temperature->fe_degree + p_degree_supply_function,
-                                2 * temperature->fe_degree + velocity->fe_degree - 1);
+                                2 * temperature->fe_degree + velocity_fe_degree - 1);
 
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
@@ -67,7 +76,7 @@ void HeatEquation<dim>::assemble_rhs()
    TemperatureRightHandSideAssembly::LocalCellData<dim>(
     *mapping,
     temperature->fe,
-    velocity->fe,
+    *velocity_fe,
     quadrature_formula,
     face_quadrature_formula,
     update_values|
@@ -77,8 +86,7 @@ void HeatEquation<dim>::assemble_rhs()
     update_values |
     update_quadrature_points,
     update_JxW_values |
-    update_values |
-    update_quadrature_points),
+    update_values),
    TemperatureRightHandSideAssembly::MappingData<dim>(
      temperature->fe.dofs_per_cell));
 
@@ -119,29 +127,35 @@ void HeatEquation<dim>::assemble_local_rhs
     scratch.old_old_temperature_gradients);
 
   // Prepare velocity part
-  typename DoFHandler<dim>::active_cell_iterator
-  velocity_cell(&temperature->get_triangulation(),
-                 cell->level(),
-                 cell->index(),
-                //Pointer to the velocity's DoFHandler
-                velocity->dof_handler.get());
-
-  const FEValuesExtractors::Vector velocities(0);
-
-  scratch.velocity_fe_values.reinit(velocity_cell);
-
   if (velocity != nullptr)
-    scratch.velocity_fe_values[velocities].get_function_values(
-      velocity->solution,
+  {
+    typename DoFHandler<dim>::active_cell_iterator
+    velocity_cell(&temperature->get_triangulation(),
+                  cell->level(),
+                  cell->index(),
+                  //Pointer to the velocity's DoFHandler
+                  velocity->dof_handler.get());
+
+    const FEValuesExtractors::Vector velocities(0);
+
+    scratch.velocity_fe_values.reinit(velocity_cell);
+
+    scratch.velocity_fe_values[velocities].get_function_values
+    (velocity->solution,
+    scratch.velocity_values);
+  }
+  else if (velocity_function_ptr != nullptr)
+    velocity_function_ptr->value_list(
+      scratch.temperature_fe_values.get_quadrature_points(),
       scratch.velocity_values);
   else
     ZeroTensorFunction<1,dim>().value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.temperature_fe_values.get_quadrature_points(),
       scratch.velocity_values);
   
   // Supply term
-  if (supply_term_ptr != nullptr)
-    supply_term_ptr->value_list(
+  if (source_term_ptr != nullptr)
+    source_term_ptr->value_list(
       scratch.temperature_fe_values.get_quadrature_points(),
       scratch.source_term_values);
   else

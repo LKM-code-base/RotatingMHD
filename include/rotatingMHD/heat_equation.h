@@ -41,7 +41,7 @@ class HeatEquation
 public:
   /*!
    * @brief The constructor of the HeatEquation class where the velocity
-   * a VectorEntitty instance is.
+   * a VectorEntity instance is.
    * 
    * @details Stores local references to the input parameters and 
    * pointers for terminal output entities.
@@ -50,7 +50,7 @@ public:
   (const RunTimeParameters::ParameterSet        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity =
+   std::shared_ptr<Entities::VectorEntity<dim>> velocity =
        std::shared_ptr<Entities::VectorEntity<dim>>(),
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
@@ -59,6 +59,25 @@ public:
    const std::shared_ptr<TimerOutput>           external_timer =
        std::shared_ptr<TimerOutput>());
 
+  /*!
+   * @brief The constructor of the HeatEquation class where the velocity
+   * a TensorFunction is.
+   * 
+   * @details Stores local references to the input parameters and 
+   * pointers for terminal output entities.
+   */
+  HeatEquation
+  (const RunTimeParameters::ParameterSet        &parameters,
+   TimeDiscretization::VSIMEXMethod             &time_stepping,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+   std::shared_ptr<TensorFunction<1, dim>>      velocity =
+       std::shared_ptr<TensorFunction<1,dim>>(),
+   const std::shared_ptr<Mapping<dim>>          external_mapping =
+       std::shared_ptr<Mapping<dim>>(),
+   const std::shared_ptr<ConditionalOStream>    external_pcout =
+       std::shared_ptr<ConditionalOStream>(),
+   const std::shared_ptr<TimerOutput>           external_timer =
+       std::shared_ptr<TimerOutput>());
   /*!
    *  @brief Setups and initializes all the internal entities for
    *  the heat equation problem.
@@ -136,9 +155,14 @@ private:
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   /*!
+   * @brief A pointer to the TensorFunction of the velocity field.
+   */
+  std::shared_ptr<TensorFunction<1,dim>>        velocity_function_ptr;
+
+  /*!
    * @brief A pointer to the supply term function.
    */
-  Function<dim>                          *supply_term_ptr;
+  Function<dim>                          *source_term_ptr;
 
   /*!
    * @brief System matrix for the heat equation.

@@ -130,7 +130,7 @@ template <int dim>
 void HeatEquation<dim>::set_supply_term(
   Function<dim> &supply_term)
 {
-  supply_term_ptr = &supply_term;
+  source_term_ptr = &supply_term;
 }
 
 } // namespace RMHD
