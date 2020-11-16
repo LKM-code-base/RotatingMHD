@@ -26,24 +26,24 @@ flag_setup_phi(true),
 flag_add_mass_and_stiffness_matrices(true),
 flag_ignore_temperature(false)
 {
-  Assert(velocity.get() != 0,
+  Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
                     " initialized."));
-  Assert(pressure.get() != 0,
+  Assert(pressure.get() != nullptr,
          ExcMessage("The pressure's shared pointer has not be"
                     " initialized."));
-  if (temperature.get() == 0)
+  if (temperature.get() == nullptr)
     flag_ignore_temperature = true;
 
   // Initiating the internal ConditionalOStream and TimerOutput instances.
-  if (external_pcout.get() != 0)
+  if (external_pcout.get() != nullptr)
     pcout = external_pcout;
   else
     pcout.reset(new ConditionalOStream(
       std::cout,
       Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
 
-  if (external_timer.get() != 0)
+  if (external_timer.get() != nullptr)
     computing_timer  = external_timer;
   else
     computing_timer.reset(new TimerOutput(

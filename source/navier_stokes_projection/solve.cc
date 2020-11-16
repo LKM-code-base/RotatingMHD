@@ -53,6 +53,18 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
                                   eta[1],
                                   distributed_old_old_velocity);
     extrapolated_velocity = distributed_old_velocity;
+
+    if (!flag_ignore_temperature)
+    {
+      LinearAlgebra::MPI::Vector distributed_old_temperature(distributed_temperature_vector);
+      LinearAlgebra::MPI::Vector distributed_old_old_temperature(distributed_temperature_vector);
+      distributed_old_temperature      = temperature->old_solution;
+      distributed_old_old_temperature  = temperature->old_old_solution;
+      distributed_old_temperature.sadd(eta[0],
+                                       eta[1],
+                                       distributed_old_old_temperature);
+      extrapolated_temperature = distributed_old_temperature;
+    }
   }
 
   {

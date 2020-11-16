@@ -240,6 +240,21 @@ setup_vectors()
   extrapolated_velocity.reinit(velocity->solution);
   velocity_tmp.reinit(velocity->solution);
 
+  if (!flag_ignore_temperature)
+  {
+    #ifdef USE_PETSC_LA
+      distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
+                                            mpi_communicator);
+    #else
+      distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
+                                            temperature->locally_relevant_dofs,
+                                            mpi_communicator,
+                                            true);
+    #endif
+    
+    extrapolated_temperature.reinit(temperature->solution);
+  }
+
   if (parameters.verbose)
     *pcout << "     done." << std::endl;
 }

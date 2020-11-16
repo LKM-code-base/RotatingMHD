@@ -128,6 +128,7 @@ struct LocalCellData
 
   FEValues<dim>                         velocity_fe_values;
   FEValues<dim>                         pressure_fe_values;
+  FEValues<dim>                         temperature_fe_values;
   const unsigned int                    n_q_points;
   const unsigned int                    velocity_dofs_per_cell;
   std::vector<double>                   pressure_tmp_values;
@@ -145,15 +146,18 @@ struct LocalCellData
   std::vector<Tensor<1, dim>>           old_old_velocity_values;
   std::vector<CurlType>                 old_old_velocity_curls;
   std::vector<Tensor<2,dim>>            old_old_velocity_gradients;
+  std::vector<double>                   extrapolated_temperature_values;
   std::vector<Tensor<1,dim>>            body_force_values;
   std::vector<Tensor<2,dim>>            grad_phi_velocity;
   std::vector<CurlType>                 curl_phi_velocity;
 
   LocalCellData(const FESystem<dim>  &velocity_fe,
                 const FE_Q<dim>      &pressure_fe,
+                const FE_Q<dim>      &temperature_fe,
                 const Quadrature<dim>&velocity_quadrature_formula,
                 const UpdateFlags     velocity_update_flags,
-                const UpdateFlags     pressure_update_flags);
+                const UpdateFlags     pressure_update_flags,
+                const UpdateFlags     temperature_update_flags);
   LocalCellData(const LocalCellData  &data);
 };
 } // namespace VelocityRightHandSideAssembly
@@ -216,19 +220,26 @@ struct LocalCellData
 {
   LocalCellData(const FESystem<dim>     &velocity_fe,
                 const FE_Q<dim>         &pressure_fe,
+                const FE_Q<dim>         &temperature_fe,
                 const Quadrature<dim>   &pressure_quadrature_formula,
                 const Quadrature<dim-1> &pressure_face_quadrature_formula,
                 const UpdateFlags        velocity_face_update_flags,
                 const UpdateFlags        pressure_update_flags,
-                const UpdateFlags        pressure_face_update_flags);
+                const UpdateFlags        pressure_face_update_flags,
+                const UpdateFlags        temperature_update_flags,
+                const UpdateFlags        temperature_face_update_flags);
 
   LocalCellData(const LocalCellData     &data);
 
   FEValues<dim>                         pressure_fe_values;
 
+  FEValues<dim>                         temperature_fe_values;
+
   FEFaceValues<dim>                     velocity_fe_face_values;
 
   FEFaceValues<dim>                     pressure_fe_face_values;
+
+  FEFaceValues<dim>                     temperature_fe_face_values;
 
   const unsigned int                    n_q_points;
   const unsigned int                    n_face_q_points;
@@ -236,9 +247,13 @@ struct LocalCellData
 
   std::vector<double>                   body_force_divergence_values;
   
+  std::vector<Tensor<1, dim>>           temperature_gradient_values;
+
   std::vector<Tensor<1, dim>>           velocity_laplacian_values;
 
   std::vector<Tensor<1, dim>>           body_force_values;
+
+  std::vector<double>                   temperature_values;
 
   std::vector<Tensor<1, dim>>           normal_vectors;
 

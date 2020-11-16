@@ -74,6 +74,13 @@ diffusion_prestep()
     distributed_old_old_velocity  *= -1.0 / time_stepping.get_next_step_size();
     velocity_tmp                  = distributed_old_old_velocity;
   }
+  
+  if (!flag_ignore_temperature)
+  {
+      LinearAlgebra::MPI::Vector distributed_old_old_temperature(distributed_temperature_vector);
+      distributed_old_old_temperature  = temperature->old_old_solution;
+      extrapolated_temperature = distributed_old_old_temperature;
+  }
 
   /* Assemble linear system */
   assemble_diffusion_prestep();
