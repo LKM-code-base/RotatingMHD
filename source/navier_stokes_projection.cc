@@ -7,9 +7,10 @@ namespace RMHD
 template <int dim>
 NavierStokesProjection<dim>::NavierStokesProjection
 (const RunTimeParameters::ParameterSet        &parameters,
+ TimeDiscretization::VSIMEXMethod             &time_stepping,
  std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
  std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
- TimeDiscretization::VSIMEXMethod             &time_stepping,
+ std::shared_ptr<Entities::ScalarEntity<dim>> temperature,
  const std::shared_ptr<ConditionalOStream>    external_pcout,
  const std::shared_ptr<TimerOutput>           external_timer)
 :
@@ -22,7 +23,8 @@ time_stepping(time_stepping),
 flag_initializing(false),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_add_mass_and_stiffness_matrices(true)
+flag_add_mass_and_stiffness_matrices(true),
+flag_ignore_temperature(false)
 {
   Assert(velocity.get() != 0,
          ExcMessage("The velocity's shared pointer has not be"
@@ -30,6 +32,8 @@ flag_add_mass_and_stiffness_matrices(true)
   Assert(pressure.get() != 0,
          ExcMessage("The pressure's shared pointer has not be"
                     " initialized."));
+  if (temperature.get() == 0)
+    flag_ignore_temperature = true;
 
   // Initiating the internal ConditionalOStream and TimerOutput instances.
   if (external_pcout.get() != 0)
