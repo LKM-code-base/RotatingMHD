@@ -1,9 +1,7 @@
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/problem_class.h>
 
-//#include <deal.II/base/utilities.h>
 #include <deal.II/base/quadrature_lib.h>
-//#include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
 namespace RMHD

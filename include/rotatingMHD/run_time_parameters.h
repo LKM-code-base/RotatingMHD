@@ -67,10 +67,12 @@ struct ParameterSet
   ConvectionTermForm  convection_term_form;
 
   double              Re;
+  double              Pe;
 
   unsigned int        n_global_refinements;
 
   unsigned int        p_fe_degree;
+  unsigned int        temperature_fe_degree;
 
   unsigned int        n_maximum_iterations;
   unsigned int        solver_krylov_size;
