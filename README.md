@@ -27,3 +27,4 @@ To do list
 - [ ] Restructure the parameters of the solvers
 - [ ] Remove hard-coded absolute tolerance
 - [ ] Allow traction boundary conditions in the Navier-Stokes solver
+- [ ] Restructure the assembly scratch and copy structs and add a Mapping to the Navier-Stokes solver
