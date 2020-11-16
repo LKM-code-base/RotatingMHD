@@ -54,7 +54,7 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
                                   distributed_old_old_velocity);
     extrapolated_velocity = distributed_old_velocity;
 
-    if (!flag_ignore_temperature)
+    if (!flag_ignore_bouyancy_term)
     {
       LinearAlgebra::MPI::Vector distributed_old_temperature(distributed_temperature_vector);
       LinearAlgebra::MPI::Vector distributed_old_old_temperature(distributed_temperature_vector);

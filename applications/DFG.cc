@@ -10,6 +10,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -226,6 +227,8 @@ private:
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
+  std::shared_ptr<Mapping<dim>>               mapping;
+
   NavierStokesProjection<dim>                 navier_stokes;
 
   BenchmarkData::DFG<dim>                     dfg_benchmark;
@@ -260,11 +263,12 @@ velocity(std::make_shared<Entities::VectorEntity<dim>>(
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.p_fe_degree, this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
+mapping(std::make_shared<MappingQ<dim>>(1)),
 navier_stokes(parameters,
               time_stepping,
               velocity,
               pressure,
-              std::shared_ptr<Entities::ScalarEntity<dim>>(),
+              mapping,
               this->pcout,
               this->computing_timer),
 dfg_benchmark(),

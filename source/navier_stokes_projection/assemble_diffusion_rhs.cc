@@ -134,7 +134,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   scratch.pressure_tmp_values);
 
   // Prepare temperature part
-  if (!flag_ignore_temperature)
+  if (!flag_ignore_bouyancy_term)
   {
     typename DoFHandler<dim>::active_cell_iterator
     temperature_cell(&velocity->get_triangulation(),
@@ -306,7 +306,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
             default:
               Assert(false, ExcNotImplemented());
           };
-        if (!flag_ignore_temperature)
+        if (!flag_ignore_bouyancy_term)
           data.local_diffusion_step_rhs(i) += 
                     scratch.velocity_fe_values.JxW(q) *
                     scratch.phi_velocity[i] *

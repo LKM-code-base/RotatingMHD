@@ -41,17 +41,34 @@ class HeatEquation
 public:
   /*!
    * @brief The constructor of the HeatEquation class where the velocity
-   * a VectorEntity instance is.
+   * is zero.
    * 
    * @details Stores local references to the input parameters and 
-   * pointers for terminal output entities.
+   * pointers for the mapping and terminal output entities.
    */
   HeatEquation
   (const RunTimeParameters::ParameterSet        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
-   std::shared_ptr<Entities::VectorEntity<dim>> velocity =
-       std::shared_ptr<Entities::VectorEntity<dim>>(),
+   const std::shared_ptr<Mapping<dim>>          external_mapping =
+       std::shared_ptr<Mapping<dim>>(),
+   const std::shared_ptr<ConditionalOStream>    external_pcout =
+       std::shared_ptr<ConditionalOStream>(),
+   const std::shared_ptr<TimerOutput>           external_timer =
+       std::shared_ptr<TimerOutput>());
+
+  /*!
+   * @brief The constructor of the HeatEquation class where the velocity
+   * a VectorEntity instance is.
+   * 
+   * @details Stores local references to the input parameters and 
+   * pointers for the mapping and terminal output entities.
+   */
+  HeatEquation
+  (const RunTimeParameters::ParameterSet        &parameters,
+   TimeDiscretization::VSIMEXMethod             &time_stepping,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =
@@ -64,14 +81,13 @@ public:
    * a TensorFunction is.
    * 
    * @details Stores local references to the input parameters and 
-   * pointers for terminal output entities.
+   * pointers for the mapping and terminal output entities.
    */
   HeatEquation
   (const RunTimeParameters::ParameterSet        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
-   std::shared_ptr<TensorFunction<1, dim>>      velocity =
-       std::shared_ptr<TensorFunction<1,dim>>(),
+   std::shared_ptr<TensorFunction<1, dim>>      &velocity,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =

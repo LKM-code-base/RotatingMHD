@@ -240,7 +240,7 @@ setup_vectors()
   extrapolated_velocity.reinit(velocity->solution);
   velocity_tmp.reinit(velocity->solution);
 
-  if (!flag_ignore_temperature)
+  if (!flag_ignore_bouyancy_term)
   {
     #ifdef USE_PETSC_LA
       distributed_temperature_vector.reinit(temperature->locally_owned_dofs,

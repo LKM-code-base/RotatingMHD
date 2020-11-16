@@ -74,13 +74,40 @@ class NavierStokesProjection
 {
 
 public:
+  /*!
+   * @brief The constructor of the Navier-Stokes projection class where 
+   * the bouyancy term is neglected.
+   * 
+   * @details Stores local references to the input parameters and 
+   * pointers for the mapping and terminal output entities.
+   */
   NavierStokesProjection
   (const RunTimeParameters::ParameterSet        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
    std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
-   std::shared_ptr<Entities::ScalarEntity<dim>> temperature =
-         std::shared_ptr<Entities::ScalarEntity<dim>>(),
+   const std::shared_ptr<Mapping<dim>>          external_mapping =
+       std::shared_ptr<Mapping<dim>>(),
+   const std::shared_ptr<ConditionalOStream>    external_pcout =
+       std::shared_ptr<ConditionalOStream>(),
+   const std::shared_ptr<TimerOutput>           external_timer =
+       std::shared_ptr<TimerOutput>());
+
+  /*!
+   * @brief The constructor of the Navier-Stokes projection class where 
+   * the bouyancy term is considered.
+   * 
+   * @details Stores local references to the input parameters and 
+   * pointers for the mapping and terminal output entities.
+   */
+  NavierStokesProjection
+  (const RunTimeParameters::ParameterSet        &parameters,
+   TimeDiscretization::VSIMEXMethod             &time_stepping,
+   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+   const std::shared_ptr<Mapping<dim>>          external_mapping =
+       std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =
        std::shared_ptr<ConditionalOStream>(),
    const std::shared_ptr<TimerOutput>           external_timer =
@@ -183,14 +210,19 @@ private:
   std::shared_ptr<TimerOutput>            computing_timer;
 
   /*!
+   * @brief Pointer to the mapping to be used throughout the solver.
+   */
+  std::shared_ptr<Mapping<dim>>           mapping;
+
+  /*!
    * @brief A reference to the entity of velocity field.
    */
-  std::shared_ptr<Entities::VectorEntity<dim>>  &velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
   /*!
    * @brief A reference to the entity of the temperature field.
@@ -415,7 +447,6 @@ private:
    */
   bool                                  flag_normalize_pressure;
 
-
   /*!
    * @brief A flag indicating if the scalar field  \f$ \phi\f$ is to 
    * be initiated.
@@ -429,7 +460,10 @@ private:
    */
   bool                                  flag_add_mass_and_stiffness_matrices;
 
-  bool                                  flag_ignore_temperature;
+  /*!
+   * @brief A flag indicating if bouyancy term is to be ignored.
+   */
+  bool                                  flag_ignore_bouyancy_term;
 
   /*!
    * @brief A method initiating the scalar field  \f$ \phi\f$.

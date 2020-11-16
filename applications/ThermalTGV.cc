@@ -89,7 +89,7 @@ velocity_field(parameters.time_stepping_parameters.start_time),
 velocity_exact_solution(
               std::make_shared<EquationData::ThermalTGV::VelocityExactSolution<dim>>(
                 parameters.time_stepping_parameters.start_time)),
-mapping(new MappingQ<dim>(1)),
+mapping(std::make_shared<MappingQ<dim>>(1)),
 heat_equation(parameters,
               time_stepping,
               temperature,

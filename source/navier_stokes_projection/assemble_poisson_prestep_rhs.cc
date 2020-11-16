@@ -93,7 +93,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
   scratch.pressure_fe_values.reinit(cell);
 
   // Prepare temperature part
-  if (!flag_ignore_temperature)
+  if (!flag_ignore_bouyancy_term)
   {
     typename DoFHandler<dim>::active_cell_iterator
     temperature_cell(&pressure->get_triangulation(),
@@ -138,7 +138,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                           scratch.body_force_divergence_values[q] *
                           scratch.phi_pressure[i];
       
-      if (!flag_ignore_temperature)
+      if (!flag_ignore_bouyancy_term)
         data.local_poisson_prestep_rhs(i) -=
                           scratch.pressure_fe_values.JxW(q) *
                           scratch.temperature_gradient_values[q] *
@@ -188,7 +188,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                                     velocity->old_old_solution,
                                     scratch.velocity_laplacian_values);
       // Prepare temperature part
-      if (!flag_ignore_temperature)
+      if (!flag_ignore_bouyancy_term)
       {
         typename DoFHandler<dim>::active_cell_iterator
         temperature_cell(&pressure->get_triangulation(),
@@ -237,7 +237,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                              scratch.velocity_laplacian_values[q])*
                             scratch.normal_vectors[q] *
                             scratch.pressure_fe_face_values.JxW(q);  
-            if (!flag_ignore_temperature)
+            if (!flag_ignore_bouyancy_term)
               data.local_poisson_prestep_rhs(i) +=
                             scratch.pressure_fe_face_values.JxW(q) *
                             scratch.face_phi_pressure[i] *

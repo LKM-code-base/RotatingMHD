@@ -12,6 +12,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -51,6 +52,8 @@ private:
   LinearAlgebra::MPI::Vector                  pressure_error;
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
+
+  std::shared_ptr<Mapping<dim>>               mapping;
 
   NavierStokesProjection<dim>                 navier_stokes;
 
@@ -98,11 +101,12 @@ velocity(std::make_shared<Entities::VectorEntity<dim>>(
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.p_fe_degree, this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
+mapping(std::make_shared<MappingQ<dim>>(1)),
 navier_stokes(parameters,
               time_stepping,
               velocity,
               pressure,
-              std::shared_ptr<Entities::ScalarEntity<dim>>(),
+              mapping,
               this->pcout,
               this->computing_timer),
 velocity_exact_solution(parameters.time_stepping_parameters.start_time),
