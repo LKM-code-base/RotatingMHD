@@ -18,7 +18,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
-
+#include <iomanip>
 namespace RMHD
 {
 
@@ -197,7 +197,20 @@ void Step35<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  *this->pcout << time_stepping << std::endl;
+  std::cout.precision(1);
+  *this->pcout << time_stepping 
+               << ", Norms: ("
+               << std::noshowpos << std::scientific
+               << navier_stokes.get_diffusion_step_rhs_norm()
+               << ", "
+               << navier_stokes.get_projection_step_rhs_norm()
+               << ", "
+               << heat_equation.get_rhs_norm()
+               << ") ["
+               << std::setw(5) 
+               << std::fixed
+               << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
+               << "%] \r";
 }
 
 template <int dim>
@@ -295,12 +308,11 @@ int main(int argc, char *argv[])
 
       RunTimeParameters::ParameterSet parameter_set("MIT.prm");
 
-      deallog.depth_console(parameter_set.verbose ? 2 : 0);
-
       Step35<2> simulation(parameter_set);
       simulation.run();
-      std::cout.clear();
-  }
+
+      std::cout.precision(1);
+ }
   catch (std::exception &exc)
   {
       std::cerr << std::endl
