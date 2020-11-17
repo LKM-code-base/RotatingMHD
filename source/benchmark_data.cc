@@ -230,7 +230,7 @@ pressure_differences(3)
   
   // Initiating the probing sample_points.
   sample_points.emplace_back(0.1810, 7.3700);
-  sample_points.emplace_back(0.8190, 0.3700);
+  sample_points.emplace_back(0.8190, 0.6300);
   sample_points.emplace_back(0.1810, 0.6300);
   sample_points.emplace_back(0.8190, 7.3700);
   sample_points.emplace_back(0.1810, 4.0000);
@@ -313,7 +313,78 @@ void MIT<dim>::compute_wall_data()
 {
   TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Wall data");
 
-  Nusselt_numbers = std::make_pair((double)0.0, (double)0.0);
+  /*! @attention What would be the polynomial degree of the normal
+      vector? */
+  // Polynomial degree of the integrand    
+  const int face_p_degree = temperature->fe_degree;
+
+  // Quadrature formula
+  const QGauss<dim-1>   face_quadrature_formula(
+                            std::ceil(0.5 * double(face_p_degree + 1)));
+
+  // Finite element values
+  FEFaceValues<dim> face_fe_values(*mapping,
+                                   temperature->fe,
+                                   face_quadrature_formula,
+                                   update_gradients |
+                                   update_JxW_values |
+                                   update_normal_vectors);
+
+  // Number of quadrature points
+  const unsigned int n_face_q_points = face_quadrature_formula.size();
+
+  // Vectors to stores the temperature gradients and normal vectors
+  // at the quadrature points
+  std::vector<Tensor<1, dim>> temperature_gradients(n_face_q_points);
+  std::vector<Tensor<1, dim>> normal_vectors(n_face_q_points);
+
+  // Initiate the local integral value and at each wall.
+  double local_boundary_intregral = 0.0;
+  double left_boundary_intregral  = 0.0;
+  double right_boundary_intregral = 0.0;
+
+  for (const auto &cell : (temperature->dof_handler)->active_cell_iterators())
+    if (cell->is_locally_owned() && cell->at_boundary())
+      for (const auto &face : cell->face_iterators())
+        if (face->boundary_id() == 0 || face->boundary_id() == 1)
+          {
+            // Initialize the finite element values
+            face_fe_values.reinit(cell, face);
+
+            // Get the temperature gradients at the quadrature points
+            face_fe_values.get_function_gradients(temperature->solution,
+                                                  temperature_gradients);
+            
+            // Get the normal vectors at the quadrature points
+            normal_vectors = face_fe_values.get_normal_vectors();
+
+            // Reset local face integral values
+            local_boundary_intregral = 0.0;
+
+            // Numerical integration
+            for (unsigned int q = 0; q < n_face_q_points; ++q)
+              local_boundary_intregral += 
+                face_fe_values.JxW(q) *     // JxW
+                temperature_gradients[q] *  // grad T 
+                normal_vectors[q];          // n
+            
+            // Add the local boundary integral to the respective
+            // global boundary integral
+            if (face->boundary_id() == 0)
+              left_boundary_intregral   += local_boundary_intregral;
+            else
+              right_boundary_intregral  += local_boundary_intregral;
+          }
+
+  // Gather the values of each processor
+  left_boundary_intregral   = Utilities::MPI::sum(left_boundary_intregral, 
+                                                   mpi_communicator);
+  right_boundary_intregral  = Utilities::MPI::sum(right_boundary_intregral, 
+                                                  mpi_communicator);
+  
+  //Compute the Nusselt numbers
+  Nusselt_numbers = std::make_pair(left_boundary_intregral/8.0,
+                                   right_boundary_intregral/8.0);
 }
 
 template <int dim>

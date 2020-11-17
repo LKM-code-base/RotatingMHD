@@ -70,9 +70,15 @@ Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
 params(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1, this->triangulation)),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree, this->triangulation)),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(parameters.temperature_fe_degree, this->triangulation)),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(
+              parameters.p_fe_degree + 1, 
+              this->triangulation)),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+              parameters.p_fe_degree, 
+              this->triangulation)),
+temperature(std::make_shared<Entities::ScalarEntity<dim>>(
+              parameters.temperature_fe_degree, 
+              this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
 mapping(new MappingQ<dim>(1)),
 navier_stokes(parameters,
