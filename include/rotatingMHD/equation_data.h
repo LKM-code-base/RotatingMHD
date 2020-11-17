@@ -201,6 +201,66 @@ public:
 
 } // namespace Guermond
 
+namespace ThermalTGV
+{
+template <int dim>
+class VelocityExactSolution : public TensorFunction<1, dim>
+{
+public:
+  VelocityExactSolution(const double time = 0);
+
+  virtual Tensor<1, dim> value(const Point<dim>  &p) const override;
+
+private:
+  /*!
+   * @brief The wave number.
+   */ 
+  const double k = 2. * M_PI;
+};
+
+template <int dim>
+class TemperatureExactSolution : public Function<dim>
+{
+public:
+  TemperatureExactSolution(const double Pe,
+                           const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int = 0) const override;
+
+private:
+  /*!
+   * @brief The Peclet number.
+   */ 
+  const double Pe;
+
+  /*!
+   * @brief The wave number.
+   */ 
+  const double k = 2. * M_PI;
+};
+
+template <int dim>
+class VelocityField : public Function<dim>
+{
+public:
+  VelocityField(const double time = 0);
+
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+private:
+
+  /*!
+   * @brief The wave number.
+   */ 
+  const double k = 2. * M_PI;
+};
+
+} // namespace ThermalTGV
+
 } // namespace EquationData
 
 } // namespace RMHD
