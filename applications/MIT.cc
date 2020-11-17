@@ -1,3 +1,4 @@
+#include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
@@ -50,6 +51,8 @@ private:
   
   HeatEquation<dim>                           heat_equation;
 
+  BenchmarkData::MIT<dim>                     mit_benchmark;
+
   void make_grid(const unsigned int n_global_refinements);
 
   void setup_dofs();
@@ -84,6 +87,13 @@ heat_equation(parameters,
               time_stepping,
               temperature,
               velocity,
+              mapping,
+              this->pcout,
+              this->computing_timer),
+mit_benchmark(velocity,
+              pressure,
+              temperature,
+              time_stepping,
               mapping,
               this->pcout,
               this->computing_timer)
@@ -197,8 +207,13 @@ void Step35<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
+  mit_benchmark.compute_benchmark_data();
+
   std::cout.precision(1);
-  *this->pcout << time_stepping 
+  /*! @attention For some reason, a run time error happens when I try
+      to only use one pcout */
+  *this->pcout << time_stepping << ", ";
+  *this->pcout << mit_benchmark
                << ", Norms: ("
                << std::noshowpos << std::scientific
                << navier_stokes.get_diffusion_step_rhs_norm()

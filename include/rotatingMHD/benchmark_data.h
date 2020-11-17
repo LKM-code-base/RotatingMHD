@@ -3,10 +3,12 @@
 #define INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 
 #include <rotatingMHD/entities_structs.h>
+#include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/discrete_time.h>
 #include <deal.II/base/point.h>
 #include <deal.II/base/table_handler.h>
+#include <deal.II/base/timer.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/distributed/tria.h>
 #include <deal.II/dofs/dof_handler.h>
@@ -242,6 +244,179 @@ struct DFG
    * @brief A method that outputs the @ref data_table into a file.
    */
   void write_table_to_file(const std::string &file);
+};
+
+/*! @attention I kept getting a "trying to access private member" error
+    while outputing to the terminal with the Stream object. After
+    reading posts in StackOverflow this worked. I do not know if this is
+    the best method as there is a bug in the source file */
+
+template<int dim> class MIT;
+
+template<typename Stream, int dim> 
+Stream& operator<<(Stream &, const MIT<dim> &);
+
+/*!
+ * @class MIT
+ * @brief
+ * @todo Add details...
+ */ 
+template <int dim>
+class MIT
+{
+public:
+  /*!
+   * @brief Constructor.
+   */
+  MIT(std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
+      std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
+      std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+      TimeDiscretization::VSIMEXMethod              &time_stepping,
+      const std::shared_ptr<Mapping<dim>>           external_mapping
+                                = std::shared_ptr<Mapping<dim>>(),
+      const std::shared_ptr<ConditionalOStream>     external_pcout
+                                = std::shared_ptr<ConditionalOStream>(),
+      const std::shared_ptr<TimerOutput>            external_timer 
+                                = std::shared_ptr<TimerOutput>());
+
+  /*!
+   * @brief A method that computes all the benchmark data with the
+   * last computed field variables. 
+   */
+  void compute_benchmark_data();
+
+  /*!
+   * @brief Output of the benchmark data to the terminal.
+   * @attention I had to change the name of the second template variable
+   * or else I would get a compilation error.
+   */
+  template<typename Stream, int dim_>
+  friend Stream& operator<<(Stream &stream, const MIT<dim_> &mit);
+
+private:
+  /*!
+   * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
+   */
+  const MPI_Comm                                &mpi_communicator;
+
+  /*!
+   * @brief A reference to the class controlling the temporal discretization.
+   */
+  const TimeDiscretization::VSIMEXMethod        &time_stepping;
+
+  /*!
+   * @brief A shared pointer to a conditional output stream object.
+   */
+  std::shared_ptr<ConditionalOStream>           pcout;
+
+  /*!
+   * @brief A shared pointer to a monitor of the computing times.
+   */
+  std::shared_ptr<TimerOutput>                  computing_timer;
+
+  /*!
+   * @brief A shared pointer to the mapping to be used throughout the solver.
+   */
+  std::shared_ptr<Mapping<dim>>                 mapping;
+
+  /*!
+   * @brief A shared pointer to the velocity field's numerical
+   * representation.
+   */
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+
+  /*!
+   * @brief A shared pointer to the pressure field's numerical
+   * representation.
+   */
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+
+  /*!
+   * @brief A shared pointer to the temperature field's numerical
+   * representation.
+   */
+  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+
+  /*!
+   * @brief A vector containing all the points at which data will be
+   * sampled.
+   * @todo List points...
+   */
+  std::vector<Point<dim>>                       sample_points;
+
+  /*!
+   * @brief A vector containing the pertinent pressure differences.
+   * @details Namely, between sample point 1 and 4; 5 and 1; 3 and 5.
+   */
+  std::vector<double>                           pressure_differences;
+
+  /*!
+   * @brief The velocity vector at the first sample point.
+   */
+  Tensor<1,dim>                                 velocity_at_p1;
+
+  /*!
+   * @brief The temperature at the first sample point.
+   */
+  double                                        temperature_at_p1;
+
+  /*!
+   * @brief The stream function at the first sample point.
+   */
+  double                                        stream_function_at_p1;
+
+  /*!
+   * @brief The vorticity norm at the first sample point.
+   */
+  double                                        vorticity_at_p1;
+
+  /*!
+   * @brief The Nusselt number at the left and right walls.
+   */
+  std::pair<double, double>                     Nusselt_numbers;
+
+  /*!
+   * @brief The skewness metric.
+   * @details Given by
+   * \f[
+   * \varepsilon_{12} = \vartheta_1 + \vartheta_2
+   * \f] 
+   */
+  double                                        skewness_metric;
+
+  /*!
+   * @brief The average velocity metric.
+   * @details Given by
+   * \f[
+   * \hat{u} = \sqrt{ \dfrac{1}{HW} \int_\Omega \bs{u} \cdot \bs{u} \d v}
+   * \f]   */
+  double                                        average_velocity_metric;
+
+  /*!
+   * @brief The average velocity metric.
+   * @details Given by
+   * \f[
+   * \hat{\omega} = \sqrt{ \dfrac{1}{HW} \int_\Omega \omega^2 \d v}
+   * \f]   */
+  double                                        average_vorticity_metric;
+
+  /*!
+   * @brief A method that samples all the point data and computes the
+   * pressure differences and skew-symmetrie of the temperature field. 
+   */
+  void compute_point_data();
+
+  /*!
+   * @brief A method that computes all the Nusselt number of the
+   * walls with Dirichlet boundary conditions on the temperature field.
+   */
+  void compute_wall_data();
+
+  /*!
+   * @brief A method that computes the average velocity and vorticity 
+   * metrics.
+   */
+  void compute_global_data();
 };
 
 } // namespace BenchmarkData

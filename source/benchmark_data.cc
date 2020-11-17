@@ -8,6 +8,8 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <fstream>
+#include <ostream>
 namespace RMHD
 {
   using namespace dealii;
@@ -199,9 +201,145 @@ void DFG<dim>::write_table_to_file(const std::string  &file)
   }
 }
 
+template <int dim>
+MIT<dim>::MIT(
+  std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
+  std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
+  std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+  TimeDiscretization::VSIMEXMethod              &time_stepping,
+  const std::shared_ptr<Mapping<dim>>           external_mapping,
+  const std::shared_ptr<ConditionalOStream>     external_pcout,
+  const std::shared_ptr<TimerOutput>            external_timer)
+:
+mpi_communicator(velocity->mpi_communicator),
+time_stepping(time_stepping),
+velocity(velocity),
+pressure(pressure),
+temperature(temperature),
+pressure_differences(3)
+{
+  Assert(velocity.get() != nullptr,
+         ExcMessage("The velocity's shared pointer has not be"
+                    " initialized."));
+  Assert(pressure.get() != nullptr,
+         ExcMessage("The pressure's shared pointer has not be"
+                    " initialized."));
+  Assert(temperature.get() != nullptr,
+         ExcMessage("The temperature's shared pointer has not be"
+                    " initialized."));
+  
+  // Initiating the probing sample_points.
+  sample_points.emplace_back(0.1810, 7.3700);
+  sample_points.emplace_back(0.8190, 0.3700);
+  sample_points.emplace_back(0.1810, 0.6300);
+  sample_points.emplace_back(0.8190, 7.3700);
+  sample_points.emplace_back(0.1810, 4.0000);
+
+  // Initiating the internal Mapping instance.
+  if (external_mapping.get() != nullptr)
+    mapping = external_mapping;
+  else
+    mapping.reset(new MappingQ<dim>(1));
+
+  // Initiating the internal ConditionalOStream instance.
+  if (external_pcout.get() != nullptr)
+    pcout = external_pcout;
+  else
+    pcout.reset(new ConditionalOStream(
+      std::cout,
+      Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
+
+  // Initiating the internal TimerOutput instance.
+  if (external_timer.get() != nullptr)
+    computing_timer  = external_timer;
+  else
+    computing_timer.reset(new TimerOutput(
+      *pcout,
+      TimerOutput::summary,
+      TimerOutput::wall_times));
+}
+
+template <int dim>
+void MIT<dim>::compute_benchmark_data()
+{
+  compute_point_data();
+  compute_wall_data();
+  compute_global_data();
+}
+
+template<typename Stream, int dim>
+Stream& operator<<(Stream &stream, const MIT<dim> &mit)
+{
+  stream << std::noshowpos << std::scientific
+         << "u_1 = "
+         << mit.velocity_at_p1[0]
+         << ", T_1 = "
+         << mit.temperature_at_p1
+         << ", p_14 = "
+         << mit.pressure_differences[0];
+
+  return stream;
+}
+
+template <int dim>
+void MIT<dim>::compute_point_data()
+{
+  TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Point data");
+
+  // Obtaining data at sample point 1
+  velocity_at_p1        = velocity->point_value(sample_points[0]);
+  temperature_at_p1     = temperature->point_value(sample_points[0]);
+  stream_function_at_p1 = 0.0/*compute_stream_function()*/;
+  vorticity_at_p1       = 0.0/*compute_vorticity()*/;
+
+  // Computing skewness metric
+  const double temperature_2 = temperature->point_value(sample_points[1]);
+
+  skewness_metric = temperature_at_p1 - temperature_2;
+
+  // Computing pressure differences
+  const double pressure_1 = pressure->point_value(sample_points[0]);
+  const double pressure_3 = pressure->point_value(sample_points[2]);
+  const double pressure_4 = pressure->point_value(sample_points[3]);
+  const double pressure_5 = pressure->point_value(sample_points[4]);
+
+  pressure_differences[0] = pressure_1 - pressure_4;
+  pressure_differences[1] = pressure_5 - pressure_1;
+  pressure_differences[2] = pressure_3 - pressure_5;
+}
+
+template <int dim>
+void MIT<dim>::compute_wall_data()
+{
+  TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Wall data");
+
+  Nusselt_numbers = std::make_pair((double)0.0, (double)0.0);
+}
+
+template <int dim>
+void MIT<dim>::compute_global_data()
+{
+  TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Global data");
+
+  average_velocity_metric   = 0.0;
+  average_vorticity_metric  = 0.0;
+}
+
 } // namespace BenchmarkData
 } // namespace RMHD
 
 // explicit instantiations
 template struct RMHD::BenchmarkData::DFG<2>;
 template struct RMHD::BenchmarkData::DFG<3>;
+
+template class RMHD::BenchmarkData::MIT<2>;
+template class RMHD::BenchmarkData::MIT<3>;
+
+template std::ostream & RMHD::BenchmarkData::operator<<
+(std::ostream &, const RMHD::BenchmarkData::MIT<2> &);
+template std::ostream & RMHD::BenchmarkData::operator<<
+(std::ostream &, const RMHD::BenchmarkData::MIT<3> &);
+template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
+(dealii::ConditionalOStream &, const RMHD::BenchmarkData::MIT<2> &);
+template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
+(dealii::ConditionalOStream &, const RMHD::BenchmarkData::MIT<3> &);
