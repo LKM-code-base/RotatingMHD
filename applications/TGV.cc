@@ -2,7 +2,6 @@
  *@file TGV
  *@brief The .cc file solving the TGV benchmark.
  */
-#include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/convergence_struct.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>

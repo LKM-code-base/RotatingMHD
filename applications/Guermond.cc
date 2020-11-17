@@ -3,7 +3,6 @@
  *@brief The .cc file replicating the numerical test of section
   3.7.2 of the Guermond paper.
  */
-#include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/convergence_struct.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
