@@ -17,9 +17,7 @@ namespace BenchmarkData
 template <int dim>
 DFG<dim>::DFG()
 :
-density(1.0),
 characteristic_length(0.1),
-mean_velocity(1.0),
 kinematic_viscosity(0.001),
 Re(characteristic_length * mean_velocity / kinematic_viscosity),
 front_evaluation_point(0.15 / characteristic_length,
@@ -37,10 +35,12 @@ lift_coefficient(0)
   data_table.declare_column("dp");
   data_table.declare_column("C_d");
   data_table.declare_column("C_l");
+
   data_table.set_scientific("t", true);
   data_table.set_scientific("dp", true);
   data_table.set_scientific("C_d", true);
   data_table.set_scientific("C_l", true);
+
   data_table.set_precision("t", 6);
   data_table.set_precision("dp", 6);
   data_table.set_precision("C_d", 6);
@@ -62,10 +62,14 @@ void DFG<dim>::compute_pressure_difference
 }
 
 template <int dim>
-void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
-  const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-  const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure)
+void DFG<dim>::compute_drag_and_lift_forces_and_coefficients
+(const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+ const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+ const types::boundary_id                            cylinder_boundary_id)
 {
+
+  AssertDimension(dim, 2);
+
   const MappingQ<dim> mapping(3);
 
   /*! @attention What would be the polynomial degree of the normal
@@ -101,7 +105,7 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
   for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
     if (cell->is_locally_owned())
       for (const auto &face : cell->face_iterators())
-        if (face->at_boundary() && face->boundary_id() == 2)
+        if (face->at_boundary() && face->boundary_id() == cylinder_boundary_id)
           {
             velocity_face_fe_values.reinit(cell, face);
 
