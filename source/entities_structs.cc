@@ -17,22 +17,26 @@ namespace Entities
 template <int dim>
 EntityBase<dim>::EntityBase
 (const unsigned int                               fe_degree,
- const parallel::distributed::Triangulation<dim> &triangulation)
+ const parallel::distributed::Triangulation<dim> &triangulation,
+ const std::string                               &name)
 :
 fe_degree(fe_degree),
 mpi_communicator(triangulation.get_communicator()),
 dof_handler(std::make_shared<DoFHandler<dim>>(triangulation)),
+name(name),
 flag_child_entity(false),
 triangulation(triangulation)
 {}
 
 template <int dim>
 EntityBase<dim>::EntityBase
-(const EntityBase<dim>  &entity)
+(const EntityBase<dim>  &entity,
+ const std::string      &new_name)
 :
 fe_degree(entity.fe_degree),
 mpi_communicator(entity.mpi_communicator),
 dof_handler(entity.dof_handler),
+name(new_name),
 flag_child_entity(true),
 triangulation(entity.get_triangulation())
 {}
@@ -64,17 +68,19 @@ void EntityBase<dim>::set_solution_vectors_to_zero()
 template <int dim>
 VectorEntity<dim>::VectorEntity
 (const unsigned int                               fe_degree,
- const parallel::distributed::Triangulation<dim> &triangulation)
+ const parallel::distributed::Triangulation<dim> &triangulation,
+ const std::string                               &name)
 :
-EntityBase<dim>(fe_degree, triangulation),
+EntityBase<dim>(fe_degree, triangulation, name),
 fe(FE_Q<dim>(fe_degree), dim)
 {}
 
 template <int dim>
 VectorEntity<dim>::VectorEntity
-(const VectorEntity<dim>  &entity)
+(const VectorEntity<dim>  &entity,
+ const std::string        &new_name)
 :
-EntityBase<dim>(entity),
+EntityBase<dim>(entity, new_name),
 fe(FE_Q<dim>(entity.fe_degree), dim)
 {}
 
@@ -386,17 +392,19 @@ Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 template <int dim>
 ScalarEntity<dim>::ScalarEntity
 (const unsigned int                               fe_degree,
- const parallel::distributed::Triangulation<dim> &triangulation)
+ const parallel::distributed::Triangulation<dim> &triangulation,
+ const std::string                               &name)
 :
-EntityBase<dim>(fe_degree, triangulation),
+EntityBase<dim>(fe_degree, triangulation, name),
 fe(fe_degree)
 {}
 
 template <int dim>
 ScalarEntity<dim>::ScalarEntity
-(const ScalarEntity<dim>  &entity)
+(const ScalarEntity<dim>  &entity,
+ const std::string        &new_name)
 :
-EntityBase<dim>(entity),
+EntityBase<dim>(entity, new_name),
 fe(entity.fe_degree)
 {}
 
