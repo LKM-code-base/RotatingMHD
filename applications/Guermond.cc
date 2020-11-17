@@ -94,10 +94,12 @@ Guermond<dim>::Guermond(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
 outputFile("Guermond_Log.csv"),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
-              parameters.p_fe_degree + 1, this->triangulation)),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
-              parameters.p_fe_degree, this->triangulation)),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+                                                       this->triangulation,
+                                                       "velocity")),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
+                                                       this->triangulation,
+                                                       "pressure")),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
               velocity,

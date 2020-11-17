@@ -68,17 +68,19 @@ void EntityBase<dim>::set_solution_vectors_to_zero()
 template <int dim>
 VectorEntity<dim>::VectorEntity
 (const unsigned int                               fe_degree,
- const parallel::distributed::Triangulation<dim> &triangulation)
+ const parallel::distributed::Triangulation<dim> &triangulation,
+ const std::string                               &name)
 :
-EntityBase<dim>(fe_degree, triangulation),
+EntityBase<dim>(fe_degree, triangulation, name),
 fe(FE_Q<dim>(fe_degree), dim)
 {}
 
 template <int dim>
 VectorEntity<dim>::VectorEntity
-(const VectorEntity<dim>  &entity)
+(const VectorEntity<dim>  &entity,
+ const std::string        &new_name)
 :
-EntityBase<dim>(entity),
+EntityBase<dim>(entity, new_name),
 fe(FE_Q<dim>(entity.fe_degree), dim)
 {}
 
@@ -390,17 +392,19 @@ Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 template <int dim>
 ScalarEntity<dim>::ScalarEntity
 (const unsigned int                               fe_degree,
- const parallel::distributed::Triangulation<dim> &triangulation)
+ const parallel::distributed::Triangulation<dim> &triangulation,
+ const std::string                               &name)
 :
-EntityBase<dim>(fe_degree, triangulation),
+EntityBase<dim>(fe_degree, triangulation, name),
 fe(fe_degree)
 {}
 
 template <int dim>
 ScalarEntity<dim>::ScalarEntity
-(const ScalarEntity<dim>  &entity)
+(const ScalarEntity<dim>  &entity,
+ const std::string        &new_name)
 :
-EntityBase<dim>(entity),
+EntityBase<dim>(entity, new_name),
 fe(entity.fe_degree)
 {}
 

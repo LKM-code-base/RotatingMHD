@@ -188,11 +188,13 @@ void ConvergenceAnalysisData<dim>::write_text(std::string filename) const
 
 
     // Check if the suffix of the filename matches the desired suffix
-    if (!std::equal(suffix.rbegin(), suffix.rend(), filename.rbegin()))
+    if (std::equal(suffix.rbegin(), suffix.rend(), filename.rbegin()) == false)
+    {
       if (filename.find_last_of(".") == filename.size())
         filename.append("txt");
       else
         filename.append(suffix);
+    }
 
     std::ofstream file(filename);
 

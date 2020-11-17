@@ -187,6 +187,19 @@ template <int dim>
 struct VectorEntity : EntityBase<dim>
 {
   /*!
+   * @brief Constructor.
+   */
+  VectorEntity(const unsigned int                               fe_degree,
+               const parallel::distributed::Triangulation<dim> &triangulation,
+               const std::string                               &name = "entity");
+
+  /*!
+   * @brief Copy constructor.
+   */
+  VectorEntity(const VectorEntity<dim>  &entity,
+               const std::string        &new_name);
+
+  /*!
    * @brief The finite element of the vector field.
    */
   FESystem<dim>                 fe;
@@ -196,18 +209,6 @@ struct VectorEntity : EntityBase<dim>
    * boundary conditions of the vector field.
    */
   VectorBoundaryConditions<dim> boundary_conditions;
-
-  /*!
-   * @brief Constructor.
-   */
-  VectorEntity(const unsigned int                               fe_degree,
-               const parallel::distributed::Triangulation<dim> &triangulation);
-
-  /*!
-   * @brief Copy constructor.
-   */
-  VectorEntity(const VectorEntity<dim>  &entity);
-
 
   /*!
    * @brief Set ups the degrees of freedom of the vector field.
@@ -259,6 +260,19 @@ template <int dim>
 struct ScalarEntity : EntityBase<dim>
 {
   /*!
+   * @brief Constructor.
+   */
+  ScalarEntity(const unsigned int                               fe_degree,
+               const parallel::distributed::Triangulation<dim> &triangulation,
+               const std::string                               &name = "entity");
+
+  /*!
+   * @brief Copy constructor.
+   */
+  ScalarEntity(const ScalarEntity<dim>  &entity,
+               const std::string        &new_name = "entity");
+
+  /*!
    * @brief The finite element of the scalar field.
    */
   FE_Q<dim> fe;
@@ -268,17 +282,6 @@ struct ScalarEntity : EntityBase<dim>
    * boundary conditions of the scalar field.
    */
   ScalarBoundaryConditions<dim>       boundary_conditions;
-
-  /*!
-   * @brief Constructor.
-   */
-  ScalarEntity(const unsigned int                               fe_degree,
-               const parallel::distributed::Triangulation<dim> &triangulation);
-
-  /*!
-   * @brief Copy constructor.
-   */
-  ScalarEntity(const ScalarEntity<dim>  &entity);
 
   /*!
    * @brief Set ups the degrees of freedom of the scalar field.
