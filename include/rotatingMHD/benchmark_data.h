@@ -31,6 +31,59 @@ namespace BenchmarkData
  * @brief A structure containing the data requested by the DFG benchmark
  * and methods to compute them.
  *
+ * @details The following requested are computed by evaluating the solution:
+ *  - drag coefficient,
+ *  - lift coefficient,
+ *  - pressure difference.
+ *
+ * Benchmark requests
+ * ========================
+ *
+ * Drag coefficient
+ * ------------------------
+ *
+ *
+ *
+ * Dimensionless formulation
+ * ========================
+ *
+ * The velocity profile at the inlet is assumed to given by the following
+ * function
+ *
+ * \f[
+ * \bs{v}(y)= v_x(y) \ex= v_0 \left(\frac{2}{H}\right)^2 y (H-y) \ex \,,
+ * \f]
+ * where \f$H\f$ denotes the height of the channel.
+ *
+ * In this case, the reference velocity associated with the dimensionless
+ * solution is given by the mean of the input velocity, *i.e.*,
+ *
+ * \f[
+ * v_\mathrm{ref}=\frac{1}{H}\int\limits_0^H v_x(y)\dint{y}=\frac{2}{3} v_0\,.
+ * \f]
+ *
+ * The resulting force is given by
+ *
+ * \f[
+ * \bs{F} = F_\text{drag}  \ex +  F_\text{lift} \ey =
+ * \int_{\Gamma_3} [-p \bs{1} + \mu \nabla \otimes \bs{v}]
+ * \cdot \bs{n} \dint{A}
+ * \f]
+ *
+ * Its dimensionless form, which is what is actually computed and
+ * stored in this structure by the
+ * @ref compute_drag_and_lift_forces_and_coefficients method and
+ * considering the formulation of the NavierStokesProjection class,
+ * is given then by
+ *
+ * \f[
+ * \tilde{\bs{F}} =
+ * \int_{\tilde{\Gamma}_3} \bigg[-\tilde{p}\bs{1} +
+ * \frac{}{\Reynolds}(\tilde{\nabla} \otimes
+ * \tilde{\bs{v}} + \tilde{\bs{v}} \otimes \tilde{\nabla})
+ * \bigg] \cdot \bs{n} \dint{A}
+ * \f]
+ *
  */
 template <int dim>
 struct DFG
@@ -60,7 +113,7 @@ struct DFG
 
    * @details Defined as the  
    * \f[
-   * \bar{v} = \frac{2}{3} \bm{v}{v}_\text{inflow}\big|_{(0,0.5H)}
+   * \bar{v} = \frac{2}{3} \bs{v}{v}_\text{inflow}\big|_{(0,0.5H)}
    * \ex = \frac{2}{3} \left(
    * \frac{4v_\text{max}y(H-y)}{H^2} \right)\bigg|_{(0,0.5H)}
    * \f]
@@ -95,7 +148,7 @@ struct DFG
    * cylinder, at which the pressure will be evaluated.
    *
    * @details The point \f$ \mathrm{P}_\text{front} \f$ is located at the position
-   * \f$ \bm{x}_\text{rear} = 0.15 \ex + 0.20 \ey \f$.
+   * \f$ \bs{x}_\text{rear} = 0.15 \ex + 0.20 \ey \f$.
    *
    *
    * @attention The coordinates are defined in dimensionless form from
@@ -109,7 +162,7 @@ struct DFG
    *
    * @details The point \f$ \mathrm{P}_\text{front} \f$ is located at the
    * position
-   * \f$ \bm{x}_\text{rear} = 0.25 \ex + 0.20 \ey \f$.
+   * \f$ \bs{x}_\text{rear} = 0.25 \ex + 0.20 \ey \f$.
    *
    * @attention The coordinates are defined in dimensionless form from
    * the characteristic length when the constructor is called.
@@ -123,7 +176,7 @@ struct DFG
    *
    * @details Defined as
    * \f[
-   * \Delta p = p|_{\bm{x}_\text{front}} - p|_{\bm{x}_\text{rear}}
+   * \Delta p = p|_{\bs{x}_\text{front}} - p|_{\bs{x}_\text{rear}}
    * \f]
    *
    * @attention The computed pressure difference is dimensionless, but
@@ -138,10 +191,10 @@ struct DFG
    * @details Defined as the \f$ x \f$-component of the resulting force
    * acting on the cylinder. The resulting force is given by
    * \f[
-  * \bm{F} = F_\text{drag}  \ex
+  * \bs{F} = F_\text{drag}  \ex
    * +  F_\text{lift} \ey =
-   * \int_{\Gamma_3} [-p \bm{1} + \mu \nabla \otimes \bm{v}]
-   * \cdot \bm{n} \,\mathrm{d}{A}
+   * \int_{\Gamma_3} [-p \bs{1} + \mu \nabla \otimes \bs{v}]
+   * \cdot \bs{n} \,\mathrm{d}{A}
    * \f]
    * Its dimensionless form, which is what it is actually computed and
    * stored in this member by the 
@@ -149,24 +202,25 @@ struct DFG
    * considering the formulation of the NavierStokesProjection class,
    * is given then by
    * \f[
-   * \tilde{\bm{F}} =
-   *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\bm{1} +
-   *  (\rho\text{Re})^{-1} (\tilde{\nabla} \otimes
-   *  \tilde{\bm{v}} + \tilde{\bm{v}} \otimes \tilde{\nabla})
-   *  ] \cdot \bm{n} \mathrm{d}{\tilde{\ell}}
+   * \tilde{\bs{F}} =
+   *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\bs{1} +
+   *  \frac{}{\Reynolds}(\tilde{\nabla} \otimes
+   *  \tilde{\bs{v}} + \tilde{\bs{v}} \otimes \tilde{\nabla})
+   *  ] \cdot \bs{n} \dint{A}
    * \f]
    */
   double        drag_force;
 
   /*!
    * @brief The drag coefficient.
+   *
    * @details Defined as 
    * \f[
-   * c_\text{drag} = \dfrac{2}{\rho\bar{v}^2D} \bm{F} \cdot
+   * c_\text{drag} = \dfrac{2}{\rho\bar{v}^2D} \bs{F} \cdot
    * \ex
    * \f]
    * which is equivalent to \f$ c_\text{drag} = 2
-   * \tilde{\bm{F}} \cdot \ex \f$,
+   * \tilde{\bs{F}} \cdot \ex \f$,
    * what is actually computed by the by the 
    * @ref compute_drag_and_lift_forces_and_coefficients method.
    */
@@ -178,9 +232,9 @@ struct DFG
    * @details Defined as the \f$ y \f$ component of the total force
    * exorted on the cylinder. The total force is given by
    * \f[
-	 * \bm{F} = F_\text{d} \ex + F_\text{l} \ey =
-   * \int_{\Gamma_3} [-p\bm{1} + \mu \nabla \otimes \bm{v}]
-   * \cdot \bm{n} \mathrm{d} \ell
+	 * \bs{F} = F_\text{d} \ex + F_\text{l} \ey =
+   * \int_{\Gamma_3} [-p\bs{1} + \mu \nabla \otimes \bs{v}]
+   * \cdot \bs{n} \mathrm{d} \ell
    * \f]
    *
    * In dimensionless form, which is what it is actually computed and
@@ -189,11 +243,11 @@ struct DFG
    * considering the formulation of the NavierStokesProjection class,
    * is given then by
    * \f[
-   * \tilde{\bm{F}} =
-   *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\bm{1} +
+   * \tilde{\bs{F}} =
+   *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\bs{1} +
    *  \frac{1}{\Reynolds} (\tilde{\nabla} \otimes
-   *  \tilde{\bm{v}} + \tilde{\bm{v}} \otimes \tilde{\nabla})
-   *  ] \cdot \bm{n} \mathrm{d}{\tilde{\ell}}
+   *  \tilde{\bs{v}} + \tilde{\bs{v}} \otimes \tilde{\nabla})
+   *  ] \cdot \bs{n} \mathrm{d}{\tilde{\ell}}
    * \f]
    */
   double        lift_force;
@@ -204,12 +258,12 @@ struct DFG
    * @details The lift coefficient is defined as
    *
    * \f[
-   * c_\text{l} = \dfrac{2}{\rho\bar{v}^2D} \bm{F} \cdot \ey
+   * c_\text{l} = \dfrac{2}{\rho\bar{v}^2D} \bs{F} \cdot \ey
    * \f]
    *
    * which is equivalent to the following dimensionless value
    *
-   * \f$ c_\text{l} = 2 \tilde{\bm{F}} \cdot \ey \f$,
+   * \f$ c_\text{l} = 2 \tilde{\bs{F}} \cdot \ey \f$,
    *
    * what is actually computed by the 
    * @ref compute_drag_and_lift_forces_and_coefficients method.
@@ -237,17 +291,17 @@ struct DFG
    * given by
    *
    * \f[
-   * \tilde{\bm{F}} = \int_{\tilde{\Gamma}_3} [-\tilde{p}\bm{1} +
+   * \tilde{\bs{F}} = \int_{\tilde{\Gamma}_3} [-\tilde{p}\bs{1} +
    *  ( \frac{1}{\Reynolds} (\tilde{\nabla} \otimes
-   *  \tilde{\bm{v}} + \tilde{\bm{v}} \otimes \tilde{\nabla})
-   *  ] \cdot \bm{n} \mathrm{d}{\tilde{\ell}}
+   *  \tilde{\bs{v}} + \tilde{\bs{v}} \otimes \tilde{\nabla})
+   *  ] \cdot \bs{n} \dint{A}
    * \f]
    *
    * and the @ref drag_coefficient and @ref lift_coefficient as
    *
    * \f[
-   * c_\text{d} = 2 \tilde{\bm{F}} \cdot \ex\,, \qquad
-   * c_\text{l} = 2 \tilde{\bm{F}} \cdot \ey\,.
+   * c_\text{d} = 2 \tilde{\bs{F}} \cdot \ex\,, \qquad
+   * c_\text{l} = 2 \tilde{\bs{F}} \cdot \ey\,.
    * \f]
    *
    */

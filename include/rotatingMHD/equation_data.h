@@ -26,28 +26,22 @@ namespace EquationData
 template <int dim>
 class BodyForce : public TensorFunction<1, dim>
 {
+
 public:
+
   BodyForce(const double time = 0);
 
-  virtual double divergence(
-    const Point<dim>  &point) const;
+  virtual double divergence(const Point<dim>  &point) const;
 
-  virtual void divergence_list(
-    const std::vector<Point<dim>> &points,
-    std::vector<double>           &values) const;
+  virtual void divergence_list(const std::vector<Point<dim>> &points,
+                               std::vector<double>           &values) const;
 };
 
 namespace Step35
 {
-template <int dim>
-class VelocityInitialCondition : public Function<dim>
-{
-public:
-  VelocityInitialCondition(const double time = 0);
 
-  virtual void vector_value(const Point<dim>  &p,
-                            Vector<double>    &values) const override;
-};
+template<int dim>
+using VelocityInitialCondition = Functions::ZeroFunction<dim>;
 
 template <int dim>
 class VelocityInflowBoundaryCondition : public Function<dim>
@@ -72,35 +66,61 @@ public:
 
 namespace DFG
 {
-template <int dim>
-class VelocityInitialCondition : public Function<dim>
-{
-public:
-  VelocityInitialCondition(const double time = 0);
 
-  virtual void vector_value(const Point<dim>  &p,
-                            Vector<double>    &values) const override;
-};
-
+/*!
+ * @class VelocityInflowBoundaryCondition
+ *
+ * @brief The velocity profile at the inlet of the channel.
+ *
+ * @details The velocity profile is given by the following function
+ * \f[
+ * \bs{v}(y)= v_x(y) \ex= v_0 \left(\frac{2}{H}\right)^2 y (H-y) \ex \,,
+ * \f]
+ *
+ * where \f$ H \f$ denotes the height of the channel and \f$ v_0 \f$ is the
+ * maximum velocity in the middle of the channel. Typically, the maximum velocity is
+ * chosen as \f$ v_0=\frac{3}{2} \f$ such that the mean velocity is unity.
+ *
+ */
 template <int dim>
 class VelocityInflowBoundaryCondition : public Function<dim>
 {
-public:
-  VelocityInflowBoundaryCondition(const double time = 0);
 
+public:
+  /*!
+   * Default constructor.
+   */
+  VelocityInflowBoundaryCondition(const double time = 0,
+                                  const double maximum_velocity = 1.5,
+                                  const double height = 0.41);
+
+  /*!
+   * Overloaded method evaluating the function.
+   */
   virtual void vector_value(const Point<dim>  &p,
                             Vector<double>    &values) const override;
+
+private:
+
+  /*!
+   * The maximum velocity at the middle of the channel.
+   */
+  const double maximum_velocity;
+
+  /*!
+   * The height of the channel.
+   */
+  const double height;
+
 };
 
-template <int dim>
-class PressureInitialCondition : public Function<dim>
-{
-public:
-  PressureInitialCondition(const double time = 0);
 
-  virtual double value(const Point<dim> &p,
-                      const unsigned int component = 0) const override;
-};
+template<int dim>
+using VelocityInitialCondition = Functions::ZeroFunction<dim>;
+
+template<int dim>
+using PressureInitialCondition = Functions::ZeroFunction<dim>;
+
 } // namespace DFG
 
 namespace TGV
