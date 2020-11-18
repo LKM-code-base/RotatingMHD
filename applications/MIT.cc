@@ -313,6 +313,8 @@ void Step35<dim>::run()
                    time_stepping.get_end_time()))
       output();
   }
+
+  mit_benchmark.print_data_to_file("MIT_benchmark");
 }
 
 } // namespace RMHD

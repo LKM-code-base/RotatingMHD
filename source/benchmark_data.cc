@@ -218,7 +218,8 @@ pressure(pressure),
 temperature(temperature),
 pressure_differences(3)
 {
-  Assert(velocity.get() != nullptr,
+   AssertDimension(dim, 2); 
+   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
                     " initialized."));
   Assert(pressure.get() != nullptr,
@@ -257,15 +258,92 @@ pressure_differences(3)
       *pcout,
       TimerOutput::summary,
       TimerOutput::wall_times));
+
+  // Setting up columns
+  data.declare_column("time");
+  data.declare_column("velocity_x_1");
+  data.declare_column("temperature_1");
+  data.declare_column("streamfunction_1");
+  data.declare_column("vorticity_1");
+  data.declare_column("skewness");
+  data.declare_column("dpressure_14");
+  data.declare_column("dpressure_51");
+  data.declare_column("dpressure_35");
+  data.declare_column("Nu_left_wall");
+  data.declare_column("Nu_right_wall");
+  data.declare_column("average_velocity_metric");
+  data.declare_column("average_vorticity_metric");
+
+  // Setting all columns to scientific notation
+  data.set_scientific("time", true);
+  data.set_scientific("velocity_x_1", true);
+  data.set_scientific("temperature_1", true);
+  data.set_scientific("streamfunction_1", true);
+  data.set_scientific("vorticity_1", true);
+  data.set_scientific("skewness", true);
+  data.set_scientific("dpressure_14", true);
+  data.set_scientific("dpressure_51", true);
+  data.set_scientific("dpressure_35", true);
+  data.set_scientific("Nu_left_wall", true);
+  data.set_scientific("Nu_right_wall", true);
+  data.set_scientific("average_velocity_metric", true);
+  data.set_scientific("average_vorticity_metric", true);
+
+  // Setting columns' precision
+  data.set_precision("time", 6);
+  data.set_precision("velocity_x_1", 6);
+  data.set_precision("temperature_1", 6);
+  data.set_precision("streamfunction_1", 6);
+  data.set_precision("vorticity_1", 6);
+  data.set_precision("skewness", 6);
+  data.set_precision("dpressure_14", 6);
+  data.set_precision("dpressure_51", 6);
+  data.set_precision("dpressure_35", 6);
+  data.set_precision("Nu_left_wall", 6);
+  data.set_precision("Nu_right_wall", 6);
+  data.set_precision("average_velocity_metric", 6);
+  data.set_precision("average_vorticity_metric", 6);
 }
 
 template <int dim>
 void MIT<dim>::compute_benchmark_data()
 {
+  // Compute benchmark data
   compute_point_data();
   compute_wall_data();
   compute_global_data();
+
+  // Update column's values
+  data.add_value("time", time_stepping.get_current_time());
+  data.add_value("velocity_x_1", velocity_at_p1[0]);
+  data.add_value("temperature_1", temperature_at_p1);
+  data.add_value("streamfunction_1", stream_function_at_p1);
+  data.add_value("vorticity_1", vorticity_at_p1);
+  data.add_value("skewness", skewness_metric);
+  data.add_value("dpressure_14", pressure_differences[0]);
+  data.add_value("dpressure_51", pressure_differences[1]);
+  data.add_value("dpressure_35", pressure_differences[2]);
+  data.add_value("Nu_left_wall", Nusselt_numbers.first);
+  data.add_value("Nu_right_wall", Nusselt_numbers.second);
+  data.add_value("average_velocity_metric", average_velocity_metric);
+  data.add_value("average_vorticity_metric", average_vorticity_metric);
 }
+
+template <int dim>
+void MIT<dim>::print_data_to_file(std::string file_name)
+{
+  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+  {
+    file_name += ".txt";
+
+    std::ofstream file(file_name);
+
+    data.write_text(
+      file,
+      TableHandler::TextOutputFormat::org_mode_table);
+  }
+}
+
 
 template<typename Stream, int dim>
 Stream& operator<<(Stream &stream, const MIT<dim> &mit)
@@ -364,10 +442,10 @@ void MIT<dim>::compute_wall_data()
             // Numerical integration
             for (unsigned int q = 0; q < n_face_q_points; ++q)
               local_boundary_intregral += 
-                face_fe_values.JxW(q) *     // JxW
                 temperature_gradients[q] *  // grad T 
-                normal_vectors[q];          // n
-            
+                normal_vectors[q] *         // n
+                face_fe_values.JxW(q);      // da
+          
             // Add the local boundary integral to the respective
             // global boundary integral
             if (face->boundary_id() == 0)
@@ -382,7 +460,7 @@ void MIT<dim>::compute_wall_data()
   right_boundary_intregral  = Utilities::MPI::sum(right_boundary_intregral, 
                                                   mpi_communicator);
   
-  //Compute the Nusselt numbers
+  //Compute and store the Nusselt numbers of the walls
   Nusselt_numbers = std::make_pair(left_boundary_intregral/8.0,
                                    right_boundary_intregral/8.0);
 }
@@ -392,8 +470,75 @@ void MIT<dim>::compute_global_data()
 {
   TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Global data");
 
+  // Defining the type to contain the vorticity during assembly
+  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+
+  // Initiate the average velocity and vorticity metrics
   average_velocity_metric   = 0.0;
   average_vorticity_metric  = 0.0;
+
+  // Polynomial degree of the integrand    
+  const int p_degree = 2 * velocity->fe_degree;
+
+  // Quadrature formula
+  const QGauss<dim>   quadrature_formula(
+                            std::ceil(0.5 * double(p_degree + 1)));
+
+  // Finite element values
+  FEValues<dim> fe_values(*mapping,
+                          velocity->fe,
+                          quadrature_formula,
+                          update_values |
+                          update_gradients |
+                          update_JxW_values);
+
+  // Number of quadrature points
+  const unsigned int n_q_points = quadrature_formula.size();
+
+  // Vectors to stores the temperature gradients and normal vectors
+  // at the quadrature points
+  std::vector<Tensor<1, dim>> velocity_values(n_q_points);
+  std::vector<CurlType> vorticity_values(n_q_points);
+
+  for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
+    if (cell->is_locally_owned())
+    {
+      // Initialize the finite element values
+      fe_values.reinit(cell);
+
+      // Define the vector extractor
+      const FEValuesExtractors::Vector  velocities(0);
+
+      // Get the velocity and vorticity values at each quadrature
+      // point
+      fe_values[velocities].get_function_values(velocity->solution,
+                                                velocity_values);
+      fe_values[velocities].get_function_curls(velocity->solution,
+                                               vorticity_values);
+
+      // Numerical integration (Loop over all quadrature points)
+      for (unsigned int q = 0; q < n_q_points; ++q)
+      {
+        average_velocity_metric += 
+          velocity_values[q] *  // v
+          velocity_values[q] *  // v
+          fe_values.JxW(q);     // dv
+        average_vorticity_metric +=
+          vorticity_values[q] * // curl v
+          vorticity_values[q] * // curl v
+          fe_values.JxW(q);     // dv
+      }
+    }
+
+  // Gather the values of each processor
+  average_velocity_metric   = Utilities::MPI::sum(average_velocity_metric, 
+                                                  mpi_communicator);
+  average_vorticity_metric  = Utilities::MPI::sum(average_vorticity_metric, 
+                                                  mpi_communicator);
+
+  // Compute the global averages
+  average_velocity_metric   = std::sqrt(average_velocity_metric/8.0);
+  average_vorticity_metric  = std::sqrt(average_vorticity_metric/8.0);
 }
 
 } // namespace BenchmarkData

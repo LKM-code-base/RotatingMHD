@@ -258,8 +258,12 @@ Stream& operator<<(Stream &, const MIT<dim> &);
 
 /*!
  * @class MIT
- * @brief
- * @todo Add details...
+ * @brief A class which computes and contains all the MIT benchmark's data.
+ * @details Furthermore the probed data at the first sample point can
+ * be printed to the terminal through the overloaded stream operator
+ * and the entire data can be printed to a text file.
+ * @todo Compute the stream function and the vorticity at the 
+ * first sample point.
  */ 
 template <int dim>
 class MIT
@@ -284,6 +288,13 @@ public:
    * last computed field variables. 
    */
   void compute_benchmark_data();
+
+  /*!
+   * @brief Outputs the computed benchmark data to a text file in
+   * org mode format.
+   */ 
+  void print_data_to_file(std::string file_name);
+
 
   /*!
    * @brief Output of the benchmark data to the terminal.
@@ -340,38 +351,58 @@ private:
   /*!
    * @brief A vector containing all the points at which data will be
    * sampled.
-   * @todo List points...
+   * @details The points are
+   * \f[
+   * P_1 = (0.1810,\, 7.3700), \quad
+   * P_2 = (0.8190,\, 0.6300), \quad
+   * P_3 = (0.1810,\, 0.6300), \quad
+   * P_4 = (0.8190,\, 7.3700), \quad \textrm{and} \quad
+   * P_5 = (0.1810,\, 4.0000).
+   * \f] 
    */
   std::vector<Point<dim>>                       sample_points;
 
   /*!
    * @brief A vector containing the pertinent pressure differences.
-   * @details Namely, between sample point 1 and 4; 5 and 1; 3 and 5.
+   * @details Defined as
+   * \f[
+   * \Delta p_{ij} = p_i - p_j
+   * \f] 
+   * where the subindices indicate the sample point. The computed 
+   * differences are \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and 
+   * \f$ \Delta p_{35} \f$.
    */
   std::vector<double>                           pressure_differences;
 
   /*!
-   * @brief The velocity vector at the first sample point.
+   * @brief The velocity vector at the sample point \f$ P_1 \f$;.
    */
   Tensor<1,dim>                                 velocity_at_p1;
 
   /*!
-   * @brief The temperature at the first sample point.
+   * @brief The temperature at the sample point \f$ P_1 \f$;.
    */
   double                                        temperature_at_p1;
 
   /*!
-   * @brief The stream function at the first sample point.
+   * @brief The stream function at the sample point \f$ P_1 \f$;.
    */
   double                                        stream_function_at_p1;
 
   /*!
-   * @brief The vorticity norm at the first sample point.
+   * @brief The vorticity norm at the sample point \f$ P_1 \f$;.
    */
   double                                        vorticity_at_p1;
 
   /*!
    * @brief The Nusselt number at the left and right walls.
+   * @details They are given by
+   * \f[
+   * \mathit{Nu}_{0,1} = \dfrac{1}{H} \int_{\Gamma_{0,1}} \nabla \vartheta 
+   * \cdot \bs{n} \dint a
+   * \f]   
+   * where the subindices 0 and 1 indicate the left and right walls 
+   * respectively.
    */
   std::pair<double, double>                     Nusselt_numbers;
 
@@ -380,7 +411,8 @@ private:
    * @details Given by
    * \f[
    * \varepsilon_{12} = \vartheta_1 + \vartheta_2
-   * \f] 
+   * \f]
+   * where the subindices indicate the sample point.
    */
   double                                        skewness_metric;
 
@@ -388,18 +420,23 @@ private:
    * @brief The average velocity metric.
    * @details Given by
    * \f[
-   * \hat{u} = \sqrt{ \dfrac{1}{HW} \int_\Omega \bs{u} \cdot \bs{u} \d v}
+   * \hat{u} = \sqrt{ \dfrac{1}{HW} \int_\Omega \bs{u} \cdot \bs{u} \dint v}
    * \f]   */
   double                                        average_velocity_metric;
 
   /*!
-   * @brief The average velocity metric.
+   * @brief The average vorticity metric.
    * @details Given by
    * \f[
-   * \hat{\omega} = \sqrt{ \dfrac{1}{HW} \int_\Omega \omega^2 \d v}
-   * \f]   */
+   * \hat{\omega} = \sqrt{ \dfrac{1}{HW} \int_\Omega 
+   * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}   * \f]   */
   double                                        average_vorticity_metric;
 
+  /*!
+   * @brief The table which stores all the benchmark data.
+   */ 
+  TableHandler                                  data;
+  
   /*!
    * @brief A method that samples all the point data and computes the
    * pressure differences and skew-symmetrie of the temperature field. 
@@ -407,14 +444,28 @@ private:
   void compute_point_data();
 
   /*!
-   * @brief A method that computes all the Nusselt number of the
+   * @brief A method that computes the Nusselt number of the
    * walls with Dirichlet boundary conditions on the temperature field.
-   */
+   * @details They are given by
+   * \f[
+   * \mathit{Nu}_{0,1} = \dfrac{1}{H} \int_{\Gamma_{0,1}} \nabla \vartheta 
+   * \cdot \bs{n} \dint a
+   * \f]   
+   * where the subindices 0 and 1 indicate the left and right walls 
+   * respectively.
+   * */
   void compute_wall_data();
 
   /*!
    * @brief A method that computes the average velocity and vorticity 
    * metrics.
+   * @details They are given by
+   * \f[
+   * \hat{u} = \sqrt{ \dfrac{1}{HW} \int_\Omega \bs{u} \cdot \bs{u} \dint v}
+   * \quad \textrm{and} \quad
+   * \hat{\omega} = \sqrt{ \dfrac{1}{HW} \int_\Omega 
+   * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}
+   * \f]
    */
   void compute_global_data();
 };
