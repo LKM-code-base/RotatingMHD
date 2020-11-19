@@ -187,21 +187,37 @@ void Step35<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
-  Functions::ZeroFunction<dim> zero_vector_function(dim);
-  Functions::ZeroFunction<dim> zero_scalar_function(1);
+  velocity->set_solution_vectors_to_zero();
+  pressure->set_solution_vectors_to_zero();
+  temperature->set_solution_vectors_to_zero();
 
-  this->set_initial_conditions(velocity, 
-                               zero_vector_function, 
-                               time_stepping);
-  this->set_initial_conditions(pressure,
-                               zero_scalar_function, 
-                               time_stepping);
-  this->set_initial_conditions(temperature,
-                               zero_scalar_function, 
-                               time_stepping);
-  velocity->solution = velocity->old_solution;
-  pressure->solution = pressure->old_solution;
-  temperature->solution = temperature->old_solution;
+  {
+    LinearAlgebra::MPI::Vector        distributed_temperature_vector;
+    #ifdef USE_PETSC_LA
+      distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
+                                            temperature->mpi_communicator);
+    #else
+      distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
+                                            temperature->locally_relevant_dofs,
+                                            temperature->mpi_communicator,
+                                            true);
+    #endif
+
+    LinearAlgebra::MPI::Vector distributed_temperature(distributed_temperature_vector);
+    LinearAlgebra::MPI::Vector distributed_old_temperature(distributed_temperature_vector);
+    LinearAlgebra::MPI::Vector distributed_old_old_temperature(distributed_temperature_vector);
+    distributed_temperature         = temperature->solution;
+    distributed_old_temperature     = temperature->old_solution;
+    distributed_old_old_temperature = temperature->old_old_solution;
+    temperature->constraints.distribute(distributed_temperature);
+    temperature->constraints.distribute(distributed_old_temperature);
+    temperature->constraints.distribute(distributed_old_old_temperature);
+
+    temperature->solution         = distributed_temperature;
+    temperature->old_solution     = distributed_old_temperature;
+    temperature->old_old_solution = distributed_old_old_temperature;
+  }
+
   output();
 }
 
