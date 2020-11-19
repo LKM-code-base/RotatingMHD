@@ -23,7 +23,13 @@
 
 namespace RMHD
 {
-  using namespace dealii;
+
+using namespace dealii;
+
+using namespace EquationData::DFG;
+
+using namespace BenchmarkData;
+
 /*!
  * @class DFG
  *
@@ -287,13 +293,11 @@ private:
 
   NavierStokesProjection<dim>                 navier_stokes;
 
-  BenchmarkData::DFG<dim>                     dfg_benchmark;
+  DFGBechmarkRequest<dim>                     benchmark_request;
 
-  EquationData::DFG::VelocityInitialCondition<dim>         
-                                      velocity_initial_condition;
+  VelocityInitialCondition<dim> velocity_initial_condition;
 
-  EquationData::DFG::PressureInitialCondition<dim>         
-                                      pressure_initial_condition;
+  PressureInitialCondition<dim> pressure_initial_condition;
 
   void make_grid();
 
@@ -314,10 +318,12 @@ template <int dim>
 DFG<dim>::DFG(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
-              parameters.p_fe_degree + 1, this->triangulation)),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
-              parameters.p_fe_degree, this->triangulation)),
+velocity(std::make_shared<Entities::VectorEntity<dim>>
+         (parameters.p_fe_degree + 1,
+          this->triangulation)),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>
+         (parameters.p_fe_degree,
+          this->triangulation)),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
               velocity,
@@ -325,7 +331,7 @@ navier_stokes(parameters,
               time_stepping,
               this->pcout,
               this->computing_timer),
-dfg_benchmark(),
+benchmark_request(),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
@@ -338,11 +344,16 @@ pressure_initial_condition()
 }
 
 template <int dim>
-void DFG<dim>::
-make_grid()
+void DFG<dim>::make_grid()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
+  /*
+   *
+   * SG: Why are we reading the grid from the filesystem? There is a method to
+   * do this! GridGenerator::channel_with_cylinder
+   *
+   */
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(this->triangulation);
 
@@ -384,10 +395,10 @@ void DFG<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.set_dirichlet_bcs(0,
-    std::shared_ptr<Function<dim>> 
-      (new EquationData::DFG::VelocityInflowBoundaryCondition<dim>(
-        this->prm.time_stepping_parameters.start_time)));
+  velocity->boundary_conditions.set_dirichlet_bcs
+  (0,
+   std::make_shared<VelocityInflowBoundaryCondition<dim>>(this->prm.time_stepping_parameters.start_time));
+
   velocity->boundary_conditions.set_dirichlet_bcs(2);
   velocity->boundary_conditions.set_dirichlet_bcs(3);
 
@@ -419,12 +430,11 @@ void DFG<dim>::postprocessing(const bool flag_point_evaluation)
 
   if (flag_point_evaluation)
   {
-    dfg_benchmark.compute_pressure_difference(pressure);
-    dfg_benchmark.compute_drag_and_lift_forces_and_coefficients(
-                                                            velocity,
-                                                            pressure);
-    dfg_benchmark.print_step_data(time_stepping);
-    dfg_benchmark.update_table(time_stepping);
+    benchmark_request.compute_pressure_difference(pressure);
+    benchmark_request.compute_drag_and_lift_coefficients(velocity,
+                                                         pressure);
+    benchmark_request.print_step_data(time_stepping);
+    benchmark_request.update_table(time_stepping);
   }
 }
 
@@ -548,7 +558,7 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
       output();
   }
 
-  dfg_benchmark.write_table_to_file("dfg_benchmark.tex");
+  benchmark_request.write_table_to_file("dfg_benchmark.tex");
 
 }
 
