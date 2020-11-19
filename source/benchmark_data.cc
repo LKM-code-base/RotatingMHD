@@ -424,7 +424,7 @@ void MIT<dim>::compute_wall_data()
   for (const auto &cell : (temperature->dof_handler)->active_cell_iterators())
     if (cell->is_locally_owned() && cell->at_boundary())
       for (const auto &face : cell->face_iterators())
-        if (face->boundary_id() == 0 || face->boundary_id() == 1)
+        if (face->boundary_id() == 1 || face->boundary_id() == 2)
           {
             // Initialize the finite element values
             face_fe_values.reinit(cell, face);

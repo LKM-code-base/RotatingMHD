@@ -55,6 +55,8 @@ private:
 
   BenchmarkData::MIT<dim>                     mit_benchmark;
 
+  bool                                        flag_local_refinement;
+
   void make_grid(const unsigned int n_global_refinements);
 
   void setup_dofs();
@@ -104,7 +106,8 @@ mit_benchmark(velocity,
               time_stepping,
               mapping,
               this->pcout,
-              this->computing_timer)
+              this->computing_timer),
+flag_local_refinement(true)
 {
   make_grid(parameters.n_global_refinements);
   setup_dofs();
@@ -131,6 +134,17 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
   grid_in.read_msh(triangulation_file);
 
   this->triangulation.refine_global(n_global_refinements);
+
+  if (flag_local_refinement)
+  {  
+    for (const auto &cell : this->triangulation.active_cell_iterators())
+      if (cell->is_locally_owned() && cell->at_boundary())
+        for (const auto &face : cell->face_iterators())
+          if (face->boundary_id() == 1 || face->boundary_id() == 2)
+            cell->set_refine_flag();
+
+    this->triangulation.execute_coarsening_and_refinement();
+  }
 
   boundary_ids = this->triangulation.get_boundary_ids();
 
