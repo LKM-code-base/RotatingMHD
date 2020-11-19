@@ -12,11 +12,13 @@
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <iomanip>
@@ -122,16 +124,11 @@ template <int dim>
 void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
-
-  std::vector<unsigned int> repetitions;
-  repetitions.emplace_back(1);
-  repetitions.emplace_back(5);
-
-  GridGenerator::subdivided_hyper_rectangle(this->triangulation,
-                                 repetitions,
-                                 Point<2>(0.0, 0.0),
-                                 Point<2>(1.0, 8.0),
-                                 true);
+  
+  GridIn<dim> grid_in;
+  grid_in.attach_triangulation(this->triangulation);
+  std::ifstream triangulation_file("MIT.msh");
+  grid_in.read_msh(triangulation_file);
 
   this->triangulation.refine_global(n_global_refinements);
 
@@ -168,14 +165,14 @@ void Step35<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.set_dirichlet_bcs(0);
   velocity->boundary_conditions.set_dirichlet_bcs(1);
   velocity->boundary_conditions.set_dirichlet_bcs(2);
   velocity->boundary_conditions.set_dirichlet_bcs(3);
+  velocity->boundary_conditions.set_dirichlet_bcs(4);
   
-  temperature->boundary_conditions.set_dirichlet_bcs(0,
-    std::make_shared<Functions::ConstantFunction<dim>>(0.5));
   temperature->boundary_conditions.set_dirichlet_bcs(1,
+    std::make_shared<Functions::ConstantFunction<dim>>(0.5));
+  temperature->boundary_conditions.set_dirichlet_bcs(2,
     std::make_shared<Functions::ConstantFunction<dim>>(-0.5));
 
   velocity->apply_boundary_conditions();
