@@ -27,117 +27,147 @@ namespace RMHD
 /*!
  * @class DFG
  *
- * @brief This class solves the DFG flow around cylinder benchmark 2D-2, 
- * time-periodic case \f$ \Reynolds=100 \f$.
+ * @brief This class solves the DFG benchmark 2D-2 of the flow around cylinder
+ * which is placed in a channel. This is the time-periodic case with a
+ * Reynolds number of \f$ \Reynolds=100 \f$.
  *
- * @details The DFG benchmark models the flow inside a pipe with a 
- * circular cylinder as obstacle (See Fig ).
+ * @details The DFG benchmark considers the flow of fluid inside a channel with
+ * a cylinder as an obstacle (See Fig. ).
+ *
+ * @todo A figure is missing here.
  *
  *
- * Defintion of the benchmark
- * ========================
+ * **Defintion of the benchmark**
  *
- * The field equations for the
- * problem are given by
+ * The field equations of the problem are given by the incompressible
+ * Navier-Stokes equations
  *
  * \f[
  * \begin{equation*}
  * \begin{aligned}
  *    \pd{\bs{v}}{t} + \bs{v} \cdot
- *    (\nabla \otimes \bs{v})&=  - \dfrac{1}{\rho}\nabla p + \nu
+ *    (\nabla \otimes \bs{v})&=  - \dfrac{1}{\rho_0}\nabla p + \nu
  *    \Delta \bs{v} + \bs{b}, &
- *    \forall (\bs{x}, t) \in \Omega \times \left[0, T \right] \\
+ *    \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]\,, \\
  *    \nabla \cdot \bs{v}&= 0, &
  *    \forall (\bs{x}, t) \in \Omega \times  \left[0, T \right]
  * \end{aligned}
  * \end{equation*}
  * \f]
  *
- * with boundary conditions
+ * with the following boundary conditions
  *
  * \f[
  * \begin{equation*}
  * \begin{aligned}
- *   \bs{v} &= \bs{v}_\text{in},  &\forall(\bs{x}, t)
- *    &\in \Gamma_0 \times [0, T] \\
- *   \bs{v} &= \bs{0}, &\forall(\bs{x}, t)
- *    &\in \Gamma_2 \times [0,T]\\
- *   \bs{v} &= \bs{0}, &\forall(\bs{x}, t)
- *    &\in \Gamma_3 \times [0, T] \\
- *    [-p\bs{1} + \mu \nabla \otimes \bs{v}] \cdot \bs{n}
- *    &=0, &\forall(\bs{x}, t) &\in \Gamma_1 \times [0, T] \\
+ *    \bs{v} &= \bs{v}_\text{in}\,,  &
+ *    \forall(\bs{x}, t) &\in \Gamma_0 \times [0, T]\,, \\
+ *    \bs{v} &= \bs{0}\,, &
+ *    \forall(\bs{x}, t) &\in \Gamma_2 \times [0,T]\,, \\
+ *    \bs{v} &= \bs{0}\,, &
+ *    \forall(\bs{x}, t) &\in \Gamma_3 \times [0, T]\,, \\
+ *    \bs{n} \cdot [-p\bs{1} + \mu \nabla \otimes \bs{v}] &=0\,, &
+ *    \forall(\bs{x}, t) &\in \Gamma_1 \times [0, T]\,.
  * \end{aligned}
  * \end{equation*}
  * \f]
  *
- * where the inflow velocity is given by
- *
- * \f[
- *  \begin{equation*}
- *    \bs{v}_\text{in} = 4v_\text{max}\dfrac{y(H-y)}
- *      {H^2}\ex,
- *     \qquad
- *     v_\text{max} =\frac{3}{2}
- *   \end{equation*}
- * \f]
- *
- * Furthermore is \f$\rho = 1.0\f$ and \f$\nu = 0.001\f$. Taking the mean
- * velocity \f$ \bar{v} = \tfrac{2}{3} \bs{v}_\text{in}|_{(0,0.5H)}
- * \cdot \ex = 1\f$ and the
- * cylinder diameter \f$ D=0.1\f$ as reference velocity and length, the Reynolds
- * number is defined as
+ * The velocity profile at the inlet of the channel is given by a quadratic
+ * function
  *
  * \f[
  * \begin{equation*}
- *    \Reynolds = \frac{\bar{v}D}{\nu} = 100.
+ *    \bs{v}_\text{in} = v_0\left(\frac{2}{H}\right)^2 y(H-y) \ex \quad
+ *    \text{with} \quad v_0 =\frac{3}{2}\frac{\mathrm{m}}{\mathrm{s}}\,.
  * \end{equation*}
  * \f]
  *
- * The benchmarks to reach are the pressure difference
+ * Furthermore, the density is given by \f$\rho_0 = 1\,\mathrm{kg}\,\mathrm{m}^{-3}\f$
+ * and the kinematic viscosity by \f$\nu = 0{.}001\,\mathrm{m}^2\,\mathrm{s}^{-1}\f$.
+ * In order to compute the Reynolds number of the problem, a reference velocity
+ * and a reference length need to be defined. The average of the velocity
+ * at the inlet is chosen as the reference velocity \f$ v_\mathrm{ref} \f$,
+ * *i. e.*,
  *
  * \f[
  * \begin{equation*}
- *    \Delta p = p|_{(0.15,0.2)} - p|_{(0.25,0.2)}
+ *    v_\mathrm{ref} = \frac{1}{H}\int\limits_0^H \bs{v}_\text{in}(y)\cdot\ex
+ *    \dint{y}=\frac{2}{3}v_0=1\frac{\mathrm{m}}{\mathrm{s}}
  * \end{equation*}
  * \f]
  *
- * the lift and drag coefficients,
+ *
+ * Moreover, the diameter of the cylinder is chosen as the reference length,
+ * *i. e.*, \f$ \ell_\mathrm{ref}=D=0{.}1\,\mathrm{m}\f$. These two choice yield
+ * the following definition and value of the Reynolds number of the problem
+ * \f[
+ * \begin{equation*}
+ *    \Reynolds = \frac{v_\mathrm{ref} D}{\nu} = 100.
+ * \end{equation*}
+ * \f]
+ *
+ * **Benchmark requests**
+ *
+ * The DFG benchmark requires to specify the pressure difference between two
+ * points located at the front and the rear of the cylinder, respectively. These
+ * points are located at the following positions
+ * \f$ \bs{x}_\text{front} = 0{.}15\,\mathrm{m}\, \ex + 0.20\,\mathrm{m}\, \ey \f$
+ * and
+ * \f$ \bs{x}_\text{rear} = 0{.}25\,\mathrm{m}\, \ex + 0.20\,\mathrm{m}\, \ey \f$,
+ * respectively. Thus, the pressure difference \f$ \Delta p\f$ is computed
+ * according to
  *
  * \f[
  * \begin{equation*}
- *	c_\text{drag} = \dfrac{2}{\rho\bar{v}^2D} F_\text{drag}\,,\qquad
- *	c_\text{lift} = \dfrac{2}{\rho\bar{v}^2 D} F_\text{lift}\,,
+ *    \Delta p = p|_{\bs{x}_\text{front}} - p|_{\bs{x}_\text{rear}}\,.
  * \end{equation*}
  * \f]
- * where the drag and lift forces are given by
+ *
+ * Additionally, the DFG benchmark request the value of the lift and drag
+ * coefficients, which are defined as
+ *
+ * \f[
+ * \begin{equation*}
+ *    c_\text{drag} = \dfrac{2}{\rho v_\mathrm{ref}^2 D} F_\text{drag}\,,\qquad
+ *    c_\text{lift} = \dfrac{2}{\rho v_\mathrm{ref}^2 D} F_\text{lift}\,.
+ * \end{equation*}
+ * \f]
+ *
+ * Here, \f$ F_\text{drag} \f$ and \f$ F_\text{lift} \f$ refer to the horizontal
+ * and vertical components of the resulting force acting on the cylinder. The
+ * resulting force is computed according to
+ *
  * \f[
  * \begin{equation*}
  *	 \bs{F} = F_\text{drag}\ex +  F_\text{lift}\ey
- *	 = \int\limits_{\Gamma_3} [-p \bs{1} + \mu \nabla \otimes \bs{v}]
- *   \cdot \bs{n} \dint{A}\,.
+ *	 = \int\limits_{\Gamma_3} \bs{\sigma}\cdot \bs{n} \dint{A}
+ *   = \int\limits_{\Gamma_3} \Big(-p \bs{1} + \mu \big(\nabla \otimes \bs{v}
+ *   + \bs{v} \otimes \nabla \big) \Big) \cdot \bs{n} \dint{A}\,.
  * \end{equation*}
  * \f]
  *
- * Defining a cycle by the time between two consecutive 
- * \f$\max(c_\text{lift})\f$ values and denoting it by
- * \f$[t_\text{start}, t_\text{end}]\f$, where the frequency \f$ f =
- * \tfrac{1}{(t_\text{end} - t_\text{start})}\f$, Strouhal number is
- * given by
+ * Another quantity requested is the Strouhal number related to the periodic
+ * oscillation of the flow. This dimesionless number is defined as
  *
  * \f[
  * \begin{equation*}
- *	\text{St} = \dfrac{fD}{\bar{v}}
+ *   \Strouhal = \dfrac{f D}{v_\mathrm{ref}}\,,
  * \end{equation*}
  * \f]
  *
- * Additionally the minimum, average and amplitude of the 
- * coefficients are to be computed for whole cycle.
+ * where \f$ f \f$ denotes the frequency of the oscillation. This frequency is
+ * the reciprocal of the time period \f$ T \f$ of the oscillation, *i. e.*,
+ * \f$ f = 1/ T \f$. The period of the oscillation is computed by considering
+ * two consecutive maximum values of the lift and drag coefficients. Taking the
+ * time difference between these yields the time period of the oscillation.
+ * Additionally the minimum, the average and the amplitude of the lift and drag
+ * coefficients are also computed.
  *
- * Dimensionless formulation of the benchmark
- * ========================
- * The NavierStokesProjection classs is based on the dimensionless 
+ * **Dimensionless formulation of the benchmark**
+ *
+ * The @ref NavierStokesProjection class is based on the dimensionless
  * form of the Navier-Stokes equations. Therefore, the benchmark has to
- * be reformulated into its dimensionless form:
+ * be reformulated into its dimensionless form as follows
  *
  * \f[
  * \begin{equation*}
@@ -154,93 +184,88 @@ namespace RMHD
  * \end{equation*}
  * \f]
  *
- * with boundary conditions
+ * with the following boundary conditions
  *
  * \f[
  * \begin{equation*}
- * 	\begin{aligned}
- * 		\tilde{\bs{v}} &= \tilde{\bs{v}}_\text{in}\,, &
- * 		\forall(\bs{x}, t) &\in \Gamma_0 \times [0, T] \\
- * 		\tilde{\bs{v}} &= \bs{0}\,, &
+ * \begin{aligned}
+ *    \tilde{\bs{v}} &= \tilde{\bs{v}}_\text{in}\,, &
+ *    \forall(\bs{x}, t) &\in \Gamma_0 \times [0, T] \\
+ *    \tilde{\bs{v}} &= \bs{0}\,, &
  * 		\forall(\bs{x}, t) &\in \Gamma_2 \times [0,T]\\
- * 		\tilde{\bs{v}} &= \bs{0}, &
+ * 	  \tilde{\bs{v}} &= \bs{0}, &
  * 		\forall(\bs{x}, t) &\in \Gamma_3 \times [0, T] \\
- * 		[-\tilde{p}\bs{1} + \tfrac{1}{\Reynolds}\tilde{\nabla}
- *    \otimes \tilde{\bs{v}}] \cdot \bs{n} &=0, &
+ * 	  \bs{n}\cdot [-\tilde{p}\bs{1} + \tfrac{1}{\Reynolds}\tilde{\nabla}
+ *    \otimes \tilde{\bs{v}}] &=0, &
  *    \forall(\bs{x}, t) &\in \Gamma_1 \times [0, T] \\
  * 	\end{aligned}
  * \end{equation*}
  * \f]
  *
- * The inflow velocity is given by
+ * The dimensionless velocity profile at the inlet of channel is then given by
  *
  * \f[
  * \begin{equation*}
- * 	\tilde{\bs{v}}_\text{in} = 4\dfrac{v_0}{\bar{v}}
- *  \dfrac{\tilde{y}(\tilde{H}-\tilde{y})}{\tilde{H}^2}\ex \,,
- * 	\qquad
- * 	v_0 = \frac{3}{2}\,.
+ *    \tilde{\bs{v}}_\text{in} = \tilde{v}_0 \left(\frac{2}{\tilde{H}}\right)^2
+ *    \tilde{y}(\tilde{H}-\tilde{y}) \ex \,, \quad
+ *    \text{with}\quad
+ * 	  \tilde{v}_0=\frac{3}{2}\,.
  * \end{equation*}
  * \f]
  *
- * The computed variables need to be scaled back in order for them to 
- * be compared with those from the benchmark. The pressure difference
- * is scaled by
+ * The benchmark requests are computed in dimensionless form. In order to compare
+ * with those of the DFG benchmark, they need to be scaled back. The reference
+ * pressure is given by the dynamic pressure, *i. e.*,
+ * \f$ p_\mathrm{ref}=\rho_0 v_\mathrm{ref}^2
+ * = 1\,\mathrm{kg}\,\mathrm{m}^{-1}\,\mathrm{s}^{-2} \f$. Thus, the numerical
+ * values of the dimensionless and dimensioned pressure are equal. Of course,
+ * the same also applies for the pressure differences requested by the DFG
+ * benchmark. They are interchangeable.
+ *
+ * The reference value of the force is \f$ F_\mathrm{ref}=\rho_0
+ * v_\mathrm{ref}^2 D^2\f$. Thus the dimensionless resulting force is given by
  *
  * \f[
  * \begin{equation*}
- *    \Delta p = \hat{p} \Delta \tilde{p},
+ *    \tilde{\bs{F}} = \frac{1}{\rho_0 v_\mathrm{ref}^2 D^2}
+ * 	  \int_{\tilde{\Gamma}_3} \Big(-p\bs{1}
+ *    + \nu \big( \nabla \otimes \bs{v} + \bs{v} \otimes \nabla\big)
+ *    \Big) \cdot \bs{n} \dint{A}
+ *    = \int_{\tilde{\Gamma}_3} \Big(-\tilde{p}\bs{1}
+ *    + \tfrac{1}{\Reynolds} \big( \tilde{\nabla} \otimes \tilde{\bs{v}} +
+ *    \tilde{\bs{v}} \otimes \tilde{\nabla} \big) \Big) \cdot \bs{n} \dint{\tilde{A}}\,.
  * \end{equation*}
  * \f]
  *
- * but since \f$\hat{p} = 1 \f$, they are interchangeable. The dimensionless form
- * of the force is given by
+ * With this formula for the dimensionless force, it is easy to see that the
+ * coefficients are given by
  *
  * \f[
  * \begin{equation*}
- * 	\tilde{\bs{F}} = \frac{\hat{p}D}{\hat{F}}
- * 	\int_{\tilde{\Gamma}_3} [-\tilde{p}\bs{1}
- *  + \tfrac{1}{\Reynolds} \tilde{\nabla} \otimes \tilde{\bs{v}}]
- *  \cdot \bs{n} \dint{A}
+ *    c_\text{drag} = 2 \tilde{F}_\text{drag}\,,\qquad
+ *    c_\text{lift} = 2 \tilde{F}_\text{lift}\,.
  * \end{equation*}
  * \f]
  *
- * from which it is easy to see that the coefficients are equivalent to
+ * The frequency is scaled back with the reference time \f$ t_\mathrm{ref} \f$.
+ * Hence,
  *
  * \f[
  * \begin{equation*}
- * 	c_\text{drag} = 2 \tilde{F}_\text{drag}
- * 	\qquad
- * 	c_\text{lift} = 2 \tilde{F}_\text{lift}.
+ * 	  f = \frac{1}{t_\mathrm{ref}} \tilde{f}
  * \end{equation*}
  * \f]
  *
- * The frequency is scaled back with
+ * Since the reference time is given by \f$ t_\mathrm{ref} = D / v_\mathrm{ref}\f$,
+ * the Strouhal number may also expressed in terms of the dimesionless frequency
+ * as follows
  *
  * \f[
  * \begin{equation*}
- * 	   f = \frac{1}{\hat{t}} \tilde{f}
+ *    \text{St} = \tilde{f}\,.s
  * \end{equation*}
  * \f]
  *
- * from which it is easy to see that 
- *
- * \f[
- * \begin{equation*}
- *    \text{St} = \tilde{f}
- * \end{equation*}
- * \f]
- *
- * @attention Due to the formulation of the NavierStokesProjection class
- * the force around the cylinder is computed by @ref BenchmarkData::DFG  as
- *
- * \f[
- * \begin{equation*}
- *    \tilde{\bs{F}} = \int_{\tilde{\Gamma}_3} \bigg[-\tilde{p}\bs{1}
- *    + \frac{1}{\Reynolds}(\tilde{\nabla} \otimes \tilde{\bs{v}}
- *    + \tilde{\bs{v}} \otimes \tilde{\nabla})] \cdot \bs{n} \dint{A}\,.
- * \end{equation*}
- * \f]
  */  
 template <int dim>
 class DFG : public Problem<dim>

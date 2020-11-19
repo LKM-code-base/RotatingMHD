@@ -31,6 +31,7 @@ MathJax.Hub.Config({
             Euler: ["\\mathit \{ Eu\}"],
             Froude: ["\\mathit \{ Fr\}"],
             Ekman: ["\\mathit \{ Ro\}"],
+            Strouhal: ["\\mathit \{ St\}"],
 
             p: ["\\partial"],
             dd: ["\\frac{\\mathrm{d} #1 \} \{ \\mathrm{d} #2 \}", 2],
