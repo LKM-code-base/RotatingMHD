@@ -108,7 +108,7 @@ using namespace BenchmarkData;
  * the following definition and value of the Reynolds number of the problem
  * \f[
  * \begin{equation*}
- *    \Reynolds = \frac{v_\mathrm{ref} D}{\nu} = 100.
+ *    \Reynolds = \frac{v_\mathrm{ref} D}{\nu} = 100\,.
  * \end{equation*}
  * \f]
  *
@@ -268,7 +268,7 @@ using namespace BenchmarkData;
  *
  * \f[
  * \begin{equation*}
- *    \text{St} = \tilde{f}\,.s
+ *    \Strouhal = \tilde{f}\,.s
  * \end{equation*}
  * \f]
  *

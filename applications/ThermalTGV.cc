@@ -80,8 +80,12 @@ ThermalTGV<dim>::ThermalTGV(
 :
 Problem<dim>(parameters),
 outputFile("ThermalTGV_Log.csv"),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(parameters.temperature_fe_degree, this->triangulation)),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1, this->triangulation)),
+temperature(std::make_shared<Entities::ScalarEntity<dim>>(parameters.temperature_fe_degree, 
+                                                          this->triangulation,
+                                                          "Temperature")),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+                                                       this->triangulation,
+                                                       "Velocity")),
 time_stepping(parameters.time_stepping_parameters),
 exact_solution(parameters.Pe,
                parameters.time_stepping_parameters.start_time),
@@ -97,7 +101,7 @@ heat_equation(parameters,
               mapping,
               this->pcout,
               this->computing_timer),
-convergence_table(temperature, exact_solution, "Temperature")
+convergence_table(temperature, exact_solution)
 {
 outputFile << "Step" << "," << "Time" << ","
            << "Norm_diffusion" << "," << "Norm_projection"
@@ -367,14 +371,16 @@ void ThermalTGV<dim>::run(const bool flag_convergence_test)
     }
   }
 
-  std::string tablefilename = (this->prm.flag_spatial_convergence_test) ?
+  std::ostringstream tablefilename;
+  tablefilename << ((this->prm.flag_spatial_convergence_test) ?
                               "ThermalTGVSpatialTest" : 
-                              "ThermalTGVTemporalTest_Level" + 
-                              std::to_string(this->prm.initial_refinement_level);
-  tablefilename += "_Pr" + std::to_string((int)this->prm.Pe);
+                              "ThermalTGVTemporalTest_Level")
+                << this->prm.initial_refinement_level
+                << "_Pe"
+                << this->prm.Pe;
 
-  convergence_table.print_table_to_terminal();
-  convergence_table.print_table_to_file(tablefilename);
+  *this->pcout << convergence_table;
+  convergence_table.write_text(tablefilename.str());
 }
 
 } // namespace RMHD
