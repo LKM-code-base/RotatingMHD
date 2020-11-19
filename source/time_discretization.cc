@@ -3,6 +3,7 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/conditional_ostream.h>
 
+#include <functional>
 #include <fstream>
 #include <ostream>
 
@@ -193,26 +194,48 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
 }
 
 template<typename Stream>
-void TimeSteppingParameters::write(Stream &stream) const
+Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm)
 {
-  stream << "Time stepping parameters" << std::endl
-         << "   imex_scheme: ";
-  switch (vsimex_scheme)
+  const size_t column_width[2] =
+      {
+          std::string("----------------------------------").size(),
+          std::string("-------------------").size()
+      };
+  const std::string header("+-----------------------------------+--------------------+");
+
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header.c_str() << std::endl;
+
+  add_line("Timestepping parameters","");
+
+  std::string vsimex_scheme;
+  switch (prm.vsimex_scheme)
   {
-  case VSIMEXScheme::ForwardEuler:
-       stream << "Euler" << std::endl;
+    case VSIMEXScheme::ForwardEuler:
+      vsimex_scheme = "Euler";
       break;
-  case VSIMEXScheme::CNAB:
-      stream << "CNAB" << std::endl;
+    case VSIMEXScheme::CNAB:
+      vsimex_scheme = "CNAB";
       break;
-  case VSIMEXScheme::mCNAB:
-      stream << "MCNAB" << std::endl;
+    case VSIMEXScheme::mCNAB:
+      vsimex_scheme = "mCNAB";
       break;
-  case VSIMEXScheme::CNLF:
-      stream << "CNLF" << std::endl;
+    case VSIMEXScheme::CNLF:
+      vsimex_scheme = "CNLF";
       break;
   case VSIMEXScheme::BDF2:
-      stream << "BDF2" << std::endl;
+      vsimex_scheme = "BDF2";
       break;
   default:
     AssertThrow(false,
@@ -220,15 +243,22 @@ void TimeSteppingParameters::write(Stream &stream) const
                            "interpreted."));
     break;
   }
-  stream << "   n_maximum_steps: " << n_maximum_steps << std::endl
-         << "   adaptive_timestep: " << (adaptive_time_stepping? "true": "false") << std::endl
-         << "   adaptive_timestep_barrier: " << adaptive_time_step_barrier << std::endl
-         << "   initial_timestep: " << initial_time_step << std::endl
-         << "   minimum_timestep: " << minimum_time_step << std::endl
-         << "   maximum_timestep: " << maximum_time_step << std::endl
-         << "   start_time: " << start_time << std::endl
-         << "   final_time: " << final_time << std::endl
-         << "   verbose: " << (verbose? "true": "false") << std::endl;
+  add_line("IMEX scheme", vsimex_scheme);
+
+  add_line("Maximum number of time steps", prm.n_maximum_steps);
+  add_line("Adaptive timestepping", (prm.adaptive_time_stepping? "true": "false"));
+  if (prm.adaptive_time_stepping)
+    add_line("Adaptive timestepping barrier", prm.adaptive_time_step_barrier);
+  add_line("Initial time step", prm.initial_time_step);
+  add_line("Minimum time step", prm.minimum_time_step);
+  add_line("Maximum time step", prm.maximum_time_step);
+  add_line("Start time", prm.start_time);
+  add_line("Final time", prm.final_time);
+  add_line("Verbose", (prm.verbose? "true": "false"));
+
+  stream << header.c_str() << std::endl;
+
+  return (stream);
 }
 
 void VSIMEXMethod::reinit()
@@ -243,16 +273,16 @@ void VSIMEXMethod::reinit()
   double old_alpha_zero_init_value;
   switch (order)
   {
-  case 1:
-    old_alpha_zero_init_value = 1.0;
-    break;
-  case 2:
-    old_alpha_zero_init_value = (1.0 + 2.0 * vsimex_parameters[0])/2.0 ;
-    break;
-  default:
-    Assert(false,
-    ExcMessage("The order is not implemented in the reinit method."));
-    break;
+    case 1:
+      old_alpha_zero_init_value = 1.0;
+      break;
+    case 2:
+      old_alpha_zero_init_value = (1.0 + 2.0 * vsimex_parameters[0])/2.0 ;
+      break;
+    default:
+      Assert(false,
+             ExcMessage("The order is not implemented in the reinit method."));
+      break;
   } 
   old_alpha_zero.resize(order, old_alpha_zero_init_value);
   alpha[0] = old_alpha_zero_init_value;
@@ -262,15 +292,17 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
 {
   stream << "Step = "
+         << std::right
          << std::setw(6)
          << vsimex.get_step_number()
          << ","
-         << " Time = "
-         << std::noshowpos << std::scientific
+         << std::left
+         << " Current time = "
+         << std::scientific
          << vsimex.get_current_time()
          << ","
-         << " Time step = "
-         << std::showpos << std::scientific
+         << " Next time step = "
+         << std::scientific
          << vsimex.get_next_step_size();
 
   return stream;
@@ -566,8 +598,10 @@ void VSIMEXMethod::update_coefficients()
 } // namespace RMHD
 
 // explicit instantiations
-template void RMHD::TimeDiscretization::TimeSteppingParameters::write(std::ostream &) const;
-template void RMHD::TimeDiscretization::TimeSteppingParameters::write(dealii::ConditionalOStream &) const;
+template std::ostream & RMHD::TimeDiscretization::operator<<
+(std::ostream &, const RMHD::TimeDiscretization::TimeSteppingParameters &);
+template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
+(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::TimeSteppingParameters &);
 
 template std::ostream & RMHD::TimeDiscretization::operator<<
 (std::ostream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
