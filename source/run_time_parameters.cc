@@ -341,6 +341,107 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
          ExcLowerRange(adaptive_meshing_interval, 0));
 }
 
+LinearSolverParameters::LinearSolverParameters()
+:
+relative_tolerance(1e-6),
+absolute_tolerance(1e-9),
+n_maximum_iterations(50)
+{}
+
+LinearSolverParameters::LinearSolverParameters
+(const std::string &parameter_filename)
+:
+LinearSolverParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+void LinearSolverParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.declare_entry("Maximum number of iterations",
+                    "50",
+                    Patterns::Integer(1));
+
+  prm.declare_entry("Relative tolerance",
+                    "1e-6",
+                    Patterns::Double());
+
+  prm.declare_entry("Absolute tolerance",
+                    "1e-9",
+                    Patterns::Double());
+}
+
+void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
+{
+  n_maximum_iterations = prm.get_integer("Maximum number of iterations");
+
+  relative_tolerance = prm.get_double("Relative tolerance");
+
+  absolute_tolerance = prm.get_double("Absolute tolerance");
+}
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
+{
+  const size_t column_width[2] =
+      {
+          std::string("----------------------------------").size(),
+          std::string("-------------------").size()
+      };
+  const char header[] = "+-----------------------------------+--------------------+";
+
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  add_line("Linear solver parameters","");
+
+  stream << header << std::endl;
+
+  add_line("Maximum number of iterations", prm.n_maximum_iterations);
+  add_line("Relative tolerance", prm.relative_tolerance);
+  add_line("Absolute tolerance", prm.absolute_tolerance);
+
+  stream << header << std::endl;
+
+  return (stream);
+}
+
 } // namespace RunTimeParameters
   
 } // namespace RMHD

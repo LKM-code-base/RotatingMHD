@@ -201,7 +201,7 @@ Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm)
           std::string("----------------------------------").size(),
           std::string("-------------------").size()
       };
-  const std::string header("+-----------------------------------+--------------------+");
+  const char header[] ="+-----------------------------------+--------------------+";
 
   auto add_line = [&]
                   (const char first_column[],
@@ -215,9 +215,11 @@ Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm)
              << std::endl;
     };
 
-  stream << std::left << header.c_str() << std::endl;
+  stream << std::left << header << std::endl;
 
   add_line("Timestepping parameters","");
+
+  stream << header << std::endl;
 
   std::string vsimex_scheme;
   switch (prm.vsimex_scheme)
@@ -256,7 +258,7 @@ Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm)
   add_line("Final time", prm.final_time);
   add_line("Verbose", (prm.verbose? "true": "false"));
 
-  stream << header.c_str() << std::endl;
+  stream << header << std::endl;
 
   return (stream);
 }

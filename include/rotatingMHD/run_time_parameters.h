@@ -98,6 +98,99 @@ struct ParameterSet
   double              time_step_scaling_factor;
 };
 
+
+/*!
+ * @struct LinearSolverParameters
+ *
+ * @brief A structure containing all parameters relevant for the solution of
+ * linear systems using a Krylov subspace method.
+ */
+struct  LinearSolverParameters
+{
+  /*!
+   * Constructor which sets up the parameters with default values.
+   */
+  LinearSolverParameters();
+
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  LinearSolverParameters(const std::string &parameter_filename);
+
+  /*!
+   * Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
+
+
+  /*!
+   * @brief Relative tolerance.
+   *
+   * @details This parameter specifies the desired relative reduction of the
+   * initial residual of the linear system. The initial residual is given by
+   *
+   * \f[
+   *    r_0=|\!| \mathbf{A}\cdot\mathbf{x}_0-\mathbf{b}|\!|_2\,.
+   * \f]
+   *
+   * If the relative tolerance is applied, the final solution of the linear
+   * system is such that
+   *
+   * \f[
+   *    |\!| \mathbf{A}\cdot\mathbf{x}-\mathbf{b}|\!|_2\leq\mathrm{tol}\,r_0\,.
+   * \f]
+   *
+   */
+  double  relative_tolerance;
+
+  /*!
+   * @brief Absolute tolerance.
+   *
+   * @details This parameter specifies the desired absolute value of the
+   * residual of the linear system.
+   *
+   * If the absolute tolerance is applied, the final solution of the linear
+   * system is such that
+   *
+   * \f[
+   *    |\!| \mathbf{A}\cdot\mathbf{x}-\mathbf{b}|\!|_2\leq\mathrm{tol}\,.
+   * \f]
+   *
+   */
+  double  absolute_tolerance;
+
+  /*!
+   * @brief Maximum number of iterations to be performed by the linear solver.
+   *
+   * @details If the tolerance is fulfilled within the maximum number of
+   * iterations, an error is thrown and the simulation is aborted. In this case,
+   * the preconditioner might require some optimization.
+   *
+   */
+  unsigned int  n_maximum_iterations;
+};
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
+
 } // namespace RunTimeParameters
 
 } // namespace RMHD
