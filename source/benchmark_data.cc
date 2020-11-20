@@ -448,7 +448,7 @@ void MIT<dim>::compute_wall_data()
           
             // Add the local boundary integral to the respective
             // global boundary integral
-            if (face->boundary_id() == 0)
+            if (face->boundary_id() == 1)
               left_boundary_intregral   += local_boundary_intregral;
             else
               right_boundary_intregral  += local_boundary_intregral;

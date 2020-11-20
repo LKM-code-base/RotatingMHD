@@ -142,7 +142,7 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
   {
     prm.declare_entry("n_maximum_iterations",
                       "1000",
-                      Patterns::Integer(1, 1000),
+                      Patterns::Integer(1, 10000),
                       "Maximum number of iterations done of diffusion-step "
                       "solver.");
 
