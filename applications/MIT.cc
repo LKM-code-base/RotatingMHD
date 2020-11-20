@@ -28,16 +28,17 @@ namespace RMHD
 using namespace dealii;
 
 template <int dim>
-class Step35 : public Problem<dim>
+class MITBenchmark : public Problem<dim>
 {
 public:
-  Step35(const RunTimeParameters::ParameterSet &parameters);
+  MITBenchmark(const RunTimeParameters::ParameterSet &parameters);
 
   void run();
-private:
-  const RunTimeParameters::ParameterSet       &params;
 
-  std::vector<types::boundary_id>             boundary_ids;
+private:
+  const RunTimeParameters::ParameterSet         &params;
+
+  std::vector<types::boundary_id>               boundary_ids;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
@@ -45,32 +46,38 @@ private:
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
 
-  TimeDiscretization::VSIMEXMethod            time_stepping;
+  std::shared_ptr<EquationData::MIT::TemperatureBoundaryCondition<dim>>
+                                                temperature_boundary_conditions;
 
-  std::shared_ptr<Mapping<dim>>               mapping;
+  TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  NavierStokesProjection<dim>                 navier_stokes;
+  std::shared_ptr<Mapping<dim>>                 mapping;
+
+  NavierStokesProjection<dim>                   navier_stokes;
   
-  HeatEquation<dim>                           heat_equation;
+  HeatEquation<dim>                             heat_equation;
 
-  BenchmarkData::MIT<dim>                     mit_benchmark;
+  BenchmarkData::MIT<dim>                       mit_benchmark;
 
-  bool                                        flag_local_refinement;
+  bool                                          flag_local_refinement;
 
   void make_grid(const unsigned int n_global_refinements);
-
+  
   void setup_dofs();
 
   void setup_constraints();
-
+  
   void initialize();
+  
   void postprocessing();
+  
   void output();
+  
   void update_solution_vectors();
 };
 
 template <int dim>
-Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
+MITBenchmark<dim>::MITBenchmark(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
 params(parameters),
@@ -83,7 +90,12 @@ pressure(std::make_shared<Entities::ScalarEntity<dim>>(
 temperature(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.temperature_fe_degree, 
               this->triangulation)),
+temperature_boundary_conditions(
+              std::make_shared<EquationData::MIT::TemperatureBoundaryCondition<dim>>(
+              parameters.time_stepping_parameters.start_time)),
 time_stepping(parameters.time_stepping_parameters),
+// The domain does not have any curved boundary, so a linear mapping
+// is sufficient.
 mapping(new MappingQ<dim>(1)),
 navier_stokes(parameters,
               time_stepping,
@@ -109,6 +121,7 @@ mit_benchmark(velocity,
               this->computing_timer),
 flag_local_refinement(true)
 {
+  AssertDimension(dim, 2);
   make_grid(parameters.n_global_refinements);
   setup_dofs();
   setup_constraints();
@@ -117,6 +130,7 @@ flag_local_refinement(true)
   temperature->reinit();
   initialize();
 
+  // Stores all the fields to the SolutionTransfor container
   this->container.add_entity(velocity);
   this->container.add_entity(pressure, false);
   this->container.add_entity(navier_stokes.phi, false);
@@ -124,17 +138,21 @@ flag_local_refinement(true)
 }
 
 template <int dim>
-void Step35<dim>::make_grid(const unsigned int n_global_refinements)
+void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
-  
+
+  // Reads the structured mesh done in gmsh.
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(this->triangulation);
   std::ifstream triangulation_file("MIT.msh");
   grid_in.read_msh(triangulation_file);
 
+  // Performs global refinements
   this->triangulation.refine_global(n_global_refinements);
 
+  // Performs a one level local refinement of the cells located at the
+  // side walls
   if (flag_local_refinement)
   {  
     for (const auto &cell : this->triangulation.active_cell_iterators())
@@ -155,10 +173,12 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 }
 
 template <int dim>
-void Step35<dim>::setup_dofs()
+void MITBenchmark<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
+  // Sets up the locally owned and relevant degrees of freedom of each
+  // field.
   velocity->setup_dofs();
   pressure->setup_dofs();
   temperature->setup_dofs();
@@ -175,19 +195,29 @@ void Step35<dim>::setup_dofs()
 }
 
 template <int dim>
-void Step35<dim>::setup_constraints()
+void MITBenchmark<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
+  // Homogeneous Dirichlet boundary conditions over the whole boundary
+  // for the velocity field.
   velocity->boundary_conditions.set_dirichlet_bcs(1);
   velocity->boundary_conditions.set_dirichlet_bcs(2);
   velocity->boundary_conditions.set_dirichlet_bcs(3);
   velocity->boundary_conditions.set_dirichlet_bcs(4);
   
+  // The pressure itself has no boundary conditions. The Navier-Stokes
+  // solver will constrain by setting its mean value to zero.
+
+  // Inhomogeneous time dependent Dirichlet boundary conditions over 
+  // the side walls and homogeneous Neumann boundary conditions over 
+  //the bottom and top walls for the temperature field.
   temperature->boundary_conditions.set_dirichlet_bcs(1,
-    std::make_shared<Functions::ConstantFunction<dim>>(0.5));
+    temperature_boundary_conditions, true
+    /*std::make_shared<Functions::ConstantFunction<dim>>(0.5)*/);
   temperature->boundary_conditions.set_dirichlet_bcs(2,
-    std::make_shared<Functions::ConstantFunction<dim>>(-0.5));
+    temperature_boundary_conditions, true
+    /*std::make_shared<Functions::ConstantFunction<dim>>(-0.5)*/);
 
   velocity->apply_boundary_conditions();
 
@@ -197,49 +227,70 @@ void Step35<dim>::setup_constraints()
 }
 
 template <int dim>
-void Step35<dim>::initialize()
+void MITBenchmark<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
+  // Due to the homogeneous boundary conditions of the velocity, one may
+  // directly set the solution vectors to zero instead of projecting.
   velocity->set_solution_vectors_to_zero();
   pressure->set_solution_vectors_to_zero();
-  temperature->set_solution_vectors_to_zero();
+
+  // The temperature's boundary conditions and its zero scalar field as
+  // initial condition allows one to avoid a projection
+  // by just distributing the constraints to the zero'ed out vector.
+  // Attention: As a quick fix I perform the same operation for the
+  // old_solution too, until I write the initialize method for the
+  // heat equation.
+  
+    temperature->set_solution_vectors_to_zero();
+  
+  LinearAlgebra::MPI::Vector  distributed_temperature_vector;
+  #ifdef USE_PETSC_LA
+    distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
+                                          temperature->mpi_communicator);
+  #else
+    distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
+                                          temperature->locally_relevant_dofs,
+                                          temperature->mpi_communicator,
+                                          true);
+  #endif
 
   {
-    LinearAlgebra::MPI::Vector        distributed_temperature_vector;
-    #ifdef USE_PETSC_LA
-      distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
-                                            temperature->mpi_communicator);
-    #else
-      distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
-                                            temperature->locally_relevant_dofs,
-                                            temperature->mpi_communicator,
-                                            true);
-    #endif
-
-    LinearAlgebra::MPI::Vector distributed_temperature(distributed_temperature_vector);
     LinearAlgebra::MPI::Vector distributed_old_temperature(distributed_temperature_vector);
     LinearAlgebra::MPI::Vector distributed_old_old_temperature(distributed_temperature_vector);
-    distributed_temperature         = temperature->solution;
+    
     distributed_old_temperature     = temperature->old_solution;
     distributed_old_old_temperature = temperature->old_old_solution;
-    temperature->constraints.distribute(distributed_temperature);
-    temperature->constraints.distribute(distributed_old_temperature);
+    
     temperature->constraints.distribute(distributed_old_old_temperature);
 
-    temperature->solution         = distributed_temperature;
+    temperature->boundary_conditions.set_time(time_stepping.get_next_time());
+    temperature->update_boundary_conditions();
+
+    temperature->constraints.distribute(distributed_old_temperature);
+
     temperature->old_solution     = distributed_old_temperature;
     temperature->old_old_solution = distributed_old_old_temperature;
   }
 
+  // heat_equation.initialize();
+  // navier_stokes.initialize();
+
+  // Outputs the initial conditions
+  temperature->solution = temperature->old_old_solution;
+  output();
+  temperature->solution = temperature->old_solution;
   output();
 }
 
 template <int dim>
-void Step35<dim>::postprocessing()
+void MITBenchmark<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
+  // Computes all the benchmark's data. See documentation of the
+  // class for further information.
   mit_benchmark.compute_benchmark_data();
 
   std::cout.precision(1);
@@ -262,14 +313,17 @@ void Step35<dim>::postprocessing()
 }
 
 template <int dim>
-void Step35<dim>::output()
+void MITBenchmark<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
+  // Explicit declaration of the velocity as a vector
   std::vector<std::string> names(dim, "velocity");
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
+  
+  // Loading the DataOut instance with the solution vectors
   DataOut<dim>        data_out;
   data_out.add_data_vector(*velocity->dof_handler,
                            velocity->solution,
@@ -281,8 +335,16 @@ void Step35<dim>::output()
   data_out.add_data_vector(*temperature->dof_handler, 
                            temperature->solution, 
                            "Temperature");
+
+  // To properly showcase the velocity field (whose k-th order finite
+  // elements are one order higher than those of the pressure field), 
+  // the k-th order elements are interpolated to four (k-1)-th order
+  // elements. In other words, the triangulation visualized in the 
+  // *.pvtu file is one globl refinement finer than the actual
+  // triangulation.
   data_out.build_patches(velocity->fe_degree);
-  
+
+  // Writes the DataOut instance to the file.
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record("./",
                                       "solution",
@@ -293,16 +355,18 @@ void Step35<dim>::output()
 }
 
 template <int dim>
-void Step35<dim>::update_solution_vectors()
+void MITBenchmark<dim>::update_solution_vectors()
 {
+  // Sets the solution vectors at t^{k-j} to those at t^{k-j+1}
   velocity->update_solution_vectors();
   pressure->update_solution_vectors();
   temperature->update_solution_vectors();
 }
 
 template <int dim>
-void Step35<dim>::run()
+void MITBenchmark<dim>::run()
 {
+  // Advances the time to t^{k-1}
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
@@ -319,21 +383,27 @@ void Step35<dim>::run()
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
+    // Updates the functions and constraints to t^{k}
+    temperature->boundary_conditions.set_time(time_stepping.get_next_time());
+    temperature->update_boundary_conditions();
+
     // Solves the system, i.e. computes the fields at t^{k}
-    navier_stokes.solve();
     heat_equation.solve();
+    navier_stokes.solve();
 
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
 
-    // Snapshot stage
+    // Performs post-processing
     postprocessing();
 
+    // Performs coarsening and refining of the triangulation
     if (time_stepping.get_step_number() % 
         this->prm.adaptive_meshing_interval == 0)
       this->adaptive_mesh_refinement();
 
+    // Graphical output of the solution vectors
     if ((time_stepping.get_step_number() % 
           this->prm.graphical_output_interval == 0) ||
         (time_stepping.get_current_time() == 
@@ -341,6 +411,7 @@ void Step35<dim>::run()
       output();
   }
 
+  // Prints the benchmark's data to the .txt file.
   mit_benchmark.print_data_to_file("MIT_benchmark");
 }
 
@@ -358,7 +429,7 @@ int main(int argc, char *argv[])
 
       RunTimeParameters::ParameterSet parameter_set("MIT.prm");
 
-      Step35<2> simulation(parameter_set);
+      MITBenchmark<2> simulation(parameter_set);
       simulation.run();
 
       std::cout.precision(1);

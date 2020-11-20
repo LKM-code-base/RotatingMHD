@@ -27,7 +27,7 @@ subsection Parameters of the diffusion-step solver
   set gmres_restart_parameter         = 30
 
   # Maximum number of iterations done of diffusion-step solver.
-  set n_maximum_iterations            = 1000
+  set n_maximum_iterations            = 2000
 
   # Relative tolerance of the diffusion-step solver.
   set relative_tolerance              = 1e-10
@@ -45,21 +45,21 @@ end
 
 subsection Physical parameters
   # The kinetic Reynolds number.
-  set Reynolds_number = 692.007
+  set Reynolds_number = 692.0066758613096
 
-  set Peclet_number   = 491.325
+  set Peclet_number   = 491.32473986152985
 end
 
 
 subsection Spatial discretization parameters
   # Number of global refinements done on the input mesh.
-  set n_global_refinements = 4
+  set n_global_refinements = 1
 
   # The polynomial degree of the pressure finiteelement.
   set p_fe_degree          = 1
 
   # The polynomial degree of the temperature finiteelement.
-  set temperature_fe_degree = 1
+  set temperature_fe_degree = 2
   
   # Maximum refinement and coarsening level allowed.
   set refinement_and_coarsening_max_level = 10
@@ -77,10 +77,10 @@ subsection Time stepping settings
   set adaptive_timestep_barrier = 2
 
   # Final time of the simulation.
-  set final_time                = 5e+1
+  set final_time                = 1.0
 
   # Size of the initial time step.
-  set initial_time_step         = 5e-1
+  set initial_time_step         = 5e-2
 
   # Size of the maximum time step.
   set maximum_time_step         = 7.5e-3
