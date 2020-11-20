@@ -40,6 +40,22 @@ void HeatEquation<dim>::solve()
     temperature_tmp = distributed_old_temperature;
   }
 
+
+  {
+    const std::vector<double> eta = time_stepping.get_eta();
+    AssertIsFinite(eta[0]);
+    AssertIsFinite(eta[1]);
+
+    LinearAlgebra::MPI::Vector distributed_old_velocity(distributed_velocity_vector);
+    LinearAlgebra::MPI::Vector distributed_old_old_velocity(distributed_velocity_vector);
+    distributed_old_velocity      = velocity->old_solution;
+    distributed_old_old_velocity  = velocity->old_old_solution;
+    distributed_old_velocity.sadd(eta[0],
+                                  eta[1],
+                                  distributed_old_old_velocity);
+    extrapolated_velocity = distributed_old_velocity;
+  }
+
   assemble_linear_system();
 
   rhs_norm = rhs.l2_norm();

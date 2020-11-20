@@ -99,7 +99,7 @@ void HeatEquation<dim>::assemble_local_advection_matrix
     scratch.velocity_fe_values.reinit(velocity_cell);
 
     scratch.velocity_fe_values[velocities].get_function_values
-    (velocity->solution,
+    (extrapolated_velocity,
     scratch.velocity_values);
   }
   else if (velocity_function_ptr != nullptr)

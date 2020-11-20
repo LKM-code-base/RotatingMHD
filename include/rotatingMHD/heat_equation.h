@@ -255,6 +255,34 @@ private:
   LinearAlgebra::MPI::Vector            temperature_tmp;
 
   /*!
+   * @brief A vector representing the extrapolated velocity at the
+   * current timestep using a Taylor expansion
+   * @details The Taylor expansion is given by
+   * \f{eqnarray*}{
+   * u^{n} &\approx& u^{n-1} + \frac{\partial u^{n-1}}{\partial t} \Delta t \\
+   *         &\approx& u^{n-1} + \frac{u^{n-1} - u^{n-2}}{\Delta t} \Delta t \\
+   *         &\approx& 2 u^{n-1} - u^{n-2}.
+   * \f}
+   * In the case of a variable time step the approximation is given by
+   * \f[
+   * u^{n} \approx (1 + \omega) u^{n-1} - \omega u^{n-2}
+   * \f] 
+   * where  \f$ \omega = \frac{\Delta t_{n-1}}{\Delta t_{n-2}}.\f$
+   * @attention The extrapolation is hardcoded to the second order described
+   * above. First and higher order are pending.
+   */
+  LinearAlgebra::MPI::Vector            extrapolated_velocity;
+
+  /*!
+   * @brief A distributed velocity vector used to distribute the
+   * velocity's solution vectors in order to perform vector algebra
+   * operation.
+   * @attention This is a quick fix until we finish the general 
+   * extrapolating method.
+   */
+  LinearAlgebra::MPI::Vector            distributed_velocity_vector;
+
+  /*!
    * @brief Preconditioner of the linear system.
    */
   LinearAlgebra::MPI::PreconditionILU   preconditioner;

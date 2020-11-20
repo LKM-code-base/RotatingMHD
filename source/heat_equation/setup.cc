@@ -114,6 +114,7 @@ setup_vectors()
 
   TimerOutput::Scope  t(*computing_timer, "Heat Equation: Setup - Vectors");
 
+  // Initializing the temperature related vectors
   #ifdef USE_PETSC_LA
     rhs.reinit(temperature->locally_owned_dofs,
                mpi_communicator);
@@ -124,6 +125,22 @@ setup_vectors()
                true);
   #endif
   temperature_tmp.reinit(temperature->solution);
+
+  // Initializing the velocity related vectors
+  if (!flag_ignore_advection)
+  {
+    #ifdef USE_PETSC_LA
+      distributed_velocity_vector.reinit(velocity->locally_owned_dofs,
+                                         mpi_communicator);
+    #else
+      distributed_velocity_vector.reinit(velocity->locally_owned_dofs,
+                                         velocity->locally_relevant_dofs,
+                                         mpi_communicator,
+                                         true);
+    #endif
+    
+    extrapolated_velocity.reinit(velocity->solution);
+  }
 }
 
 template <int dim>
