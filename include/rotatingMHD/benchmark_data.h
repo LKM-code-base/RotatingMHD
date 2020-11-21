@@ -404,7 +404,7 @@ private:
    * where the subindices 0 and 1 indicate the left and right walls 
    * respectively.
    */
-  std::pair<double, double>                     Nusselt_numbers;
+  std::pair<double, double>                     nusselt_numbers;
 
   /*!
    * @brief The skewness metric.
@@ -420,7 +420,7 @@ private:
    * @brief The average velocity metric.
    * @details Given by
    * \f[
-   * \hat{u} = \sqrt{ \dfrac{1}{HW} \int_\Omega \bs{u} \cdot \bs{u} \dint v}
+   * \hat{u} = \sqrt{ \dfrac{1}{2HW} \int_\Omega \bs{u} \cdot \bs{u} \dint v}
    * \f]   */
   double                                        average_velocity_metric;
 
@@ -428,7 +428,7 @@ private:
    * @brief The average vorticity metric.
    * @details Given by
    * \f[
-   * \hat{\omega} = \sqrt{ \dfrac{1}{HW} \int_\Omega 
+   * \hat{\omega} = \sqrt{ \dfrac{1}{2HW} \int_\Omega 
    * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}   * \f]   */
   double                                        average_vorticity_metric;
 
@@ -458,6 +458,12 @@ private:
   /*!
    * @brief A method that samples all the point data and computes the
    * pressure differences and skew-symmetrie of the temperature field. 
+   * @brief More specifically, the method updates the values of
+   * \f$ \bs{u} \f$, \f$ \vartheta \f$, \f$ \psi \f$ and \f$ \omega \f$ 
+   * at the sample point \f$ P_1 \f$; the skewness metric 
+   * \f$ \varepsilon_{12} \f$; the pressure differences 
+   * \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and 
+   * \f$ \Delta p_{35} \f$.
    */
   void compute_point_data();
 

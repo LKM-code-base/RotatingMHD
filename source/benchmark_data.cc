@@ -221,8 +221,8 @@ width(1.0),
 height(8.0),
 area(8.0)
 {
-   AssertDimension(dim, 2); 
-   Assert(velocity.get() != nullptr,
+  AssertDimension(dim, 2); 
+  Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
                     " initialized."));
   Assert(pressure.get() != nullptr,
@@ -232,7 +232,7 @@ area(8.0)
          ExcMessage("The temperature's shared pointer has not be"
                     " initialized."));
   
-  // Initiating the probing sample_points.
+  // Initiating the sample points.
   sample_points.emplace_back(0.1810, 7.3700);
   sample_points.emplace_back(0.8190, 0.6300);
   sample_points.emplace_back(0.1810, 0.6300);
@@ -264,6 +264,7 @@ area(8.0)
 
   // Setting up columns
   data.declare_column("time");
+  data.declare_column("velocity_norm_1");
   data.declare_column("velocity_x_1");
   data.declare_column("temperature_1");
   data.declare_column("streamfunction_1");
@@ -279,6 +280,7 @@ area(8.0)
 
   // Setting all columns to scientific notation
   data.set_scientific("time", true);
+  data.set_scientific("velocity_norm_1", true);
   data.set_scientific("velocity_x_1", true);
   data.set_scientific("temperature_1", true);
   data.set_scientific("streamfunction_1", true);
@@ -294,6 +296,7 @@ area(8.0)
 
   // Setting columns' precision
   data.set_precision("time", 6);
+  data.set_precision("velocity_norm_1", 6);
   data.set_precision("velocity_x_1", 6);
   data.set_precision("temperature_1", 6);
   data.set_precision("streamfunction_1", 6);
@@ -318,6 +321,7 @@ void MIT<dim>::compute_benchmark_data()
 
   // Update column's values
   data.add_value("time", time_stepping.get_current_time());
+  data.add_value("velocity_norm_1", velocity_at_p1.norm());
   data.add_value("velocity_x_1", velocity_at_p1[0]);
   data.add_value("temperature_1", temperature_at_p1);
   data.add_value("streamfunction_1", stream_function_at_p1);
@@ -326,8 +330,8 @@ void MIT<dim>::compute_benchmark_data()
   data.add_value("dpressure_14", pressure_differences[0]);
   data.add_value("dpressure_51", pressure_differences[1]);
   data.add_value("dpressure_35", pressure_differences[2]);
-  data.add_value("Nu_left_wall", Nusselt_numbers.first);
-  data.add_value("Nu_right_wall", Nusselt_numbers.second);
+  data.add_value("Nu_left_wall", nusselt_numbers.first);
+  data.add_value("Nu_right_wall", nusselt_numbers.second);
   data.add_value("average_velocity_metric", average_velocity_metric);
   data.add_value("average_vorticity_metric", average_vorticity_metric);
 }
@@ -354,12 +358,14 @@ Stream& operator<<(Stream &stream, const MIT<dim> &mit)
   stream << std::noshowpos << std::scientific
          << "u_1 = "
          << mit.velocity_at_p1.norm()
+         << ", ux_1 = "
+         << mit.velocity_at_p1[0]
          << ", T_1 = "
          << mit.temperature_at_p1
          << ", p_14 = "
          << mit.pressure_differences[0]
          << ", Nu = "
-         << mit.Nusselt_numbers.first
+         << mit.nusselt_numbers.first
          << ", u = "
          << mit.average_velocity_metric
          << ", w = "
@@ -380,19 +386,19 @@ void MIT<dim>::compute_point_data()
   vorticity_at_p1       = 0.0/*compute_vorticity()*/;
 
   // Computing skewness metric
-  const double temperature_2 = temperature->point_value(sample_points[1]);
+  const double temperature_at_p2 = temperature->point_value(sample_points[1]);
 
-  skewness_metric = temperature_at_p1 - temperature_2;
+  skewness_metric = temperature_at_p1 + temperature_at_p2;
 
   // Computing pressure differences
-  const double pressure_1 = pressure->point_value(sample_points[0]);
-  const double pressure_3 = pressure->point_value(sample_points[2]);
-  const double pressure_4 = pressure->point_value(sample_points[3]);
-  const double pressure_5 = pressure->point_value(sample_points[4]);
+  const double pressure_at_p1 = pressure->point_value(sample_points[0]);
+  const double pressure_at_p3 = pressure->point_value(sample_points[2]);
+  const double pressure_at_p4 = pressure->point_value(sample_points[3]);
+  const double pressure_at_p5 = pressure->point_value(sample_points[4]);
 
-  pressure_differences[0] = pressure_1 - pressure_4;
-  pressure_differences[1] = pressure_5 - pressure_1;
-  pressure_differences[2] = pressure_3 - pressure_5;
+  pressure_differences[0] = pressure_at_p1 - pressure_at_p4;
+  pressure_differences[1] = pressure_at_p5 - pressure_at_p1;
+  pressure_differences[2] = pressure_at_p3 - pressure_at_p5;
 }
 
 template <int dim>
@@ -470,7 +476,7 @@ void MIT<dim>::compute_wall_data()
                                                   mpi_communicator);
   
   //Compute and store the Nusselt numbers of the walls
-  Nusselt_numbers = std::make_pair(left_boundary_intregral/height,
+  nusselt_numbers = std::make_pair(left_boundary_intregral/height,
                                    right_boundary_intregral/height);
 }
 
