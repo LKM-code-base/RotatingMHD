@@ -142,7 +142,8 @@ void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
-  // Reads the structured mesh done in gmsh.
+  // Reads the structured mesh done in gmsh. This mesh is modelled after
+  // the one named "1R" by the benchmark's authors.
   GridIn<dim> grid_in;
   grid_in.attach_triangulation(this->triangulation);
   std::ifstream triangulation_file("MIT.msh");
@@ -166,10 +167,12 @@ void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
 
   boundary_ids = this->triangulation.get_boundary_ids();
 
-  *(this->pcout) << "Number of refines                        = "
-              << n_global_refinements << std::endl;
+  *(this->pcout) << std::endl
+                 << "Number of global refinements             = "
+                 << n_global_refinements << std::endl;
   *(this->pcout) << "Number of active cells                   = "
-              << this->triangulation.n_global_active_cells() << std::endl;
+                 << this->triangulation.n_global_active_cells() 
+                 << std::endl << std::endl;
 }
 
 template <int dim>
@@ -191,7 +194,12 @@ void MITBenchmark<dim>::setup_dofs()
                  << std::endl
                  << "Number of temperature degrees of freedom = "
                  << temperature->dof_handler->n_dofs()
-                 << std::endl;
+                 << std::endl
+                 << "Number of total degrees of freedom       = "
+                 << (velocity->dof_handler->n_dofs() +
+                     pressure->dof_handler->n_dofs() +
+                     temperature->dof_handler->n_dofs())
+                 << std::endl << std::endl;
 }
 
 template <int dim>
