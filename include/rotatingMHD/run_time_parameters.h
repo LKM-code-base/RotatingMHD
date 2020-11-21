@@ -8,12 +8,13 @@
 #ifndef INCLUDE_ROTATINGMHD_RUN_TIME_PARAMETERS_H_
 #define INCLUDE_ROTATINGMHD_RUN_TIME_PARAMETERS_H_
 
-#include <deal.II/base/parameter_handler.h>
-
 #include <rotatingMHD/time_discretization.h>
+#include <string>
 
 namespace RMHD
 {
+
+using namespace TimeDiscretization;
 
 namespace RunTimeParameters
 {
@@ -37,7 +38,7 @@ enum class ProjectionMethod
 /*!
  * @brief Enumeration for the weak form of the non-linear convective term.
  */
-enum class ConvectionTermForm
+enum class ConvectiveTermWeakForm
 {
   /*!
    * @brief Standard form, *i. e.*, \f$\int\bs{v}\cdot
@@ -62,7 +63,7 @@ enum class ConvectionTermForm
  * @brief Enumeration for the type of the temporal discretization of the
  * non-linear convective term.
  */
-enum class ConvectiveTermDiscretizationType
+enum class ConvectiveTermTimeDiscretization
 {
   /*!
    * @brief Semi-implicit treatment in time, *i. e.*, \f$\bs{v}^*\cdot
@@ -108,7 +109,7 @@ struct ParameterSet
   TimeDiscretization::TimeSteppingParameters  time_stepping_parameters;
 
   ProjectionMethod    projection_method;
-  ConvectionTermForm  convection_term_form;
+  ConvectiveTermWeakForm  convection_term_form;
 
   double              Re;
   double              Pe;
@@ -143,24 +144,177 @@ struct ParameterSet
 };
 
 /*!
+ * @struct NavierStokesParameters
+ *
+ * @brief @ref NavierStokesParameters contains the parameters which control the
+ * behavior of @ref NavierStokesProjection.
+ */
+struct NavierStokesDiscretizationParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  NavierStokesDiscretizationParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  NavierStokesDiscretizationParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(const ParameterHandler &prm);
+
+  /*!
+   * @brief Variable controlling the type of the pressure projection method.
+   *
+   * @attention SG thinks that this parameter just controls the type of the
+   * pressure update. Maybe a re-naming is appropriate.
+   *
+   * @details See @ref ProjectionMethod for details.
+   *
+   */
+  ProjectionMethod        projection_method;
+
+  /*!
+   * @brief Variable controlling the type of the weak form of the convective
+   * term.
+   *
+   * @details See @ref ConvectiveTermWeakForm for details.
+   *
+   */
+  ConvectiveTermWeakForm  convective_weak_form;
+
+  /*!
+   * @brief Variable controlling the type of the temporal discretization of
+   * the convective term.
+   *
+   * @details See @ref ConvectiveTermTimeDiscretization for details.
+   *
+   */
+  ConvectiveTermTimeDiscretization  convective_temporal_form;
+
+  /*!
+   * @brief Polynomial degree \f$ p \f$ of the \f$Q_{p+1}-Q_p\f$ finite element
+   * of the velocity and the pressure space.
+   */
+  unsigned int  fe_degree;
+
+  /*!
+   * @brief The Reynolds number of the problem.
+   *
+   * @attention SG thinks that we want to have equation coefficients instead of
+   * single parameters. This would allow us to use several types of dimensionless
+   * equations.
+   *
+   */
+  double  Re;
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool    verbose;
+};
+
+/*!
+ * @struct ConvergenceAnalysisParameters
+ *
+ * @brief @ref ConvergenceAnalysisParameters contains all parameters which
+ * control those of a spatial and/or a temporal convergence analysis.
+ *
+ */
+struct ConvergenceAnalysisParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  ConvergenceAnalysisParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  ConvergenceAnalysisParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(const ParameterHandler &prm);
+
+
+
+  /*!
+   * @brief Flag indicating whether a spatial convergence test should be
+   * performed.
+   */
+  bool        spatial_convergence_test;
+
+  /*!
+   * @brief Number of initial global mesh refinements.
+   */
+  unsigned int  n_global_initial_refinements;
+
+  /*!
+   * Number of spatial convergence cycles.
+   */
+  unsigned int  n_spatial_convergence_cycles;
+
+  /*!
+   * @brief Flag indicating whether a temporal convergence test should be
+   * performed.
+   */
+  bool        temporal_convergence_test;
+
+  /*!
+   * @brief Number of temporal convergence cycles.
+   */
+  unsigned int  n_temporal_convergence_cycles;
+
+  /*!
+   * @brief Factor \f$ s \f$ of the reduction of the timestep between two
+   * subsequent levels, *i. e.*, \f$ \Delta t_{l+1} = s \Delta t_l\f$.
+   *
+   * @details The factor \f$ s \f$ must be positive and less than unity.
+   */
+  double  timestep_reduction_factor;
+
+};
+
+/*!
  * @struct DiscretizationParameters
  *
  * @brief @ref DiscretizationParameters contains parameters which are related to
  * the output of the solver and the control of the refinement of the
  * mesh.
  */
-struct DiscretizationParameters
+struct RefinementParameters
 {
   /*!
    * @brief Constructor which sets up the parameters with default values.
    */
-  DiscretizationParameters();
+  RefinementParameters();
 
   /*!
    * @brief Constructor which sets up the parameters as specified in the
    * parameter file with the filename @p parameter_filename.
    */
-  DiscretizationParameters(const std::string &parameter_filename);
+  RefinementParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -178,23 +332,7 @@ struct DiscretizationParameters
    * @brief Method forwarding parameters to a stream object.
    */
   template<typename Stream>
-  friend Stream& operator<<(Stream &stream, const DiscretizationParameters &prm);
-
-  /*!
-   * @brief The frequency at which a graphical output file (vtk output) is
-   * written to the file system.
-   */
-  unsigned int  graphical_output_frequency;
-
-  /*!
-   * @brief The frequency at which diagnostics are written the terminal.
-   */
-  unsigned int  terminal_output_frequency;
-
-  /*!
-   * @brief Directory where the graphical output should be written.
-   */
-  std::string   graphical_output_directory;
+  friend Stream& operator<<(Stream &stream, const RefinementParameters &prm);
 
   /*!
    * @brief Boolean flag to enable or disable adaptive mesh refinement.
@@ -234,19 +372,120 @@ struct DiscretizationParameters
    * @brief The number of initial refinement steps of cells at the boundary.
    */
   unsigned int  n_boundary_initial_refinements;
-
-  /*!
-   * @brief Boolean flag to enable verbose output on the terminal.
-   */
-  bool          verbose;
-
 };
 
 /*!
  * @brief Method forwarding parameters to a stream object.
  */
 template<typename Stream>
-Stream& operator<<(Stream &stream, const DiscretizationParameters &prm);
+Stream& operator<<(Stream &stream, const RefinementParameters &prm);
+
+/*!
+ * @struct OutputControlParameters
+ *
+ */
+struct OutputControlParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  OutputControlParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  OutputControlParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const OutputControlParameters &prm);
+
+  /*!
+   * @brief The frequency at which a graphical output file (vtk output) is
+   * written to the file system.
+   */
+  unsigned int  graphical_output_frequency;
+
+  /*!
+   * @brief The frequency at which diagnostics are written the terminal.
+   */
+  unsigned int  terminal_output_frequency;
+
+  /*!
+   * @brief Directory where the graphical output should be written.
+   */
+  std::string   graphical_output_directory;
+};
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const OutputControlParameters &prm);
+
+/*!
+ * @struct ProblemParameters
+ */
+struct ProblemParameters
+    : public OutputControlParameters,
+      public RefinementParameters,
+      public TimeSteppingParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  ProblemParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  ProblemParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const ProblemParameters &prm);
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool          verbose;
+};
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 /*!
  * @struct LinearSolverParameters
@@ -254,7 +493,7 @@ Stream& operator<<(Stream &stream, const DiscretizationParameters &prm);
  * @brief A structure containing all parameters relevant for the solution of
  * linear systems using a Krylov subspace method.
  */
-struct  LinearSolverParameters
+struct LinearSolverParameters
 {
   /*!
    * Constructor which sets up the parameters with default values.

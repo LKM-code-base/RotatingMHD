@@ -24,7 +24,7 @@ ParameterSet::ParameterSet()
 :
 time_stepping_parameters(),
 projection_method(ProjectionMethod::rotational),
-convection_term_form(ConvectionTermForm::skewsymmetric),
+convection_term_form(ConvectiveTermWeakForm::skewsymmetric),
 Re(1.0),
 Pe(1.0),
 n_global_refinements(0),
@@ -181,7 +181,7 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
     prm.declare_entry("flag_spatial_convergence_test",
                       "true",
                       Patterns::Bool(),
-                      "Choses between an spatial or temporal "
+                      "Chooses between an spatial or temporal "
                       "convergence test");
     prm.declare_entry("initial_refinement_level",
                       "3",
@@ -244,16 +244,17 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
                 ExcMessage("Unexpected projection method."));
 
   if (prm.get("convection_term_form") == std::string("standard"))
-    convection_term_form = ConvectionTermForm::standard;
+    convection_term_form = ConvectiveTermWeakForm::standard;
   else if (prm.get("convection_term_form") == std::string("skewsymmetric"))
-    convection_term_form = ConvectionTermForm::skewsymmetric;
+    convection_term_form = ConvectiveTermWeakForm::skewsymmetric;
   else if (prm.get("convection_term_form") == std::string("divergence"))
-    convection_term_form = ConvectionTermForm::divergence;
+    convection_term_form = ConvectiveTermWeakForm::divergence;
   else if (prm.get("convection_term_form") == std::string("rotational"))
-    convection_term_form = ConvectionTermForm::rotational;
+    convection_term_form = ConvectiveTermWeakForm::rotational;
   else
     AssertThrow(false,
-                ExcMessage("Unexpected convection term form."));
+                ExcMessage("Unexpected identifier for the weak form "
+                           "of the convective term."));
   
 
   prm.enter_subsection("Physical parameters");
@@ -342,25 +343,20 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
          ExcLowerRange(adaptive_meshing_interval, 0));
 }
 
-DiscretizationParameters::DiscretizationParameters()
+ConvergenceAnalysisParameters::ConvergenceAnalysisParameters()
 :
-graphical_output_frequency(100),
-terminal_output_frequency(100),
-graphical_output_directory("./"),
-adaptive_mesh_refinement(false),
-adaptive_mesh_refinement_frequency(100),
-n_maximum_levels(5),
-n_minimum_levels(1),
-n_adaptive_initial_refinements(0),
+spatial_convergence_test(false),
 n_global_initial_refinements(0),
-n_boundary_initial_refinements(0),
-verbose(false)
+n_spatial_convergence_cycles(2),
+temporal_convergence_test(false),
+n_temporal_convergence_cycles(2),
+timestep_reduction_factor(0.1)
 {}
 
-DiscretizationParameters::DiscretizationParameters
+ConvergenceAnalysisParameters::ConvergenceAnalysisParameters
 (const std::string &parameter_filename)
 :
-DiscretizationParameters()
+ConvergenceAnalysisParameters()
 {
   ParameterHandler prm;
   declare_parameters(prm);
@@ -390,13 +386,52 @@ DiscretizationParameters()
   parse_parameters(prm);
 }
 
-void DiscretizationParameters::declare_parameters(ParameterHandler &prm)
-{
+RefinementParameters::RefinementParameters()
+:
+adaptive_mesh_refinement(false),
+adaptive_mesh_refinement_frequency(100),
+n_maximum_levels(5),
+n_minimum_levels(1),
+n_adaptive_initial_refinements(0),
+n_global_initial_refinements(0),
+n_boundary_initial_refinements(0)
+{}
 
-  prm.enter_subsection("Output control parameters");
+RefinementParameters::RefinementParameters
+(const std::string &parameter_filename)
+:
+RefinementParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
   {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
   }
-  prm.leave_subsection();
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+void RefinementParameters::declare_parameters(ParameterHandler &prm)
+{
 
   prm.enter_subsection("Refinement control parameters");
   {
@@ -430,31 +465,10 @@ void DiscretizationParameters::declare_parameters(ParameterHandler &prm)
                       Patterns::Integer(0));
   }
   prm.leave_subsection();
-
-  prm.declare_entry("Verbose",
-                    "false",
-                    Patterns::Bool(),
-                    "Activate verbose output.");
 }
 
-void DiscretizationParameters::parse_parameters(ParameterHandler &prm)
+void RefinementParameters::parse_parameters(ParameterHandler &prm)
 {
-
-  prm.enter_subsection("Output control parameters");
-  {
-    graphical_output_frequency = prm.get_integer("Graphical output frequency");
-    Assert(graphical_output_frequency > 0,
-           ExcMessage("The graphical output frequency must larger than zero."));
-
-
-    terminal_output_frequency = prm.get_integer("Terminal output frequency");
-    Assert(terminal_output_frequency > 0,
-           ExcMessage("The terminal output frequency must larger than zero."));
-
-    graphical_output_directory = prm.get("Graphical output directory");
-  }
-  prm.leave_subsection();
-
   prm.enter_subsection("Refinement control parameters");
   {
     adaptive_mesh_refinement = prm.get_bool("Adaptive mesh refinement");
@@ -489,12 +503,10 @@ void DiscretizationParameters::parse_parameters(ParameterHandler &prm)
     }
   }
   prm.leave_subsection();
-
-  verbose = prm.get_bool("Verbose");
 }
 
 template<typename Stream>
-Stream& operator<<(Stream &stream, const DiscretizationParameters &prm)
+Stream& operator<<(Stream &stream, const RefinementParameters &prm)
 {
   const size_t column_width[2] =
       {
@@ -517,13 +529,10 @@ Stream& operator<<(Stream &stream, const DiscretizationParameters &prm)
 
   stream << std::left << header << std::endl;
 
-  add_line("Discretization parameters","");
+  add_line("Refinement control parameters","");
 
   stream << header << std::endl;
 
-  add_line("Graphical output frequency", prm.graphical_output_frequency);
-  add_line("Terminal output frequency", prm.terminal_output_frequency);
-  add_line("Graphical output directory", prm.graphical_output_directory);
   add_line("Adaptive mesh refinement", (prm.adaptive_mesh_refinement ?
                                         "True": "False"));
   add_line("Adapt. mesh refinement frequency", prm.adaptive_mesh_refinement_frequency);
@@ -532,11 +541,199 @@ Stream& operator<<(Stream &stream, const DiscretizationParameters &prm)
   add_line("Number of adapt. initial refinements", prm.n_adaptive_initial_refinements);
   add_line("Number of adapt. global refinements", prm.n_global_initial_refinements);
   add_line("Number of initial boundary refinements", prm.n_boundary_initial_refinements);
-  add_line("Verbose", (prm.verbose ? "True" : "False"));
 
   stream << header << std::endl;
 
   return (stream);
+}
+
+OutputControlParameters::OutputControlParameters()
+:
+graphical_output_frequency(100),
+terminal_output_frequency(100),
+graphical_output_directory("./")
+{}
+
+OutputControlParameters::OutputControlParameters
+(const std::string &parameter_filename)
+:
+OutputControlParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+void OutputControlParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.enter_subsection("Output control parameters");
+  {
+    prm.declare_entry("Graphical output frequency",
+                      "100",
+                      Patterns::Integer(1));
+
+    prm.declare_entry("Terminal output frequency",
+                      "100",
+                      Patterns::Integer(1));
+
+    prm.declare_entry("Graphical output directory",
+                      "./",
+                      Patterns::DirectoryName());
+  }
+  prm.leave_subsection();
+}
+
+void OutputControlParameters::parse_parameters(ParameterHandler &prm)
+{
+  prm.enter_subsection("Output control parameters");
+  {
+    graphical_output_frequency = prm.get_integer("Graphical output frequency");
+    Assert(graphical_output_frequency > 0,
+           ExcMessage("The graphical output frequency must larger than zero."));
+
+
+    terminal_output_frequency = prm.get_integer("Terminal output frequency");
+    Assert(terminal_output_frequency > 0,
+           ExcMessage("The terminal output frequency must larger than zero."));
+
+    graphical_output_directory = prm.get("Graphical output directory");
+  }
+  prm.leave_subsection();
+}
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
+{
+  const size_t column_width[2] =
+      {
+          std::string("----------------------------------").size(),
+          std::string("-------------------").size()
+      };
+  const char header[] = "+-----------------------------------+--------------------+";
+
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  add_line("Output control parameters","");
+
+  stream << header << std::endl;
+
+  add_line("Graphical output frequency", prm.graphical_output_frequency);
+  add_line("Terminal output frequency", prm.terminal_output_frequency);
+  add_line("Graphical output directory", prm.graphical_output_directory);
+
+  stream << header << std::endl;
+
+  return (stream);
+}
+
+ProblemParameters::ProblemParameters()
+:
+OutputControlParameters(),
+RefinementParameters(),
+TimeSteppingParameters(),
+verbose(false)
+{}
+
+ProblemParameters::ProblemParameters
+(const std::string &parameter_filename)
+:
+ProblemParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+void ProblemParameters::declare_parameters(ParameterHandler &prm)
+{
+  OutputControlParameters::declare_parameters(prm);
+
+  RefinementParameters::declare_parameters(prm);
+
+  TimeSteppingParameters::declare_parameters(prm);
+
+  prm.declare_entry("Verbose",
+                    "false",
+                    Patterns::Bool());
+}
+
+void ProblemParameters::parse_parameters(ParameterHandler &prm)
+{
+  OutputControlParameters::parse_parameters(prm);
+
+  RefinementParameters::parse_parameters(prm);
+
+  TimeSteppingParameters::parse_parameters(prm);
+
+  verbose = prm.get_bool("Verbose");
+}
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const ProblemParameters &prm)
+{
+  stream << static_cast<const OutputControlParameters &>(prm);
+
+  stream << static_cast<const RefinementParameters &>(prm);
+
+  stream << static_cast<const TimeSteppingParameters &>(prm);
 }
 
 
@@ -598,10 +795,13 @@ void LinearSolverParameters::declare_parameters(ParameterHandler &prm)
 void LinearSolverParameters::parse_parameters(const ParameterHandler &prm)
 {
   n_maximum_iterations = prm.get_integer("Maximum number of iterations");
+  Assert(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
 
   relative_tolerance = prm.get_double("Relative tolerance");
+  Assert(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
 
   absolute_tolerance = prm.get_double("Absolute tolerance");
+  Assert(relative_tolerance > absolute_tolerance, ExcLowerRange(relative_tolerance , absolute_tolerance));
 }
 
 template<typename Stream>
@@ -647,9 +847,14 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 
 // explicit instantiations
 template std::ostream & RMHD::RunTimeParameters::operator<<
-(std::ostream &, const RMHD::RunTimeParameters::DiscretizationParameters &);
+(std::ostream &, const RMHD::RunTimeParameters::RefinementParameters &);
 template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
-(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::DiscretizationParameters &);
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::RefinementParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::OutputControlParameters &);
+template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::OutputControlParameters &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::LinearSolverParameters &);
