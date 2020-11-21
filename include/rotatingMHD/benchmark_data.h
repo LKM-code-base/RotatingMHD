@@ -375,22 +375,22 @@ private:
   std::vector<double>                           pressure_differences;
 
   /*!
-   * @brief The velocity vector at the sample point \f$ P_1 \f$;.
+   * @brief The velocity vector at the sample point \f$ P_1 \f$.
    */
   Tensor<1,dim>                                 velocity_at_p1;
 
   /*!
-   * @brief The temperature at the sample point \f$ P_1 \f$;.
+   * @brief The temperature at the sample point \f$ P_1 \f$.
    */
   double                                        temperature_at_p1;
 
   /*!
-   * @brief The stream function at the sample point \f$ P_1 \f$;.
+   * @brief The stream function at the sample point \f$ P_1 \f$.
    */
   double                                        stream_function_at_p1;
 
   /*!
-   * @brief The vorticity norm at the sample point \f$ P_1 \f$;.
+   * @brief The vorticity norm at the sample point \f$ P_1 \f$.
    */
   double                                        vorticity_at_p1;
 
@@ -398,7 +398,7 @@ private:
    * @brief The Nusselt number at the left and right walls.
    * @details They are given by
    * \f[
-   * \mathit{Nu}_{0,1} = \dfrac{1}{H} \int_{\Gamma_{0,1}} \nabla \vartheta 
+   * \mathit{Nu}_{1,2} = \dfrac{1}{H} \int_{\Gamma_{1,2}} \nabla \vartheta 
    * \cdot \bs{n} \dint a
    * \f]   
    * where the subindices 0 and 1 indicate the left and right walls 
@@ -472,7 +472,7 @@ private:
    * walls with Dirichlet boundary conditions on the temperature field.
    * @details They are given by
    * \f[
-   * \mathit{Nu}_{0,1} = \dfrac{1}{H} \int_{\Gamma_{0,1}} \nabla \vartheta 
+   * \mathit{Nu}_{1,2} = \dfrac{1}{H} \int_{\Gamma_{1,2}} \nabla \vartheta 
    * \cdot \bs{n} \dint a
    * \f]   
    * where the subindices 0 and 1 indicate the left and right walls 

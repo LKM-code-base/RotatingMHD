@@ -27,6 +27,58 @@ namespace RMHD
 
 using namespace dealii;
 
+/*!
+ * @class MITBenchmark
+ * @brief Class solving the problem formulated in the MIT benchmark.
+ * @details The study case consists of a buoyancy-driven flow for which
+ * the Boussinesq approximation is assumed to be valid, i.e. the fluid's
+ * behaviour is given by the adimensional equations
+ * \f[
+ * \begin{equation*}
+ * \begin{aligned}
+ * \pd{\bs{u}}{t} + \bs{u} \cdot ( \nabla \otimes \bs{u}) &=
+ * - \nabla p + \sqrt{\dfrac{\Prandtl}{\Rayleigh}} \nabla^2 \bs{u} +
+ * \vartheta \bs{e}_\textrm{y}, 
+ * &\forall (\bs{x}, t) \in \Omega \times \left[0, T \right]\\
+ * \nabla \cdot \bs{u} &= 0, 
+ * &\forall (\bs{x}, t) \in \Omega \times \left[0, T \right]\\
+ * \pd{\vartheta}{t} + \bs{u} \cdot \nabla \vartheta &=
+ * \dfrac{1}{\sqrt{\Rayleigh \Prandtl}} \nabla^2 \vartheta
+ * &\forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
+ * \end{aligned}
+ * \end{equation*}
+ * \f] 
+ * where \f$ \bs{x} \f$,  \f$ p \f$, \f$ \vartheta \f$, \f$ \Prandtl \f$, 
+ * \f$ \Rayleigh \f$, \f$ \bs{u} \f$, \f$ t \f$, \f$ \Omega \f$ and
+ * \f$ T \f$ are the velocity, pressure, temperature, 
+ * Prandtl number, Rayleigh number, position vector, time, domain and
+ * final time respectively. The problem's domain is a long cavity
+ * \f$ \Omega = [0,1] \times [0,8] \f$, whose boundary is divided into the
+ * left wall \f$ \Gamma_1 \f$, the right wall \f$ \Gamma_2 \f$, 
+ * the bottom wall \f$ \Gamma_3 \f$ and the top wall \f$ \Gamma_4 \f$.
+ * The boundary conditions are 
+ * \f[
+ * \begin{equation*}
+ * \begin{aligned}
+ * \bs{u} &= \bs{0}, &\forall (\bs{x}, t) &\in \partial\Omega \times \left[0, T \right], \\
+ * \vartheta &= 0.5, &\forall (\bs{x}, t) &\in \Gamma_1 \times \left[0, T \right], \\
+ * \vartheta &= -0.5, &\forall (\bs{x}, t) &\in \Gamma_2 \times \left[0, T \right], \\
+ * \nabla \vartheta \cdot \bs{n} &= 0, &\forall (\bs{x}, t) &\in \Gamma_3 \cup \Gamma_4 \times \left[0, T \right]
+ * \end{aligned}
+ * \end{equation*}
+ * \f]
+ * the initial conditions are
+ * \f[
+ * \bs{u}_0 = \bs{0}, \quad p_0 = 0, \quad \textrm{and} \quad
+ * \vartheta_0 = 0.
+ * \f]
+ * and the parameters are \f$ \Prandtl = 0.71 \f$ and 
+ * \f$ \Rayleigh = 3.4\times 10^5. \f$
+ * @note The temperature's Dirichlet boundary conditions are implemented 
+ * with a factor \f$ [1-\exp(-10 t)] \f$ to smooth the dynamic response 
+ * of the system.
+ * @todo Add a picture
+ */
 template <int dim>
 class MITBenchmark : public Problem<dim>
 {
