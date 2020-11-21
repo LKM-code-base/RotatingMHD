@@ -485,9 +485,9 @@ private:
    * metrics.
    * @details They are given by
    * \f[
-   * \hat{u} = \sqrt{ \dfrac{1}{HW} \int_\Omega \bs{u} \cdot \bs{u} \dint v}
+   * \hat{u} = \sqrt{ \dfrac{1}{2HW} \int_\Omega \bs{u} \cdot \bs{u} \dint v}
    * \quad \textrm{and} \quad
-   * \hat{\omega} = \sqrt{ \dfrac{1}{HW} \int_\Omega 
+   * \hat{\omega} = \sqrt{ \dfrac{1}{2HW} \int_\Omega 
    * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}
    * \f]
    */
