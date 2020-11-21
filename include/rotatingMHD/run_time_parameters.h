@@ -144,88 +144,6 @@ struct ParameterSet
 };
 
 /*!
- * @struct NavierStokesParameters
- *
- * @brief @ref NavierStokesParameters contains the parameters which control the
- * behavior of @ref NavierStokesProjection.
- */
-struct NavierStokesDiscretizationParameters
-{
-  /*!
-   * @brief Constructor which sets up the parameters with default values.
-   */
-  NavierStokesDiscretizationParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  NavierStokesDiscretizationParameters(const std::string &parameter_filename);
-
-  /*!
-   * @brief Static method which declares the associated parameter to the
-   * ParameterHandler object @p prm.
-   */
-  static void declare_parameters(ParameterHandler &prm);
-
-  /*!
-   * @brief Method which parses the parameters of the time stepping scheme from
-   * the ParameterHandler object @p prm.
-   */
-  void parse_parameters(const ParameterHandler &prm);
-
-  /*!
-   * @brief Variable controlling the type of the pressure projection method.
-   *
-   * @attention SG thinks that this parameter just controls the type of the
-   * pressure update. Maybe a re-naming is appropriate.
-   *
-   * @details See @ref ProjectionMethod for details.
-   *
-   */
-  ProjectionMethod        projection_method;
-
-  /*!
-   * @brief Variable controlling the type of the weak form of the convective
-   * term.
-   *
-   * @details See @ref ConvectiveTermWeakForm for details.
-   *
-   */
-  ConvectiveTermWeakForm  convective_weak_form;
-
-  /*!
-   * @brief Variable controlling the type of the temporal discretization of
-   * the convective term.
-   *
-   * @details See @ref ConvectiveTermTimeDiscretization for details.
-   *
-   */
-  ConvectiveTermTimeDiscretization  convective_temporal_form;
-
-  /*!
-   * @brief Polynomial degree \f$ p \f$ of the \f$Q_{p+1}-Q_p\f$ finite element
-   * of the velocity and the pressure space.
-   */
-  unsigned int  fe_degree;
-
-  /*!
-   * @brief The Reynolds number of the problem.
-   *
-   * @attention SG thinks that we want to have equation coefficients instead of
-   * single parameters. This would allow us to use several types of dimensionless
-   * equations.
-   *
-   */
-  double  Re;
-
-  /*!
-   * @brief Boolean flag to enable verbose output on the terminal.
-   */
-  bool    verbose;
-};
-
-/*!
  * @struct ConvergenceAnalysisParameters
  *
  * @brief @ref ConvergenceAnalysisParameters contains all parameters which
@@ -576,6 +494,93 @@ struct LinearSolverParameters
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
+
+/*!
+ * @struct NavierStokesParameters
+ *
+ * @brief @ref NavierStokesParameters contains the parameters which control the
+ * behavior of @ref NavierStokesProjection.
+ */
+struct NavierStokesDiscretizationParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  NavierStokesDiscretizationParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  NavierStokesDiscretizationParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(const ParameterHandler &prm);
+
+  LinearSolverParameters  linear_solver_control;
+
+  unsigned int  solver_update_preconditioner;
+
+  /*!
+   * @brief Variable controlling the type of the pressure projection method.
+   *
+   * @attention SG thinks that this parameter just controls the type of the
+   * pressure update. Maybe a re-naming is appropriate.
+   *
+   * @details See @ref ProjectionMethod for details.
+   *
+   */
+  ProjectionMethod        projection_method;
+
+  /*!
+   * @brief Variable controlling the type of the weak form of the convective
+   * term.
+   *
+   * @details See @ref ConvectiveTermWeakForm for details.
+   *
+   */
+  ConvectiveTermWeakForm  convective_weak_form;
+
+  /*!
+   * @brief Variable controlling the type of the temporal discretization of
+   * the convective term.
+   *
+   * @details See @ref ConvectiveTermTimeDiscretization for details.
+   *
+   */
+  ConvectiveTermTimeDiscretization  convective_temporal_form;
+
+  /*!
+   * @brief Polynomial degree \f$ p \f$ of the \f$Q_{p+1}-Q_p\f$ finite element
+   * of the velocity and the pressure space.
+   */
+  unsigned int  fe_degree;
+
+  /*!
+   * @brief The Reynolds number of the problem.
+   *
+   * @attention SG thinks that we want to have equation coefficients instead of
+   * single parameters. This would allow us to use several types of dimensionless
+   * equations.
+   *
+   */
+  double  Re;
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool    verbose;
+};
+
 
 } // namespace RunTimeParameters
 

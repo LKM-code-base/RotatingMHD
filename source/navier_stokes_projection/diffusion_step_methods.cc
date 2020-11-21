@@ -3,6 +3,8 @@
 namespace RMHD
 {
 
+using namespace RunTimeParameters;
+
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_diffusion_step()
@@ -33,9 +35,10 @@ assemble_diffusion_step()
 
   /* In case of a semi-implicit scheme, the advection matrix has to be
   assembled and added to the system matrix */
-  if (parameters.flag_semi_implicit_convection)
+  if (parameters.convective_temporal_form == ConvectiveTermTimeDiscretization::semi_implicit)
   {
     assemble_velocity_advection_matrix();
+
     velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
     velocity_system_matrix.add(1. , velocity_advection_matrix);
   }
@@ -63,9 +66,9 @@ solve_diffusion_step(const bool reinit_prec)
 
   /* The following pointer holds the address to the correct matrix 
   depending on if the semi-implicit scheme is chosen or not */
-  const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
-  if (parameters.flag_semi_implicit_convection ||
-      flag_initializing)
+  const LinearAlgebra::MPI::SparseMatrix  *system_matrix;
+  if ((parameters.convective_temporal_form == ConvectiveTermTimeDiscretization::semi_implicit)
+      || flag_initializing)
     system_matrix = &velocity_system_matrix;
   else
     system_matrix = &velocity_mass_plus_laplace_matrix;
@@ -73,9 +76,11 @@ solve_diffusion_step(const bool reinit_prec)
   if (reinit_prec)
     diffusion_step_preconditioner.initialize(*system_matrix);
 
-  SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * velocity_rhs.l2_norm(),
-                                        absolute_tolerance));
+  const LinearSolverParameters &prm = parameters.linear_solver_control;
+
+  SolverControl solver_control(prm.n_maximum_iterations,
+                               std::max(prm.relative_tolerance * velocity_rhs.l2_norm(),
+                                        prm.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverGMRES solver(solver_control,

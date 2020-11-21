@@ -5,6 +5,8 @@
 namespace RMHD
 {
 
+using namespace RunTimeParameters;
+
 template <int dim>
 void NavierStokesProjection<dim>::solve()
 {
@@ -137,90 +139,93 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Pressure correction step");
 
   switch (parameters.projection_method)
+  {
+    case RunTimeParameters::ProjectionMethod::standard:
+      pressure->solution += phi->solution;
+      break;
+    case RunTimeParameters::ProjectionMethod::rotational:
+      // In the following scope we create temporal non ghosted copies
+      // of the pertinent vectors to be able to perform the solve()
+      // operation.
     {
-      case RunTimeParameters::ProjectionMethod::standard:
-        pressure->solution += phi->solution;
-        break;
-      case RunTimeParameters::ProjectionMethod::rotational:
-        // In the following scope we create temporal non ghosted copies
-        // of the pertinent vectors to be able to perform the solve()
-        // operation.
-        {
-          LinearAlgebra::MPI::Vector distributed_pressure(pressure_rhs);
-          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
-          LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
+      LinearAlgebra::MPI::Vector distributed_pressure(pressure_rhs);
+      LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
+      LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
 
-          distributed_pressure      = pressure->solution;
-          distributed_old_pressure  = pressure->old_solution;
-          distributed_phi           = phi->solution; 
+      distributed_pressure      = pressure->solution;
+      distributed_old_pressure  = pressure->old_solution;
+      distributed_phi           = phi->solution;
 
-          pressure_rhs /= (!flag_initializing ?
-                            time_stepping.get_alpha()[0] / 
-                            time_stepping.get_next_step_size()  :
-                            1.0 / time_stepping.get_next_step_size());
+      pressure_rhs /= (!flag_initializing ?
+          time_stepping.get_alpha()[0] /
+          time_stepping.get_next_step_size()  :
+          1.0 / time_stepping.get_next_step_size());
 
-          SolverControl solver_control(parameters.n_maximum_iterations,
-                                       std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
-                                                absolute_tolerance));
+      const LinearSolverParameters &prm = parameters.linear_solver_control;
 
-          if (reinit_prec)
-            correction_step_preconditioner.initialize(pressure_mass_matrix);
+      SolverControl solver_control(prm.n_maximum_iterations,
+                                   std::max(prm.relative_tolerance * pressure_rhs.l2_norm(),
+                                            prm.absolute_tolerance));
 
-          #ifdef USE_PETSC_LA
-            LinearAlgebra::SolverCG solver(solver_control,
-                                           MPI_COMM_WORLD);
-          #else
-            LinearAlgebra::SolverCG solver(solver_control);
-          #endif
+      if (reinit_prec)
+        correction_step_preconditioner.initialize(pressure_mass_matrix);
 
-          try
-          {
-            solver.solve(pressure_mass_matrix,
-                         distributed_pressure,
-                         pressure_rhs,
-                         correction_step_preconditioner);
-          }
-          catch (std::exception &exc)
-          {
-            std::cerr << std::endl << std::endl
-                      << "----------------------------------------------------"
-                      << std::endl;
-            std::cerr << "Exception in the solve method of the pressure "
-                         "correction step: " << std::endl
-                      << exc.what() << std::endl
-                      << "Aborting!" << std::endl
-                      << "----------------------------------------------------"
-                      << std::endl;
-            std::abort();
-          }
-          catch (...)
-          {
-            std::cerr << std::endl << std::endl
-                      << "----------------------------------------------------"
-                      << std::endl;
-            std::cerr << "Unknown exception in the solve method of the pressure "
-                         "correction step!" << std::endl
-                      << "Aborting!" << std::endl
-                      << "----------------------------------------------------"
-                      << std::endl;
-            std::abort();
-          }
+      #ifdef USE_PETSC_LA
+        LinearAlgebra::SolverCG solver(solver_control,
+                                       MPI_COMM_WORLD);
+      #else
+        LinearAlgebra::SolverCG solver(solver_control);
+      #endif
 
-          pressure->constraints.distribute(distributed_pressure);
+      try
+      {
+        solver.solve(pressure_mass_matrix,
+                     distributed_pressure,
+                     pressure_rhs,
+                     correction_step_preconditioner);
+      }
+      catch (std::exception &exc)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::cerr << "Exception in the solve method of the pressure "
+                     "correction step: " << std::endl
+                  << exc.what() << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+      catch (...)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::cerr << "Unknown exception in the solve method of the pressure "
+                     "correction step!" << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
 
-          distributed_pressure.sadd(1.0 / parameters.Re, 1., distributed_old_pressure);
-          distributed_pressure += distributed_phi;
+      pressure->constraints.distribute(distributed_pressure);
 
-          if (flag_normalize_pressure)
-            VectorTools::subtract_mean_value(distributed_pressure);
+      distributed_pressure.sadd(1.0 / parameters.Re, 1., distributed_old_pressure);
+      distributed_pressure += distributed_phi;
 
-          pressure->solution = distributed_pressure;
-        }
+      if (flag_normalize_pressure)
+        VectorTools::subtract_mean_value(distributed_pressure);
 
-        break;
-      default:
-        Assert(false, ExcNotImplemented());
-    };
+      pressure->solution = distributed_pressure;
+
+      break;
+    }
+    default:
+      Assert(false, ExcNotImplemented());
+      break;
+  };
 }
 
 

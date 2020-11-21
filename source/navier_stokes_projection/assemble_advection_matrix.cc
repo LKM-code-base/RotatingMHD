@@ -1,9 +1,13 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+
 #include <deal.II/base/work_stream.h>
 #include <deal.II/grid/filtered_iterator.h>
 
 namespace RMHD
 {
+
+using namespace RunTimeParameters;
+
 template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 {
@@ -37,9 +41,9 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (*velocity->dof_handler).begin_active()),
+              velocity->dof_handler->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (*velocity->dof_handler).end()),
+              velocity->dof_handler->end()),
    worker,
    copier,
    AdvectionAssembly::LocalCellData<dim>(velocity->fe,
@@ -78,8 +82,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
    scratch.extrapolated_velocity_divergences);
 
   
-  if (parameters.convection_term_form == 
-        RunTimeParameters::ConvectionTermForm::rotational)
+  if (parameters.convective_weak_form == ConvectiveTermWeakForm::rotational)
     scratch.fe_values[velocities].get_function_curls(
       extrapolated_velocity, 
       scratch.extrapolated_velocity_curls);
@@ -97,9 +100,9 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
     // loop over local dofs
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
       for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
-        switch (parameters.convection_term_form)
+        switch (parameters.convective_weak_form)
         {
-          case RunTimeParameters::ConvectionTermForm::standard:
+          case ConvectiveTermWeakForm::standard:
           {
             data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i] *
@@ -108,7 +111,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
                           * scratch.fe_values.JxW(q);
             break;
           }
-          case RunTimeParameters::ConvectionTermForm::skewsymmetric:
+          case ConvectiveTermWeakForm::skewsymmetric:
           {
             data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i] *
@@ -122,7 +125,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
                           * scratch.fe_values.JxW(q);
             break;
           }
-          case RunTimeParameters::ConvectionTermForm::divergence:
+          case ConvectiveTermWeakForm::divergence:
           {
             data.local_matrix(i, j) += ( 
                           scratch.phi_velocity[i] *
@@ -135,7 +138,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
                           * scratch.fe_values.JxW(q);
             break;
           }
-          case RunTimeParameters::ConvectionTermForm::rotational:
+          case ConvectiveTermWeakForm::rotational:
           {
             // The minus sign in the argument of cross_product_2d
             // method is due to how the method is defined.

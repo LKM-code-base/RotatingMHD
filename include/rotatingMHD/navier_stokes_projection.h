@@ -75,7 +75,7 @@ class NavierStokesProjection
 
 public:
   NavierStokesProjection
-  (const RunTimeParameters::ParameterSet        &parameters,
+  (const RunTimeParameters::NavierStokesDiscretizationParameters &parameters,
    std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
    std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
@@ -163,7 +163,7 @@ private:
   /*!
    * @brief A reference to the parameters which control the solution process.
    */
-  const RunTimeParameters::ParameterSet  &parameters;
+  const RunTimeParameters::NavierStokesDiscretizationParameters  &parameters;
 
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.

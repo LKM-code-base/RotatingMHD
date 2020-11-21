@@ -5,6 +5,8 @@
 namespace RMHD
 {
 
+using namespace RunTimeParameters;
+
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_diffusion_step_rhs()
@@ -88,10 +90,10 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   (velocity->old_old_solution,
   scratch.old_old_velocity_gradients);
 
-  if (!parameters.flag_semi_implicit_convection)
+  if (parameters.convective_temporal_form == ConvectiveTermTimeDiscretization::fully_explicit)
   {
     // The velocity, its divergence and its curl of previous solutions
-    //  are needed for the convection term
+    // are needed for the convection term
     scratch.velocity_fe_values[velocities].get_function_values
     (velocity->old_solution,
     scratch.old_velocity_values);
@@ -175,10 +177,10 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                                   scalar_product(
                                   scratch.old_old_velocity_gradients[q],
                                   scratch.grad_phi_velocity[i]));
-        if (!parameters.flag_semi_implicit_convection)
-          switch (parameters.convection_term_form)
+        if (parameters.convective_temporal_form == ConvectiveTermTimeDiscretization::fully_explicit)
+          switch (parameters.convective_weak_form)
           {
-            case RunTimeParameters::ConvectionTermForm::standard:
+            case ConvectiveTermWeakForm::standard:
             {
               data.local_diffusion_step_rhs(i) -=
                     scratch.velocity_fe_values.JxW(q) * (
@@ -193,7 +195,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                     scratch.old_old_velocity_values[q]);
               break;
             }
-            case RunTimeParameters::ConvectionTermForm::skewsymmetric:
+            case ConvectiveTermWeakForm::skewsymmetric:
             {
               data.local_diffusion_step_rhs(i) -=
                     scratch.velocity_fe_values.JxW(q) * (
@@ -218,7 +220,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                     scratch.phi_velocity[i]));
               break;
             }
-            case RunTimeParameters::ConvectionTermForm::divergence:
+            case ConvectiveTermWeakForm::divergence:
             {
               data.local_diffusion_step_rhs(i) -=
                     scratch.velocity_fe_values.JxW(q) * (
@@ -241,7 +243,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                     scratch.phi_velocity[i]));
               break;
             }
-            case RunTimeParameters::ConvectionTermForm::rotational:
+            case ConvectiveTermWeakForm::rotational:
             {
               // The minus sign in the argument of cross_product_2d
               // method is due to how the method is defined.
@@ -286,8 +288,8 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       {
         // The values inside the scope are only needed for the
         // semi-implicit scheme.
-        if (parameters.flag_semi_implicit_convection || 
-            flag_initializing)
+        if ((parameters.convective_temporal_form == ConvectiveTermTimeDiscretization::semi_implicit)
+            || flag_initializing)
         {
           scratch.velocity_fe_values[velocities].get_function_values(
                                     extrapolated_velocity, 
@@ -332,11 +334,11 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                                 scratch.grad_phi_velocity[i])) * 
                               scratch.velocity_fe_values.JxW(q);
           }
-          if (parameters.flag_semi_implicit_convection || 
+          if ((parameters.convective_temporal_form == ConvectiveTermTimeDiscretization::semi_implicit) ||
               flag_initializing)
-            switch (parameters.convection_term_form)
+            switch (parameters.convective_weak_form)
             {
-              case RunTimeParameters::ConvectionTermForm::standard:
+              case ConvectiveTermWeakForm::standard:
               {
                 data.local_matrix_for_inhomogeneous_bc(j, i) +=
                       scratch.velocity_fe_values.JxW(q) * (
@@ -345,7 +347,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                       scratch.extrapolated_velocity_values[q]);
                 break;
               }
-              case RunTimeParameters::ConvectionTermForm::skewsymmetric:
+              case ConvectiveTermWeakForm::skewsymmetric:
               {
                 data.local_matrix_for_inhomogeneous_bc(j, i) +=
                       scratch.velocity_fe_values.JxW(q) * (
@@ -359,7 +361,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                       scratch.phi_velocity[i]);
                 break;
               }
-              case RunTimeParameters::ConvectionTermForm::divergence:
+              case ConvectiveTermWeakForm::divergence:
               {
                 data.local_matrix_for_inhomogeneous_bc(j, i) +=
                       scratch.velocity_fe_values.JxW(q) * (
@@ -372,7 +374,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                       scratch.phi_velocity[i]);
                 break;
               }
-              case RunTimeParameters::ConvectionTermForm::rotational:
+              case ConvectiveTermWeakForm::rotational:
               {
                 // The minus sign in the argument of cross_product_2d
                 // method is due to how the method is defined.

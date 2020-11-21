@@ -5,9 +5,10 @@
 namespace RMHD
 {
 
+using namespace RunTimeParameters;
+
 template <int dim>
-void NavierStokesProjection<dim>::
-assemble_poisson_prestep()
+void NavierStokesProjection<dim>::assemble_poisson_prestep()
 {
   /* System matrix setup */
   // System matrix is constant and assembled in the
@@ -19,8 +20,7 @@ assemble_poisson_prestep()
 
 template <int dim>
 void
-NavierStokesProjection<dim>::
-solve_poisson_prestep()
+NavierStokesProjection<dim>::solve_poisson_prestep()
 {
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
@@ -30,10 +30,11 @@ solve_poisson_prestep()
 
   projection_step_preconditioner.initialize(pressure_laplace_matrix);
 
-  SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * 
-                                        poisson_prestep_rhs.l2_norm(),
-                                        absolute_tolerance));
+  const LinearSolverParameters &prm = parameters.linear_solver_control;
+
+  SolverControl solver_control(prm.n_maximum_iterations,
+                               std::max(prm.relative_tolerance * poisson_prestep_rhs.l2_norm(),
+                                        prm.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverCG solver(solver_control,

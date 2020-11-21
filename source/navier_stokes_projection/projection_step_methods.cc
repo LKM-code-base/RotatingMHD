@@ -6,6 +6,8 @@
 namespace RMHD
 {
 
+using namespace RunTimeParameters;
+
 template <int dim>
 void NavierStokesProjection<dim>::assemble_projection_step()
 {
@@ -48,9 +50,11 @@ void NavierStokesProjection<dim>::solve_projection_step
   if (reinit_prec)
     projection_step_preconditioner.initialize(pressure_laplace_matrix);
 
-  SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
-                                        absolute_tolerance));
+  const LinearSolverParameters &prm = parameters.linear_solver_control;
+
+  SolverControl solver_control(prm.n_maximum_iterations,
+                               std::max(prm.relative_tolerance * pressure_rhs.l2_norm(),
+                                        prm.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverCG solver(solver_control,
