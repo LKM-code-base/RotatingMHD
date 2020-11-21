@@ -4,8 +4,9 @@
  *  Created on: Jul 19, 2020
  *      Author: sg
  */
-
 #include <rotatingMHD/run_time_parameters.h>
+
+#include <deal.II/base/conditional_ostream.h>
 
 #include <fstream>
 
@@ -341,6 +342,204 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
          ExcLowerRange(adaptive_meshing_interval, 0));
 }
 
+DiscretizationParameters::DiscretizationParameters()
+:
+graphical_output_frequency(100),
+terminal_output_frequency(100),
+graphical_output_directory("./"),
+adaptive_mesh_refinement(false),
+adaptive_mesh_refinement_frequency(100),
+n_maximum_levels(5),
+n_minimum_levels(1),
+n_adaptive_initial_refinements(0),
+n_global_initial_refinements(0),
+n_boundary_initial_refinements(0),
+verbose(false)
+{}
+
+DiscretizationParameters::DiscretizationParameters
+(const std::string &parameter_filename)
+:
+DiscretizationParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+void DiscretizationParameters::declare_parameters(ParameterHandler &prm)
+{
+
+  prm.enter_subsection("Output control parameters");
+  {
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Refinement control parameters");
+  {
+    prm.declare_entry("Adaptive mesh refinement",
+                      "false",
+                      Patterns::Bool(),
+                      "Enable or disable adaptive mesh refinement");
+
+    prm.declare_entry("Adaptive mesh refinement frequency",
+                      "100",
+                      Patterns::Integer(1));
+
+    prm.declare_entry("Maximum number of levels",
+                      "5",
+                      Patterns::Integer(1));
+
+    prm.declare_entry("Minimum number of levels",
+                      "0",
+                      Patterns::Integer(0));
+
+    prm.declare_entry("Number of global initial refinements",
+                      "0",
+                      Patterns::Integer(0));
+
+    prm.declare_entry("Number of adaptive initial refinements",
+                      "0",
+                      Patterns::Integer(0));
+
+    prm.declare_entry("Number of initial boundary refinements",
+                      "0",
+                      Patterns::Integer(0));
+  }
+  prm.leave_subsection();
+
+  prm.declare_entry("Verbose",
+                    "false",
+                    Patterns::Bool(),
+                    "Activate verbose output.");
+}
+
+void DiscretizationParameters::parse_parameters(ParameterHandler &prm)
+{
+
+  prm.enter_subsection("Output control parameters");
+  {
+    graphical_output_frequency = prm.get_integer("Graphical output frequency");
+    Assert(graphical_output_frequency > 0,
+           ExcMessage("The graphical output frequency must larger than zero."));
+
+
+    terminal_output_frequency = prm.get_integer("Terminal output frequency");
+    Assert(terminal_output_frequency > 0,
+           ExcMessage("The terminal output frequency must larger than zero."));
+
+    graphical_output_directory = prm.get("Graphical output directory");
+  }
+  prm.leave_subsection();
+
+  prm.enter_subsection("Refinement control parameters");
+  {
+    adaptive_mesh_refinement = prm.get_bool("Adaptive mesh refinement");
+
+    if (adaptive_mesh_refinement)
+    {
+      adaptive_mesh_refinement_frequency = prm.get_integer("Adaptive mesh refinement frequency");
+
+      n_maximum_levels = prm.get_integer("Maximum number of levels");
+
+      n_minimum_levels = prm.get_integer("Minimum number of levels");
+
+      Assert(n_minimum_levels > 0,
+             ExcMessage("Minimum number of levels must be larger than zero."));
+      Assert(n_minimum_levels <= n_maximum_levels ,
+             ExcMessage("Maximum number of levels must be larger equal than the "
+                        "minimum number of levels."));
+
+      n_global_initial_refinements = prm.get_integer("Number of global initial refinements");
+
+      n_adaptive_initial_refinements = prm.get_integer("Number of adaptive initial refinements");
+
+      n_boundary_initial_refinements = prm.get_integer("Number of initial boundary refinements");
+
+      const unsigned int n_initial_refinements
+      = n_global_initial_refinements + n_adaptive_initial_refinements
+      + n_boundary_initial_refinements;
+
+      Assert(n_initial_refinements <= n_maximum_levels ,
+             ExcMessage("Number of initial refinements must be less equal than "
+                        "the maximum number of levels."));
+    }
+  }
+  prm.leave_subsection();
+
+  verbose = prm.get_bool("Verbose");
+}
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const DiscretizationParameters &prm)
+{
+  const size_t column_width[2] =
+      {
+          std::string("----------------------------------").size(),
+          std::string("-------------------").size()
+      };
+  const char header[] = "+-----------------------------------+--------------------+";
+
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  add_line("Discretization parameters","");
+
+  stream << header << std::endl;
+
+  add_line("Graphical output frequency", prm.graphical_output_frequency);
+  add_line("Terminal output frequency", prm.terminal_output_frequency);
+  add_line("Graphical output directory", prm.graphical_output_directory);
+  add_line("Adaptive mesh refinement", (prm.adaptive_mesh_refinement ?
+                                        "True": "False"));
+  add_line("Adapt. mesh refinement frequency", prm.adaptive_mesh_refinement_frequency);
+  add_line("Maximum number of levels", prm.n_maximum_levels);
+  add_line("Minimum number of levels", prm.n_minimum_levels);
+  add_line("Number of adapt. initial refinements", prm.n_adaptive_initial_refinements);
+  add_line("Number of adapt. global refinements", prm.n_global_initial_refinements);
+  add_line("Number of initial boundary refinements", prm.n_boundary_initial_refinements);
+  add_line("Verbose", (prm.verbose ? "True" : "False"));
+
+  stream << header << std::endl;
+
+  return (stream);
+}
+
+
 LinearSolverParameters::LinearSolverParameters()
 :
 relative_tolerance(1e-6),
@@ -396,7 +595,7 @@ void LinearSolverParameters::declare_parameters(ParameterHandler &prm)
                     Patterns::Double());
 }
 
-void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
+void LinearSolverParameters::parse_parameters(const ParameterHandler &prm)
 {
   n_maximum_iterations = prm.get_integer("Maximum number of iterations");
 
@@ -445,3 +644,14 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 } // namespace RunTimeParameters
   
 } // namespace RMHD
+
+// explicit instantiations
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::DiscretizationParameters &);
+template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::DiscretizationParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::LinearSolverParameters &);
+template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::LinearSolverParameters &);

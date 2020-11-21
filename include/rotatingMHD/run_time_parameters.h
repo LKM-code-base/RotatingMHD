@@ -18,18 +18,62 @@ namespace RMHD
 namespace RunTimeParameters
 {
 
+/*!
+ * @brief Enumeration for the type of the pressure update of the pressure
+ * projection algorithm.
+ */
 enum class ProjectionMethod
 {
+  /*!
+   * @todo Documentation is missing.
+   */
   standard,
+  /*!
+   * @todo Documentation is missing.
+   */
   rotational
 };
 
+/*!
+ * @brief Enumeration for the weak form of the non-linear convective term.
+ */
 enum class ConvectionTermForm
 {
+  /*!
+   * @brief Standard form, *i. e.*, \f$\int\bs{v}\cdot
+   * (\nabla\otimes\bs{v})\cdot\bs{w}\dint{V}\f$, where \f$\bs{w}\f$ denotes a test function.
+   */
   standard,
+  /*!
+   * @todo Documentation is missing.
+   */
   skewsymmetric,
+  /*!
+   * @todo Documentation is missing.
+   */
   divergence,
+  /*!
+   * @todo Documentation is missing.
+   */
   rotational
+};
+
+/*!
+ * @brief Enumeration for the type of the temporal discretization of the
+ * non-linear convective term.
+ */
+enum class ConvectiveTermDiscretizationType
+{
+  /*!
+   * @brief Semi-implicit treatment in time, *i. e.*, \f$\bs{v}^*\cdot
+   * \nabla\phi^n\f$, where \f$\bs{v}^*\f$ is an extrapolated velocity.
+   */
+  semi_implicit,
+  /*!
+   * @brief Explicit treatment in time, *i. e.*, \f$\bs{v}^{n-1}\cdot
+   * \nabla\phi^{n-1}+\cdots\f$.
+   */
+  fully_explicit
 };
 
 struct ParameterSet
@@ -98,6 +142,111 @@ struct ParameterSet
   double              time_step_scaling_factor;
 };
 
+/*!
+ * @struct DiscretizationParameters
+ *
+ * @brief @ref DiscretizationParameters contains parameters which are related to
+ * the output of the solver and the control of the refinement of the
+ * mesh.
+ */
+struct DiscretizationParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  DiscretizationParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  DiscretizationParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const DiscretizationParameters &prm);
+
+  /*!
+   * @brief The frequency at which a graphical output file (vtk output) is
+   * written to the file system.
+   */
+  unsigned int  graphical_output_frequency;
+
+  /*!
+   * @brief The frequency at which diagnostics are written the terminal.
+   */
+  unsigned int  terminal_output_frequency;
+
+  /*!
+   * @brief Directory where the graphical output should be written.
+   */
+  std::string   graphical_output_directory;
+
+  /*!
+   * @brief Boolean flag to enable or disable adaptive mesh refinement.
+   */
+  bool          adaptive_mesh_refinement;
+
+  /*!
+   * @brief The frequency at which an adaptive mesh refinement is performed.
+   */
+  unsigned int  adaptive_mesh_refinement_frequency;
+
+  /*!
+   * @brief The number of maximum levels of the mesh. This parameter prohibits
+   * a further refinement of the mesh.
+   */
+  unsigned int  n_maximum_levels;
+
+  /*!
+   * @brief The number of minimum levels of the mesh. This parameter prohibits
+   * a further coarsening of the mesh.
+   */
+  unsigned int  n_minimum_levels;
+
+  /*!
+   * @brief The number of adaptive initial refinement steps. This parameter
+   * determines the number of refinements which are based on the spatial structure
+   * of the initial condition.
+   */
+  unsigned int  n_adaptive_initial_refinements;
+
+  /*!
+   * @brief The number of global initial refinement steps.
+   */
+  unsigned int  n_global_initial_refinements;
+
+   /*!
+   * @brief The number of initial refinement steps of cells at the boundary.
+   */
+  unsigned int  n_boundary_initial_refinements;
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool          verbose;
+
+};
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const DiscretizationParameters &prm);
 
 /*!
  * @struct LinearSolverParameters
@@ -112,7 +261,6 @@ struct  LinearSolverParameters
    */
   LinearSolverParameters();
 
-
   /*!
    * @brief Constructor which sets up the parameters as specified in the
    * parameter file with the filename @p parameter_filename.
@@ -120,23 +268,22 @@ struct  LinearSolverParameters
   LinearSolverParameters(const std::string &parameter_filename);
 
   /*!
-   * Static method which declares the associated parameter to the
+   * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
    */
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * Method which parses the parameters of the time stepping scheme from
+   * @brief Method which parses the parameters of the time stepping scheme from
    * the ParameterHandler object @p prm.
    */
-  void parse_parameters(ParameterHandler &prm);
+  void parse_parameters(const ParameterHandler &prm);
 
   /*!
    * @brief Method forwarding parameters to a stream object.
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
-
 
   /*!
    * @brief Relative tolerance.
