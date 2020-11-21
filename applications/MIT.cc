@@ -48,8 +48,8 @@ using namespace dealii;
  * \end{aligned}
  * \end{equation*}
  * \f] 
- * where \f$ \bs{x} \f$,  \f$ p \f$, \f$ \vartheta \f$, \f$ \Prandtl \f$, 
- * \f$ \Rayleigh \f$, \f$ \bs{u} \f$, \f$ t \f$, \f$ \Omega \f$ and
+ * where \f$ \bs{u} \f$,  \f$ \,p \f$, \f$ \,\vartheta \f$, \f$\, \Prandtl \f$, 
+ * \f$ \,\Rayleigh \f$, \f$ \,\bs{x} \f$, \f$\, t \f$, \f$\, \Omega \f$ and
  * \f$ T \f$ are the velocity, pressure, temperature, 
  * Prandtl number, Rayleigh number, position vector, time, domain and
  * final time respectively. The problem's domain is a long cavity
