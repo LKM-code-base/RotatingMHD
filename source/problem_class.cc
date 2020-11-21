@@ -16,8 +16,9 @@ error_vector_size(0)
 {}
 
 template<int dim>
-void SolutionTransferContainer<dim>::add_entity(
-std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
+void SolutionTransferContainer<dim>::add_entity
+(std::shared_ptr<Entities::EntityBase<dim>> entity,
+ const bool flag)
 {
   entities.emplace_back(std::make_pair(entity.get(), flag));
   if (flag)
@@ -25,7 +26,7 @@ std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
 }
 
 template<int dim>
-Problem<dim>::Problem(const RunTimeParameters::ParameterSet &prm)
+Problem<dim>::Problem(const ProblemParameters &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
 prm(prm),
@@ -164,11 +165,10 @@ double Problem<dim>::compute_next_time_step
  const double                           cfl_number,
  const double                           max_cfl_number) const
 {
-  if (!prm.time_stepping_parameters.adaptive_time_stepping)
-    return time_stepping.get_next_step_size();
+  if (!prm.adaptive_time_stepping)
+    return (time_stepping.get_next_step_size());
 
-  return max_cfl_number / cfl_number * 
-         time_stepping.get_next_step_size();
+  return (max_cfl_number / cfl_number * time_stepping.get_next_step_size());
 }
 
 template <int dim>
@@ -251,14 +251,12 @@ void Problem<dim>::adaptive_mesh_refinement()
 
 
     // Clear refinement flags if refinement level exceeds maximum
-    if (triangulation.n_levels() > prm.refinement_and_coarsening_max_level)
-      for (auto cell: triangulation.active_cell_iterators_on_level(
-                        prm.refinement_and_coarsening_max_level))
+    if (triangulation.n_levels() > prm.n_maximum_levels)
+      for (auto cell: triangulation.active_cell_iterators_on_level(prm.n_maximum_levels))
         cell->clear_refine_flag();
 
     // Clear coarsen flags if level decreases minimum
-    for (auto cell: triangulation.active_cell_iterators_on_level(
-                      prm.refinement_and_coarsening_min_level))
+    for (auto cell: triangulation.active_cell_iterators_on_level(prm.n_minimum_levels))
         cell->clear_coarsen_flag();
 
     // Count number of cells to be refined and coarsened
@@ -314,7 +312,7 @@ void Problem<dim>::adaptive_mesh_refinement()
   }
   *pcout << "\b\b \n" << std::endl;
 
-  // Reinitiate the entities to accomodate to the new mesh
+  // Reinitiate the entities to accommodate to the new mesh
   for (auto &entity: container.entities)
   {
     (entity.first)->setup_dofs();
@@ -373,6 +371,7 @@ void Problem<dim>::adaptive_mesh_refinement()
 
 } // namespace RMHD
 
+// explicit instantiations
 template struct RMHD::SolutionTransferContainer<2>;
 template struct RMHD::SolutionTransferContainer<3>;
 
