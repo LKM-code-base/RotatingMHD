@@ -216,7 +216,10 @@ time_stepping(time_stepping),
 velocity(velocity),
 pressure(pressure),
 temperature(temperature),
-pressure_differences(3)
+pressure_differences(3),
+width(1.0),
+height(8.0),
+area(8.0)
 {
    AssertDimension(dim, 2); 
    Assert(velocity.get() != nullptr,
@@ -350,11 +353,17 @@ Stream& operator<<(Stream &stream, const MIT<dim> &mit)
 {
   stream << std::noshowpos << std::scientific
          << "u_1 = "
-         << mit.velocity_at_p1[0]
+         << mit.velocity_at_p1.norm()
          << ", T_1 = "
          << mit.temperature_at_p1
          << ", p_14 = "
-         << mit.pressure_differences[0];
+         << mit.pressure_differences[0]
+         << ", Nu = "
+         << mit.Nusselt_numbers.first
+         << ", u = "
+         << mit.average_velocity_metric
+         << ", w = "
+         << mit.average_vorticity_metric;
 
   return stream;
 }
@@ -461,8 +470,8 @@ void MIT<dim>::compute_wall_data()
                                                   mpi_communicator);
   
   //Compute and store the Nusselt numbers of the walls
-  Nusselt_numbers = std::make_pair(left_boundary_intregral/8.0,
-                                   right_boundary_intregral/8.0);
+  Nusselt_numbers = std::make_pair(left_boundary_intregral/height,
+                                   right_boundary_intregral/height);
 }
 
 template <int dim>
@@ -537,8 +546,8 @@ void MIT<dim>::compute_global_data()
                                                   mpi_communicator);
 
   // Compute the global averages
-  average_velocity_metric   = std::sqrt(average_velocity_metric/8.0);
-  average_vorticity_metric  = std::sqrt(average_vorticity_metric/8.0);
+  average_velocity_metric   = std::sqrt(average_velocity_metric/(2.0 * area));
+  average_vorticity_metric  = std::sqrt(average_vorticity_metric/(2.0 * area));
 }
 
 } // namespace BenchmarkData

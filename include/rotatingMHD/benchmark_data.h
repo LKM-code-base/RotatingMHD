@@ -436,7 +436,25 @@ private:
    * @brief The table which stores all the benchmark data.
    */ 
   TableHandler                                  data;
-  
+
+  /*!
+   * @brief The width of the cavity.
+   * @details Given by  \f$ W = 1.0 \f$.
+   */ 
+  const double                                  width;
+
+  /*!
+   * @brief The height of the cavity.
+   * @details Given by  \f$ H = 8.0 \f$.
+   */ 
+  const double                                  height;
+
+  /*!
+   * @brief The areaa of the cavity.
+   * @details Given by  \f$ A = WH \f$
+   */ 
+  const double                                  area;
+
   /*!
    * @brief A method that samples all the point data and computes the
    * pressure differences and skew-symmetrie of the temperature field. 
