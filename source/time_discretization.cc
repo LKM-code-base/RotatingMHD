@@ -63,54 +63,55 @@ TimeSteppingParameters()
 
 void TimeSteppingParameters::declare_parameters(ParameterHandler &prm)
 {
-  prm.enter_subsection("Time stepping settings");
+  prm.enter_subsection("Time stepping parameters");
   {
-    prm.declare_entry("time_stepping_scheme",
+
+    prm.declare_entry("Time stepping scheme",
                       "CNAB",
                       Patterns::Selection("Euler|CNAB|mCNAB|CNLF|BDF2"),
                       "Time stepping scheme applied.");
 
-    prm.declare_entry("n_maximum_steps",
+    prm.declare_entry("Maximum number of time steps",
                       "10",
                       Patterns::Integer(),
                       "Maximum number of time steps to be computed.");
 
-    prm.declare_entry("adaptive_time_stepping",
+    prm.declare_entry("Adaptive time stepping",
                       "true",
                       Patterns::Bool(),
                       "Turn adaptive time stepping on or off");
 
-    prm.declare_entry("adaptive_timestep_barrier",
+    prm.declare_entry("Adaptive timestepping barrier",
                       "2",
                       Patterns::Integer(),
                       "Time step after which adaptive time stepping is applied.");
 
-    prm.declare_entry("initial_time_step",
+    prm.declare_entry("Initial time step",
                       "1e-6",
                       Patterns::Double(),
                       "Size of the initial time step.");
 
-    prm.declare_entry("minimum_time_step",
+    prm.declare_entry("Minimum time step",
                       "1e-6",
                       Patterns::Double(),
                       "Size of the minimum time step.");
 
-    prm.declare_entry("maximum_time_step",
+    prm.declare_entry("Maximum time step",
                       "1e-3",
                       Patterns::Double(),
                       "Size of the maximum time step.");
 
-    prm.declare_entry("start_time",
+    prm.declare_entry("Start time",
                       "0.0",
                       Patterns::Double(0.),
                       "Start time of the simulation.");
 
-    prm.declare_entry("final_time",
+    prm.declare_entry("Final time",
                       "1.0",
                       Patterns::Double(0.),
                       "Final time of the simulation.");
 
-    prm.declare_entry("verbose",
+    prm.declare_entry("Verbose",
                       "false",
                       Patterns::Bool(),
                       "Activate verbose output.");
@@ -120,10 +121,10 @@ void TimeSteppingParameters::declare_parameters(ParameterHandler &prm)
 
 void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
 {
-  prm.enter_subsection("Time stepping settings");
+  prm.enter_subsection("Time stepping parameters");
   {
     std::string vsimex_type_str;
-    vsimex_type_str = prm.get("time_stepping_scheme");
+    vsimex_type_str = prm.get("Time stepping scheme");
 
     if (vsimex_type_str == "CNAB")
       vsimex_scheme = VSIMEXScheme::CNAB;
@@ -140,27 +141,27 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
                   ExcMessage("Unexpected string for variable step size "
                              "IMEX scheme."));
 
-    adaptive_time_stepping = prm.get_bool("adaptive_time_stepping");
+    adaptive_time_stepping = prm.get_bool("Adaptive time stepping");
     if (adaptive_time_stepping)
-      adaptive_time_step_barrier = prm.get_integer("adaptive_timestep_barrier");
+      adaptive_time_step_barrier = prm.get_integer("Adaptive timestepping barrier");
 
     Assert(adaptive_time_step_barrier > 0,
            ExcLowerRange(adaptive_time_step_barrier, 0));
 
-    n_maximum_steps = prm.get_integer("n_maximum_steps");
+    n_maximum_steps = prm.get_integer("Maximum number of time steps");
     Assert(n_maximum_steps > 0, ExcLowerRange(n_maximum_steps, 0));
 
-    initial_time_step = prm.get_double("initial_time_step");
+    initial_time_step = prm.get_double("Initial time step");
     Assert(initial_time_step > 0,
            ExcLowerRangeType<double>(initial_time_step, 0));
 
     if (adaptive_time_stepping)
     {
-        minimum_time_step = prm.get_double("minimum_time_step");
+        minimum_time_step = prm.get_double("Minimum time step");
         Assert(minimum_time_step > 0,
                ExcLowerRangeType<double>(minimum_time_step, 0));
 
-        maximum_time_step = prm.get_double("maximum_time_step");
+        maximum_time_step = prm.get_double("Maximum time step");
         Assert(maximum_time_step > 0,
                ExcLowerRangeType<double>(maximum_time_step, 0));
 
@@ -178,16 +179,16 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
         maximum_time_step = 1e+15;
     }
 
-    start_time = prm.get_double("start_time");
+    start_time = prm.get_double("Start time");
     Assert(start_time >= 0.0, ExcLowerRangeType<double>(start_time, 0.0));
 
-    final_time = prm.get_double("final_time");
+    final_time = prm.get_double("Final time");
     Assert(final_time > 0.0, ExcLowerRangeType<double>(final_time, 0.0));
     Assert(final_time > start_time, ExcLowerRangeType<double>(final_time, start_time));
     Assert(initial_time_step <= final_time,
            ExcLowerRangeType<double>(initial_time_step, final_time));
 
-    verbose = prm.get_bool("verbose");
+    verbose = prm.get_bool("Verbose");
   }
   prm.leave_subsection();
 

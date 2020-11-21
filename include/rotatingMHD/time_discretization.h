@@ -142,7 +142,7 @@ struct TimeSteppingParameters
   double        final_time;
 
   /*!
-   * @brief Boolean flag to enable verbose output of VSIMEXMethod.
+   * @brief Boolean flag to enable verbose output of @ref VSIMEXMethod.
    */
   bool          verbose;
 };
