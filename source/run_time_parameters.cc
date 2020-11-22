@@ -386,6 +386,16 @@ ConvergenceAnalysisParameters()
   parse_parameters(prm);
 }
 
+void ConvergenceAnalysisParameters::declare_parameters(ParameterHandler &/* prm */)
+{
+  AssertThrow(false, ExcNotImplemented());
+}
+
+void ConvergenceAnalysisParameters::parse_parameters(ParameterHandler &/* prm */)
+{
+  AssertThrow(false, ExcNotImplemented());
+}
+
 RefinementParameters::RefinementParameters()
 :
 adaptive_mesh_refinement(false),
@@ -666,6 +676,7 @@ ProblemParameters::ProblemParameters()
 OutputControlParameters(),
 RefinementParameters(),
 TimeSteppingParameters(),
+dim(2),
 verbose(false)
 {}
 
@@ -710,6 +721,10 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
 
   TimeSteppingParameters::declare_parameters(prm);
 
+  prm.declare_entry("Spatial dimension",
+                    "2",
+                    Patterns::Integer(1));
+
   prm.declare_entry("Verbose",
                     "false",
                     Patterns::Bool());
@@ -723,6 +738,10 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 
   TimeSteppingParameters::parse_parameters(prm);
 
+  dim = prm.get_integer("Spatial dimension");
+  Assert(dim > 0, ExcLowerRange(dim, 0) );
+  Assert(dim <= 3, ExcMessage("The spatial dimension are larger than three.") );
+
   verbose = prm.get_bool("Verbose");
 }
 
@@ -734,6 +753,8 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
   stream << static_cast<const RefinementParameters &>(prm);
 
   stream << static_cast<const TimeSteppingParameters &>(prm);
+
+  return (stream);
 }
 
 
@@ -841,6 +862,346 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
   return (stream);
 }
 
+NavierStokesDiscretizationParameters::NavierStokesDiscretizationParameters()
+:
+projection_method(ProjectionMethod::rotational),
+convective_weak_form(ConvectiveTermWeakForm::skewsymmetric),
+convective_temporal_form(ConvectiveTermTimeDiscretization::fully_explicit),
+preconditioner_update_frequency(10),
+verbose(false),
+Re(0.0),
+linear_solver_control()
+{}
+
+NavierStokesDiscretizationParameters::NavierStokesDiscretizationParameters
+(const std::string &parameter_filename)
+:
+NavierStokesDiscretizationParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+void NavierStokesDiscretizationParameters::declare_parameters
+(ParameterHandler &prm)
+{
+  prm.enter_subsection("Navier-Stokes discretization parameters");
+  {
+    prm.declare_entry("Projection method",
+                      "rotational",
+                      Patterns::Selection("rotational|standard"),
+                      "Type of the pressure update used in the pressure projection "
+                      "algorithm.");
+
+    prm.declare_entry("Convective term weak form",
+                      "skew-symmetric",
+                      Patterns::Selection("standard|skew-symmetric|divergence|rotational"),
+                      "Weak form of the convective term.");
+
+    prm.declare_entry("Convective term temporal form",
+                      "semi-implicit",
+                      Patterns::Selection("semi-implicit|explicit"),
+                      "Temporal form the of the convective term.");
+
+
+    prm.declare_entry("Preconditioner update frequency",
+                      "10",
+                      Patterns::Integer(1));
+
+    prm.declare_entry("Verbose",
+                      "false",
+                      Patterns::Bool());
+
+    prm.enter_subsection("Linear solver parameters");
+    {
+      LinearSolverParameters::declare_parameters(prm);
+    }
+    prm.leave_subsection();
+
+  }
+  prm.leave_subsection();
+}
+
+void NavierStokesDiscretizationParameters::parse_parameters(ParameterHandler &prm)
+{
+  prm.enter_subsection("Navier-Stokes discretization parameters");
+  {
+
+    const std::string str_project_method(prm.get("Projection method"));
+
+    if (str_project_method == std::string("rotational"))
+      projection_method = ProjectionMethod::rotational;
+    else if (str_project_method == std::string("standard"))
+      projection_method = ProjectionMethod::standard;
+    else
+      AssertThrow(false,
+                  ExcMessage("Unexpected input for the type of the "
+                             "projection method."));
+
+    const std::string str_convective_weak_form(prm.get("Convective term weak form"));
+
+    if (str_convective_weak_form == std::string("standard"))
+      convective_weak_form = ConvectiveTermWeakForm::standard;
+    else if (str_convective_weak_form == std::string("skew-symmetric"))
+      convective_weak_form = ConvectiveTermWeakForm::skewsymmetric;
+    else if (str_convective_weak_form == std::string("divergence"))
+      convective_weak_form = ConvectiveTermWeakForm::divergence;
+    else if (str_convective_weak_form == std::string("rotational"))
+      convective_weak_form = ConvectiveTermWeakForm::rotational;
+    else
+      AssertThrow(false,
+                  ExcMessage("Unexpected identifier for the type of the weak form "
+                             "of the convective term."));
+
+    const std::string str_convective_temporal_form(prm.get("Convective term temporal form"));
+
+    if (str_convective_temporal_form == std::string("semi-implicit"))
+      convective_temporal_form = ConvectiveTermTimeDiscretization::semi_implicit;
+    else if (str_convective_temporal_form == std::string("explicit"))
+      convective_temporal_form = ConvectiveTermTimeDiscretization::fully_explicit;
+    else
+      AssertThrow(false,
+                  ExcMessage("Unexpected identifier for the type of the temporal form "
+                             "of the convective term."));
+
+    preconditioner_update_frequency = prm.get_integer("Preconditioner update frequency");
+    Assert(preconditioner_update_frequency > 0,
+           ExcLowerRange(preconditioner_update_frequency, 0));
+
+    prm.enter_subsection("Linear solver parameters");
+    {
+      linear_solver_control.declare_parameters(prm);
+    }
+    prm.leave_subsection();
+
+  }
+  prm.leave_subsection();
+
+}
+
+template<typename Stream>
+Stream& operator<<(Stream &stream,
+                   const NavierStokesDiscretizationParameters &prm)
+{
+  const size_t column_width[2] =
+      {
+          std::string("----------------------------------").size(),
+          std::string("-------------------").size()
+      };
+  const char header[] = "+-----------------------------------+--------------------+";
+
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  add_line("Navier-Stokes discretization parameters","");
+
+  stream << header << std::endl;
+
+  switch (prm.projection_method)
+  {
+    case ProjectionMethod::standard:
+      add_line("Projection method", "standard");
+      break;
+    case ProjectionMethod::rotational:
+      add_line("Projection method", "rotational");
+      break;
+    default:
+      Assert(false, ExcMessage("Unexpected type identifier for the "
+                               "projection method."));
+      break;
+  }
+
+  switch (prm.convective_weak_form) {
+    case ConvectiveTermWeakForm::standard:
+      add_line("Convective weak form", "standard");
+      break;
+    case ConvectiveTermWeakForm::rotational:
+      add_line("Convective weak form", "rotational");
+      break;
+    case ConvectiveTermWeakForm::divergence:
+      add_line("Convective weak form", "divergence");
+      break;
+    case ConvectiveTermWeakForm::skewsymmetric:
+      add_line("Convective weak form", "skew-symmetric");
+      break;
+    default:
+      Assert(false, ExcMessage("Unexpected type identifier for the "
+                               "weak form of the convective term."));
+      break;
+  }
+
+  switch (prm.convective_temporal_form) {
+    case ConvectiveTermTimeDiscretization::semi_implicit:
+      add_line("Convective temporal form", "semi-implicit");
+      break;
+    case ConvectiveTermTimeDiscretization::fully_explicit:
+      add_line("Convective temporal form", "explicit");
+      break;
+    default:
+      Assert(false, ExcMessage("Unexpected type identifier for the "
+                               "temporal form of the convective term."));
+      break;
+  }
+
+  add_line("Preconditioner update frequency", prm.preconditioner_update_frequency);
+
+  add_line("Reynolds number", prm.Re);
+
+  stream << header << std::endl;
+
+  return (stream);
+}
+
+NavierStokesProblemParameters::NavierStokesProblemParameters()
+:
+ProblemParameters(),
+fe_degree(1),
+navier_stokes_discretization()
+{}
+
+NavierStokesProblemParameters::NavierStokesProblemParameters
+(const std::string &parameter_filename)
+:
+NavierStokesProblemParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+void NavierStokesProblemParameters::declare_parameters
+(ParameterHandler &prm)
+{
+  prm.declare_entry("Polynomial degree",
+                    "1",
+                    Patterns::Integer(1),
+                    "Polynomial degree of discretization.");
+
+  prm.declare_entry("Reynolds number",
+                    "1.0",
+                    Patterns::Double(1.0));
+
+  ProblemParameters::declare_parameters(prm);
+
+  NavierStokesDiscretizationParameters::declare_parameters(prm);
+}
+
+void NavierStokesProblemParameters::parse_parameters(ParameterHandler &prm)
+{
+
+  ProblemParameters::parse_parameters(prm);
+
+  navier_stokes_discretization.parse_parameters(prm);
+
+  fe_degree = prm.get_integer("Polynomial degree");
+  Assert(fe_degree > 0, ExcLowerRange(fe_degree, 0));
+
+  const double tmp = prm.get_double("Reynolds number");
+  Assert(tmp > 0.0, ExcLowerRangeType<double>(tmp, 0.0));
+  AssertIsFinite(tmp);
+
+  navier_stokes_discretization.Re = tmp;
+}
+
+template<typename Stream>
+Stream& operator<<(Stream &stream,
+                   const NavierStokesProblemParameters &prm)
+{
+  const size_t column_width[2] =
+      {
+          std::string("----------------------------------").size(),
+          std::string("-------------------").size()
+      };
+  const char header[] = "+-----------------------------------+--------------------+";
+
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  add_line("Navier-Stokes problem parameters","");
+
+  stream << header << std::endl;
+
+  add_line("Polynomial degree", prm.fe_degree);
+
+  stream << static_cast<const ProblemParameters &>(prm);
+
+  stream << prm.navier_stokes_discretization;
+
+  stream << header << std::endl;
+
+  return (stream);
+}
+
+
 } // namespace RunTimeParameters
   
 } // namespace RMHD
@@ -857,6 +1218,22 @@ template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::OutputControlParameters &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::ProblemParameters &);
+template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::ProblemParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::LinearSolverParameters &);
 template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::LinearSolverParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::NavierStokesDiscretizationParameters &);
+template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::NavierStokesDiscretizationParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::NavierStokesProblemParameters &);
+template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::NavierStokesProblemParameters &);
+

@@ -166,16 +166,20 @@ struct ConvergenceAnalysisParameters
   /*!
    * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
+   *
+   * @todo Implementation is missing.
+   *
    */
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
    * @brief Method which parses the parameters of the time stepping scheme from
    * the ParameterHandler object @p prm.
+   *
+   * @todo Implementation is missing.
+   *
    */
-  void parse_parameters(const ParameterHandler &prm);
-
-
+  void parse_parameters(ParameterHandler &prm);
 
   /*!
    * @brief Flag indicating whether a spatial convergence test should be
@@ -394,6 +398,11 @@ struct ProblemParameters
   friend Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
   /*!
+   * @brief Spatial dimension of the problem.
+   */
+  unsigned int dim;
+
+  /*!
    * @brief Boolean flag to enable verbose output on the terminal.
    */
   bool          verbose;
@@ -524,11 +533,14 @@ struct NavierStokesDiscretizationParameters
    * @brief Method which parses the parameters of the time stepping scheme from
    * the ParameterHandler object @p prm.
    */
-  void parse_parameters(const ParameterHandler &prm);
+  void parse_parameters(ParameterHandler &prm);
 
-  LinearSolverParameters  linear_solver_control;
-
-  unsigned int  solver_update_preconditioner;
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream,
+                            const NavierStokesDiscretizationParameters &prm);
 
   /*!
    * @brief Variable controlling the type of the pressure projection method.
@@ -560,25 +572,104 @@ struct NavierStokesDiscretizationParameters
   ConvectiveTermTimeDiscretization  convective_temporal_form;
 
   /*!
-   * @brief Polynomial degree \f$ p \f$ of the \f$Q_{p+1}-Q_p\f$ finite element
-   * of the velocity and the pressure space.
+   * @brief Specifies the frequency of the update of the diffusion
+   * preconditioner.
    */
-  unsigned int  fe_degree;
+  unsigned int  preconditioner_update_frequency;
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool    verbose;
 
   /*!
    * @brief The Reynolds number of the problem.
    *
-   * @attention SG thinks that we want to have equation coefficients instead of
-   * single parameters. This would allow us to use several types of dimensionless
+   * @details This parameter is not set by
+   * @ref parse_parameters and not declared by @ref declare_paramters. Instead,
+   * the Reynolds number should be declared and set in a superordinate parameter
+   * object.
+   *
+   * @todo SG thinks that we want to have equation coefficients instead of
+   * a single parameter. This would allow us to use several types of dimensionless
    * equations.
    *
    */
   double  Re;
 
   /*!
-   * @brief Boolean flag to enable verbose output on the terminal.
+   * @brief A structure containing all parameters relevant for the solution of
+   * linear systems using a Krylov subspace method.
+   *
+   * @details See @ref LinearSolverParameters for details.
+   *
    */
-  bool    verbose;
+  LinearSolverParameters  linear_solver_control;
+
+};
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream,
+                   const NavierStokesDiscretizationParameters &prm);
+
+/*!
+ * @struct NavierStokesProblemParameters
+ *
+ * @brief Structure containing all parameter which control a Navier-Stokes
+ * problem. This set of parameters is used for example in @ref DFG and
+ * @ref Step35.
+ *
+ */
+struct NavierStokesProblemParameters : public ProblemParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  NavierStokesProblemParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  NavierStokesProblemParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const ProblemParameters &prm);
+
+  /*!
+   *
+   * @brief Polynomial degree \f$ p \f$ of the \f$Q_{p+1}-Q_p\f$ finite element
+   * of the velocity and the pressure space.
+   * @brief Specifies the frequency of the update of the diffusion
+   * preconditioner.
+   */
+  unsigned int  fe_degree;
+
+  /*!
+   * @brief Controls the discretization of the problem.
+   *
+   * @details See @ref NavierStokesDiscretizationParameters for details.
+   */
+  NavierStokesDiscretizationParameters  navier_stokes_discretization;
+
 };
 
 
