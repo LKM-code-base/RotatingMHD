@@ -96,6 +96,14 @@ public:
   LinearAlgebra::MPI::Vector        old_old_solution;
 
   /*!
+   * @brief The entity's distributed vector.
+   * @details It is used to initiate the right hand sides of the
+   * linear systems and the distributed instances of the
+   * solution vectors needed to perform algebraic operations with them.
+   */
+  LinearAlgebra::MPI::Vector        distributed_vector;
+
+  /*!
    * @brief Constructor.
    */
   EntityBase(const unsigned int                               fe_degree,
