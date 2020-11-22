@@ -144,10 +144,10 @@ setup_vectors()
 }
 
 template <int dim>
-void HeatEquation<dim>::set_supply_term(
-  Function<dim> &supply_term)
+void HeatEquation<dim>::set_source_term(
+  Function<dim> &source_term)
 {
-  source_term_ptr = &supply_term;
+  source_term_ptr = &source_term;
 }
 
 } // namespace RMHD
@@ -162,5 +162,5 @@ template void RMHD::HeatEquation<3>::setup_matrices();
 template void RMHD::HeatEquation<2>::setup_vectors();
 template void RMHD::HeatEquation<3>::setup_vectors();
 
-template void RMHD::HeatEquation<2>::set_supply_term(Function<2> &);
-template void RMHD::HeatEquation<3>::set_supply_term(Function<3> &);
+template void RMHD::HeatEquation<2>::set_source_term(Function<2> &);
+template void RMHD::HeatEquation<3>::set_source_term(Function<3> &);
