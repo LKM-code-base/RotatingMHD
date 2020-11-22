@@ -30,8 +30,34 @@ using namespace dealii;
  * relies either on the Trilinos or the PETSc library. Moreover, for the time
  * discretization an implicit-explicit scheme (IMEX) with variable step size is
  * used.
- * The heat equation solved is derived from ... pending...
+ * The heat equation solved is derived from the balance of internal
+ * energy
+ * \f[
+ *  \rho \dfrac{\d u}{\d t} = - \nabla \cdot \bs{q} + \rho r + 
+ *  \bs{T} \cdott (\nabla \otimes \bs{v}), 
+ *  \quad \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
+ * \f]
+ * where \f$ u \f$, \f$ \, \bs{q} \f$, \f$ \, r \f$, \f$ \, \bs{T} \f$,
+ * \f$ \, \bs{v} \f$, \f$ \, \bs{x} \f$, \f$ \, t \f$, \f$ \,\Omega \f$ and
+ * \f$ \, T \f$ are the
+ * specific internal energy, heat flux vector, specific heat source,
+ * stress tensor, velocity, position vector, time, domain and final
+ * time respectively. Considering an isotropic and incompressible fluid,
+ * whose heat flux vector is given by the Fourier law; whose 
+ * specific heat capacity and thermal conductivity coefficient do not 
+ * depend on the temperature; and neglecting the internal dissipation,
+ * the adimensional heat equation reduces to
+ * \f[
+ *  \pd{\vartheta}{t} + \bs{v} \cdot \nabla \vartheta = \dfrac{1}{\mathit{Pe}}
+ *  \nabla^2 \vartheta + r, 
+ *  \quad \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
+ * \f]
+ * where \f$ \vartheta \f$ and \f$ \mathit{Pe} \f$ are the adimensional 
+ * temperature and the Peclet number respectively. Do note that we
+ * reuse the variables names to denote their adimensional counterpart.
  * @todo Documentation
+ * @todo Add dissipation term.
+ * @todo Add consistent forms of the advection term.
  */
 
 template <int dim>
@@ -40,10 +66,10 @@ class HeatEquation
 
 public:
   /*!
-   * @brief The constructor of the HeatEquation class where the velocity
-   * is zero.
+   * @brief The constructor of the HeatEquation class for the case 
+   * where there is no advection.
    * 
-   * @details Stores local references to the input parameters and 
+   * @details Stores a local reference to the input parameters and 
    * pointers for the mapping and terminal output entities.
    */
   HeatEquation
@@ -58,10 +84,10 @@ public:
        std::shared_ptr<TimerOutput>());
 
   /*!
-   * @brief The constructor of the HeatEquation class where the velocity
-   * a VectorEntity instance is.
+   * @brief The constructor of the HeatEquation class for the case
+   * where the velocity field is given by a VectorEntity instance.
    * 
-   * @details Stores local references to the input parameters and 
+   * @details Stores a local reference to the input parameters and 
    * pointers for the mapping and terminal output entities.
    */
   HeatEquation
@@ -77,10 +103,10 @@ public:
        std::shared_ptr<TimerOutput>());
 
   /*!
-   * @brief The constructor of the HeatEquation class where the velocity
-   * a TensorFunction is.
+   * @brief The constructor of the HeatEquation class for the case
+   *  where the velocity is given by a TensorFunction.
    * 
-   * @details Stores local references to the input parameters and 
+   * @details Stores a local reference to the input parameters and 
    * pointers for the mapping and terminal output entities.
    */
   HeatEquation
@@ -99,22 +125,22 @@ public:
    *  the heat equation problem.
    *
    *  @details Initializes the vector and matrices using the information
-   *  contained in the VectorEntity and ScalarEntity structs passed on
-   *  in the constructor (The velocity and the temperature respectively).
+   *  contained in the ScalarEntity and VectorEntity structs passed on
+   *  in the constructor (The temperature and the velocity respectively).
    */
   void setup();
 
   /*!
-   *  @brief Sets the supply term of the problem.
+   *  @brief Sets the source term of the problem.
    *
-   *  @details Stores the memory address of the supply term function in 
+   *  @details Stores the memory address of the source term function in 
    *  the pointer @ref suppler_term_ptr.
    */
-  void set_supply_term(Function<dim> &supply_term);
+  void set_source_term(Function<dim> &source_term);
 
   /*!
-   * @brief Initializes the old_solution of the temperature struct for
-   * a time discretization scheme of second order.
+   * @brief Computes the temperature field at \f$ t = t_1 \f$ using a 
+   * first order time discretization scheme.
    */
   void initialize();
 
@@ -133,59 +159,58 @@ private:
   /*!
    * @brief A reference to the parameters which control the solution process.
    */
-  const RunTimeParameters::ParameterSet  &parameters;
+  const RunTimeParameters::ParameterSet         &parameters;
 
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const MPI_Comm                         &mpi_communicator;
+  const MPI_Comm                                &mpi_communicator;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
    */
-  const TimeDiscretization::VSIMEXMethod &time_stepping;
+  const TimeDiscretization::VSIMEXMethod        &time_stepping;
 
   /*!
-   * @brief Pointer to a conditional output stream object.
+   * @brief A shared pointer to a conditional output stream object.
    */
-  std::shared_ptr<ConditionalOStream>     pcout;
+  std::shared_ptr<ConditionalOStream>           pcout;
 
   /*!
-   * @brief Pointer to a monitor of the computing times.
+   * @brief A shared pointer to a monitor of the computing times.
    */
-  std::shared_ptr<TimerOutput>            computing_timer;
+  std::shared_ptr<TimerOutput>                  computing_timer;
 
   /*!
-   * @brief Pointer to the mapping to be used throughout the solver.
+   * @brief A shared pointer to the mapping to be used throughout the solver.
    */
-  std::shared_ptr<Mapping<dim>>           mapping;
+  std::shared_ptr<Mapping<dim>>                 mapping;
 
   /*!
-   * @brief A reference to the entity of the temperature field.
+   * @brief A shared pointer to the entity of the temperature field.
    */
   std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
 
   /*!
-   * @brief A pointer to the entity of velocity field.
+   * @brief A shared pointer to the entity of velocity field.
    */
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   /*!
-   * @brief A pointer to the TensorFunction of the velocity field.
+   * @brief A shared pointer to the TensorFunction of the velocity field.
    */
   std::shared_ptr<TensorFunction<1,dim>>        velocity_function_ptr;
 
   /*!
    * @brief A pointer to the supply term function.
    */
-  Function<dim>                          *source_term_ptr;
+  Function<dim>                                 *source_term_ptr;
 
   /*!
    * @brief System matrix for the heat equation.
-   * @details The matrix changes in every timestep due to the mass
-   * and stiffness matrices being weighted by the VSIMEX coefficients.
+   * @details For 
    */
-  LinearAlgebra::MPI::SparseMatrix      system_matrix;
+  LinearAlgebra::MPI::SparseMatrix              system_matrix;
 
   /*!
    * @brief Mass matrix of the temperature.
@@ -194,7 +219,7 @@ private:
    * changes.
    * @todo Add formulas
    */
-  LinearAlgebra::MPI::SparseMatrix      mass_matrix;
+  LinearAlgebra::MPI::SparseMatrix              mass_matrix;
 
   /*!
    * @brief Stiffness matrix of the temperature.
@@ -203,7 +228,7 @@ private:
    * changes.
    * @todo Add formulas
    */
-  LinearAlgebra::MPI::SparseMatrix      stiffness_matrix;
+  LinearAlgebra::MPI::SparseMatrix              stiffness_matrix;
 
   /*!
    * @brief Sum of the mass and stiffness matrix of the temperature.
@@ -211,7 +236,7 @@ private:
    * change each step.
    * @todo Add formulas
    */
-  LinearAlgebra::MPI::SparseMatrix      mass_plus_stiffness_matrix;
+  LinearAlgebra::MPI::SparseMatrix              mass_plus_stiffness_matrix;
 
   /*!
    * @brief Advection matrix of the temperature.
@@ -219,19 +244,19 @@ private:
    * assembled in every timestep.
    * @todo Add formulas
    */
-  LinearAlgebra::MPI::SparseMatrix      advection_matrix;
+  LinearAlgebra::MPI::SparseMatrix              advection_matrix;
 
 
   /*!
    * @brief Vector representing the right-hand side of the linear system.
    * @todo Add formulas
    */
-  LinearAlgebra::MPI::Vector            rhs;
+  LinearAlgebra::MPI::Vector                    rhs;
 
   /*!
    * @brief The \f$ L_2 \f$ norm of the right hand side
    */
-  double                                rhs_norm;
+  double                                        rhs_norm;
 
   /*!
    * @brief Vector representing the sum of the time discretization terms
@@ -252,7 +277,7 @@ private:
    * which we use when assembling the right-hand side of the linear
    * system
    */
-  LinearAlgebra::MPI::Vector            temperature_tmp;
+  LinearAlgebra::MPI::Vector                    temperature_tmp;
 
   /*!
    * @brief A vector representing the extrapolated velocity at the
@@ -271,7 +296,7 @@ private:
    * @attention The extrapolation is hardcoded to the second order described
    * above. First and higher order are pending.
    */
-  LinearAlgebra::MPI::Vector            extrapolated_velocity;
+  LinearAlgebra::MPI::Vector                    extrapolated_velocity;
 
   /*!
    * @brief A distributed velocity vector used to distribute the
@@ -280,34 +305,34 @@ private:
    * @attention This is a quick fix until we finish the general 
    * extrapolating method.
    */
-  LinearAlgebra::MPI::Vector            distributed_velocity_vector;
+  LinearAlgebra::MPI::Vector                    distributed_velocity_vector;
 
   /*!
    * @brief Preconditioner of the linear system.
    */
-  LinearAlgebra::MPI::PreconditionILU   preconditioner;
+  LinearAlgebra::MPI::PreconditionILU           preconditioner;
 
   /*!
    * @brief Absolute tolerance of the Krylov solver.
    */
-  const double                          absolute_tolerance = 1.0e-9;
+  const double                                  absolute_tolerance = 1.0e-9;
 
   /*!
    * @brief A flag indicating if the preconditioner is to be
    * initiated.
    */ 
-  bool                                  flag_reinit_preconditioner;
+  bool                                          flag_reinit_preconditioner;
 
   /*!
    * @brief A flag indicating if the sum of the mass and stiffness matrix
    * is to be performed.
    */ 
-  bool                                  flag_add_mass_and_stiffness_matrices;
+  bool                                          flag_add_mass_and_stiffness_matrices;
 
   /*!
    * @brief A flag indicating if the advection term is to be ignored.
    */ 
-  bool                                  flag_ignore_advection;
+  bool                                          flag_ignore_advection;
 
   /*!
    * @brief Setup of the sparsity spatterns of the matrices.
