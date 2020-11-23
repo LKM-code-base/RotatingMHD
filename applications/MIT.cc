@@ -111,6 +111,8 @@ private:
 
   BenchmarkData::MIT<dim>                       mit_benchmark;
 
+  std::ofstream                                 cfl_output_file;
+
   bool                                          flag_local_refinement;
 
   void make_grid(const unsigned int n_global_refinements);
@@ -148,7 +150,7 @@ temperature_boundary_conditions(
 time_stepping(parameters.time_stepping_parameters),
 // The domain does not have any curved boundary, so a linear mapping
 // is sufficient.
-mapping(new MappingQ<dim>(1)),
+mapping(std::make_shared<MappingQ<dim>>(1)),
 navier_stokes(parameters,
               time_stepping,
               velocity,
@@ -171,8 +173,11 @@ mit_benchmark(velocity,
               mapping,
               this->pcout,
               this->computing_timer),
+cfl_output_file("MIT_cfl_number.csv"),
 flag_local_refinement(true)
 {
+  *this->pcout << "Problem: MIT Benchmark" << std::endl;
+
   AssertDimension(dim, 2);
   make_grid(parameters.n_global_refinements);
   setup_dofs();
@@ -187,6 +192,8 @@ flag_local_refinement(true)
   this->container.add_entity(pressure, false);
   this->container.add_entity(navier_stokes.phi, false);
   this->container.add_entity(temperature, false);
+
+  cfl_output_file << "Time" << "," << "CFL" << std::endl;
 }
 
 template <int dim>
@@ -220,9 +227,12 @@ void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
   boundary_ids = this->triangulation.get_boundary_ids();
 
   *(this->pcout) << std::endl
-                 << "Number of global refinements             = "
-                 << n_global_refinements << std::endl;
-  *(this->pcout) << "Number of active cells                   = "
+                 << "Triangulation:"
+                 << std::endl
+                 << " Number of initial global refinements     = "
+                 << n_global_refinements 
+                 << std::endl
+                 << " Number of initial active cells           = "
                  << this->triangulation.n_global_active_cells() 
                  << std::endl << std::endl;
 }
@@ -238,16 +248,18 @@ void MITBenchmark<dim>::setup_dofs()
   pressure->setup_dofs();
   temperature->setup_dofs();
   
-  *(this->pcout) << "Number of velocity degrees of freedom    = "
+  *(this->pcout) << "Spatial discretization:"
+                 << std::endl
+                 << " Number of velocity degrees of freedom    = "
                  << (velocity->dof_handler)->n_dofs()
                  << std::endl
-                 << "Number of pressure degrees of freedom    = "
+                 << " Number of pressure degrees of freedom    = "
                  << pressure->dof_handler->n_dofs()
                  << std::endl
-                 << "Number of temperature degrees of freedom = "
+                 << " Number of temperature degrees of freedom = "
                  << temperature->dof_handler->n_dofs()
                  << std::endl
-                 << "Number of total degrees of freedom       = "
+                 << " Number of total degrees of freedom       = "
                  << (velocity->dof_handler->n_dofs() +
                      pressure->dof_handler->n_dofs() +
                      temperature->dof_handler->n_dofs())
@@ -271,13 +283,11 @@ void MITBenchmark<dim>::setup_constraints()
 
   // Inhomogeneous time dependent Dirichlet boundary conditions over 
   // the side walls and homogeneous Neumann boundary conditions over 
-  //the bottom and top walls for the temperature field.
-  temperature->boundary_conditions.set_dirichlet_bcs(1,
-    temperature_boundary_conditions, true
-    /*std::make_shared<Functions::ConstantFunction<dim>>(0.5)*/);
-  temperature->boundary_conditions.set_dirichlet_bcs(2,
-    temperature_boundary_conditions, true
-    /*std::make_shared<Functions::ConstantFunction<dim>>(-0.5)*/);
+  // the bottom and top walls for the temperature field.
+  temperature->boundary_conditions.set_dirichlet_bcs(
+    1, temperature_boundary_conditions, true);
+  temperature->boundary_conditions.set_dirichlet_bcs(
+    2, temperature_boundary_conditions, true);
 
   velocity->apply_boundary_conditions();
 
@@ -303,22 +313,11 @@ void MITBenchmark<dim>::initialize()
   // old_solution too, until I write the initialize method for the
   // heat equation.
   
-    temperature->set_solution_vectors_to_zero();
-  
-  LinearAlgebra::MPI::Vector  distributed_temperature_vector;
-  #ifdef USE_PETSC_LA
-    distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
-                                          temperature->mpi_communicator);
-  #else
-    distributed_temperature_vector.reinit(temperature->locally_owned_dofs,
-                                          temperature->locally_relevant_dofs,
-                                          temperature->mpi_communicator,
-                                          true);
-  #endif
+  temperature->set_solution_vectors_to_zero();
 
   {
-    LinearAlgebra::MPI::Vector distributed_old_temperature(distributed_temperature_vector);
-    LinearAlgebra::MPI::Vector distributed_old_old_temperature(distributed_temperature_vector);
+    LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
+    LinearAlgebra::MPI::Vector distributed_old_old_temperature(temperature->distributed_vector);
     
     distributed_old_temperature     = temperature->old_solution;
     distributed_old_old_temperature = temperature->old_old_solution;
@@ -353,11 +352,15 @@ void MITBenchmark<dim>::postprocessing()
   // class for further information.
   mit_benchmark.compute_benchmark_data();
 
+  const double cfl_number = navier_stokes.get_cfl_number();
+
   std::cout.precision(1);
   /*! @attention For some reason, a run time error happens when I try
       to only use one pcout */
   *this->pcout << time_stepping << ", ";
   *this->pcout << mit_benchmark
+               << ", CFL = "
+               << cfl_number
                << ", Norms: ("
                << std::noshowpos << std::scientific
                << navier_stokes.get_diffusion_step_rhs_norm()
@@ -370,6 +373,8 @@ void MITBenchmark<dim>::postprocessing()
                << std::fixed
                << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
                << "%] \r";
+  cfl_output_file << time_stepping.get_current_time() << ","
+                  << cfl_number << std::endl;
 }
 
 template <int dim>
@@ -426,6 +431,16 @@ void MITBenchmark<dim>::update_solution_vectors()
 template <int dim>
 void MITBenchmark<dim>::run()
 {
+  *this->pcout << "Time discretization:" << std::endl
+               << " VSIMEX scheme                            = " 
+               << time_stepping.get_name() << std::endl
+               << " Semi-implicit advection term             = "
+               << std::boolalpha << this->prm.flag_semi_implicit_convection
+               << std::endl 
+               << " Initial time step                        = " 
+               << time_stepping.get_next_step_size() << std::endl
+               << std::endl;
+
   // Advances the time to t^{k-1}
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
@@ -485,7 +500,7 @@ int main(int argc, char *argv[])
       using namespace RMHD;
 
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 1);
+        argc, argv, 2);
 
       RunTimeParameters::ParameterSet parameter_set("MIT.prm");
 
