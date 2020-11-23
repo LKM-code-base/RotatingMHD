@@ -28,7 +28,9 @@ enum class VSIMEXScheme
   ForwardEuler,
   /*!
    * @brief Combination of the Crank-Nicolson and forward Euler method.
+   *
    * @details Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$.
+   *
    * @attention SG: What is meant by \f$ f(u) \f$ and \f$ g(u) \f$? What is the
    * wealth of combining both schemes?
    */
@@ -90,6 +92,9 @@ struct TimeSteppingParameters
 
   /*!
    * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm);
@@ -149,6 +154,9 @@ struct TimeSteppingParameters
 
 /*!
  * @brief Method forwarding the parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm);

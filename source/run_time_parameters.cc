@@ -519,11 +519,12 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const RefinementParameters &prm)
 {
   const size_t column_width[2] =
-      {
-          std::string("----------------------------------").size(),
-          std::string("-------------------").size()
-      };
-  const char header[] = "+-----------------------------------+--------------------+";
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
 
   auto add_line = [&]
                   (const char first_column[],
@@ -552,7 +553,7 @@ Stream& operator<<(Stream &stream, const RefinementParameters &prm)
   add_line("Number of adapt. global refinements", prm.n_global_initial_refinements);
   add_line("Number of initial boundary refinements", prm.n_boundary_initial_refinements);
 
-  stream << header << std::endl;
+  stream << header;
 
   return (stream);
 }
@@ -638,12 +639,12 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
 {
   const size_t column_width[2] =
-      {
-          std::string("----------------------------------").size(),
-          std::string("-------------------").size()
-      };
-  const char header[] = "+-----------------------------------+--------------------+";
-
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
   auto add_line = [&]
                   (const char first_column[],
                    const auto second_column)->void
@@ -666,7 +667,7 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
   add_line("Terminal output frequency", prm.terminal_output_frequency);
   add_line("Graphical output directory", prm.graphical_output_directory);
 
-  stream << header << std::endl;
+  stream << header;
 
   return (stream);
 }
@@ -750,7 +751,11 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 {
   stream << static_cast<const OutputControlParameters &>(prm);
 
+  stream << "\r";
+
   stream << static_cast<const RefinementParameters &>(prm);
+
+  stream << "\r";
 
   stream << static_cast<const TimeSteppingParameters &>(prm);
 
@@ -829,12 +834,12 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 {
   const size_t column_width[2] =
-      {
-          std::string("----------------------------------").size(),
-          std::string("-------------------").size()
-      };
-  const char header[] = "+-----------------------------------+--------------------+";
-
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
   auto add_line = [&]
                   (const char first_column[],
                    const auto second_column)->void
@@ -857,7 +862,7 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
   add_line("Relative tolerance", prm.relative_tolerance);
   add_line("Absolute tolerance", prm.absolute_tolerance);
 
-  stream << header << std::endl;
+  stream << header;
 
   return (stream);
 }
@@ -1008,12 +1013,12 @@ Stream& operator<<(Stream &stream,
                    const NavierStokesDiscretizationParameters &prm)
 {
   const size_t column_width[2] =
-      {
-          std::string("----------------------------------").size(),
-          std::string("-------------------").size()
-      };
-  const char header[] = "+-----------------------------------+--------------------+";
-
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
   auto add_line = [&]
                   (const char first_column[],
                    const auto second_column)->void
@@ -1082,7 +1087,7 @@ Stream& operator<<(Stream &stream,
 
   add_line("Reynolds number", prm.Re);
 
-  stream << header << std::endl;
+  stream << header;
 
   return (stream);
 }
@@ -1166,12 +1171,12 @@ Stream& operator<<(Stream &stream,
                    const NavierStokesProblemParameters &prm)
 {
   const size_t column_width[2] =
-      {
-          std::string("----------------------------------").size(),
-          std::string("-------------------").size()
-      };
-  const char header[] = "+-----------------------------------+--------------------+";
-
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
   auto add_line = [&]
                   (const char first_column[],
                    const auto second_column)->void
@@ -1192,11 +1197,15 @@ Stream& operator<<(Stream &stream,
 
   add_line("Polynomial degree", prm.fe_degree);
 
-  stream << static_cast<const ProblemParameters &>(prm);
-
   stream << prm.navier_stokes_discretization;
 
-  stream << header << std::endl;
+  stream << "\r";
+
+  stream << static_cast<const ProblemParameters &>(prm);
+
+  stream << "\r";
+
+  stream << header;
 
   return (stream);
 }

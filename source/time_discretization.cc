@@ -198,11 +198,12 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm)
 {
   const size_t column_width[2] =
-      {
-          std::string("----------------------------------").size(),
-          std::string("-------------------").size()
-      };
-  const char header[] ="+-----------------------------------+--------------------+";
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
 
   auto add_line = [&]
                   (const char first_column[],
@@ -259,7 +260,7 @@ Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm)
   add_line("Final time", prm.final_time);
   add_line("Verbose", (prm.verbose? "true": "false"));
 
-  stream << header << std::endl;
+  stream << header;
 
   return (stream);
 }

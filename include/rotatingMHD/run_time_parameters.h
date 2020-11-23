@@ -252,6 +252,9 @@ struct RefinementParameters
 
   /*!
    * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const RefinementParameters &prm);
@@ -298,6 +301,9 @@ struct RefinementParameters
 
 /*!
  * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const RefinementParameters &prm);
@@ -333,6 +339,9 @@ struct OutputControlParameters
 
   /*!
    * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const OutputControlParameters &prm);
@@ -356,6 +365,9 @@ struct OutputControlParameters
 
 /*!
  * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const OutputControlParameters &prm);
@@ -447,6 +459,9 @@ struct LinearSolverParameters
 
   /*!
    * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
@@ -500,6 +515,9 @@ struct LinearSolverParameters
 
 /*!
  * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
@@ -537,6 +555,8 @@ struct NavierStokesDiscretizationParameters
 
   /*!
    * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream,
@@ -610,6 +630,8 @@ struct NavierStokesDiscretizationParameters
 
 /*!
  * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream,
@@ -650,6 +672,9 @@ struct NavierStokesProblemParameters : public ProblemParameters
 
   /*!
    * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream,
@@ -673,6 +698,12 @@ struct NavierStokesProblemParameters : public ProblemParameters
 
 };
 
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
+ */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const NavierStokesProblemParameters &prm);
 
