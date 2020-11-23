@@ -2,8 +2,8 @@
 #define INCLUDE_ROTATINGMHD_PROBLEM_CLASS_H_
 
 #include <rotatingMHD/entities_structs.h>
+#include <rotatingMHD/general_parameters.h>
 #include <rotatingMHD/time_discretization.h>
-#include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/function.h>
 #include <deal.II/base/timer.h>

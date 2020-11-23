@@ -65,9 +65,10 @@ SET(TARGET_SRC
     source/convergence_struct.cc
     source/entities_structs.cc
     source/equation_data.cc
+    source/general_parameters.cc
     source/heat_equation.cc
     source/problem_class.cc
-    source/run_time_parameters.cc
+    source/navier_stokes_parameters.cc
     source/time_discretization.cc
     source/navier_stokes_projection.cc
     source/navier_stokes_projection/assemble_advection_matrix.cc

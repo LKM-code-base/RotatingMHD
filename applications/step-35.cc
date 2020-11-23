@@ -2,7 +2,6 @@
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
-#include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/conditional_ostream.h>
@@ -12,6 +11,7 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/navier_stokes_parameters.h>
 
 #include <iostream>
 #include <memory>
