@@ -51,7 +51,7 @@ struct DFGBechmarkRequest
    *
    */
   DFGBechmarkRequest(const double reynolds_number = 100.0,
-                     const double reference_length = 0.1);
+                     const double reference_length = 1.0);
 
   /*!
    * @brief The Reynolds number of the problem.

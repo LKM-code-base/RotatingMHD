@@ -92,7 +92,7 @@ public:
    */
   VelocityInflowBoundaryCondition(const double time = 0,
                                   const double maximum_velocity = 1.5,
-                                  const double height = 0.41);
+                                  const double height = 4.1);
 
   /*!
    * Overloaded method evaluating the function.
