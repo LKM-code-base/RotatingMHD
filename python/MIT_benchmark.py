@@ -20,7 +20,7 @@ quere_data  = np.array([3.41150,                # Period
                         0.056356,   0.054828,   # Velocity x-component
                         0.265480,   0.042740,   # Temperature
                         4.57946,    0.007100,   # Nusselt number
-                        0.001850,   0.020380])  # Pressure difference 14
+                        -0.001850,  0.020380])  # Pressure difference 14
 
 # Initializing the errors
 errors            = np.zeros(len(quere_data))
