@@ -76,17 +76,25 @@ print(composite_metrics)
 print(accuracy_metrics)
 
 #fig, ax = plt.subplots()
-#ax.plot(data[:, 0], data[:, 5])
+# Index Quantity
+# 0     Time
+# 1     Velocity's x-component at P1
+# 2     Temperature at P1
+# 3     Nusselt number at the right wall
+# 4     Pressure difference between P1 and P4
+# 5     Average velocity metric
+# 6     Average vorticity metric 
+#ax.plot(data[:, 0], data[:, 1])
 
-# Set axis ranges; by default this will put major ticks every 25.
+# Set axis ranges
 #ax.set_xlim(1593, 1597.5)
 #ax.set_ylim(0.24, 0.29)
 
-# Change major ticks to show every 20.
+# Major ticks .
 #ax.xaxis.set_major_locator(MultipleLocator(1))
 #ax.yaxis.set_major_locator(MultipleLocator(0.01))
 
-# Change minor ticks to show every 5. (20/4 = 5)
+# Minor ticks 
 #ax.xaxis.set_minor_locator(AutoMinorLocator(4))
 #ax.yaxis.set_minor_locator(AutoMinorLocator(4))
 
