@@ -5,6 +5,7 @@
 #include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
+#include <rotatingMHD/navier_stokes_parameters.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/time_discretization.h>
@@ -14,10 +15,11 @@
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
+#include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <rotatingMHD/navier_stokes_parameters.h>
+
 #include <iostream>
 #include <string>
 
@@ -340,6 +342,8 @@ benchmark_request(),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
+  *(this->pcout) << params << std::endl;
+
   make_grid();
 
   setup_dofs();
@@ -357,17 +361,30 @@ void DFG<dim>::make_grid()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
-  GridGenerator::channel_with_cylinder(this->triangulation);
+  /*
+   *
+   * SG: Why are we reading the grid from the filesystem? There is a method to
+   * do this! GridGenerator::channel_with_cylinder
+   *
+   */
+  GridIn<dim> grid_in;
+  grid_in.attach_triangulation(this->triangulation);
 
+  {
+    std::string   filename = "dfg.inp";
+    std::ifstream file(filename);
+    Assert(file, ExcFileNotOpen(filename.c_str()));
+    grid_in.read_ucd(file);
+  }
 
   boundary_ids = this->triangulation.get_boundary_ids();
 
-//  const PolarManifold<dim> inner_boundary;
-//  this->triangulation.set_all_manifold_ids_on_boundary(2, 1);
-//  this->triangulation.set_manifold(1, inner_boundary);
+  const PolarManifold<dim> inner_boundary;
+  this->triangulation.set_all_manifold_ids_on_boundary(2, 1);
+  this->triangulation.set_manifold(1, inner_boundary);
 
-  *(this->pcout)  << "Number of active cells                = "
-                  << this->triangulation.n_active_cells() << std::endl;
+  *(this->pcout) << "Number of active cells                = "
+                 << this->triangulation.n_active_cells() << std::endl;
 }
 
 template <int dim>
@@ -378,12 +395,12 @@ void DFG<dim>::setup_dofs()
   velocity->setup_dofs();
   pressure->setup_dofs();
   
-  *(this->pcout)  << "Number of velocity degrees of freedom = "
-                  << (velocity->dof_handler)->n_dofs()
-                  << std::endl
-                  << "Number of pressure degrees of freedom = "
-                  << (pressure->dof_handler)->n_dofs()
-                  << std::endl;
+  *(this->pcout) << "Number of velocity degrees of freedom = "
+                 << (velocity->dof_handler)->n_dofs()
+                 << std::endl
+                 << "Number of pressure degrees of freedom = "
+                 << (pressure->dof_handler)->n_dofs()
+                 << std::endl;
 }
 
 template <int dim>
@@ -487,6 +504,8 @@ void DFG<dim>::run()
         time_stepping, 
         navier_stokes.get_cfl_number()));
 
+    *(this->pcout) << time_stepping << std::endl;
+
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
@@ -495,6 +514,7 @@ void DFG<dim>::run()
 
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
+
     time_stepping.advance_time();
 
     // Snapshot stage, all time calls should be done with get_current_time()
@@ -559,8 +579,7 @@ int main(int argc, char *argv[])
       using namespace dealii;
       using namespace RMHD;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 1);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 2);
 
       NavierStokesProblemParameters parameter_set("DFG.prm");
 

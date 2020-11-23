@@ -347,13 +347,6 @@ private:
   LinearAlgebra::MPI::PreconditionJacobi  correction_step_preconditioner;
 
   /*!
-   * @brief The aboslute tolerance of all internal solvers used
-   * for the pressure-correction scheme.
-   * @attention Its value is hardcoded to \f$ \num{1e-9}\f$.
-   */
-  const double                          absolute_tolerance = 1.0e-9;
-  
-  /*!
    * @brief The norm of the right hand side of the diffusion step.
    * @details Its value is that of the last computed pressure-correction
    * scheme step.

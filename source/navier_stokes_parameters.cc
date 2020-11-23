@@ -481,6 +481,8 @@ void NavierStokesDiscretizationParameters::parse_parameters(ParameterHandler &pr
     }
     prm.leave_subsection();
 
+    verbose = prm.get_bool("Verbose");
+
   }
   prm.leave_subsection();
 
@@ -644,6 +646,8 @@ void NavierStokesProblemParameters::parse_parameters(ParameterHandler &prm)
 
   fe_degree = prm.get_integer("Polynomial degree");
   Assert(fe_degree > 0, ExcLowerRange(fe_degree, 0));
+
+  verbose = prm.get_bool("Verbose");
 
   const double tmp = prm.get_double("Reynolds number");
   Assert(tmp > 0.0, ExcLowerRangeType<double>(tmp, 0.0));

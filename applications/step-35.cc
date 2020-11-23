@@ -327,8 +327,7 @@ int main(int argc, char *argv[])
       using namespace dealii;
       using namespace RMHD;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 1);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
       NavierStokesProblemParameters parameter_set("step-35.prm");
 
