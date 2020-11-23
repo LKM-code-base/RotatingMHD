@@ -1554,7 +1554,7 @@ GENERATE_TREEVIEW      = YES
 # Minimum value: 0, maximum value: 20, default value: 4.
 # This tag requires that the tag GENERATE_HTML is set to YES.
 
-ENUM_VALUES_PER_LINE   = 4
+ENUM_VALUES_PER_LINE   = 1
 
 # If the treeview is enabled (see GENERATE_TREEVIEW) then this tag can be used
 # to set the initial width (in pixels) of the frame in which the tree is shown.
@@ -1594,7 +1594,7 @@ FORMULA_TRANSPARENT    = YES
 # to create new LaTeX commands to be used in formulas as building blocks. See
 # the section "Including formulas" for details.
 
-FORMULA_MACROFILE      = latex_macros.tex
+FORMULA_MACROFILE      =
 
 # Enable the USE_MATHJAX option to render LaTeX formulas using MathJax (see
 # https://www.mathjax.org) which uses client side JavaScript for the rendering
@@ -1648,7 +1648,7 @@ MATHJAX_EXTENSIONS     = TeX/AMSmath \
 # example see the documentation.
 # This tag requires that the tag USE_MATHJAX is set to YES.
 
-MATHJAX_CODEFILE       =
+MATHJAX_CODEFILE       = mathjax_macros.js
 
 # When the SEARCHENGINE tag is enabled doxygen will generate a search box for
 # the HTML output. The underlying search engine uses javascript and DHTML and
@@ -1743,7 +1743,7 @@ EXTRA_SEARCH_MAPPINGS  =
 # If the GENERATE_LATEX tag is set to YES, doxygen will generate LaTeX output.
 # The default value is: YES.
 
-GENERATE_LATEX         = YES
+GENERATE_LATEX         = NO
 
 # The LATEX_OUTPUT tag is used to specify where the LaTeX docs will be put. If a
 # relative path is entered the value of OUTPUT_DIRECTORY will be put in front of
