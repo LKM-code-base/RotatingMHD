@@ -540,7 +540,11 @@ Stream& operator<<(Stream &stream, const RefinementParameters &prm)
 
   stream << std::left << header << std::endl;
 
-  add_line("Refinement control parameters","");
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Refinement control parameters"
+         << "|"
+         << std::endl;
 
   stream << header << std::endl;
 
@@ -659,7 +663,11 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
 
   stream << std::left << header << std::endl;
 
-  add_line("Output control parameters","");
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Output control parameters"
+         << "|"
+         << std::endl;
 
   stream << header << std::endl;
 
@@ -854,7 +862,11 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 
   stream << std::left << header << std::endl;
 
-  add_line("Linear solver parameters","");
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Linear solver parameters"
+         << "|"
+         << std::endl;
 
   stream << header << std::endl;
 
@@ -999,7 +1011,7 @@ void NavierStokesDiscretizationParameters::parse_parameters(ParameterHandler &pr
 
     prm.enter_subsection("Linear solver parameters");
     {
-      linear_solver_control.declare_parameters(prm);
+      linear_solver_control.parse_parameters(prm);
     }
     prm.leave_subsection();
 
@@ -1033,7 +1045,11 @@ Stream& operator<<(Stream &stream,
 
   stream << std::left << header << std::endl;
 
-  add_line("Navier-Stokes discretization parameters","");
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Navier-Stokes discretization parameters"
+         << "|"
+         << std::endl;
 
   stream << header << std::endl;
 
@@ -1086,6 +1102,10 @@ Stream& operator<<(Stream &stream,
   add_line("Preconditioner update frequency", prm.preconditioner_update_frequency);
 
   add_line("Reynolds number", prm.Re);
+
+  stream << prm.linear_solver_control;
+
+  stream << "\r";
 
   stream << header;
 
@@ -1191,7 +1211,11 @@ Stream& operator<<(Stream &stream,
 
   stream << std::left << header << std::endl;
 
-  add_line("Navier-Stokes problem parameters","");
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Navier-Stokes problem parameters"
+         << "|"
+         << std::endl;
 
   stream << header << std::endl;
 

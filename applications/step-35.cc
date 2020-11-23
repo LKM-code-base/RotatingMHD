@@ -93,7 +93,7 @@ inflow_boundary_condition(params.start_time),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
-  *(this->pcout) << params;
+  *(this->pcout) << params << std::endl;
 
   make_grid(params.n_global_initial_refinements);
 
@@ -130,7 +130,7 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 
   boundary_ids = this->triangulation.get_boundary_ids();
 
-  *(this->pcout) << "Number of refines                     = "
+  *(this->pcout) << "Number of initial refinements         = "
                  << n_global_refinements << std::endl;
   *(this->pcout) << "Number of active cells                = "
                  << this->triangulation.n_global_active_cells() << std::endl;
@@ -158,9 +158,9 @@ void Step35<dim>::setup_constraints()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
   velocity->boundary_conditions.set_dirichlet_bcs(1);
-  velocity->boundary_conditions.set_dirichlet_bcs(2,
-    std::shared_ptr<Function<dim>> 
-    (new EquationData::Step35::VelocityInflowBoundaryCondition<dim>()));
+  velocity->boundary_conditions.set_dirichlet_bcs
+  (2,
+   std::make_shared<VelocityInflowBoundaryCondition<dim>>());
   velocity->boundary_conditions.set_dirichlet_bcs(4);
   velocity->boundary_conditions.set_tangential_flux_bcs(3);
   
@@ -186,6 +186,7 @@ void Step35<dim>::initialize()
   //navier_stokes.initialize();
   velocity->solution = velocity->old_solution;
   pressure->solution = pressure->old_solution;
+
   output();
 }
 
@@ -240,6 +241,9 @@ void Step35<dim>::update_solution_vectors()
 template <int dim>
 void Step35<dim>::run()
 {
+  /*
+   * SG: This does not make any sense to me?!
+   */
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
 
@@ -257,6 +261,8 @@ void Step35<dim>::run()
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
+
+    *(this->pcout) << time_stepping << std::endl;
 
     // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve();
@@ -277,6 +283,8 @@ void Step35<dim>::run()
         (time_stepping.get_current_time() == time_stepping.get_end_time()))
       output();
   }
+
+  *(this->pcout) << std::defaultfloat << std::noshowpos;
 }
 
 template <int dim>
@@ -285,26 +293,27 @@ void Step35<dim>::point_evaluation(const Point<dim> &point) const
   const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
   cell_point =
   GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
-                                           *velocity->dof_handler,
+                                           *(velocity->dof_handler),
                                            point);
   if (cell_point.first->is_locally_owned())
   {
     Vector<double> point_value_velocity(dim);
     VectorTools::point_value(*velocity->dof_handler,
-                            velocity->solution,
-                            point,
-                            point_value_velocity);
+                             velocity->solution,
+                             point,
+                             point_value_velocity);
 
     const double point_value_pressure
     = VectorTools::point_value(*pressure->dof_handler,
-                              pressure->solution,
-                              point);
-    std::cout << time_stepping
-              << " Velocity = (" << std::showpos << std::scientific
+                               pressure->solution,
+                               point);
+    std::cout << "   "
+              << "Velocity = (" << std::showpos << std::scientific
               << point_value_velocity[0]
               << ", " << std::showpos << std::scientific
-              << point_value_velocity[1]
-              << ") Pressure = " << std::showpos << std::scientific
+              << point_value_velocity[1] << ")" << std::endl
+              << "   "
+              << "Pressure = " << std::showpos << std::scientific
               << point_value_pressure  << std::endl;
   }
 }

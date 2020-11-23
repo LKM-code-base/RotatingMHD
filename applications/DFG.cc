@@ -13,7 +13,7 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
-#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
@@ -29,6 +29,8 @@ using namespace dealii;
 using namespace EquationData::DFG;
 
 using namespace BenchmarkData;
+
+using namespace RunTimeParameters;
 
 /*!
  * @class DFG
@@ -277,27 +279,29 @@ template <int dim>
 class DFG : public Problem<dim>
 {
 public:
-  DFG(const RunTimeParameters::ParameterSet &parameters);
-  void run(const bool         flag_verbose_output           = false,
-           const unsigned int terminal_output_periodicity   = 10,
-           const unsigned int graphical_output_periodicity  = 10);
+  DFG(const NavierStokesProblemParameters &prm);
+
+  void run();
+
 private:
 
-  std::vector<types::boundary_id>             boundary_ids;
+  const NavierStokesProblemParameters          &params;
+
+  std::vector<types::boundary_id>               boundary_ids;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
-  TimeDiscretization::VSIMEXMethod            time_stepping;
+  TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  NavierStokesProjection<dim>                 navier_stokes;
+  NavierStokesProjection<dim>                   navier_stokes;
 
-  DFGBechmarkRequest<dim>                     benchmark_request;
+  DFGBechmarkRequest<dim>                       benchmark_request;
 
-  VelocityInitialCondition<dim> velocity_initial_condition;
+  VelocityInitialCondition<dim>                 velocity_initial_condition;
 
-  PressureInitialCondition<dim> pressure_initial_condition;
+  PressureInitialCondition<dim>                 pressure_initial_condition;
 
   void make_grid();
 
@@ -315,17 +319,18 @@ private:
 };
 
 template <int dim>
-DFG<dim>::DFG(const RunTimeParameters::ParameterSet &parameters)
+DFG<dim>::DFG(const NavierStokesProblemParameters &prm)
 :
-Problem<dim>(parameters),
+Problem<dim>(prm),
+params(prm),
 velocity(std::make_shared<Entities::VectorEntity<dim>>
-         (parameters.p_fe_degree + 1,
+         (params.fe_degree + 1,
           this->triangulation)),
 pressure(std::make_shared<Entities::ScalarEntity<dim>>
-         (parameters.p_fe_degree,
+         (params.fe_degree,
           this->triangulation)),
-time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters,
+time_stepping(params),
+navier_stokes(params.navier_stokes_discretization,
               velocity,
               pressure,
               time_stepping,
@@ -336,10 +341,14 @@ velocity_initial_condition(dim),
 pressure_initial_condition()
 {
   make_grid();
+
   setup_dofs();
+
   setup_constraints();
+
   velocity->reinit();
   pressure->reinit();
+
   initialize();
 }
 
@@ -348,27 +357,14 @@ void DFG<dim>::make_grid()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
-  /*
-   *
-   * SG: Why are we reading the grid from the filesystem? There is a method to
-   * do this! GridGenerator::channel_with_cylinder
-   *
-   */
-  GridIn<dim> grid_in;
-  grid_in.attach_triangulation(this->triangulation);
+  GridGenerator::channel_with_cylinder(this->triangulation);
 
-  {
-    std::string   filename = "dfg.inp";
-    std::ifstream file(filename);
-    Assert(file, ExcFileNotOpen(filename.c_str()));
-    grid_in.read_ucd(file);
-  }
 
   boundary_ids = this->triangulation.get_boundary_ids();
 
-  const PolarManifold<dim> inner_boundary;
-  this->triangulation.set_all_manifold_ids_on_boundary(2, 1);
-  this->triangulation.set_manifold(1, inner_boundary);
+//  const PolarManifold<dim> inner_boundary;
+//  this->triangulation.set_all_manifold_ids_on_boundary(2, 1);
+//  this->triangulation.set_manifold(1, inner_boundary);
 
   *(this->pcout)  << "Number of active cells                = "
                   << this->triangulation.n_active_cells() << std::endl;
@@ -397,7 +393,7 @@ void DFG<dim>::setup_constraints()
 
   velocity->boundary_conditions.set_dirichlet_bcs
   (0,
-   std::make_shared<VelocityInflowBoundaryCondition<dim>>(this->prm.time_stepping_parameters.start_time));
+   std::make_shared<VelocityInflowBoundaryCondition<dim>>(params.start_time));
 
   velocity->boundary_conditions.set_dirichlet_bcs(2);
   velocity->boundary_conditions.set_dirichlet_bcs(3);
@@ -474,9 +470,7 @@ void DFG<dim>::update_solution_vectors()
 }
 
 template <int dim>
-void DFG<dim>::run(const bool          /* flag_verbose_output */,
-                   const unsigned int  terminal_output_periodicity,
-                   const unsigned int  graphical_output_periodicity)
+void DFG<dim>::run()
 {
   // Advances the time to t^{k-1}, either t^0 or t^1
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
@@ -504,10 +498,8 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
     time_stepping.advance_time();
 
     // Snapshot stage, all time calls should be done with get_current_time()
-    postprocessing((time_stepping.get_step_number() %
-                    terminal_output_periodicity == 0) ||
-                    (time_stepping.get_current_time() == 
-                   time_stepping.get_end_time()));
+    postprocessing((time_stepping.get_step_number() % params.terminal_output_frequency == 0) ||
+                   (time_stepping.get_current_time() == time_stepping.get_end_time()));
   }
 
   *(this->pcout) << "Restarting..." << std::endl;
@@ -546,15 +538,11 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
     time_stepping.advance_time();
 
     // Snapshot stage, all time calls should be done with get_current_time()
-    postprocessing((time_stepping.get_step_number() %
-                    terminal_output_periodicity == 0) ||
-                    (time_stepping.get_current_time() == 
-                   time_stepping.get_end_time()));
+    postprocessing((time_stepping.get_step_number() % params.terminal_output_frequency == 0) ||
+                   (time_stepping.get_current_time() == time_stepping.get_end_time()));
 
-    if ((time_stepping.get_step_number() %
-          graphical_output_periodicity == 0) ||
-        (time_stepping.get_next_time() == 
-          time_stepping.get_end_time()))
+    if ((time_stepping.get_step_number() % params.graphical_output_frequency == 0) ||
+        (time_stepping.get_next_time() == time_stepping.get_end_time()))
       output();
   }
 
@@ -574,14 +562,20 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ParameterSet parameter_set("DFG.prm");
+      NavierStokesProblemParameters parameter_set("DFG.prm");
 
       deallog.depth_console(parameter_set.verbose ? 2 : 0);
 
-      DFG<2> simulation(parameter_set);
-      simulation.run(parameter_set.verbose, 
-                     parameter_set.terminal_output_interval,
-                     parameter_set.graphical_output_interval);
+      if (parameter_set.dim == 2)
+      {
+        DFG<2> simulation(parameter_set);
+        simulation.run();
+      }
+      else if (parameter_set.dim == 3)
+      {
+        DFG<3> simulation(parameter_set);
+        simulation.run();
+      }
   }
   catch (std::exception &exc)
   {

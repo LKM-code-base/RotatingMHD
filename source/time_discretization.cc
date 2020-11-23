@@ -191,7 +191,6 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
     verbose = prm.get_bool("Verbose");
   }
   prm.leave_subsection();
-
 }
 
 template<typename Stream>
@@ -219,7 +218,11 @@ Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm)
 
   stream << std::left << header << std::endl;
 
-  add_line("Timestepping parameters","");
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Timestepping parameters"
+         << "|"
+         << std::endl;
 
   stream << header << std::endl;
 
@@ -254,9 +257,12 @@ Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm)
   if (prm.adaptive_time_stepping)
     add_line("Adaptive timestepping barrier", prm.adaptive_time_step_barrier);
   add_line("Initial time step", prm.initial_time_step);
-  add_line("Minimum time step", prm.minimum_time_step);
-  add_line("Maximum time step", prm.maximum_time_step);
-  add_line("Start time", prm.start_time);
+  if (prm.adaptive_time_stepping)
+  {
+    add_line("Minimum time step", prm.minimum_time_step);
+    add_line("Maximum time step", prm.maximum_time_step);
+  }
+    add_line("Start time", prm.start_time);
   add_line("Final time", prm.final_time);
   add_line("Verbose", (prm.verbose? "true": "false"));
 

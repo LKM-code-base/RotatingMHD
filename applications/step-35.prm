@@ -1,99 +1,83 @@
 # Listing of Parameters
 # ---------------------
-# Output frequency of diagnostic data on the terminal.
-set diagnostics_output_frequency = 1
+# Polynomial degree of discretization.
+set Polynomial degree = 1
+set Reynolds number   = 100.0
+set Spatial dimension = 2
+set Verbose           = false
 
-# Graphical output frequency.
-set graphical_output_frequency   = 1
 
-# Adaptive meshing frequency.
-set adaptive_meshing_frequency   = 20
+subsection Navier-Stokes discretization parameters
+  # Temporal form the of the convective term.
+  set Convective term temporal form   = semi-implicit
 
-# Projection method to implement.
-set projection_method            = rotational
+  # Weak form of the convective term.
+  set Convective term weak form       = skew-symmetric
+  set Preconditioner update frequency = 10
 
-# Projection method to implement.
-set convection_term_form         = skewsymmetric
+  # Type of the pressure update used in the pressure projection algorithm.
+  set Projection method               = rotational
+  set Verbose                         = false
 
-# Excludes the convection term from the VSIMEX scheme.
-set semi_implicit_convection_flag = true
 
-# Verbosity flag.
-set verbosity_flag               = false
+  subsection Linear solver parameters
+    set Absolute tolerance           = 1e-9
+    set Maximum number of iterations = 1000
+    set Relative tolerance           = 1e-6
+  end
 
-subsection Parameters of the diffusion-step solver
-  # Parameter which controls the size of the Krylov subspace in the GMRES
-  # algorithm.
-  set gmres_restart_parameter         = 30
-
-  # Maximum number of iterations done of diffusion-step solver.
-  set n_maximum_iterations            = 1000
-
-  # Relative tolerance of the diffusion-step solver.
-  set relative_tolerance              = 1e-10
-
-  # Diagonal strengthening coefficient.
-  set solver_diag_strength            = 0.1
-
-  # The number of off-diagonal elements ILU must compute.
-  set solver_off_diagonals            = 70
-
-  # The number of time steps after which the preconditioner is updated.
-  set update_frequency_preconditioner = 10
 end
 
 
-subsection Physical parameters
-  # The kinetic Reynolds number.
-  set Reynolds_number = 100.
+subsection Output control parameters
+  set Graphical output directory = ./
+  set Graphical output frequency = 1
+  set Terminal output frequency  = 1
 end
 
 
-subsection Spatial discretization parameters
-  # Number of global refinements done on the input mesh.
-  set n_global_refinements = 3
-
-  # The polynomial degree of the pressure finiteelement.
-  set p_fe_degree          = 1
-
-  # Maximum refinement and coarsening level allowed.
-  set refinement_and_coarsening_max_level = 10
-
-  # Minimum refinement and coarsening level allowed.
-  set refinement_and_coarsening_min_level = 1
+subsection Refinement control parameters
+  # Enable or disable adaptive mesh refinement
+  set Adaptive mesh refinement               = true
+  set Adaptive mesh refinement frequency     = 20
+  set Maximum number of levels               = 10
+  set Minimum number of levels               = 1
+  set Number of adaptive initial refinements = 0
+  set Number of global initial refinements   = 3
+  set Number of initial boundary refinements = 0
 end
 
 
-subsection Time stepping settings
+subsection Time stepping parameters
   # Turn adaptive time stepping on or off
-  set adaptive_time_stepping    = false
+  set Adaptive time stepping        = false
 
   # Time step after which adaptive time stepping is applied.
-  set adaptive_timestep_barrier = 2
+  set Adaptive timestepping barrier = 2
 
   # Final time of the simulation.
-  set final_time                = 2.5e-1
+  set Final time                    = 2.5e-1
 
   # Size of the initial time step.
-  set initial_time_step         = 5e-3
-
-  # Size of the maximum time step.
-  set maximum_time_step         = 7.5e-3
-
-  # Size of the minimum time step.
-  set minimum_time_step         = 2.5e-3
+  set Initial time step             = 5e-3
 
   # Maximum number of time steps to be computed.
-  set n_maximum_steps           = 10
+  set Maximum number of time steps  = 10
+
+  # Size of the maximum time step.
+  set Maximum time step             = 7.5e-3
+
+  # Size of the minimum time step.
+  set Minimum time step             = 2.5e-3
 
   # Start time of the simulation.
-  set start_time                = 0.0
+  set Start time                    = 0.0
 
   # Time stepping scheme applied.
-  set time_stepping_scheme      = BDF2
+  set Time stepping scheme          = BDF2
 
   # Activate verbose output.
-  set verbose                   = false
+  set Verbose                       = false
 end
 
 
