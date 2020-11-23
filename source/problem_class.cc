@@ -29,18 +29,19 @@ template<int dim>
 Problem<dim>::Problem(const ProblemParameters &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
-prm(prm),
+params(prm),
 triangulation(mpi_communicator,
               typename Triangulation<dim>::MeshSmoothing(
               Triangulation<dim>::smoothing_on_refinement |
               Triangulation<dim>::smoothing_on_coarsening)),
-pcout(std::make_shared<ConditionalOStream>(std::cout,
-      (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))),
-computing_timer(
-  std::make_shared<TimerOutput>(mpi_communicator,
-                                *pcout,
-                                TimerOutput::summary,
-                                TimerOutput::wall_times))
+pcout(std::make_shared<ConditionalOStream>
+      (std::cout,
+       (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))),
+computing_timer(std::make_shared<TimerOutput>
+                (mpi_communicator,
+                 *pcout,
+                 TimerOutput::summary,
+                 TimerOutput::wall_times))
 {}
 
 template <int dim>
@@ -161,11 +162,11 @@ void Problem<dim>::compute_error(
 
 template <int dim>
 double Problem<dim>::compute_next_time_step
-(const TimeDiscretization::VSIMEXMethod &time_stepping,
- const double                           cfl_number,
- const double                           max_cfl_number) const
+(const TimeDiscretization::VSIMEXMethod   &time_stepping,
+ const double                              cfl_number,
+ const double                              max_cfl_number) const
 {
-  if (!prm.adaptive_time_stepping)
+  if (!params.adaptive_time_stepping)
     return (time_stepping.get_next_step_size());
 
   return (max_cfl_number / cfl_number * time_stepping.get_next_step_size());
@@ -251,12 +252,12 @@ void Problem<dim>::adaptive_mesh_refinement()
 
 
     // Clear refinement flags if refinement level exceeds maximum
-    if (triangulation.n_levels() > prm.n_maximum_levels)
-      for (auto cell: triangulation.active_cell_iterators_on_level(prm.n_maximum_levels))
+    if (triangulation.n_levels() > params.n_maximum_levels)
+      for (auto cell: triangulation.active_cell_iterators_on_level(params.n_maximum_levels))
         cell->clear_refine_flag();
 
     // Clear coarsen flags if level decreases minimum
-    for (auto cell: triangulation.active_cell_iterators_on_level(prm.n_minimum_levels))
+    for (auto cell: triangulation.active_cell_iterators_on_level(params.n_minimum_levels))
         cell->clear_coarsen_flag();
 
     // Count number of cells to be refined and coarsened

@@ -30,12 +30,13 @@ template <int dim>
 class Step35 : public Problem<dim>
 {
 public:
-  Step35(const NavierStokesProblemParameters &parameters);
+  Step35(const NavierStokesProblemParameters &prm);
 
   void run();
 
 private:
-  const NavierStokesProblemParameters &params;
+
+  const NavierStokesProblemParameters        &params;
 
   std::vector<types::boundary_id>             boundary_ids;
 
@@ -71,34 +72,38 @@ private:
 };
 
 template <int dim>
-Step35<dim>::Step35(const NavierStokesProblemParameters &parameters)
+Step35<dim>::Step35(const NavierStokesProblemParameters &prm)
 :
-Problem<dim>(parameters),
-params(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree + 1,
+Problem<dim>(prm),
+params(prm),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(params.fe_degree + 1,
                                                        this->triangulation,
                                                        "velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree,
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(params.fe_degree,
                                                        this->triangulation,
                                                        "pressure")),
-time_stepping(static_cast<const TimeSteppingParameters &>(parameters)),
-navier_stokes(parameters.navier_stokes_discretization,
+time_stepping(params),
+navier_stokes(params.navier_stokes_discretization,
               velocity,
               pressure,
               time_stepping,
               this->pcout,
               this->computing_timer),
-inflow_boundary_condition(parameters.start_time),
+inflow_boundary_condition(params.start_time),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
-  std::cout << params;
+  *(this->pcout) << params;
 
-  make_grid(parameters.n_global_initial_refinements);
+  make_grid(params.n_global_initial_refinements);
+
   setup_dofs();
+
   setup_constraints();
+
   velocity->reinit();
   pressure->reinit();
+
   initialize();
 
   this->container.add_entity(velocity);

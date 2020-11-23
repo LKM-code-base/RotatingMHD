@@ -120,7 +120,7 @@ protected:
    * @brief Parameters describing the time discretization and refinement control
    * of the problem.
    */
-  const ProblemParameters                    &prm;
+  const ProblemParameters                    &params;
 
   /*!
    * @brief Triangulation object of the problem.
