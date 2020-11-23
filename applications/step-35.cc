@@ -22,15 +22,20 @@ namespace RMHD
 
 using namespace dealii;
 
+using namespace RunTimeParameters;
+
+using namespace EquationData::Step35;
+
 template <int dim>
 class Step35 : public Problem<dim>
 {
 public:
-  Step35(const RunTimeParameters::ParameterSet &parameters);
+  Step35(const NavierStokesProblemParameters &parameters);
 
   void run();
+
 private:
-  const RunTimeParameters::ParameterSet       &params;
+  const NavierStokesProblemParameters &params;
 
   std::vector<types::boundary_id>             boundary_ids;
 
@@ -42,12 +47,11 @@ private:
 
   NavierStokesProjection<dim>                 navier_stokes;
   
-  EquationData::Step35::VelocityInflowBoundaryCondition<dim>  
-                                      inflow_boundary_condition;
-  EquationData::Step35::VelocityInitialCondition<dim>         
-                                      velocity_initial_condition;
-  EquationData::Step35::PressureInitialCondition<dim>         
-                                      pressure_initial_condition;
+  VelocityInflowBoundaryCondition<dim>  inflow_boundary_condition;
+
+  VelocityInitialCondition<dim>         velocity_initial_condition;
+
+  PressureInitialCondition<dim>         pressure_initial_condition;
 
   void make_grid(const unsigned int n_global_refinements);
 
@@ -56,35 +60,41 @@ private:
   void setup_constraints();
 
   void initialize();
+
   void postprocessing(const bool flag_point_evaluation);
+
   void output();
+
   void update_solution_vectors();
+
   void point_evaluation(const Point<dim>   &point) const;
 };
 
 template <int dim>
-Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
+Step35<dim>::Step35(const NavierStokesProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 params(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree + 1,
                                                        this->triangulation,
                                                        "velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree,
                                                        this->triangulation,
                                                        "pressure")),
-time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters,
+time_stepping(static_cast<const TimeSteppingParameters &>(parameters)),
+navier_stokes(parameters.navier_stokes_discretization,
               velocity,
               pressure,
               time_stepping,
               this->pcout,
               this->computing_timer),
-inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
+inflow_boundary_condition(parameters.start_time),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
-  make_grid(parameters.n_global_refinements);
+  std::cout << params;
+
+  make_grid(parameters.n_global_initial_refinements);
   setup_dofs();
   setup_constraints();
   velocity->reinit();
@@ -189,12 +199,13 @@ void Step35<dim>::postprocessing(const bool flag_point_evaluation)
 template <int dim>
 void Step35<dim>::output()
 {
-  TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
+  TimerOutput::Scope  t(*(this->computing_timer), "Problem: Graphical output");
 
   std::vector<std::string> names(dim, "velocity");
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
-    component_interpretation(
-      dim, DataComponentInterpretation::component_is_part_of_vector);
+  component_interpretation(dim,
+                           DataComponentInterpretation::component_is_part_of_vector);
+
   DataOut<dim>        data_out;
   data_out.add_data_vector(*velocity->dof_handler,
                            velocity->solution,
@@ -232,10 +243,12 @@ void Step35<dim>::run()
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
     // Updates the time step, i.e sets the value of t^{k}
-    time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(
-        time_stepping, 
-        navier_stokes.get_cfl_number()));
+    const double current_cfl_number = navier_stokes.get_cfl_number();
+
+    const double desired_time_step =
+        this->compute_next_time_step(time_stepping, current_cfl_number);
+
+    time_stepping.set_desired_next_step_size(desired_time_step);
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -248,19 +261,15 @@ void Step35<dim>::run()
     time_stepping.advance_time();
 
     // Snapshot stage
-    postprocessing((time_stepping.get_step_number() % 
-                    this->prm.terminal_output_interval == 0) ||
-                   (time_stepping.get_current_time() == 
-                   time_stepping.get_end_time()));
+    postprocessing((time_stepping.get_step_number() % params.terminal_output_frequency == 0) ||
+                   (time_stepping.get_current_time() == time_stepping.get_end_time()));
 
-    if (time_stepping.get_step_number() % 
-        this->prm.adaptive_meshing_interval == 0)
-      this->adaptive_mesh_refinement();
+    if (params.adaptive_mesh_refinement)
+      if (time_stepping.get_step_number() % params.adaptive_mesh_refinement_frequency == 0)
+        this->adaptive_mesh_refinement();
 
-    if ((time_stepping.get_step_number() % 
-          this->prm.graphical_output_interval == 0) ||
-        (time_stepping.get_current_time() == 
-                   time_stepping.get_end_time()))
+    if ((time_stepping.get_step_number() % params.graphical_output_frequency == 0) ||
+        (time_stepping.get_current_time() == time_stepping.get_end_time()))
       output();
   }
 }
@@ -307,12 +316,20 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ParameterSet parameter_set("step-35.prm");
+      NavierStokesProblemParameters parameter_set("step-35.prm");
 
       deallog.depth_console(parameter_set.verbose ? 2 : 0);
 
-      Step35<2> simulation(parameter_set);
-      simulation.run();
+      if (parameter_set.dim == 2)
+      {
+          Step35<2> simulation(parameter_set);
+          simulation.run();
+      }
+      else if (parameter_set.dim == 3)
+      {
+          Step35<3> simulation(parameter_set);
+          simulation.run();
+      }
   }
   catch (std::exception &exc)
   {

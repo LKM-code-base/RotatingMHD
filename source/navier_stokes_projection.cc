@@ -47,6 +47,8 @@ flag_add_mass_and_stiffness_matrices(true)
   
   // Explicitly set the body force pointer to null
   body_force_ptr = nullptr;
+
+  Assert(parameters.Re > 0.0, ExcLowerRangeType<double>(parameters.Re, 0.0));
 }
 
 }  // namespace RMHD

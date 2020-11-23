@@ -6,11 +6,11 @@ INCLUDE_DIRECTORIES(
     )
 
 SET(SOURCE_FILES
-    DFG.cc
+#    DFG.cc
     step-35.cc
-    TGV.cc
-    Guermond.cc
-    ThermalTGV.cc
+#    TGV.cc
+#    Guermond.cc
+#    ThermalTGV.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})

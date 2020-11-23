@@ -652,7 +652,8 @@ struct NavierStokesProblemParameters : public ProblemParameters
    * @brief Method forwarding parameters to a stream object.
    */
   template<typename Stream>
-  friend Stream& operator<<(Stream &stream, const ProblemParameters &prm);
+  friend Stream& operator<<(Stream &stream,
+                            const NavierStokesProblemParameters &prm);
 
   /*!
    *
@@ -672,6 +673,8 @@ struct NavierStokesProblemParameters : public ProblemParameters
 
 };
 
+template<typename Stream>
+Stream& operator<<(Stream &stream, const NavierStokesProblemParameters &prm);
 
 } // namespace RunTimeParameters
 
