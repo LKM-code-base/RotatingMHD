@@ -264,8 +264,8 @@ area(8.0)
 
   // Setting up columns
   data.declare_column("time");
-  data.declare_column("velocity_norm_1");
   data.declare_column("velocity_x_1");
+  data.declare_column("velocity_y_1");
   data.declare_column("temperature_1");
   data.declare_column("streamfunction_1");
   data.declare_column("vorticity_1");
@@ -280,8 +280,8 @@ area(8.0)
 
   // Setting all columns to scientific notation
   data.set_scientific("time", true);
-  data.set_scientific("velocity_norm_1", true);
   data.set_scientific("velocity_x_1", true);
+  data.set_scientific("velocity_y_1", true);
   data.set_scientific("temperature_1", true);
   data.set_scientific("streamfunction_1", true);
   data.set_scientific("vorticity_1", true);
@@ -296,8 +296,8 @@ area(8.0)
 
   // Setting columns' precision
   data.set_precision("time", 6);
-  data.set_precision("velocity_norm_1", 6);
   data.set_precision("velocity_x_1", 6);
+  data.set_precision("velocity_y_1", 6);
   data.set_precision("temperature_1", 6);
   data.set_precision("streamfunction_1", 6);
   data.set_precision("vorticity_1", 6);
@@ -321,8 +321,8 @@ void MIT<dim>::compute_benchmark_data()
 
   // Update column's values
   data.add_value("time", time_stepping.get_current_time());
-  data.add_value("velocity_norm_1", velocity_at_p1.norm());
   data.add_value("velocity_x_1", velocity_at_p1[0]);
+  data.add_value("velocity_y_1", velocity_at_p1[1]);
   data.add_value("temperature_1", temperature_at_p1);
   data.add_value("streamfunction_1", stream_function_at_p1);
   data.add_value("vorticity_1", vorticity_at_p1);
@@ -356,9 +356,7 @@ template<typename Stream, int dim>
 Stream& operator<<(Stream &stream, const MIT<dim> &mit)
 {
   stream << std::noshowpos << std::scientific
-         << "u_1 = "
-         << mit.velocity_at_p1.norm()
-         << ", ux_1 = "
+         << "ux_1 = "
          << mit.velocity_at_p1[0]
          << ", T_1 = "
          << mit.temperature_at_p1
