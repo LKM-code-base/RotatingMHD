@@ -8,6 +8,8 @@ template <int dim>
 double NavierStokesProjection<dim>::
 get_cfl_number()
 {
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: CFL number");
+
   const QIterated<dim>  quadrature_formula(QTrapez<1>(),
                                            velocity->fe_degree);
   FEValues<dim>         fe_values(velocity->fe,
