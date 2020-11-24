@@ -12,15 +12,232 @@
 
 #include <rotatingMHD/time_discretization.h>
 
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/matrix_sparse.hpp>
-#include <boost/numeric/ublas/io.hpp>
-#include <boost/numeric/ublas/lu.hpp>
+#include <deal.II/base/quadrature_lib.h>
+
+#include <deal.II/dofs/dof_handler.h>
+#include <deal.II/dofs/dof_tools.h>
+
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/fe_q.h>
+
+#include <deal.II/grid/tria.h>
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_tools.h>
+
+#include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/dynamic_sparsity_pattern.h>
+#include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/precondition.h>
+#include <deal.II/lac/solver_cg.h>
+#include <deal.II/lac/sparse_matrix.h>
+#include <deal.II/lac/vector.h>
+
+#include <deal.II/numerics/vector_tools.h>
+
+using namespace dealii;
 
 using namespace RMHD::TimeDiscretization;
 
-using namespace boost::numeric;
+template <int dim>
+class ConvectionDiffusionSolver
+{
+
+public:
+  ConvectionDiffusionSolver();
+
+  void run();
+
+private:
+
+  void setup_system();
+
+  void assemble_system();
+
+  void assemble_rhs();
+
+  void solve();
+
+  void refine_grid(const unsigned int desired_level);
+
+  void coarsen_grid(const unsigned int desired_level);
+
+  Triangulation<dim>        triangulation;
+
+  FE_Q<dim>                 fe;
+
+  DoFHandler<dim>           dof_handler;
+
+  AffineConstraints<double> constraints;
+
+  SparseMatrix<double>      system_matrix;
+
+  SparseMatrix<double>      stiffness_matrix;
+
+  SparseMatrix<double>      mass_matrix;
+
+  SparsityPattern           sparsity_pattern;
+
+  Vector<double>            solution;
+
+  Vector<double>            old_solution;
+
+  Vector<double>            old_old_solution;
+
+  Vector<double>            system_rhs;
+};
+
+template <int dim>
+ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver()
+:
+fe(1),
+dof_handler(triangulation)
+{}
+
+template <int dim>
+void ConvectionDiffusionSolver<dim>::setup_system()
+{
+  dof_handler.distribute_dofs(fe);
+
+  solution.reinit(dof_handler.n_dofs());
+  old_solution.reinit(dof_handler.n_dofs());
+  old_old_solution.reinit(dof_handler.n_dofs());
+  system_rhs.reinit(dof_handler.n_dofs());
+
+  constraints.clear();
+
+  DoFTools::make_hanging_node_constraints(dof_handler,
+                                          constraints);
+
+  VectorTools::interpolate_boundary_values(dof_handler,
+                                           0,
+                                           Functions::ZeroFunction<dim>(),
+                                           constraints);
+  constraints.close();
+
+  DynamicSparsityPattern dsp(dof_handler.n_dofs());
+
+  DoFTools::make_sparsity_pattern(dof_handler,
+                                  dsp,
+                                  constraints,
+                                  /*keep_constrained_dofs = */ false);
+  sparsity_pattern.copy_from(dsp);
+
+  system_matrix.reinit(sparsity_pattern);
+}
+template <int dim>
+void ConvectionDiffusionSolver<dim>::assemble_system()
+{
+
+  const QGauss<dim> quadrature_formula(fe.degree + 1);
+
+  FEValues<dim> fe_values(fe,
+                          quadrature_formula,
+                          update_values|
+                          update_gradients|
+                          update_quadrature_points|
+                          update_JxW_values);
+
+  const unsigned int dofs_per_cell = fe.dofs_per_cell;
+
+  FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
+
+//  Vector<double>     cell_rhs(dofs_per_cell);
+
+  std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+
+  for (const auto &cell : dof_handler.active_cell_iterators())
+  {
+    cell_matrix = 0;
+
+    fe_values.reinit(cell);
+
+    for (const unsigned int q_index : fe_values.quadrature_point_indices())
+    {
+      for (const unsigned int i : fe_values.dof_indices())
+      {
+        for (const unsigned int j : fe_values.dof_indices())
+          cell_matrix(i, j) +=
+              (current_coefficient *              // a(x_q)
+               fe_values.shape_grad(i, q_index) * // grad phi_i(x_q)
+               fe_values.shape_grad(j, q_index) * // grad phi_j(x_q)
+               fe_values.JxW(q_index));           // dx
+      }
+    }
+
+    cell->get_dof_indices(local_dof_indices);
+
+    constraints.distribute_local_to_global(cell_matrix,
+                                           local_dof_indices,
+                                           system_matrix);
+  }
+}
+
+template <int dim>
+void ConvectionDiffusionSolver<dim>::solve()
+{
+  SolverControl solver_control(100, 1e-12);
+
+  SolverCG<Vector<double>> solver(solver_control);
+
+  PreconditionSSOR<SparseMatrix<double>> preconditioner;
+
+  preconditioner.initialize(system_matrix, 1.2);
+
+  solver.solve(system_matrix,
+               solution,
+               system_rhs,
+               preconditioner);
+
+  constraints.distribute(solution);
+}
+template <int dim>
+void ConvectionDiffusionSolver<dim>::make_grid(const unsigned int n_refinements)
+{
+  GridGenerator::hyper_cube(triangulation,
+                            0.0,
+                            1.0,
+                            true);
+
+  std::vector<GridTools::PeriodicFacePair<typename Triangulation<dim>::cell_iterator>>
+  periodicity_vector;
+
+  GridTools::collect_periodic_faces(this->triangulation,
+                                    0,
+                                    1);
+
+
+
+  triangulation.refine_global(n_refinements);
+}
+
+
+template <int dim>
+void ConvectionDiffusionSolver<dim>::run()
+{
+  for (unsigned int cycle = 0; cycle < 8; ++cycle)
+    {
+      std::cout << "Cycle " << cycle << ':' << std::endl;
+      if (cycle == 0)
+        {
+
+        }
+      else
+        refine_grid();
+      std::cout << "   Number of active cells:       "
+                << triangulation.n_active_cells() << std::endl;
+      setup_system();
+      std::cout << "   Number of degrees of freedom: " << dof_handler.n_dofs()
+                << std::endl;
+      assemble_system();
+      solve();
+      output_results(cycle);
+    }
+}
+
+
+
+
+
 
 void checkTimeStepper(const TimeSteppingParameters &parameters,
                       const unsigned int n_points = 64,
