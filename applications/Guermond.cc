@@ -14,6 +14,7 @@
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
+
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
@@ -95,10 +96,12 @@ Guermond<dim>::Guermond(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
 outputFile("Guermond_Log.csv"),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
-              parameters.p_fe_degree + 1, this->triangulation)),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
-              parameters.p_fe_degree, this->triangulation)),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+                                                       this->triangulation,
+                                                       "velocity")),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
+                                                       this->triangulation,
+                                                       "pressure")),
 time_stepping(parameters.time_stepping_parameters),
 mapping(std::make_shared<MappingQ<dim>>(1)),
 navier_stokes(parameters,
@@ -111,8 +114,8 @@ navier_stokes(parameters,
 velocity_exact_solution(parameters.time_stepping_parameters.start_time),
 pressure_exact_solution(parameters.time_stepping_parameters.start_time),
 body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
-velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
-pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
+velocity_convergence_table(velocity, velocity_exact_solution),
+pressure_convergence_table(pressure, pressure_exact_solution),
 flag_set_exact_pressure_constant(true),
 flag_square_domain(true)
 {
@@ -450,16 +453,18 @@ void Guermond<dim>::run(const bool flag_convergence_test)
     }
   }
 
-  std::string tablefilename = (this->prm.flag_spatial_convergence_test) ?
-                              "GuermondSpatialTest" : 
-                              "GuermondTemporalTest_Level" + 
-                              std::to_string(this->prm.initial_refinement_level);
-  tablefilename += "_Re" + std::to_string((int)this->prm.Re);
+  *(this->pcout) << velocity_convergence_table;
+  *(this->pcout) << pressure_convergence_table;
 
-  velocity_convergence_table.print_table_to_terminal();
-  velocity_convergence_table.print_table_to_file(tablefilename + "_Velocity");
-  pressure_convergence_table.print_table_to_terminal();
-  pressure_convergence_table.print_table_to_file(tablefilename + "_Pressure");
+  std::ostringstream tablefilename;
+  tablefilename << ((this->prm.flag_spatial_convergence_test) ?
+                    "GuermondSpatialTest" : "GuermondTemporalTest_Level")
+                << this->prm.initial_refinement_level
+                << "_Re"
+                << this->prm.Re;
+
+  velocity_convergence_table.write_text(tablefilename.str() + "_Velocity");
+  pressure_convergence_table.write_text(tablefilename.str() + "_Pressure");
 }
 
 } // namespace RMHD

@@ -1,4 +1,3 @@
-
 #ifndef INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 #define INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 
@@ -22,165 +21,119 @@
 
 namespace RMHD
 {
-  using namespace dealii;
+
+using namespace dealii;
 
 namespace BenchmarkData
 {
 
 /*!
- * @struct DFG
+ * @struct DFGBechmarkRequest
  * 
- * @brief A struct containing variables of the DFG benchmark and methods
- * to compute them.
- * 
- * @details 
- * 
+ * @brief A structure containing the data requested by the DFG benchmark
+ * and methods to compute them. The structure computes all request data in
+ * dimensionless form.
+ *
+ * @details The following requested data are computed by evaluating the solution:
+ *  - drag coefficient,
+ *  - lift coefficient,
+ *  - pressure difference.
+ *
+ *  For a definition of these please refer to the discussion in @ref DFG and the
+ *  documentation of @ref compute_drag_and_lift_coefficients .
  *
  */
 template <int dim>
-struct DFG
+struct DFGBechmarkRequest
 {
+
   /*!
-   * @brief The density of the fluid, \f$ \rho = 1.0 \f$.
+   *
+   * @brief The default constructor of the structure.
+   *
    */
-  double        density;
+  DFGBechmarkRequest(const double reynolds_number = 100.0,
+                     const double reference_length = 1.0);
+
   /*!
-   * @brief The characteristic length of the benchmark is set as the 
-   * diameter of the cylinder, \f$ d =0.1 \f$.
-   */
-  double        characteristic_length;
-  /*!
-   * @brief The mean velocity of the fluid.
-   * @details Defined as the  
-   * \f[
-   * \bar{v} = \frac{2}{3} \mathbf{v}_\textrm{inflow}\big|_{(0,0.5H)} 
-   * \mathbf{e}_\textrm{x} = \frac{2}{3} \left( 
-   * \frac{4v_\textrm{max}y(H-y)}{H^2} \right)\bigg|_{(0,0.5H)}
-   * \f]
-   * which with \f$ v_\textrm{max} = 1.5 \f$ equals to \f$ 1.0 \f$.
-   */
-  double        mean_velocity;
-  /*!
-   * @brief The kinematic viscosity of the fluid, \f$ \nu = 0.001 \f$.
-   */
-  double        kinematic_viscosity;
-  /*!
-   * @brief The Reynolds number of the problem. Its value is 
-   * \f[
-   *   \textrm{Re} = \frac{\bar{v}d}{\nu} = 100.
-   * \f]
+   * @brief The Reynolds number of the problem.
+   *
+   * @details Its value is defined as
+   * \f[ \Reynolds = \frac{v_\mathrm{ref}D}{\nu} \f],
+   * where \f$ D \f$ denotes the diameter of the cylinder, \f$ v_\mathrm{ref}\f$
+   * the reference velocity which is equal to the average value of the velocity
+   * at the inlet. \f$ \nu \f$ is the kinematic viscosity.
+   *
    */
   const double  Re;
 
   /*!
-   * @brief The point at the front side of the cylinder, at which the
-   * pressure will be evaluated.
-   * @details The point is located at 
-   * \f$ P_\textrm{front} = (0.15,\, 0.20) \f$.
-   * @attention The struct defines the coordinates in their
-   * dimensionless form in the constructor using the characteristic
-   * length.
+   * @brief The point \f$ \mathrm{P}_\text{front} \f$ at the front side of the
+   * cylinder, at which the pressure will be evaluated.
+   *
+   * @details The point \f$ \mathrm{P}_\text{front} \f$ is located at the
+   * dimensionless position
+   * \f$ \tilde{\bs{x}}_\text{front} = \frac{1}{D}\big(0.15\,\mathrm{m}\, \ex
+   * + 0.20\,\mathrm{m}\, \ey \big)\f$.
+   *
    */
   const Point<dim>  front_evaluation_point;
 
   /*!
-   * @brief The point at the rear side of the cylinder, at which the
-   * pressure will be evaluated.
-   * @details The point is located at 
-   * \f$ P_\textrm{front} = (0.25,\, 0.20) \f$.
-   * @attention The struct defines the coordinates in their
-   * dimensionless form in the constructor using the characteristic
-   * length.
+   * @brief The point \f$ \mathrm{P}_\text{rear} \f$ at the rear side of the
+   * cylinder, at which the pressure will be evaluated.
+   *
+   * @details The point \f$ \mathrm{P}_\text{rear} \f$ is located at the
+   * dimensionless position
+   * \f$ \tilde{\bs{x}}_\text{rear} = \frac{1}{D}\big(0.25\,\mathrm{m}\, \ex
+   * + 0.20\,\mathrm{m}\, \ey \big)\f$.
+   *
    */
   const Point<dim>  rear_evaluation_point;
 
   /*!
-   * @brief The pressure difference between the front an the rear 
+   * @brief The dimensionless pressure difference between the front an the rear
    * evaluation points.
-   * @details Defined as
+   *
+   * @details The dimensionless pressure difference is defined as
+   *
    * \f[
-   * \Delta p = p|_{P_\textrm{front}} - p|_{P_\textrm{rear}}
+   *    \Delta \tilde{p} = \tilde{p}|_{\tilde{\bs{x}}_\text{front}} -
+   *    \tilde{p}|_{\tilde{\bs{x}}_\text{rear}}\,.
    * \f]
-   * @attention The computed pressure difference is dimensionless, but
-   * it is interchangeable with the actual pressure.
+   *
    */
   double        pressure_difference;
 
   /*!
-   * @brief The drag force around the cylinder. 
-   * @details Defined as the \f$ x \f$ component of the total force
-   * exorted on the cylinder. The total force is given by
-   * \f[
-	 * \boldsymbol{\mathfrak{f}} = \mathfrak{f}_\textrm{drag}  \mathbf{e}_\textrm{x} 
-   * +  \mathfrak{f}_\textrm{lift} \mathbf{e}_\textrm{y} = 
-   * \int_{\Gamma_3} [-p\mathbf{I} + \mu \nabla \otimes \mathbf{v}] 
-   * \cdot \mathbf{n} \mathrm{d} \ell
-   * \f]
-   * Its dimensionless form, which is what it is actually computed and
-   * stored in this member by the 
-   * @ref compute_drag_and_lift_forces_and_coefficients method and 
-   * considering the formulation of the NavierStokesProjection class,
-   * is given then by
-   * \f[
-   * \boldsymbol{\tilde{\mathfrak{f}}} = 
-   *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\mathbf{I} +
-   *  (\rho\textrm{Re})^{-1} (\tilde{\nabla} \otimes 
-   *  \mathbf{\tilde{v}} + \mathbf{\tilde{v}} \otimes \tilde{\nabla}) 
-   *  ] \cdot \mathbf{n} \mathrm{d}{\tilde{\ell}}
-   * \f]
-   */
-  double        drag_force;
-
-  /*!
    * @brief The drag coefficient.
-   * @details Defined as 
+   *
+   * @details It is defined as
+   *
    * \f[
-   * c_\textrm{drag} = \dfrac{2}{\rho\bar{v}^2D} \boldsymbol{\mathfrak{f}} \cdot 
-   * \mathbf{e}_\textrm{x}
+   *    c_\text{drag} = 2 \tilde{\bs{F}} \cdot \ex\,,
    * \f]
-   * which is equivalent to \f$ c_\textrm{drag} = 2
-   * \boldsymbol{\tilde{\mathfrak{f}}} \cdot \mathbf{e}_\textrm{x} \f$, 
-   * what is actually computed by the by the 
-   * @ref compute_drag_and_lift_forces_and_coefficients method.
+   *
+   * where \f$ \tilde{\bs{F}} \f$ is the dimensionless resulting force acting on
+   * the cylinder as described in the documentation of
+   * @ref compute_drag_and_lift_coefficients and @ref DFG.
+   *
    */
   double        drag_coefficient;
 
   /*!
-   * @brief The lift force around the cylinder. 
-   * @details Defined as the \f$ y \f$ component of the total force
-   * exorted on the cylinder. The total force is given by
-   * \f[
-	 * \boldsymbol{\mathfrak{f}} = \mathfrak{f}_\textrm{drag}  \mathbf{e}_\textrm{x} 
-   * +  \mathfrak{f}_\textrm{lift} \mathbf{e}_\textrm{y} = 
-   * \int_{\Gamma_3} [-p\mathbf{I} + \mu \nabla \otimes \mathbf{v}] 
-   * \cdot \mathbf{n} \mathrm{d} \ell
-   * \f]
-   * In dimensionless form, which is what it is actually computed and
-   * stored in this member by the 
-   * @ref compute_drag_and_lift_forces_and_coefficients method and 
-   * considering the formulation of the NavierStokesProjection class,
-   * is given then by
-   * \f[
-   * \boldsymbol{\tilde{\mathfrak{f}}} = 
-   *  \int_{\tilde{\Gamma}_3} [-\tilde{p}\mathbf{I} +
-   *  (\rho\textrm{Re})^{-1} (\tilde{\nabla} \otimes 
-   *  \mathbf{\tilde{v}} + \mathbf{\tilde{v}} \otimes \tilde{\nabla}) 
-   *  ] \cdot \mathbf{n} \mathrm{d}{\tilde{\ell}}
-   * \f]
-   */
-  double        lift_force;
-
-  /*!
    * @brief The lift coefficient.
-   * @details Defined as 
+   *
+   * @details It is defined as
+   *
    * \f[
-   * c_\textrm{lift} = \dfrac{2}{\rho\bar{v}^2D} \boldsymbol{\mathfrak{f}} \cdot 
-   * \mathbf{e}_\textrm{y}
+   *    c_\text{lift} = 2 \tilde{\bs{F}} \cdot \ey\,,
    * \f]
-   * which is equivalent to \f$ c_\textrm{lift} = 2
-   * \boldsymbol{\tilde{\mathfrak{f}}} \cdot \mathbf{e}_\textrm{y} \f$, 
-   * what is actually computed by the 
-   * @ref compute_drag_and_lift_forces_and_coefficients method.
+   *
+   * where \f$ \tilde{\bs{F}} \f$ is the dimensionless resulting force acting on
+   * the cylinder as described in the documentation of
+   * @ref compute_drag_and_lift_coefficients and @ref DFG.
+   *
    */
   double        lift_coefficient;
 
@@ -192,54 +145,52 @@ struct DFG
   TableHandler  data_table;
 
   /*!
-   * @brief The default constructor of the struct
+   * @brief This method computes the @ref pressure_difference.
    */
-  DFG();
+  void compute_pressure_difference
+  (const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure);
 
   /*!
-   * @brief The method computes the @ref pressure_difference.
-   */
-  void compute_pressure_difference(
-    const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure);
-
-  /*!
-   * @brief This method computes the @ref drag_force and @ref lift_force
-   * and their respective coefficients.
-   * @details It computes the dimensionless force around the cylinder
-   * given by
+   * @brief This method computes the @ref drag_coefficient and the
+   * @ref lift_coefficient .
+   *
+   * @details It computes the dimensionless force acting on the cylinder using
+   * the following formula
+   *
    * \f[
-   * \boldsymbol{\tilde{\mathfrak{f}}} = \int_{\tilde{\Gamma}_3} [-\tilde{p}\mathbf{I} +
-   *  (\rho\textrm{Re})^{-1} (\tilde{\nabla} \otimes 
-   *  \mathbf{\tilde{v}} + \mathbf{\tilde{v}} \otimes \tilde{\nabla}) 
-   *  ] \cdot \mathbf{n} \mathrm{d}{\tilde{\ell}}
+   *    \tilde{\bs{F}} = \int_{\tilde{\Gamma}_3} \Big(-\tilde{p}\bs{1} +
+   *    \tfrac{1}{\Reynolds} \big( \tilde{\nabla} \otimes \tilde{\bs{v}}
+   *    + \tilde{\bs{v}} \otimes \tilde{\nabla}\big)
+   *    \Big) \cdot \bs{n} \dint{\tilde{A}}\,.
    * \f]
-   * and the @ref drag_coefficient and @ref lift_coefficient as
+   *
+   * Then the @ref drag_coefficient and @ref lift_coefficient are obtained as
+   *
    * \f[
-   * c_\textrm{drag} = 2 \boldsymbol{\tilde{\mathfrak{f}}} \cdot 
-   * \mathbf{e}_\textrm{x},
-   * \qquad
-   * c_\textrm{lift} = 2 \boldsymbol{\tilde{\mathfrak{f}}} \cdot 
-   * \mathbf{e}_\textrm{y}
+   *    c_\text{drag} = 2 \tilde{\bs{F}} \cdot \ex\,, \qquad
+   *    c_\text{lift} = 2 \tilde{\bs{F}} \cdot \ey\,.
    * \f]
+   *
    */
-  void compute_drag_and_lift_forces_and_coefficients
-  (const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure);
+  void compute_drag_and_lift_coefficients
+  (const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
+   const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
+   const types::boundary_id                             cylinder_boundary_id = 2);
 
   /*!
    * @brief A method that updates @ref data_table with the step number,
    * the current dimensionless time, @ref pressure_difference,
-   * @ref drag_coefficient and 
-   * the @ref lift_coefficient.
+   * @ref drag_coefficient and the @ref lift_coefficient.
    */
   void update_table(DiscreteTime  &time);
+
   /*!
    * @brief A method that prints @ref data_table with the step number,
    * the current dimensionless time, @ref pressure_difference,
-   * @ref drag_coefficient and 
-   * the @ref lift_coefficient.
+   * @ref drag_coefficient and the @ref lift_coefficient.
    */
   void print_step_data(DiscreteTime &time);
+
   /*!
    * @brief A method that outputs the @ref data_table into a file.
    */
@@ -495,6 +446,7 @@ private:
 };
 
 } // namespace BenchmarkData
+
 } // namespace RMHD
 
 #endif /* INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_ */

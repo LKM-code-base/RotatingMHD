@@ -15,15 +15,24 @@ which are to be tested with the following benchmarks
 
 To do list
 - [x] Removing the bug in the adaptive mesh refinement branch
-- [ ] Adaptive timestepping
-- [ ] High Reynolds number tests and inspection of the solution w.r.t. instabilities
 - [x] High Peclet number test and interpretation of the result
-- [ ] Neumann boundary conditions in the incremental pressure projection scheme (Navier-Stokes solver)
-- [ ] Interfacing of the entities and the solvers
-- [ ] Adding the buoyancy to the Navier-Stokes solver
-- [ ] Algebraic multigrid preconditioning in both solvers
+- [x] Remove hard-coded absolute tolerance
+- [x] Adding the buoyancy to the Navier-Stokes solver+
+- [x] Interfacing of the entities and the solvers
+- [x] Restructure the assembly scratch and copy structs and add a Mapping to the Navier-Stokes solver
 - [ ] Python or bash script for running convergence tests
+- [ ] Adaptive timestepping
+- [ ] Initialization from analytical solution
+- [ ] Restart from numerical solution
+- [ ] Neumann boundary conditions in the incremental pressure projection scheme (Navier-Stokes solver)
+- [ ] Algebraic multigrid preconditioning in both solvers
 - [ ] Reduce global communication and do not compute extrapolated values using vectors
 - [ ] Restructure the parameters of the solvers
-- [ ] Remove hard-coded absolute tolerance
-- [ ] Allow traction boundary conditions in the Navier-Stokes solver
+
+
+
+Questions
+- [ ] High Reynolds number tests and inspection of the solution w.r.t. instabilities
+- [ ] Stabilizitation of convectivion dominated flows?!
+- [ ] Assessment of the performance in the MIT benchmark
+

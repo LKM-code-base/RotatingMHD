@@ -20,24 +20,31 @@ struct ConvergenceAnalysisData
 {
   ConvergenceTable                convergence_table;
 
-  const std::string               entity_name;
+  const std::shared_ptr<const Entities::EntityBase<dim>> entity;
 
-  const std::shared_ptr<Entities::EntityBase<dim>> entity;
-
-  const Function<dim>             &exact_solution;
+  const Function<dim>            &exact_solution;
 
   ConvergenceAnalysisData(const std::shared_ptr<Entities::EntityBase<dim>> &entity,
-                          const Function<dim>             &exact_solution,
-                          const std::string entity_name = "Entity");
+                          const Function<dim>             &exact_solution);
 
-  void update_table(const unsigned int  &level,
-                    const double        &time_step,
-                    const bool          &flag_spatial_convergence);
+  void update_table(const unsigned int  level,
+                    const double        time_step,
+                    const bool          flag_spatial_convergence);
 
-  void print_table_to_terminal();
+  /*!
+   * @brief Output of the convergence table to a stream object,
+   */
+  template<typename Stream, int dimension>
+  friend Stream& operator<<(Stream &stream,
+                            const ConvergenceAnalysisData<dimension> &data);
 
-  void print_table_to_file(std::string file_name);
+  void write_text(std::string filename) const;
+
 };
+
+template<typename Stream, int dim>
+Stream& operator<<(Stream &stream,
+                   const ConvergenceAnalysisData<dim> &data);
 
 } // namespace RMHD
 

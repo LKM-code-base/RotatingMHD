@@ -23,7 +23,7 @@ TensorFunction<1, dim>(time)
 template <int dim>
 double BodyForce<dim>::divergence(const Point<dim>  &/* point */) const
 {
-  return 0.0;
+  return (0.0);
 }
 
 template <int dim>
@@ -37,21 +37,6 @@ void BodyForce<dim>::divergence_list(
 
 namespace Step35
 {
-
-template <int dim>
-VelocityInitialCondition<dim>::VelocityInitialCondition(const double time)
-:
-Function<dim>(dim, time)
-{}
-
-template <int dim>
-void VelocityInitialCondition<dim>::vector_value
-(const Point<dim>  &/* point */,
- Vector<double>    &values) const
-{
-    values[0] = 0.0;
-    values[1] = 0.0;
-}
 
 template <int dim>
 VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
@@ -92,25 +77,14 @@ namespace DFG
 {
 
 template <int dim>
-VelocityInitialCondition<dim>::VelocityInitialCondition(const double time)
-:
-Function<dim>(dim, time)
-{}
-
-template <int dim>
-void VelocityInitialCondition<dim>::vector_value
-(const Point<dim>  &/* point */,
- Vector<double>    &values) const
-{
-    values[0] = 0.0;
-    values[1] = 0.0;
-}
-
-template <int dim>
 VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
-(const double time)
+(const double time,
+ const double maximum_velocity,
+ const double height)
 :
-Function<dim>(dim, time)
+Function<dim>(dim, time),
+maximum_velocity(maximum_velocity),
+height(height)
 {}
 
 template <int dim>
@@ -118,24 +92,11 @@ void VelocityInflowBoundaryCondition<dim>::vector_value
 (const Point<dim>  &point,
  Vector<double>    &values) const
 {
-  const double Um = 1.5;
-  const double H  = 4.1;
+  values[0] = 4.0 * maximum_velocity * point(1) * ( height - point(1) )
+      / ( height * height );
 
-  values[0] = 4.0 * Um * point(1) * ( H - point(1) ) / ( H * H );
-  values[1] = 0.0;
-}
-
-template <int dim>
-PressureInitialCondition<dim>::PressureInitialCondition(const double time)
-:
-Function<dim>(1, time)
-{}
-
-template<int dim>
-double PressureInitialCondition<dim>::value(const Point<dim> &/* point */,
-                                            const unsigned int /* component */) const
-{
-  return (0.0);
+  for (unsigned d=1; d<dim; ++d)
+    values[d] = 0.0;
 }
 
 } // namespace DFG
@@ -490,23 +451,14 @@ double TemperatureBoundaryCondition<dim>::value
 template class RMHD::EquationData::BodyForce<2>;
 template class RMHD::EquationData::BodyForce<3>;
 
-template class RMHD::EquationData::Step35::VelocityInitialCondition<2>;
-template class RMHD::EquationData::Step35::VelocityInitialCondition<3>;
-
 template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<2>;
 template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<3>;
 
 template class RMHD::EquationData::Step35::PressureInitialCondition<2>;
 template class RMHD::EquationData::Step35::PressureInitialCondition<3>;
 
-template class RMHD::EquationData::DFG::VelocityInitialCondition<2>;
-template class RMHD::EquationData::DFG::VelocityInitialCondition<3>;
-
 template class RMHD::EquationData::DFG::VelocityInflowBoundaryCondition<2>;
 template class RMHD::EquationData::DFG::VelocityInflowBoundaryCondition<3>;
-
-template class RMHD::EquationData::DFG::PressureInitialCondition<2>;
-template class RMHD::EquationData::DFG::PressureInitialCondition<3>;
 
 template class RMHD::EquationData::TGV::VelocityExactSolution<2>;
 template class RMHD::EquationData::TGV::VelocityExactSolution<3>;
@@ -534,3 +486,4 @@ template class RMHD::EquationData::ThermalTGV::VelocityField<3>;
 
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<2>;
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<3>;
+

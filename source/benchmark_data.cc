@@ -17,21 +17,17 @@ namespace BenchmarkData
 {
 
 template <int dim>
-DFG<dim>::DFG()
+DFGBechmarkRequest<dim>::DFGBechmarkRequest
+(const double reynolds_number,
+ const double reference_length)
 :
-density(1.0),
-characteristic_length(0.1),
-mean_velocity(1.0),
-kinematic_viscosity(0.001),
-Re(characteristic_length * mean_velocity / kinematic_viscosity),
-front_evaluation_point(0.15 / characteristic_length,
-                       0.20 / characteristic_length),
-rear_evaluation_point(0.25 / characteristic_length,
-                      0.20 / characteristic_length),
+Re(reynolds_number),
+front_evaluation_point(0.15 / reference_length,
+                       0.20 / reference_length),
+rear_evaluation_point(0.25 / reference_length,
+                      0.20 / reference_length),
 pressure_difference(0),
-drag_force(0),
 drag_coefficient(0),
-lift_force(0),
 lift_coefficient(0)
 {
   data_table.declare_column("n");
@@ -39,10 +35,12 @@ lift_coefficient(0)
   data_table.declare_column("dp");
   data_table.declare_column("C_d");
   data_table.declare_column("C_l");
+
   data_table.set_scientific("t", true);
   data_table.set_scientific("dp", true);
   data_table.set_scientific("C_d", true);
   data_table.set_scientific("C_l", true);
+
   data_table.set_precision("t", 6);
   data_table.set_precision("dp", 6);
   data_table.set_precision("C_d", 6);
@@ -50,7 +48,7 @@ lift_coefficient(0)
 }
 
 template <int dim>
-void DFG<dim>::compute_pressure_difference
+void DFGBechmarkRequest<dim>::compute_pressure_difference
 (const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure)
 {
   const double front_point_pressure_value
@@ -64,15 +62,17 @@ void DFG<dim>::compute_pressure_difference
 }
 
 template <int dim>
-void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
-  const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-  const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure)
+void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
+(const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+ const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+ const types::boundary_id                            cylinder_boundary_id)
 {
+
+  AssertDimension(dim, 2);
+
   const MappingQ<dim> mapping(3);
 
-  /*! @attention What would be the polynomial degree of the normal
-      vector? */
-  const int face_p_degree = 2 * velocity->fe_degree;
+  const int face_p_degree = velocity->fe_degree;
 
   const QGauss<dim-1>   face_quadrature_formula(
                             std::ceil(0.5 * double(face_p_degree + 1)));
@@ -101,9 +101,9 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
   Tensor<1, dim>              forces;
 
   for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
-    if (cell->is_locally_owned())
+    if (cell->is_locally_owned() && cell->at_boundary() )
       for (const auto &face : cell->face_iterators())
-        if (face->at_boundary() && face->boundary_id() == 2)
+        if (face->at_boundary() && face->boundary_id() == cylinder_boundary_id)
           {
             velocity_face_fe_values.reinit(cell, face);
 
@@ -111,29 +111,35 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
                               &velocity->get_triangulation(), 
                               cell->level(), 
                               cell->index(), 
-                              //Pointer to the pressure's DoFHandler
+                              // pointer to the pressure's DoFHandler
                               pressure->dof_handler.get());
+
             typename DoFHandler<dim>::active_face_iterator pressure_face(
                               &velocity->get_triangulation(), 
                               face->level(), 
                               face->index(), 
-                              //Pointer to the pressure's DoFHandler
+                              // pointer to the pressure's DoFHandler
                               pressure->dof_handler.get());
 
             pressure_face_fe_values.reinit(pressure_cell, pressure_face);
 
-            velocity_face_fe_values[velocities].get_function_gradients(
-                                                  velocity->solution,
-                                                  velocity_gradients);
-            pressure_face_fe_values.get_function_values(
-                                                  pressure->solution,
-                                                  pressure_values);
+            velocity_face_fe_values[velocities].get_function_gradients
+            (velocity->solution,
+             velocity_gradients);
+
+            pressure_face_fe_values.get_function_values
+            (pressure->solution,
+             pressure_values);
+
             normal_vectors = velocity_face_fe_values.get_normal_vectors();
 
             for (unsigned int q = 0; q < n_face_q_points; ++q)
             {
-              /* The sign inversion here is due to how the normal
-              vector is defined in the benchmark */
+              /*
+               * The reversed signs here are due to how the normal
+               * vector is defined in the DFG benchmark.
+               *
+               */
               forces += (- 1.0 / Re *
                         (normal_vectors[q] * 
                         velocity_gradients[q]
@@ -142,34 +148,34 @@ void DFG<dim>::compute_drag_and_lift_forces_and_coefficients(
                         normal_vectors[q])
                         +
                         pressure_values[q] *
-                        normal_vectors[q]) *
+                        normal_vectors[q] ) *
                         velocity_face_fe_values.JxW(q);
             }
           }
 
   forces = Utilities::MPI::sum(forces, MPI_COMM_WORLD);
 
-  drag_force            = forces[0];
-  drag_coefficient      = 2.0 * drag_force;
-  lift_force            = forces[1];
-  lift_coefficient      = 2.0 * lift_force;
+  drag_coefficient = 2.0 * forces[0];
+  lift_coefficient = 2.0 * forces[1];
 }
 
 template <int dim>
-void DFG<dim>::update_table(DiscreteTime  &time)
+void DFGBechmarkRequest<dim>::update_table(DiscreteTime  &time)
 {
   data_table.add_value("n",   time.get_step_number());
   data_table.add_value("t",   time.get_current_time());
+
   data_table.add_value("dp",  pressure_difference);
+
   data_table.add_value("C_d", drag_coefficient);
   data_table.add_value("C_l", lift_coefficient);
 }
 
 template <int dim>
-void DFG<dim>::print_step_data(DiscreteTime &time)
+void DFGBechmarkRequest<dim>::print_step_data(DiscreteTime &time)
 {
-  ConditionalOStream    pcout(std::cout, 
-          (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
+  ConditionalOStream  pcout(std::cout,
+                            (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
 
   pcout << "Step = " 
         << std::setw(4) 
@@ -189,7 +195,7 @@ void DFG<dim>::print_step_data(DiscreteTime &time)
 }
 
 template <int dim>
-void DFG<dim>::write_table_to_file(const std::string  &file)
+void DFGBechmarkRequest<dim>::write_table_to_file(const std::string  &file)
 {
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
@@ -555,11 +561,12 @@ void MIT<dim>::compute_global_data()
 }
 
 } // namespace BenchmarkData
+
 } // namespace RMHD
 
 // explicit instantiations
-template struct RMHD::BenchmarkData::DFG<2>;
-template struct RMHD::BenchmarkData::DFG<3>;
+template struct RMHD::BenchmarkData::DFGBechmarkRequest<2>;
+template struct RMHD::BenchmarkData::DFGBechmarkRequest<3>;
 
 template class RMHD::BenchmarkData::MIT<2>;
 template class RMHD::BenchmarkData::MIT<3>;
