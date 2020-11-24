@@ -9,7 +9,7 @@
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/global.h>
-#include <rotatingMHD/run_time_parameters.h>
+#include <rotatingMHD/navier_stokes_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <memory>
