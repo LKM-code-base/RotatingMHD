@@ -201,6 +201,79 @@ public:
 
 } // namespace Guermond
 
+namespace Couette
+{
+
+/*!
+ * @class VelocityExactSolution
+ * @brief The velocity's exact solution for the Couette flow, where the
+ * displacement of the top plate is driven by a traction vector
+ * @details It is given by 
+ * \f[ \bs{u} = t_0 \Reynolds H y \bs{e}_\mathrm{x}, \f] 
+ * where \f$ t_0 \f$, \f$ \Reynolds \f$, \f$ H \f$, \f$ y \f$ and
+ * \f$ \bs{e}_\mathrm{x} \f$ are the traction vector magnitude, the
+ * Reynolds number, the height of the channel, the \f$ y \f$-component
+ * of the position vector and the unit vector in the \f$ x \f$-direction.
+ */
+template <int dim>
+class VelocityExactSolution : public Function<dim>
+{
+public:
+  VelocityExactSolution(const double t_0,
+                        const double Re,
+                        const double H = 1.0,
+                        const double time = 0.0);
+
+  virtual void vector_value(
+    const Point<dim>  &p,
+    Vector<double>    &values) const override;
+
+  virtual Tensor<1, dim> gradient(
+    const Point<dim> &point,
+    const unsigned int component) const override;
+
+private:
+  /*!
+   * @brief The magnitude of the applied traction vector.
+   */ 
+  const double t_0;
+
+  /*!
+   * @brief The Reynodls number.
+   */ 
+  const double Re;
+
+  /*!
+   * @brief The height of the channel.
+   */ 
+  const double H;
+};
+
+/*!
+ * @class TractionVector
+ * @brief The traction vector applied on the top plate of the Couette
+ * Flow
+ * @details It is given by \f[ \bs{t} = t_0 \bs{e}_\mathrm{x}, \f]
+ * where \f$ t_0 \f$ and \f$ \bs{e}_\mathrm{x} \f$ are the
+ * magnitude of the traction and the unit vector in the \f$ x \f$-direction.
+ */
+template <int dim>
+class TractionVector : public TensorFunction<1,dim>
+{
+public:
+  TractionVector(const double t_0, const double time = 0.);
+
+  virtual Tensor<1, dim> value(const Point<dim> &point) const override;
+
+private:
+  /*!
+   * @brief The magnitude of the applied traction vector.
+   */ 
+  const double t_0;
+};
+
+} // namespace Couette
+
 } // namespace EquationData
 
 } // namespace RMHD
