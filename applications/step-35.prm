@@ -1,6 +1,6 @@
 # Listing of Parameters
 # ---------------------
-# Polynomial degree of discretization.
+# Polynomial degree of the (pressure) discretization.
 set Polynomial degree = 1
 set Reynolds number   = 100.0
 set Spatial dimension = 2
@@ -42,8 +42,8 @@ subsection Refinement control parameters
   set Adaptive mesh refinement frequency     = 20
   set Maximum number of levels               = 10
   set Minimum number of levels               = 1
-  set Number of adaptive initial refinements = 0
-  set Number of global initial refinements   = 3
+  set Number of initial adaptive refinements = 0
+  set Number of initial global refinements   = 3
   set Number of initial boundary refinements = 0
 end
 

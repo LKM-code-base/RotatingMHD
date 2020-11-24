@@ -626,7 +626,7 @@ void NavierStokesProblemParameters::declare_parameters
   prm.declare_entry("Polynomial degree",
                     "1",
                     Patterns::Integer(1),
-                    "Polynomial degree of discretization.");
+                    "Polynomial degree of (pressure) discretization.");
 
   prm.declare_entry("Reynolds number",
                     "1.0",

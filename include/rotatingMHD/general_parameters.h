@@ -90,17 +90,17 @@ struct RefinementParameters
    * determines the number of refinements which are based on the spatial structure
    * of the initial condition.
    */
-  unsigned int  n_adaptive_initial_refinements;
+  unsigned int  n_initial_adaptive_refinements;
 
   /*!
    * @brief The number of global initial refinement steps.
    */
-  unsigned int  n_global_initial_refinements;
+  unsigned int  n_initial_global_refinements;
 
    /*!
    * @brief The number of initial refinement steps of cells at the boundary.
    */
-  unsigned int  n_boundary_initial_refinements;
+  unsigned int  n_initial_boundary_refinements;
 };
 
 /*!

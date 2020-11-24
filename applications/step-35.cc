@@ -95,7 +95,7 @@ pressure_initial_condition()
 {
   *(this->pcout) << params << std::endl;
 
-  make_grid(params.n_global_initial_refinements);
+  make_grid(params.n_initial_global_refinements);
 
   setup_dofs();
 

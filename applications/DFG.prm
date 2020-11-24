@@ -1,6 +1,6 @@
 # Listing of Parameters
 # ---------------------
-# Polynomial degree of discretization.
+# Polynomial degree of (pressure) discretization.
 set Polynomial degree = 1
 set Reynolds number   = 100.0
 set Spatial dimension = 2

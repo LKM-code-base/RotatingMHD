@@ -23,9 +23,9 @@ adaptive_mesh_refinement(false),
 adaptive_mesh_refinement_frequency(100),
 n_maximum_levels(5),
 n_minimum_levels(1),
-n_adaptive_initial_refinements(0),
-n_global_initial_refinements(0),
-n_boundary_initial_refinements(0)
+n_initial_adaptive_refinements(0),
+n_initial_global_refinements(0),
+n_initial_boundary_refinements(0)
 {}
 
 RefinementParameters::RefinementParameters
@@ -83,11 +83,11 @@ void RefinementParameters::declare_parameters(ParameterHandler &prm)
                       "0",
                       Patterns::Integer(0));
 
-    prm.declare_entry("Number of global initial refinements",
+    prm.declare_entry("Number of initial global refinements",
                       "0",
                       Patterns::Integer(0));
 
-    prm.declare_entry("Number of adaptive initial refinements",
+    prm.declare_entry("Number of initial adaptive refinements",
                       "0",
                       Patterns::Integer(0));
 
@@ -118,15 +118,15 @@ void RefinementParameters::parse_parameters(ParameterHandler &prm)
              ExcMessage("Maximum number of levels must be larger equal than the "
                         "minimum number of levels."));
 
-      n_global_initial_refinements = prm.get_integer("Number of global initial refinements");
+      n_initial_global_refinements = prm.get_integer("Number of global initial refinements");
 
-      n_adaptive_initial_refinements = prm.get_integer("Number of adaptive initial refinements");
+      n_initial_adaptive_refinements = prm.get_integer("Number of adaptive initial refinements");
 
-      n_boundary_initial_refinements = prm.get_integer("Number of initial boundary refinements");
+      n_initial_boundary_refinements = prm.get_integer("Number of initial boundary refinements");
 
       const unsigned int n_initial_refinements
-      = n_global_initial_refinements + n_adaptive_initial_refinements
-      + n_boundary_initial_refinements;
+      = n_initial_global_refinements + n_initial_adaptive_refinements
+      + n_initial_boundary_refinements;
 
       Assert(n_initial_refinements <= n_maximum_levels ,
              ExcMessage("Number of initial refinements must be less equal than "
@@ -174,9 +174,9 @@ Stream& operator<<(Stream &stream, const RefinementParameters &prm)
   add_line("Adapt. mesh refinement frequency", prm.adaptive_mesh_refinement_frequency);
   add_line("Maximum number of levels", prm.n_maximum_levels);
   add_line("Minimum number of levels", prm.n_minimum_levels);
-  add_line("Number of adapt. initial refinements", prm.n_adaptive_initial_refinements);
-  add_line("Number of adapt. global refinements", prm.n_global_initial_refinements);
-  add_line("Number of initial boundary refinements", prm.n_boundary_initial_refinements);
+  add_line("Number of adapt. initial refinements", prm.n_initial_adaptive_refinements);
+  add_line("Number of adapt. global refinements", prm.n_initial_global_refinements);
+  add_line("Number of initial boundary refinements", prm.n_initial_boundary_refinements);
 
   stream << header;
 
