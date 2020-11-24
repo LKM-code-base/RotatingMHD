@@ -26,7 +26,7 @@ template <int dim>
 void HeatEquation<dim>::setup_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Heat Equation: Setting up matrices..." << std::endl;
+    *pcout << "  Heat Equation: Setting up matrices...";
 
   TimerOutput::Scope  t(*computing_timer, "Heat Equation: Setup - Matrices");
 
@@ -103,6 +103,8 @@ void HeatEquation<dim>::setup_matrices()
 
     #endif
   }
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
@@ -110,7 +112,7 @@ void HeatEquation<dim>::
 setup_vectors()
 {
   if (parameters.verbose)
-    *pcout << "  Heat Equation: Setting up vectors..." << std::endl;
+    *pcout << "  Heat Equation: Setting up vectors...";
 
   TimerOutput::Scope  t(*computing_timer, "Heat Equation: Setup - Vectors");
 
@@ -121,6 +123,9 @@ setup_vectors()
   // Initializing the velocity related vector
   if (!flag_ignore_advection)
     extrapolated_velocity.reinit(velocity->solution);
+  
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>

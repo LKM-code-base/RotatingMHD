@@ -9,6 +9,9 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_diffusion_step_rhs()
 {
+  if (parameters.verbose)
+    *pcout << "  Navier Stokes: Assembling diffusion step's right hand side...";
+
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Diffusion step - RHS assembly");
 
   velocity_rhs  = 0.;
@@ -62,6 +65,9 @@ assemble_diffusion_step_rhs()
    VelocityRightHandSideAssembly::MappingData<dim>(velocity->fe.dofs_per_cell));
 
   velocity_rhs.compress(VectorOperation::add);
+
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>

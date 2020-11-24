@@ -10,7 +10,7 @@ template <int dim>
 void HeatEquation<dim>::assemble_advection_matrix()
 {
   if (parameters.verbose)
-    *pcout << "    Heat Equation: Assembling advection matrix..." << std::endl;
+    *pcout << "  Heat Equation: Assembling advection matrix...";
 
   TimerOutput::Scope  t(*computing_timer, "Heat Equation: Advection matrix assembly");
 
@@ -70,6 +70,9 @@ void HeatEquation<dim>::assemble_advection_matrix()
      temperature->fe.dofs_per_cell));
 
   advection_matrix.compress(VectorOperation::add);
+  
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>

@@ -77,7 +77,7 @@ template <int dim>
 void NavierStokesProjection<dim>::setup_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Navier Stokes: Setting up matrices..." << std::endl;
+    *pcout << "  Navier Stokes: Setting up matrices...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Matrices");
 
@@ -203,7 +203,7 @@ void NavierStokesProjection<dim>::setup_matrices()
   }
 
   if (parameters.verbose)
-    *pcout << "    done." << std::endl;
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
@@ -211,7 +211,7 @@ void NavierStokesProjection<dim>::
 setup_vectors()
 {
   if (parameters.verbose)
-    *pcout << "  Navier Stokes: Setting up vectors..." << std::endl;
+    *pcout << "  Navier Stokes: Setting up vectors...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Vectors");
 
@@ -227,7 +227,7 @@ setup_vectors()
     extrapolated_temperature.reinit(temperature->solution);
 
   if (parameters.verbose)
-    *pcout << "     done." << std::endl;
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>

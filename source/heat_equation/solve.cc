@@ -68,9 +68,6 @@ void HeatEquation<dim>::solve()
 template <int dim>
 void HeatEquation<dim>::assemble_linear_system()
 {
-  if (parameters.verbose)
-    *pcout << "  Heat Equation: Assembling linear system..." << std::endl;
-
   // System matrix setup
   if (time_stepping.coefficients_changed() == true ||
       flag_add_mass_and_stiffness_matrices)
@@ -106,7 +103,7 @@ template <int dim>
 void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
 {
   if (parameters.verbose)
-  *pcout << "    Heat Equation: Solving linear system..." << std::endl;
+  *pcout << "  Heat Equation: Solving linear system...";
 
   TimerOutput::Scope  t(*computing_timer, "Heat Equation: Solve");
 
@@ -175,13 +172,11 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
   temperature->solution = distributed_temperature;
 
   if (parameters.verbose)
-  {
-    *pcout << "    done." << std::endl;
-    *pcout << "    Number of GMRES iterations: " << solver_control.last_step()
-           << ", "
-           << "final residual: " << solver_control.last_value() << "."
-           << std::endl;
-  }
+    *pcout << " done!" << std::endl
+           << "    Number of GMRES iterations: " 
+           << solver_control.last_step()
+           << ", Final residual: " << solver_control.last_value() << "."
+           << std::endl << std::endl;
 }
 
 } // namespace RMHD

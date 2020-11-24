@@ -10,7 +10,7 @@ template <int dim>
 void HeatEquation<dim>::assemble_constant_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Heat Equation: Assembling constant matrices..." << std::endl;
+    *pcout << "  Heat Equation: Assembling constant matrices...";
 
   TimerOutput::Scope  t(*computing_timer, "Heat Equation: Constant matrices assembly");
 
@@ -57,6 +57,9 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
   mass_matrix.compress(VectorOperation::add);
   stiffness_matrix.compress(VectorOperation::add);
+  
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
