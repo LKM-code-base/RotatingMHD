@@ -299,15 +299,6 @@ private:
   LinearAlgebra::MPI::Vector                    extrapolated_velocity;
 
   /*!
-   * @brief A distributed velocity vector used to distribute the
-   * velocity's solution vectors in order to perform vector algebra
-   * operation.
-   * @attention This is a quick fix until we finish the general 
-   * extrapolating method.
-   */
-  LinearAlgebra::MPI::Vector                    distributed_velocity_vector;
-
-  /*!
    * @brief Preconditioner of the linear system.
    */
   LinearAlgebra::MPI::PreconditionILU           preconditioner;

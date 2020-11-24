@@ -145,7 +145,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     scratch.temperature_fe_values.reinit(temperature_cell);
 
     scratch.temperature_fe_values.get_function_values(
-      temperature->solution,
+      extrapolated_temperature,
       scratch.extrapolated_temperature_values);
   }
 

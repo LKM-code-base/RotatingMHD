@@ -368,13 +368,6 @@ private:
   LinearAlgebra::MPI::Vector        poisson_prestep_rhs;
 
   /*!
-   * @brief A distributed temperature vector used to distribute the
-   * temperature's solution vectors in order to perform vector algebra
-   * operation.
-   */
-  LinearAlgebra::MPI::Vector        distributed_temperature_vector;
-
-  /*!
    * @brief A vector representing the extrapolated temperature at the
    * current timestep using a Taylor expansion
    * @details The Taylor expansion is given by

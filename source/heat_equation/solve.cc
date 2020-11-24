@@ -29,8 +29,8 @@ void HeatEquation<dim>::solve()
     AssertIsFinite(alpha[1] / time_stepping.get_next_step_size());
     AssertIsFinite(alpha[2] / time_stepping.get_next_step_size());
 
-    LinearAlgebra::MPI::Vector distributed_old_temperature(rhs);
-    LinearAlgebra::MPI::Vector distributed_old_old_temperature(rhs);
+    LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
+    LinearAlgebra::MPI::Vector distributed_old_old_temperature(temperature->distributed_vector);
     distributed_old_temperature      = temperature->old_solution;
     distributed_old_old_temperature  = temperature->old_old_solution;
     distributed_old_temperature.sadd(
@@ -46,8 +46,8 @@ void HeatEquation<dim>::solve()
     AssertIsFinite(eta[0]);
     AssertIsFinite(eta[1]);
 
-    LinearAlgebra::MPI::Vector distributed_old_velocity(distributed_velocity_vector);
-    LinearAlgebra::MPI::Vector distributed_old_old_velocity(distributed_velocity_vector);
+    LinearAlgebra::MPI::Vector distributed_old_velocity(velocity->distributed_vector);
+    LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity->distributed_vector);
     distributed_old_velocity      = velocity->old_solution;
     distributed_old_old_velocity  = velocity->old_old_solution;
     distributed_old_velocity.sadd(eta[0],

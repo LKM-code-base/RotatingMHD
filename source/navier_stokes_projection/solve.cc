@@ -56,8 +56,8 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 
     if (!flag_ignore_bouyancy_term)
     {
-      LinearAlgebra::MPI::Vector distributed_old_temperature(distributed_temperature_vector);
-      LinearAlgebra::MPI::Vector distributed_old_old_temperature(distributed_temperature_vector);
+      LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
+      LinearAlgebra::MPI::Vector distributed_old_old_temperature(temperature->distributed_vector);
       distributed_old_temperature      = temperature->old_solution;
       distributed_old_old_temperature  = temperature->old_old_solution;
       distributed_old_temperature.sadd(eta[0],
