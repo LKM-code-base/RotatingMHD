@@ -433,7 +433,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       {
         for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
           scratch.face_phi_velocity[i] = 
-                    scratch.velocity_fe_face_values.shape_value(i, q);
+                scratch.velocity_fe_face_values[velocities].value(i, q);
         
         for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
           data.local_diffusion_step_rhs(i) += 
