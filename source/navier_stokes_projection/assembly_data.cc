@@ -264,6 +264,7 @@ old_old_velocity_gradients(n_q_points),
 body_force_values(n_q_points),
 neumann_function_values(n_face_q_points),
 phi_velocity(velocity_dofs_per_cell),
+face_phi_velocity(velocity_dofs_per_cell),
 div_phi_velocity(velocity_dofs_per_cell),
 grad_phi_velocity(velocity_dofs_per_cell),
 curl_phi_velocity(velocity_dofs_per_cell)
