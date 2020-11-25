@@ -377,7 +377,7 @@ VelocityExactSolution<dim>::VelocityExactSolution
  const double H,
  const double time)
 : 
-Function<dim>(time),
+Function<dim>(dim, time),
 t_0(t_0),
 Re(Re),
 H(H)
