@@ -46,7 +46,7 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(diffusion_step_rhs);
     distributed_old_velocity      = velocity->old_solution;
     distributed_old_old_velocity  = velocity->old_old_solution;
-    distributed_old_velocity->sadd(eta[0],
+    distributed_old_velocity.sadd(eta[0],
                                   eta[1],
                                   distributed_old_old_velocity);
     extrapolated_velocity = distributed_old_velocity;
@@ -83,13 +83,13 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     distributed_old_phi       = phi->old_solution;
     distributed_old_old_phi   = phi->old_old_solution;
 
-    distributed_old_pressure->sadd(1.,
+    distributed_old_pressure.sadd(1.,
                                   - old_step_size[0] /
                                   time_stepping.get_next_step_size() *
                                   alpha[1] / old_alpha_zero[0],
                                   distributed_old_phi);
 
-    distributed_old_pressure->sadd(1.,
+    distributed_old_pressure.sadd(1.,
                                   - old_step_size[1] /
                                   time_stepping.get_next_step_size() *
                                   alpha[2] / old_alpha_zero[1],
@@ -110,7 +110,7 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
     LinearAlgebra::MPI::Vector distributed_old_old_velocity(diffusion_step_rhs);
     distributed_old_velocity      = velocity->old_solution;
     distributed_old_old_velocity  = velocity->old_old_solution;
-    distributed_old_velocity->sadd(alpha[1] / time_stepping.get_next_step_size(),
+    distributed_old_velocity.sadd(alpha[1] / time_stepping.get_next_step_size(),
                                   alpha[2] / time_stepping.get_next_step_size(),
                                   distributed_old_old_velocity);
     velocity_tmp = distributed_old_velocity;
@@ -213,7 +213,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           pressure->constraints.distribute(distributed_pressure);
 
-          distributed_pressure->sadd(1.0 / parameters.Re, 1., distributed_old_pressure);
+          distributed_pressure.sadd(1.0 / parameters.Re, 1., distributed_old_pressure);
           distributed_pressure += distributed_phi;
 
           if (flag_normalize_pressure)

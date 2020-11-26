@@ -127,12 +127,12 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_projection_step_rhs(
   const PressureRightHandSideAssembly::MappingData<dim>  &data)
 {
-  phi.constraints.distribute_local_to_global
+  phi->constraints.distribute_local_to_global
   (data.local_projection_step_rhs,
    data.local_pressure_dof_indices,
    projection_step_rhs);
 
-  pressure.constraints.distribute_local_to_global
+  pressure->constraints.distribute_local_to_global
   (data.local_pressure_space_projection_rhs,
    data.local_pressure_dof_indices,
    pressure_space_projection_rhs);

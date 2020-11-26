@@ -248,11 +248,11 @@ void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
                                       data.local_pressure_mass_matrix,
                                       data.local_pressure_dof_indices,
                                       pressure_mass_matrix);
-  pressure.constraints.distribute_local_to_global(
+  pressure->constraints.distribute_local_to_global(
                                       data.local_phi_laplace_matrix,
                                       data.local_pressure_dof_indices,
                                       pressure_laplace_matrix);
-  phi.constraints.distribute_local_to_global(
+  phi->constraints.distribute_local_to_global(
                                       data.local_phi_laplace_matrix,
                                       data.local_pressure_dof_indices,
                                       phi_laplace_matrix);

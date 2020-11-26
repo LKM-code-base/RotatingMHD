@@ -192,18 +192,16 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
   check_boundary_id(boundary_id);
 
   if (function.get() == nullptr)
-    this->neumann_bcs[boundary_id] = zero_function_ptr;
+    this->neumann_bcs[boundary_id] = zero_vector;
   else
   {
     std::stringstream message;
     message << "Function of a Neumann boundary condition needs to have "
             << dim << " components.";
-
-    AssertThrow(function->n_components == dim,
-                ExcMessage(message.str()));
     
     this->neumann_bcs[boundary_id] = function;
-
+  }
+  
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
 }

@@ -249,12 +249,12 @@ setup_vectors()
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Vectors");
 
-  projection_step_rhs.reinit(pressure->distributed_vector);
+  projection_step_rhs.reinit(phi->distributed_vector);
   poisson_prestep_rhs.reinit(pressure->distributed_vector);
   pressure_tmp.reinit(pressure->solution);
 
   diffusion_step_rhs.reinit(velocity->distributed_vector);
-  extrapolated_velocity->reinit(velocity->solution);
+  extrapolated_velocity.reinit(velocity->solution);
   velocity_tmp.reinit(velocity->solution);
 
   if (!flag_ignore_bouyancy_term)

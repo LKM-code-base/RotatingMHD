@@ -18,9 +18,9 @@ assemble_diffusion_step_rhs()
 
   // Polynomial degree of the body force and the neumann function
 
-  const int p_degree_body_force       = velocity.fe_degree;
+  const int p_degree_body_force       = velocity->fe_degree;
 
-  const int p_degree_neumann_function = velocity.fe_degree;
+  const int p_degree_neumann_function = velocity->fe_degree;
 
   const FE_Q<dim> dummy_fe(1);
 
@@ -28,14 +28,14 @@ assemble_diffusion_step_rhs()
           (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
 
   // Polynomial degree of the integrand
-  const int p_degree = std::max(3 * velocity.fe_degree - 1,
-                                velocity.fe_degree + p_degree_body_force);
+  const int p_degree = std::max(3 * velocity->fe_degree - 1,
+                                velocity->fe_degree + p_degree_body_force);
 
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   // Polynomial degree of the boundary integrand
 
-  const int face_p_degree = velocity.fe_degree + p_degree_neumann_function;
+  const int face_p_degree = velocity->fe_degree + p_degree_neumann_function;
 
   const QGauss<dim-1> face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
 
@@ -75,6 +75,7 @@ assemble_diffusion_step_rhs()
                                                      update_gradients|
                                                      update_JxW_values|
                                                      update_quadrature_points,
+                                                     update_values,
                                                      update_values,
                                                      update_JxW_values|
                                                      update_values|
@@ -459,12 +460,12 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
   for (const auto &face : cell->face_iterators())
     if (face->at_boundary() && 
-        velocity.boundary_conditions.neumann_bcs.find(face->boundary_id()) 
-          != velocity.boundary_conditions.neumann_bcs.end())
+        velocity->boundary_conditions.neumann_bcs.find(face->boundary_id()) 
+          != velocity->boundary_conditions.neumann_bcs.end())
     {
       scratch.velocity_fe_face_values.reinit(cell, face);
 
-      velocity.boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
+      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
         scratch.velocity_fe_face_values.get_quadrature_points(),
         scratch.neumann_function_values);
 
