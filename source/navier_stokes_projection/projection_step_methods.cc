@@ -9,9 +9,6 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::assemble_projection_step()
 {
-  if (parameters.verbose)
-    *pcout << "    Navier Stokes: Assembling the projection step...";
-
   /* System matrix setup */
   // System matrix is constant and assembled in the
   // NavierStokesProjection constructor.
@@ -21,7 +18,6 @@ void NavierStokesProjection<dim>::assemble_projection_step()
 
   if (parameters.verbose)
     *pcout << "   done." << std::endl;
-
 }
 
 template <int dim>
@@ -29,7 +25,7 @@ void NavierStokesProjection<dim>::solve_projection_step
 (const bool reinit_prec)
 {
   if (parameters.verbose)
-    *pcout << "    Navier Stokes: Solving the projection step..." << std::endl;
+    *pcout << "  Navier Stokes: Solving the projection step...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - Solve");
 
@@ -37,7 +33,7 @@ void NavierStokesProjection<dim>::solve_projection_step
   // of the pertinent vectors to be able to perform the solve()
   // operation.
   LinearAlgebra::MPI::Vector distributed_phi(projection_step_rhs);
-  distributed_phi = phi.solution;
+  distributed_phi = phi->solution;
 
   if (reinit_prec)
     projection_step_preconditioner.initialize(phi_laplace_matrix);
@@ -85,20 +81,20 @@ void NavierStokesProjection<dim>::solve_projection_step
     std::abort();
   }
 
-  phi.constraints.distribute(distributed_phi);
+  phi->constraints.distribute(distributed_phi);
 
   if (flag_normalize_pressure)
     VectorTools::subtract_mean_value(distributed_phi);
 
-  phi.solution = distributed_phi;
+  phi->solution = distributed_phi;
 
   if (parameters.verbose)
-    *pcout << "   done." << std::endl;
+    *pcout << " done!" << std::endl;
 
   if (parameters.verbose)
-    *pcout << "    Number of GMRES iterations: " << solver_control.last_step()
-           << ", "
-           << "final residual: " << solver_control.last_value() << "."
+    *pcout << "    Number of GMRES iterations: " 
+           << solver_control.last_step()
+           << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;
 }
 

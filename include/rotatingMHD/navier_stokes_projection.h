@@ -73,27 +73,51 @@ class NavierStokesProjection
 {
 
 public:
+  /*!
+   * @brief The constructor of the Navier-Stokes projection class where 
+   * the bouyancy term is neglected.
+   * 
+   * @details Stores local references to the input parameters and 
+   * pointers for the mapping and terminal output entities.
+   */
   NavierStokesProjection
-  (const RunTimeParameters::ParameterSet   &parameters,
-   Entities::VectorEntity<dim>             &velocity,
-   Entities::ScalarEntity<dim>             &pressure,
-   TimeDiscretization::VSIMEXMethod        &time_stepping,
-   const std::shared_ptr<ConditionalOStream>external_pcout =
+  (const RunTimeParameters::ParameterSet        &parameters,
+   TimeDiscretization::VSIMEXMethod             &time_stepping,
+   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   const std::shared_ptr<Mapping<dim>>          external_mapping =
+       std::shared_ptr<Mapping<dim>>(),
+   const std::shared_ptr<ConditionalOStream>    external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>       external_timer =
+   const std::shared_ptr<TimerOutput>           external_timer =
+       std::shared_ptr<TimerOutput>());
+
+  /*!
+   * @brief The constructor of the Navier-Stokes projection class where 
+   * the bouyancy term is considered.
+   * 
+   * @details Stores local references to the input parameters and 
+   * pointers for the mapping and terminal output entities.
+   */
+  NavierStokesProjection
+  (const RunTimeParameters::ParameterSet        &parameters,
+   TimeDiscretization::VSIMEXMethod             &time_stepping,
+   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+   const std::shared_ptr<Mapping<dim>>          external_mapping =
+       std::shared_ptr<Mapping<dim>>(),
+   const std::shared_ptr<ConditionalOStream>    external_pcout =
+       std::shared_ptr<ConditionalOStream>(),
+   const std::shared_ptr<TimerOutput>           external_timer =
        std::shared_ptr<TimerOutput>());
 
   /*!
    * @brief The entity for the scalar field \f$ \phi \f$, which is
    * the field computed during the projection step and later used in
    * the pressure-correction step. 
-   * @attention The entity has to be public in order to be passed on 
-   * to the SolutionTransferContainer. Alternatively it could be private
-   * and be indirectly acceses though a get method returning a pointer 
-   * to it. Nonetheless from StackOverFlow I have read that one should 
-   * avoid such work arounds.
    */ 
-  Entities::ScalarEntity<dim>   phi;
+  std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
 
   /*!
    *  @brief Setups and initializes all the internal entities for
@@ -104,8 +128,6 @@ public:
    *  in the constructor (The velocity and the pressure respectively).
    *  The boolean passed as argument control if the pressure is to be
    *  normalized.
-   * 
-   * @attention Should I leave this public?
    */
   void setup();
 
@@ -152,7 +174,6 @@ public:
    * \f$ P \f$ a quadrature point inside the \f$ K\f$-th cell,
    * \f$ \bs{v} \f$ the velocity, \f$ h_K\f$ the largest diagonal of the \f$ K\f$-th
    * cell.
-   * @attention Should I move this to the Problem class?
    */
   double get_cfl_number();
 
@@ -188,14 +209,24 @@ private:
   std::shared_ptr<TimerOutput>            computing_timer;
 
   /*!
+   * @brief Pointer to the mapping to be used throughout the solver.
+   */
+  std::shared_ptr<Mapping<dim>>           mapping;
+
+  /*!
    * @brief A reference to the entity of velocity field.
    */
-  Entities::VectorEntity<dim>            &velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  Entities::ScalarEntity<dim>            &pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+
+  /*!
+   * @brief A reference to the entity of the temperature field.
+   */
+  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
 
   /*!
    * @brief A pointer to the body force function.
@@ -348,6 +379,25 @@ private:
   LinearAlgebra::MPI::Vector        pressure_space_projection_rhs;
 
   /*!
+   * @brief A vector representing the extrapolated temperature at the
+   * current timestep using a Taylor expansion
+   * @details The Taylor expansion is given by
+   * \f{eqnarray*}{
+   * u^{n} &\approx& u^{n-1} + \frac{\partial u^{n-1}}{\partial t} \Delta t \\
+   *         &\approx& u^{n-1} + \frac{u^{n-1} - u^{n-2}}{\Delta t} \Delta t \\
+   *         &\approx& 2 u^{n-1} - u^{n-2}.
+   * \f}
+   * In the case of a variable time step the approximation is given by
+   * \f[
+   * u^{n} \approx (1 + \omega) u^{n-1} - \omega u^{n-2}
+   * \f] 
+   * where  \f$ \omega = \frac{\Delta t_{n-1}}{\Delta t_{n-2}}.\f$
+   * @attention The extrapolation is hardcoded to the second order described
+   * above. First and higher order are pending.
+   */
+  LinearAlgebra::MPI::Vector        extrapolated_temperature;
+
+  /*!
    * @brief The preconditioner of the diffusion step.
    * @attention Hardcoded for a ILU preconditioner.
    */
@@ -407,7 +457,6 @@ private:
    */
   bool                                  flag_normalize_pressure;
 
-
   /*!
    * @brief A flag indicating if the scalar field  \f$ \phi\f$ is to 
    * be initiated.
@@ -416,17 +465,15 @@ private:
   bool                                  flag_setup_phi;
 
   /*!
-   * @brief A flag indicating if the solver is to be set up.ors
-   * are to be assembled.
-   * @details The setup is done by the @ref setup_solver method.
-   */
-  bool                                  flag_setup_solver;
-
-  /*!
    * @brief A flag indicating if the velocity's mass and stiffness 
    * matrices are to be added.
    */
   bool                                  flag_add_mass_and_stiffness_matrices;
+
+  /*!
+   * @brief A flag indicating if bouyancy term is to be ignored.
+   */
+  bool                                  flag_ignore_bouyancy_term;
 
   /*!
    * @brief A method initiating the scalar field  \f$ \phi\f$.

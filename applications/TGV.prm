@@ -99,7 +99,7 @@ end
 
 subsection Convergence test parameters
 
-  set flag_spatial_convergence_test = true
+  set flag_spatial_convergence_test = false
 
   set initial_refinement_level = 5
 

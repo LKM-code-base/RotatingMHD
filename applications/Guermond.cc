@@ -3,7 +3,6 @@
  *@brief The .cc file replicating the numerical test of section
   3.7.2 of the Guermond paper.
  */
-#include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/convergence_struct.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
@@ -12,8 +11,10 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
+
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
@@ -42,15 +43,17 @@ private:
 
   std::vector<types::boundary_id>             boundary_ids;
 
-  Entities::VectorEntity<dim>                 velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
-  Entities::ScalarEntity<dim>                 pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
   LinearAlgebra::MPI::Vector                  velocity_error;
 
   LinearAlgebra::MPI::Vector                  pressure_error;
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
+
+  std::shared_ptr<Mapping<dim>>               mapping;
 
   NavierStokesProjection<dim>                 navier_stokes;
 
@@ -93,20 +96,26 @@ Guermond<dim>::Guermond(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
 outputFile("Guermond_Log.csv"),
-velocity(parameters.p_fe_degree + 1, this->triangulation),
-pressure(parameters.p_fe_degree, this->triangulation),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+                                                       this->triangulation,
+                                                       "velocity")),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
+                                                       this->triangulation,
+                                                       "pressure")),
 time_stepping(parameters.time_stepping_parameters),
+mapping(std::make_shared<MappingQ<dim>>(1)),
 navier_stokes(parameters,
+              time_stepping,
               velocity,
               pressure,
-              time_stepping,
+              mapping,
               this->pcout,
               this->computing_timer),
 velocity_exact_solution(parameters.time_stepping_parameters.start_time),
 pressure_exact_solution(parameters.time_stepping_parameters.start_time),
 body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
-velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
-pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
+velocity_convergence_table(velocity, velocity_exact_solution),
+pressure_convergence_table(pressure, pressure_exact_solution),
 flag_set_exact_pressure_constant(true),
 flag_square_domain(true)
 {
@@ -145,15 +154,15 @@ void Guermond<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
-  velocity.setup_dofs();
-  pressure.setup_dofs();
+  velocity->setup_dofs();
+  pressure->setup_dofs();
   *(this->pcout)  << "  Number of active cells                = " 
                   << this->triangulation.n_global_active_cells() << std::endl;
   *(this->pcout)  << "  Number of velocity degrees of freedom = " 
-                  << velocity.dof_handler->n_dofs()
+                  << (velocity->dof_handler)->n_dofs()
                   << std::endl
                   << "  Number of pressure degrees of freedom = " 
-                  << pressure.dof_handler->n_dofs()
+                  << (pressure->dof_handler)->n_dofs()
                   << std::endl;
 }
 
@@ -162,19 +171,19 @@ void Guermond<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity.boundary_conditions.clear();
-  pressure.boundary_conditions.clear();
+  velocity->boundary_conditions.clear();
+  pressure->boundary_conditions.clear();
 
   for (const auto& boundary_id : boundary_ids)
-    velocity.boundary_conditions.set_dirichlet_bcs(
+    velocity->boundary_conditions.set_dirichlet_bcs(
       boundary_id,
       std::shared_ptr<Function<dim>> 
         (new EquationData::Guermond::VelocityExactSolution<dim>(
           this->prm.time_stepping_parameters.start_time)),
       true);
   
-  velocity.apply_boundary_conditions();
-  pressure.apply_boundary_conditions();
+  velocity->apply_boundary_conditions();
+  pressure->apply_boundary_conditions();
 }
 
 template <int dim>
@@ -198,19 +207,19 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 
   if (flag_set_exact_pressure_constant)
   {
-    LinearAlgebra::MPI::Vector  analytical_pressure(pressure.solution);
+    LinearAlgebra::MPI::Vector  analytical_pressure(pressure->solution);
     {
       #ifdef USE_PETSC_LA
         LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure.locally_owned_dofs,
+        tmp_analytical_pressure(pressure->locally_owned_dofs,
                                 this->mpi_communicator);
       #else
         LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure.locally_owned_dofs);
+        tmp_analytical_pressure(pressure->locally_owned_dofs);
       #endif
-      VectorTools::project(*(pressure.dof_handler),
-                          pressure.constraints,
-                          QGauss<dim>(pressure.fe_degree + 2),
+      VectorTools::project(*(pressure->dof_handler),
+                          pressure->constraints,
+                          QGauss<dim>(pressure->fe_degree + 2),
                           pressure_exact_solution,
                           tmp_analytical_pressure);
 
@@ -220,24 +229,24 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
       LinearAlgebra::MPI::Vector distributed_analytical_pressure;
       LinearAlgebra::MPI::Vector distributed_numerical_pressure;
       #ifdef USE_PETSC_LA
-        distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
+        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
                                         this->mpi_communicator);
       #else
-        distributed_analytical_pressure.reinit(pressure.locally_owned_dofs,
-                                               pressure.locally_relevant_dofs,
+        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
+                                               pressure->locally_relevant_dofs,
                                                this->mpi_communicator,
                                                true);
       #endif
       distributed_numerical_pressure.reinit(distributed_analytical_pressure);
 
       distributed_analytical_pressure = analytical_pressure;
-      distributed_numerical_pressure  = pressure.solution;
+      distributed_numerical_pressure  = pressure->solution;
 
       distributed_numerical_pressure.add(  
         distributed_analytical_pressure.mean_value() -
         distributed_numerical_pressure.mean_value());
 
-      pressure.solution = distributed_numerical_pressure;
+      pressure->solution = distributed_numerical_pressure;
     }
   }
 
@@ -286,21 +295,21 @@ void Guermond<dim>::output()
                            DataComponentInterpretation::component_is_part_of_vector);
 
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*(velocity.dof_handler),
-                           velocity.solution,
+  data_out.add_data_vector(*(velocity->dof_handler),
+                           velocity->solution,
                            names, 
                            component_interpretation);
-  data_out.add_data_vector(*(velocity.dof_handler),
+  data_out.add_data_vector(*(velocity->dof_handler),
                            velocity_error,
                            error_name, 
                            component_interpretation);
-  data_out.add_data_vector(*(pressure.dof_handler), 
-                           pressure.solution, 
+  data_out.add_data_vector(*(pressure->dof_handler), 
+                           pressure->solution, 
                            "pressure");
-  data_out.add_data_vector(*(pressure.dof_handler), 
+  data_out.add_data_vector(*(pressure->dof_handler), 
                            pressure_error, 
                            "pressure_error");
-  data_out.build_patches(velocity.fe_degree);
+  data_out.build_patches(velocity->fe_degree);
   
   static int out_index = 0;
   data_out.write_vtu_with_pvtu_record("./",
@@ -314,8 +323,8 @@ void Guermond<dim>::output()
 template <int dim>
 void Guermond<dim>::update_entities()
 {
-  velocity.update_solution_vectors();
-  pressure.update_solution_vectors();
+  velocity->update_solution_vectors();
+  pressure->update_solution_vectors();
 }
 
 template <int dim>
@@ -323,10 +332,10 @@ void Guermond<dim>::solve(const unsigned int &level)
 {
   setup_dofs();
   setup_constraints();
-  velocity.reinit();
-  pressure.reinit();
-  velocity_error.reinit(velocity.solution);
-  pressure_error.reinit(pressure.solution);
+  velocity->reinit();
+  pressure->reinit();
+  velocity_error.reinit(velocity->solution);
+  pressure_error.reinit(pressure->solution);
   initialize();
 
   // Advances the time to t^{k-1}, either t^0 or t^1
@@ -335,13 +344,13 @@ void Guermond<dim>::solve(const unsigned int &level)
 
   // Outputs the fields at t_0, i.e. the initial conditions.
   { 
-    velocity.solution = velocity.old_old_solution;
-    pressure.solution = pressure.old_old_solution;
+    velocity->solution = velocity->old_old_solution;
+    pressure->solution = pressure->old_old_solution;
     velocity_exact_solution.set_time(time_stepping.get_start_time());
     pressure_exact_solution.set_time(time_stepping.get_start_time());
     output();
-    velocity.solution = velocity.old_solution;
-    pressure.solution = pressure.old_solution;
+    velocity->solution = velocity->old_solution;
+    pressure->solution = pressure->old_solution;
     velocity_exact_solution.set_time(time_stepping.get_start_time() + 
                                      time_stepping.get_next_step_size());
     pressure_exact_solution.set_time(time_stepping.get_start_time() + 
@@ -367,8 +376,8 @@ void Guermond<dim>::solve(const unsigned int &level)
     pressure_exact_solution.set_time(time_stepping.get_next_time());
     body_force.set_time(time_stepping.get_next_time());
 
-    velocity.boundary_conditions.set_time(time_stepping.get_next_time());
-    velocity.update_boundary_conditions();
+    velocity->boundary_conditions.set_time(time_stepping.get_next_time());
+    velocity->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve();
@@ -400,8 +409,8 @@ void Guermond<dim>::solve(const unsigned int &level)
   pressure_convergence_table.update_table(
     level, time_stepping.get_previous_step_size(), this->prm.flag_spatial_convergence_test);
   
-  velocity.boundary_conditions.clear();
-  pressure.boundary_conditions.clear();
+  velocity->boundary_conditions.clear();
+  pressure->boundary_conditions.clear();
 
   *(this->pcout) << std::endl;
   *(this->pcout) << std::endl;
@@ -444,16 +453,18 @@ void Guermond<dim>::run(const bool flag_convergence_test)
     }
   }
 
-  std::string tablefilename = (this->prm.flag_spatial_convergence_test) ?
-                              "GuermondSpatialTest" : 
-                              "GuermondTemporalTest_Level" + 
-                              std::to_string(this->prm.initial_refinement_level);
-  tablefilename += "_Re" + std::to_string((int)this->prm.Re);
+  *(this->pcout) << velocity_convergence_table;
+  *(this->pcout) << pressure_convergence_table;
 
-  velocity_convergence_table.print_table_to_terminal();
-  velocity_convergence_table.print_table_to_file(tablefilename + "_Velocity");
-  pressure_convergence_table.print_table_to_terminal();
-  pressure_convergence_table.print_table_to_file(tablefilename + "_Pressure");
+  std::ostringstream tablefilename;
+  tablefilename << ((this->prm.flag_spatial_convergence_test) ?
+                    "GuermondSpatialTest" : "GuermondTemporalTest_Level")
+                << this->prm.initial_refinement_level
+                << "_Re"
+                << this->prm.Re;
+
+  velocity_convergence_table.write_text(tablefilename.str() + "_Velocity");
+  pressure_convergence_table.write_text(tablefilename.str() + "_Pressure");
 }
 
 } // namespace RMHD

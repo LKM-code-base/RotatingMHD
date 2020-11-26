@@ -25,8 +25,10 @@ time_stepping_parameters(),
 projection_method(ProjectionMethod::rotational),
 convection_term_form(ConvectionTermForm::skewsymmetric),
 Re(1.0),
+Pe(1.0),
 n_global_refinements(0),
 p_fe_degree(1),
+temperature_fe_degree(1),
 n_maximum_iterations(1000),
 solver_krylov_size(30),
 solver_off_diagonals(60),
@@ -99,6 +101,10 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                       "1.",
                       Patterns::Double(0.),
                       "The kinetic Reynolds number.");
+    prm.declare_entry("Peclet_number",
+                      "1.",
+                      Patterns::Double(0.),
+                      "The Peclet number.");
   }
   prm.leave_subsection();
 
@@ -113,6 +119,11 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
                       "1",
                       Patterns::Integer(1, 5),
                       " The polynomial degree of the pressure finite" 
+                        "element. ");
+    prm.declare_entry("temperature_fe_degree",
+                      "1",
+                      Patterns::Integer(1, 5),
+                      " The polynomial degree of the temperature finite" 
                         "element. ");
     prm.declare_entry("refinement_and_coarsening_max_level",
                       "0",
@@ -131,7 +142,7 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
   {
     prm.declare_entry("n_maximum_iterations",
                       "1000",
-                      Patterns::Integer(1, 1000),
+                      Patterns::Integer(1, 10000),
                       "Maximum number of iterations done of diffusion-step "
                       "solver.");
 
@@ -249,6 +260,10 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
     Re  = prm.get_double("Reynolds_number");
 
     Assert(Re > 0, ExcLowerRange(Re, 0));
+
+    Pe  = prm.get_double("Peclet_number");
+
+    Assert(Pe > 0, ExcLowerRange(Pe, 0));
   }
   prm.leave_subsection();
 
@@ -258,11 +273,15 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
 
     p_fe_degree           = prm.get_integer("p_fe_degree");
 
+    temperature_fe_degree = prm.get_integer("temperature_fe_degree");
+
     refinement_and_coarsening_max_level = prm.get_integer("refinement_and_coarsening_max_level");
 
     refinement_and_coarsening_min_level = prm.get_integer("refinement_and_coarsening_min_level");
 
     Assert(n_global_refinements > 0, ExcLowerRange(n_global_refinements, 0));
+    Assert(p_fe_degree > 0, ExcLowerRange(p_fe_degree, 0));
+    Assert(temperature_fe_degree > 0, ExcLowerRange(temperature_fe_degree, 0));
     Assert(refinement_and_coarsening_max_level > 0, 
            ExcLowerRange(refinement_and_coarsening_max_level, 0));
     Assert(refinement_and_coarsening_min_level > 0, 

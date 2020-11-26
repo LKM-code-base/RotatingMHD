@@ -9,6 +9,9 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_diffusion_step_rhs()
 {
+  if (parameters.verbose)
+    *pcout << "  Navier Stokes: Assembling diffusion step's right hand side...";
+
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Diffusion step - RHS assembly");
 
   diffusion_step_rhs  = 0.;
@@ -18,6 +21,11 @@ assemble_diffusion_step_rhs()
   const int p_degree_body_force       = velocity.fe_degree;
 
   const int p_degree_neumann_function = velocity.fe_degree;
+
+  const FE_Q<dim> dummy_fe(1);
+
+  const FE_Q<dim> * const temperature_fe_ptr = 
+          (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
 
   // Polynomial degree of the integrand
   const int p_degree = std::max(3 * velocity.fe_degree - 1,
@@ -53,13 +61,14 @@ assemble_diffusion_step_rhs()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler->begin_active()),
+              (velocity->dof_handler)->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              velocity.dof_handler->end()),
+              (velocity->dof_handler)->end()),
    worker,
    copier,
-   VelocityRightHandSideAssembly::LocalCellData<dim>(velocity.fe,
-                                                     pressure.fe,
+   VelocityRightHandSideAssembly::LocalCellData<dim>(velocity->fe,
+                                                     pressure->fe,
+                                                     *temperature_fe_ptr,
                                                      quadrature_formula,
                                                      face_quadrature_formula,
                                                      update_values|
@@ -70,9 +79,12 @@ assemble_diffusion_step_rhs()
                                                      update_JxW_values|
                                                      update_values|
                                                      update_quadrature_points),
-   VelocityRightHandSideAssembly::MappingData<dim>(velocity.fe.dofs_per_cell));
+   VelocityRightHandSideAssembly::MappingData<dim>(velocity->fe.dofs_per_cell));
 
   diffusion_step_rhs.compress(VectorOperation::add);
+  
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
@@ -99,11 +111,11 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   // The velocity gradients of previous solutions are
   // needed for the laplacian term
   scratch.velocity_fe_values[velocities].get_function_gradients
-  (velocity.old_solution,
+  (velocity->old_solution,
   scratch.old_velocity_gradients);
   
   scratch.velocity_fe_values[velocities].get_function_gradients
-  (velocity.old_old_solution,
+  (velocity->old_old_solution,
   scratch.old_old_velocity_gradients);
 
   if (!parameters.flag_semi_implicit_convection)
@@ -111,38 +123,59 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     // The velocity, its divergence and its curl of previous solutions
     //  are needed for the convection term
     scratch.velocity_fe_values[velocities].get_function_values
-    (velocity.old_solution,
+    (velocity->old_solution,
     scratch.old_velocity_values);
     scratch.velocity_fe_values[velocities].get_function_divergences
-    (velocity.old_solution,
+    (velocity->old_solution,
     scratch.old_velocity_divergences);
     scratch.velocity_fe_values[velocities].get_function_curls
-    (velocity.old_solution,
+    (velocity->old_solution,
     scratch.old_velocity_curls);
     
     scratch.velocity_fe_values[velocities].get_function_values
-    (velocity.old_old_solution,
+    (velocity->old_old_solution,
     scratch.old_old_velocity_values);
     scratch.velocity_fe_values[velocities].get_function_divergences
-    (velocity.old_old_solution,
+    (velocity->old_old_solution,
     scratch.old_old_velocity_divergences);
     scratch.velocity_fe_values[velocities].get_function_curls
-    (velocity.old_old_solution,
+    (velocity->old_old_solution,
     scratch.old_old_velocity_curls);
   }
 
   // prepare pressure part
   typename DoFHandler<dim>::active_cell_iterator
-  pressure_cell(&velocity.get_triangulation(),
+  pressure_cell(&velocity->get_triangulation(),
                  cell->level(),
                  cell->index(),
-                pressure.dof_handler.get());
+                (pressure->dof_handler).get());
 
   scratch.pressure_fe_values.reinit(pressure_cell);
   
   scratch.pressure_fe_values.get_function_values
   (pressure_tmp,
   scratch.pressure_tmp_values);
+
+  // Prepare temperature part
+  if (!flag_ignore_bouyancy_term)
+  {
+    typename DoFHandler<dim>::active_cell_iterator
+    temperature_cell(&velocity->get_triangulation(),
+                     cell->level(),
+                     cell->index(),
+                     (temperature->dof_handler).get());
+
+    scratch.temperature_fe_values.reinit(temperature_cell);
+
+    scratch.temperature_fe_values.get_function_values(
+      extrapolated_temperature,
+      scratch.extrapolated_temperature_values);
+  }
+
+  /*! @attention Quick fix for the benchmark. A more general approach
+      has to be come up with */
+  Tensor<1, dim>  downwards_unit_vector;
+  downwards_unit_vector[dim-1] = 1.0;
 
   if (body_force_ptr != nullptr)
     body_force_ptr->value_list(
@@ -296,10 +329,16 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
             default:
               Assert(false, ExcNotImplemented());
           };
+        if (!flag_ignore_bouyancy_term)
+          data.local_diffusion_step_rhs(i) += 
+                    scratch.velocity_fe_values.JxW(q) *
+                    scratch.phi_velocity[i] *
+                    downwards_unit_vector * 
+                    scratch.extrapolated_temperature_values[q];
       }
 
       // assemble matrix for inhomogeneous boundary conditions
-      if (velocity.constraints.is_inhomogeneously_constrained(
+      if (velocity->constraints.is_inhomogeneously_constrained(
           data.local_velocity_dof_indices[i]))
       {
         // The values inside the scope are only needed for the
@@ -448,7 +487,7 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_diffusion_step_rhs
 (const VelocityRightHandSideAssembly::MappingData<dim>  &data)
 {
-  velocity.constraints.distribute_local_to_global(
+  velocity->constraints.distribute_local_to_global(
                                 data.local_diffusion_step_rhs,
                                 data.local_velocity_dof_indices,
                                 diffusion_step_rhs,
