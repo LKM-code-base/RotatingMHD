@@ -15,9 +15,6 @@ void NavierStokesProjection<dim>::assemble_projection_step()
 
   /* Right hand side setup */
   assemble_projection_step_rhs();
-
-  if (parameters.verbose)
-    *pcout << "   done." << std::endl;
 }
 
 template <int dim>
