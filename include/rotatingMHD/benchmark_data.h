@@ -218,15 +218,15 @@ public:
   /*!
    * @brief Constructor.
    */
-  MIT(std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-      std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
-      std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-      TimeDiscretization::VSIMEXMethod              &time_stepping,
-      const std::shared_ptr<Mapping<dim>>           external_mapping
+  MIT(const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
+      const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
+      const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+      TimeDiscretization::VSIMEXMethod                    &time_stepping,
+      const std::shared_ptr<Mapping<dim>>                 external_mapping
                                 = std::shared_ptr<Mapping<dim>>(),
-      const std::shared_ptr<ConditionalOStream>     external_pcout
+      const std::shared_ptr<ConditionalOStream>           external_pcout
                                 = std::shared_ptr<ConditionalOStream>(),
-      const std::shared_ptr<TimerOutput>            external_timer 
+      const std::shared_ptr<TimerOutput>                  external_timer 
                                 = std::shared_ptr<TimerOutput>());
 
   /*!
@@ -278,19 +278,19 @@ private:
    * @brief A shared pointer to the velocity field's numerical
    * representation.
    */
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  const std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
 
   /*!
    * @brief A shared pointer to the pressure field's numerical
    * representation.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  const std::shared_ptr<const Entities::ScalarEntity<dim>>  pressure;
 
   /*!
    * @brief A shared pointer to the temperature field's numerical
    * representation.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  const std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
 
   /*!
    * @brief A vector containing all the points at which data will be

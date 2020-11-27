@@ -209,13 +209,13 @@ void DFGBechmarkRequest<dim>::write_table_to_file(const std::string  &file)
 
 template <int dim>
 MIT<dim>::MIT(
-  std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-  std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
-  std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-  TimeDiscretization::VSIMEXMethod              &time_stepping,
-  const std::shared_ptr<Mapping<dim>>           external_mapping,
-  const std::shared_ptr<ConditionalOStream>     external_pcout,
-  const std::shared_ptr<TimerOutput>            external_timer)
+  const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
+  const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
+  const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+  TimeDiscretization::VSIMEXMethod                    &time_stepping,
+  const std::shared_ptr<Mapping<dim>>                 external_mapping,
+  const std::shared_ptr<ConditionalOStream>           external_pcout,
+  const std::shared_ptr<TimerOutput>                  external_timer)
 :
 mpi_communicator(velocity->mpi_communicator),
 time_stepping(time_stepping),
