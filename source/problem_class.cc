@@ -2,6 +2,7 @@
 #include <rotatingMHD/problem_class.h>
 
 #include <deal.II/base/quadrature_lib.h>
+#include <deal.II/fe/mapping_manifold.h>
 #include <deal.II/numerics/vector_tools.h>
 
 namespace RMHD
@@ -33,6 +34,10 @@ triangulation(mpi_communicator,
               typename Triangulation<dim>::MeshSmoothing(
               Triangulation<dim>::smoothing_on_refinement |
               Triangulation<dim>::smoothing_on_coarsening)),
+/*! @todo Include a the mapping's polynomial degree as a parameter in 
+    the parameter struct overhaul. For the time being, this will be 
+    hardcoded to linear mappings. */
+mapping(std::make_shared<MappingQ<dim>>(1, false)),
 pcout(std::make_shared<ConditionalOStream>(std::cout,
       (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))),
 computing_timer(

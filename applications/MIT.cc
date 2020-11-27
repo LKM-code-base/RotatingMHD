@@ -103,8 +103,6 @@ private:
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  std::shared_ptr<Mapping<dim>>                 mapping;
-
   NavierStokesProjection<dim>                   navier_stokes;
   
   HeatEquation<dim>                             heat_equation;
@@ -150,27 +148,26 @@ temperature_boundary_conditions(
 time_stepping(parameters.time_stepping_parameters),
 // The domain does not have any curved boundary, so a linear mapping
 // is sufficient.
-mapping(std::make_shared<MappingQ<dim>>(1)),
 navier_stokes(parameters,
               time_stepping,
               velocity,
               pressure,
               temperature,
-              mapping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 heat_equation(parameters,
               time_stepping,
               temperature,
               velocity,
-              mapping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 mit_benchmark(velocity,
               pressure,
               temperature,
               time_stepping,
-              mapping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 cfl_output_file("MIT_cfl_number.csv"),
