@@ -197,11 +197,6 @@ struct DFGBechmarkRequest
   void write_table_to_file(const std::string &file);
 };
 
-/*! @attention I kept getting a "trying to access private member" error
-    while outputing to the terminal with the Stream object. After
-    reading posts in StackOverflow this worked. I do not know if this is
-    the best method as there is a bug in the source file */
-
 template<int dim> class MIT;
 
 template<typename Stream, int dim> 
@@ -249,8 +244,6 @@ public:
 
   /*!
    * @brief Output of the benchmark data to the terminal.
-   * @attention I had to change the name of the second template variable
-   * or else I would get a compilation error.
    */
   template<typename Stream, int dim_>
   friend Stream& operator<<(Stream &stream, const MIT<dim_> &mit);
