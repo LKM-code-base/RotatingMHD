@@ -213,6 +213,8 @@ MIT<dim>::MIT(
   const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
   const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
   TimeDiscretization::VSIMEXMethod                    &time_stepping,
+  const unsigned int                                  left_wall_boundary_id,
+  const unsigned int                                  right_wall_boundary_id,
   const std::shared_ptr<Mapping<dim>>                 external_mapping,
   const std::shared_ptr<ConditionalOStream>           external_pcout,
   const std::shared_ptr<TimerOutput>                  external_timer)
@@ -225,7 +227,9 @@ temperature(temperature),
 pressure_differences(3),
 width(1.0),
 height(8.0),
-area(8.0)
+area(8.0),
+left_wall_boundary_id(left_wall_boundary_id),
+right_wall_boundary_id(right_wall_boundary_id)
 {
   AssertDimension(dim, 2); 
   Assert(velocity.get() != nullptr,
@@ -436,14 +440,16 @@ void MIT<dim>::compute_wall_data()
   std::vector<Tensor<1, dim>> normal_vectors(n_face_q_points);
 
   // Initiate the local integral value and at each wall.
-  double local_boundary_intregral = 0.0;
-  double left_boundary_intregral  = 0.0;
-  double right_boundary_intregral = 0.0;
+  double local_boundary_integral = 0.0;
+  double left_boundary_integral  = 0.0;
+  double right_boundary_integral = 0.0;
 
   for (const auto &cell : (temperature->dof_handler)->active_cell_iterators())
     if (cell->is_locally_owned() && cell->at_boundary())
       for (const auto &face : cell->face_iterators())
-        if (face->boundary_id() == 1 || face->boundary_id() == 2)
+        if (face->at_boundary() && 
+            (face->boundary_id() == left_wall_boundary_id || 
+             face->boundary_id() == right_wall_boundary_id))
           {
             // Initialize the finite element values
             face_fe_values.reinit(cell, face);
@@ -456,32 +462,32 @@ void MIT<dim>::compute_wall_data()
             normal_vectors = face_fe_values.get_normal_vectors();
 
             // Reset local face integral values
-            local_boundary_intregral = 0.0;
+            local_boundary_integral = 0.0;
 
             // Numerical integration
             for (unsigned int q = 0; q < n_face_q_points; ++q)
-              local_boundary_intregral += 
+              local_boundary_integral += 
                 temperature_gradients[q] *  // grad T 
                 normal_vectors[q] *         // n
                 face_fe_values.JxW(q);      // da
           
             // Add the local boundary integral to the respective
             // global boundary integral
-            if (face->boundary_id() == 1)
-              left_boundary_intregral   += local_boundary_intregral;
+            if (face->boundary_id() == left_wall_boundary_id)
+              left_boundary_integral   += local_boundary_integral;
             else
-              right_boundary_intregral  += local_boundary_intregral;
+              right_boundary_integral  += local_boundary_integral;
           }
 
   // Gather the values of each processor
-  left_boundary_intregral   = Utilities::MPI::sum(left_boundary_intregral, 
+  left_boundary_integral   = Utilities::MPI::sum(left_boundary_integral, 
                                                    mpi_communicator);
-  right_boundary_intregral  = Utilities::MPI::sum(right_boundary_intregral, 
+  right_boundary_integral  = Utilities::MPI::sum(right_boundary_integral, 
                                                   mpi_communicator);
   
   //Compute and store the Nusselt numbers of the walls
-  nusselt_numbers = std::make_pair(left_boundary_intregral/height,
-                                   right_boundary_intregral/height);
+  nusselt_numbers = std::make_pair(left_boundary_integral/height,
+                                   right_boundary_integral/height);
 }
 
 template <int dim>

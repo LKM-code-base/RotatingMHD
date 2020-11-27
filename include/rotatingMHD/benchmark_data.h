@@ -222,6 +222,8 @@ public:
       const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
       const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
       TimeDiscretization::VSIMEXMethod                    &time_stepping,
+      const unsigned int                                  left_wall_boundary_id,
+      const unsigned int                                  right_wall_boundary_id,
       const std::shared_ptr<Mapping<dim>>                 external_mapping
                                 = std::shared_ptr<Mapping<dim>>(),
       const std::shared_ptr<ConditionalOStream>           external_pcout
@@ -398,6 +400,16 @@ private:
    * @details Given by  \f$ A = WH \f$
    */ 
   const double                                  area;
+
+  /*!
+   * @brief The boundary id of the cavity's left wall.
+   */ 
+  const unsigned int                            left_wall_boundary_id;
+
+  /*!
+   * @brief The boundary id of the cavity's right wall.
+   */ 
+  const unsigned int                            right_wall_boundary_id;
 
   /*!
    * @brief A method that samples all the point data and computes the
