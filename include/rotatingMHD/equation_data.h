@@ -229,7 +229,7 @@ namespace Couette
  * @brief The velocity's exact solution for the Couette flow, where the
  * displacement of the top plate is driven by a traction vector
  * @details It is given by 
- * \f[ \bs{u} = t_0 \Reynolds H y \bs{e}_\mathrm{x}, \f] 
+ * \f[ \bs{u} = t_0 \Reynolds \dfrac{y}{H} \bs{e}_\mathrm{x}, \f] 
  * where \f$ t_0 \f$, \f$ \Reynolds \f$, \f$ H \f$, \f$ y \f$ and
  * \f$ \bs{e}_\mathrm{x} \f$ are the traction vector magnitude, the
  * Reynolds number, the height of the channel, the \f$ y \f$-component

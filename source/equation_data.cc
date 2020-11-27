@@ -351,7 +351,7 @@ void VelocityExactSolution<dim>::vector_value(
 {
   double y = point(1);
 
-  values[0] = t_0 * Re * H * y;
+  values[0] = t_0 * Re * y / H;
   values[1] = 0.0;
 }
 
@@ -366,7 +366,7 @@ Tensor<1, dim> VelocityExactSolution<dim>::gradient(
   if (component == 0)
   {
     gradient[0] = 0.0;
-    gradient[1] = t_0 * Re * H;
+    gradient[1] = t_0 * Re / H;
   }
   else if (component == 1)
   {

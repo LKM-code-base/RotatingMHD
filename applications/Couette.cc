@@ -43,7 +43,7 @@ namespace RMHD
  * \f$ \bs{t} = t_0 \bs{e}_\textrm{x} \f$ applied to the upper plate.
  * This leads to
  * \f[
- * \bs{u} = t_0 \Reynolds H y \bs{e}_\textrm{x},
+ * \bs{u} = t_0 \Reynolds \dfrac{y}{H} \bs{e}_\textrm{x},
  * \f]
  * where \f$ \Reynolds \f$ and \f$ H \f$ are the Reynolds
  * number and the height of the channel. The stationary solution is
