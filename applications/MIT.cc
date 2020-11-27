@@ -30,15 +30,16 @@ using namespace dealii;
 /*!
  * @class MITBenchmark
  * @brief Class solving the problem formulated in the MIT benchmark.
- * @details The study case consists of a buoyancy-driven flow for which
- * the Boussinesq approximation is assumed to be valid, i.e. the fluid's
- * behaviour is given by the adimensional equations
+ * @details The benchmark considers the case of a buoyancy-driven flow 
+ * for which the Boussinesq approximation is assumed to hold true,
+ * <em> i. e.</em>, the fluid's behaviour is described by the following
+ * dimensionless equations
  * \f[
  * \begin{equation*}
  * \begin{aligned}
  * \pd{\bs{u}}{t} + \bs{u} \cdot ( \nabla \otimes \bs{u}) &=
  * - \nabla p + \sqrt{\dfrac{\Prandtl}{\Rayleigh}} \nabla^2 \bs{u} +
- * \vartheta \bs{e}_\textrm{y}, 
+ * \vartheta \ey, 
  * &\forall (\bs{x}, t) \in \Omega \times \left[0, T \right]\\
  * \nabla \cdot \bs{u} &= 0, 
  * &\forall (\bs{x}, t) \in \Omega \times \left[0, T \right]\\
@@ -61,13 +62,13 @@ using namespace dealii;
  * \begin{equation*}
  * \begin{aligned}
  * \bs{u} &= \bs{0}, &\forall (\bs{x}, t) &\in \partial\Omega \times \left[0, T \right], \\
- * \vartheta &= 0.5, &\forall (\bs{x}, t) &\in \Gamma_1 \times \left[0, T \right], \\
- * \vartheta &= -0.5, &\forall (\bs{x}, t) &\in \Gamma_2 \times \left[0, T \right], \\
+ * \vartheta &= \frac{1}{2}, &\forall (\bs{x}, t) &\in \Gamma_1 \times \left[0, T \right], \\
+ * \vartheta &= -\frac{1}{2}, &\forall (\bs{x}, t) &\in \Gamma_2 \times \left[0, T \right], \\
  * \nabla \vartheta \cdot \bs{n} &= 0, &\forall (\bs{x}, t) &\in \Gamma_3 \cup \Gamma_4 \times \left[0, T \right]
  * \end{aligned}
  * \end{equation*}
  * \f]
- * the initial conditions are
+ * the initial conditions are given by
  * \f[
  * \bs{u}_0 = \bs{0}, \quad p_0 = 0, \quad \textrm{and} \quad
  * \vartheta_0 = 0.
