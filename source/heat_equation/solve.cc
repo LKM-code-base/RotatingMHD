@@ -40,7 +40,7 @@ void HeatEquation<dim>::solve()
     temperature_tmp = distributed_old_temperature;
   }
 
-
+  if (velocity != nullptr)
   {
     const std::vector<double> eta = time_stepping.get_eta();
     AssertIsFinite(eta[0]);

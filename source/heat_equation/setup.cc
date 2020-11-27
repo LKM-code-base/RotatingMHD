@@ -121,7 +121,7 @@ setup_vectors()
   temperature_tmp.reinit(temperature->solution);
 
   // Initializing the velocity related vector
-  if (!flag_ignore_advection)
+  if (!flag_ignore_advection && velocity != nullptr)
     extrapolated_velocity.reinit(velocity->solution);
   
   if (parameters.verbose)
