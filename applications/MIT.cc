@@ -110,6 +110,8 @@ private:
 
   BenchmarkData::MIT<dim>                       mit_benchmark;
 
+  double                                        cfl_number;
+
   std::ofstream                                 cfl_output_file;
 
   bool                                          flag_local_refinement;
@@ -147,8 +149,6 @@ temperature_boundary_conditions(
               std::make_shared<EquationData::MIT::TemperatureBoundaryCondition<dim>>(
               parameters.time_stepping_parameters.start_time)),
 time_stepping(parameters.time_stepping_parameters),
-// The domain does not have any curved boundary, so a linear mapping
-// is sufficient.
 navier_stokes(parameters,
               time_stepping,
               velocity,
@@ -350,8 +350,6 @@ void MITBenchmark<dim>::postprocessing()
   // class for further information.
   mit_benchmark.compute_benchmark_data();
 
-  const double cfl_number = navier_stokes.get_cfl_number();
-
   std::cout.precision(1);
   /*! @attention For some reason, a run time error happens when I try
       to only use one pcout */
@@ -371,8 +369,10 @@ void MITBenchmark<dim>::postprocessing()
                << std::fixed
                << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
                << "%] \r";
-  cfl_output_file << time_stepping.get_current_time() << ","
-                  << cfl_number << std::endl;
+
+  if (time_stepping.get_step_number() % 10 == 0)
+    cfl_output_file << time_stepping.get_current_time() << ","
+                    << cfl_number << std::endl;
 }
 
 template <int dim>
@@ -447,11 +447,12 @@ void MITBenchmark<dim>::run()
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
+    // Compute CFL number
+    cfl_number = navier_stokes.get_cfl_number();
+
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(
-        time_stepping, 
-        navier_stokes.get_cfl_number()));
+      this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
