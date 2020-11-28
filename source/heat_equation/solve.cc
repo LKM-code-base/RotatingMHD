@@ -29,8 +29,8 @@ void HeatEquation<dim>::solve()
     AssertIsFinite(alpha[1] / time_stepping.get_next_step_size());
     AssertIsFinite(alpha[2] / time_stepping.get_next_step_size());
 
-    LinearAlgebra::MPI::Vector distributed_old_temperature(rhs);
-    LinearAlgebra::MPI::Vector distributed_old_old_temperature(rhs);
+    LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
+    LinearAlgebra::MPI::Vector distributed_old_old_temperature(temperature->distributed_vector);
     distributed_old_temperature      = temperature->old_solution;
     distributed_old_old_temperature  = temperature->old_old_solution;
     distributed_old_temperature.sadd(
@@ -38,6 +38,22 @@ void HeatEquation<dim>::solve()
       alpha[2] / time_stepping.get_next_step_size(),
       distributed_old_old_temperature);
     temperature_tmp = distributed_old_temperature;
+  }
+
+  if (velocity != nullptr)
+  {
+    const std::vector<double> eta = time_stepping.get_eta();
+    AssertIsFinite(eta[0]);
+    AssertIsFinite(eta[1]);
+
+    LinearAlgebra::MPI::Vector distributed_old_velocity(velocity->distributed_vector);
+    LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity->distributed_vector);
+    distributed_old_velocity      = velocity->old_solution;
+    distributed_old_old_velocity  = velocity->old_old_solution;
+    distributed_old_velocity.sadd(eta[0],
+                                  eta[1],
+                                  distributed_old_old_velocity);
+    extrapolated_velocity = distributed_old_velocity;
   }
 
   assemble_linear_system();
@@ -52,9 +68,6 @@ void HeatEquation<dim>::solve()
 template <int dim>
 void HeatEquation<dim>::assemble_linear_system()
 {
-  if (parameters.verbose)
-    *pcout << "  Heat Equation: Assembling linear system..." << std::endl;
-
   // System matrix setup
   if (time_stepping.coefficients_changed() == true ||
       flag_add_mass_and_stiffness_matrices)
@@ -90,7 +103,7 @@ template <int dim>
 void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
 {
   if (parameters.verbose)
-  *pcout << "    Heat Equation: Solving linear system..." << std::endl;
+  *pcout << "  Heat Equation: Solving linear system...";
 
   TimerOutput::Scope  t(*computing_timer, "Heat Equation: Solve");
 
@@ -159,13 +172,11 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
   temperature->solution = distributed_temperature;
 
   if (parameters.verbose)
-  {
-    *pcout << "    done." << std::endl;
-    *pcout << "    Number of GMRES iterations: " << solver_control.last_step()
-           << ", "
-           << "final residual: " << solver_control.last_value() << "."
-           << std::endl;
-  }
+    *pcout << " done!" << std::endl
+           << "    Number of GMRES iterations: " 
+           << solver_control.last_step()
+           << ", Final residual: " << solver_control.last_value() << "."
+           << std::endl << std::endl;
 }
 
 } // namespace RMHD

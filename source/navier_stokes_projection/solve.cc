@@ -34,9 +34,6 @@ void NavierStokesProjection<dim>::solve()
 template <int dim>
 void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 {
-  if (parameters.verbose)
-    *pcout << "  Navier Stokes: Diffusion step..." << std::endl;
-
   // In the following scopes we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the sadd()
   // operations.
@@ -53,6 +50,18 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
                                   eta[1],
                                   distributed_old_old_velocity);
     extrapolated_velocity = distributed_old_velocity;
+
+    if (!flag_ignore_bouyancy_term)
+    {
+      LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
+      LinearAlgebra::MPI::Vector distributed_old_old_temperature(temperature->distributed_vector);
+      distributed_old_temperature      = temperature->old_solution;
+      distributed_old_old_temperature  = temperature->old_old_solution;
+      distributed_old_temperature.sadd(eta[0],
+                                       eta[1],
+                                       distributed_old_old_temperature);
+      extrapolated_temperature = distributed_old_temperature;
+    }
   }
 
   {
@@ -132,7 +141,7 @@ template <int dim>
 void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 {
   if (parameters.verbose)
-    *pcout << "  Navier Stokes: Pressure correction step..." << std::endl;
+    *pcout << "  Navier Stokes: Pressure correction step...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Pressure correction step");
 
@@ -221,6 +230,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
       default:
         Assert(false, ExcNotImplemented());
     };
+
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl << std::endl;
 }
 
 

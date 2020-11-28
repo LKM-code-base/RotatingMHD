@@ -9,9 +9,17 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_diffusion_step_rhs()
 {
+  if (parameters.verbose)
+    *pcout << "  Navier Stokes: Assembling diffusion step's right hand side...";
+
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Diffusion step - RHS assembly");
 
   velocity_rhs  = 0.;
+
+  const FE_Q<dim> dummy_fe(1);
+
+  const FE_Q<dim> * const temperature_fe_ptr = 
+          (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
 
   // Polynomial degree of the integrand
   const int p_degree = 3 * velocity->fe_degree - 1;
@@ -46,15 +54,20 @@ assemble_diffusion_step_rhs()
    copier,
    VelocityRightHandSideAssembly::LocalCellData<dim>(velocity->fe,
                                                      pressure->fe,
+                                                     *temperature_fe_ptr,
                                                      quadrature_formula,
                                                      update_values|
                                                      update_gradients|
                                                      update_JxW_values|
                                                      update_quadrature_points,
+                                                     update_values,
                                                      update_values),
    VelocityRightHandSideAssembly::MappingData<dim>(velocity->fe.dofs_per_cell));
 
   velocity_rhs.compress(VectorOperation::add);
+
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
@@ -125,6 +138,27 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   scratch.pressure_fe_values.get_function_values
   (pressure_tmp,
   scratch.pressure_tmp_values);
+
+  // Prepare temperature part
+  if (!flag_ignore_bouyancy_term)
+  {
+    typename DoFHandler<dim>::active_cell_iterator
+    temperature_cell(&velocity->get_triangulation(),
+                     cell->level(),
+                     cell->index(),
+                     (temperature->dof_handler).get());
+
+    scratch.temperature_fe_values.reinit(temperature_cell);
+
+    scratch.temperature_fe_values.get_function_values(
+      extrapolated_temperature,
+      scratch.extrapolated_temperature_values);
+  }
+
+  /*! @attention Quick fix for the benchmark. A more general approach
+      has to be come up with */
+  Tensor<1, dim>  downwards_unit_vector;
+  downwards_unit_vector[dim-1] = 1.0;
 
   if (body_force_ptr != nullptr)
     body_force_ptr->value_list(
@@ -278,6 +312,12 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
             default:
               Assert(false, ExcNotImplemented());
           };
+        if (!flag_ignore_bouyancy_term)
+          data.local_diffusion_step_rhs(i) += 
+                    scratch.velocity_fe_values.JxW(q) *
+                    scratch.phi_velocity[i] *
+                    downwards_unit_vector * 
+                    scratch.extrapolated_temperature_values[q];
       }
 
       // assemble matrix for inhomogeneous boundary conditions

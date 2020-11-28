@@ -77,7 +77,7 @@ template <int dim>
 void NavierStokesProjection<dim>::setup_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Navier Stokes: Setting up matrices..." << std::endl;
+    *pcout << "  Navier Stokes: Setting up matrices...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Matrices");
 
@@ -203,7 +203,7 @@ void NavierStokesProjection<dim>::setup_matrices()
   }
 
   if (parameters.verbose)
-    *pcout << "    done." << std::endl;
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
@@ -211,37 +211,23 @@ void NavierStokesProjection<dim>::
 setup_vectors()
 {
   if (parameters.verbose)
-    *pcout << "  Navier Stokes: Setting up vectors..." << std::endl;
+    *pcout << "  Navier Stokes: Setting up vectors...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Vectors");
 
-  #ifdef USE_PETSC_LA
-    pressure_rhs.reinit(pressure->locally_owned_dofs,
-                        mpi_communicator);
-  #else
-    pressure_rhs.reinit(pressure->locally_owned_dofs,
-                        pressure->locally_relevant_dofs,
-                        mpi_communicator,
-                        true);
-  #endif
-  poisson_prestep_rhs.reinit(pressure_rhs);
+  pressure_rhs.reinit(pressure->distributed_vector);
+  poisson_prestep_rhs.reinit(pressure->distributed_vector);
   pressure_tmp.reinit(pressure->solution);
 
-  #ifdef USE_PETSC_LA
-    velocity_rhs.reinit(velocity->locally_owned_dofs,
-                        mpi_communicator);
-  #else
-    velocity_rhs.reinit(velocity->locally_owned_dofs,
-                        velocity->locally_relevant_dofs,
-                        mpi_communicator,
-                        true);
-  #endif
-
+  velocity_rhs.reinit(velocity->distributed_vector);
   extrapolated_velocity.reinit(velocity->solution);
   velocity_tmp.reinit(velocity->solution);
 
+  if (!flag_ignore_bouyancy_term)
+    extrapolated_temperature.reinit(temperature->solution);
+
   if (parameters.verbose)
-    *pcout << "     done." << std::endl;
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>

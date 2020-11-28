@@ -48,6 +48,16 @@ void EntityBase<dim>::reinit()
                   mpi_communicator);
   old_solution.reinit(solution);
   old_old_solution.reinit(solution);
+
+  #ifdef USE_PETSC_LA
+    distributed_vector.reinit(locally_owned_dofs,
+                              mpi_communicator);
+  #else
+    distributed_vector.reinit(locally_owned_dofs,
+                              locally_relevant_dofs,
+                              mpi_communicator,
+                              true);
+  #endif
 }
 
 template <int dim>

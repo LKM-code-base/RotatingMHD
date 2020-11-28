@@ -3,7 +3,6 @@
  *@brief The .cc file replicating the numerical test of section
   3.7.2 of the Guermond paper.
  */
-#include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/convergence_struct.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
@@ -12,6 +11,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 
@@ -102,9 +102,10 @@ pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
                                                        "pressure")),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
+              time_stepping,
               velocity,
               pressure,
-              time_stepping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 velocity_exact_solution(parameters.time_stepping_parameters.start_time),

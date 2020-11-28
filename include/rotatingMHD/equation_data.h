@@ -281,6 +281,28 @@ private:
 
 } // namespace ThermalTGV
 
+
+namespace MIT
+{
+
+template <int dim>
+class TemperatureBoundaryCondition : public Function<dim>
+{
+public:
+  TemperatureBoundaryCondition(const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+private:
+  /*!
+   * @brief The exponential coefficient.
+   */ 
+  const double beta = 10.;
+};
+
+}
+
 } // namespace EquationData
 
 } // namespace RMHD

@@ -10,7 +10,7 @@ template <int dim>
 void HeatEquation<dim>::assemble_rhs()
 {
   if (parameters.verbose)
-    *pcout << "    Heat Equation: Assembling right hand side..." << std::endl;
+    *pcout << "  Heat Equation: Assembling right hand side...";
 
   TimerOutput::Scope  t(*computing_timer, 
                         "Heat equation: RHS assembly");
@@ -91,6 +91,9 @@ void HeatEquation<dim>::assemble_rhs()
      temperature->fe.dofs_per_cell));
 
   rhs.compress(VectorOperation::add);
+
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
@@ -141,7 +144,7 @@ void HeatEquation<dim>::assemble_local_rhs
     scratch.velocity_fe_values.reinit(velocity_cell);
 
     scratch.velocity_fe_values[velocities].get_function_values
-    (velocity->solution,
+    (extrapolated_velocity,
     scratch.velocity_values);
   }
   else if (velocity_function_ptr != nullptr)
@@ -186,13 +189,11 @@ void HeatEquation<dim>::assemble_local_rhs
                              scratch.temperature_tmp_values[q]
                              -
                              time_stepping.get_gamma()[1] /
-                             parameters.Re /
                              parameters.Pe *
                              scratch.grad_phi[i] *
                              scratch.old_temperature_gradients[q]
                              -
                              time_stepping.get_gamma()[2] /
-                             parameters.Re /
                              parameters.Pe *
                              scratch.grad_phi[i] *
                              scratch.old_old_temperature_gradients[q]);
@@ -220,7 +221,6 @@ void HeatEquation<dim>::assemble_local_rhs
                 scratch.phi[i]
                 +
                 time_stepping.get_gamma()[0] /
-                parameters.Re /
                 parameters.Pe *
                 scratch.grad_phi[j] *
                 scratch.grad_phi[i]);

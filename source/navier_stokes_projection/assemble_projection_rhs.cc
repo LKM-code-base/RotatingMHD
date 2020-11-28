@@ -9,6 +9,9 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_projection_step_rhs()
 {
+  if (parameters.verbose)
+    *pcout << "  Navier Stokes: Assembling the projection step's right hand side...";
+
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - RHS assembly");
 
   pressure_rhs = 0.;
@@ -55,6 +58,9 @@ assemble_projection_step_rhs()
                   PressureRightHandSideAssembly::MappingData<dim>(
                                             pressure->fe.dofs_per_cell));
   pressure_rhs.compress(VectorOperation::add);
+
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>

@@ -2,6 +2,7 @@
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/grid/filtered_iterator.h>
+#include <deal.II/fe/fe_nothing.h>
 
 namespace RMHD
 {
@@ -10,13 +11,13 @@ template <int dim>
 void HeatEquation<dim>::assemble_advection_matrix()
 {
   if (parameters.verbose)
-    *pcout << "    Heat Equation: Assembling advection matrix..." << std::endl;
+    *pcout << "  Heat Equation: Assembling advection matrix...";
 
   TimerOutput::Scope  t(*computing_timer, "Heat Equation: Advection matrix assembly");
 
   advection_matrix = 0.;
 
-  const FESystem<dim> dummy_fe_system(FE_Q<dim>(2), dim);
+  const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(1), dim);
 
   const FESystem<dim>* const velocity_fe = 
               (velocity != nullptr) ? &velocity->fe : &dummy_fe_system;
@@ -70,6 +71,9 @@ void HeatEquation<dim>::assemble_advection_matrix()
      temperature->fe.dofs_per_cell));
 
   advection_matrix.compress(VectorOperation::add);
+  
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
@@ -99,7 +103,7 @@ void HeatEquation<dim>::assemble_local_advection_matrix
     scratch.velocity_fe_values.reinit(velocity_cell);
 
     scratch.velocity_fe_values[velocities].get_function_values
-    (velocity->solution,
+    (extrapolated_velocity,
     scratch.velocity_values);
   }
   else if (velocity_function_ptr != nullptr)

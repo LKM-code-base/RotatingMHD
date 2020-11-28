@@ -7,9 +7,6 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_diffusion_step()
 {
-  if (parameters.verbose)
-    *pcout << "    Navier Stokes: Assembling the diffusion step...";
-
   /* System matrix setup */
 
   /* This if scope makes sure that if the time step did not change
@@ -41,9 +38,6 @@ assemble_diffusion_step()
   }
   /* Right hand side setup */
   assemble_diffusion_step_rhs();
-
-  if (parameters.verbose)
-    *pcout << "    done." << std::endl;
 }
 
 template <int dim>
@@ -51,7 +45,7 @@ void NavierStokesProjection<dim>::
 solve_diffusion_step(const bool reinit_prec)
 {
   if (parameters.verbose)
-    *pcout << "    Navier Stokes: Solving the diffusion step..." << std::endl;
+    *pcout << "  Navier Stokes: Solving the diffusion step...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Diffusion step - Solve");
 
@@ -120,12 +114,12 @@ solve_diffusion_step(const bool reinit_prec)
   velocity->solution = distributed_velocity;
 
   if (parameters.verbose)
-    *pcout << "    done." << std::endl;
+    *pcout << " done!" << std::endl;
 
   if (parameters.verbose)
-    *pcout << "    Number of GMRES iterations: " << solver_control.last_step()
-           << ", "
-           << "final residual: " << solver_control.last_value() << "."
+    *pcout << "    Number of GMRES iterations: " 
+           << solver_control.last_step()
+           << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;
 }
 }

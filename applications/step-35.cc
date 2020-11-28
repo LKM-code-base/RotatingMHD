@@ -5,6 +5,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -75,9 +76,10 @@ pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
                                                        "pressure")),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
+              time_stepping,
               velocity,
               pressure,
-              time_stepping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
