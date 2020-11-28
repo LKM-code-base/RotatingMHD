@@ -53,8 +53,6 @@ private:
 
   TimeDiscretization::VSIMEXMethod            time_stepping;
 
-  std::shared_ptr<Mapping<dim>>               mapping;
-
   NavierStokesProjection<dim>                 navier_stokes;
 
   EquationData::Guermond::VelocityExactSolution<dim>         
@@ -103,12 +101,11 @@ pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
                                                        this->triangulation,
                                                        "pressure")),
 time_stepping(parameters.time_stepping_parameters),
-mapping(std::make_shared<MappingQ<dim>>(1)),
 navier_stokes(parameters,
               time_stepping,
               velocity,
               pressure,
-              mapping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 velocity_exact_solution(parameters.time_stepping_parameters.start_time),

@@ -51,8 +51,6 @@ private:
 
   std::shared_ptr<TensorFunction<1,dim>>      velocity_exact_solution;
 
-  std::shared_ptr<Mapping<dim>>               mapping;
-
   HeatEquation<dim>                           heat_equation;
 
   ConvergenceAnalysisData<dim>                convergence_table;
@@ -93,12 +91,11 @@ velocity_field(parameters.time_stepping_parameters.start_time),
 velocity_exact_solution(
               std::make_shared<EquationData::ThermalTGV::VelocityExactSolution<dim>>(
                 parameters.time_stepping_parameters.start_time)),
-mapping(std::make_shared<MappingQ<dim>>(1)),
 heat_equation(parameters,
               time_stepping,
               temperature,
               velocity_exact_solution,
-              mapping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 convergence_table(temperature, exact_solution)

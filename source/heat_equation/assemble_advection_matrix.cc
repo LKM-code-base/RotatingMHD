@@ -2,6 +2,7 @@
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/grid/filtered_iterator.h>
+#include <deal.II/fe/fe_nothing.h>
 
 namespace RMHD
 {
@@ -16,7 +17,7 @@ void HeatEquation<dim>::assemble_advection_matrix()
 
   advection_matrix = 0.;
 
-  const FESystem<dim> dummy_fe_system(FE_Q<dim>(2), dim);
+  const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(1), dim);
 
   const FESystem<dim>* const velocity_fe = 
               (velocity != nullptr) ? &velocity->fe : &dummy_fe_system;

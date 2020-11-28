@@ -197,11 +197,6 @@ struct DFGBechmarkRequest
   void write_table_to_file(const std::string &file);
 };
 
-/*! @attention I kept getting a "trying to access private member" error
-    while outputing to the terminal with the Stream object. After
-    reading posts in StackOverflow this worked. I do not know if this is
-    the best method as there is a bug in the source file */
-
 template<int dim> class MIT;
 
 template<typename Stream, int dim> 
@@ -223,15 +218,17 @@ public:
   /*!
    * @brief Constructor.
    */
-  MIT(std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-      std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
-      std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-      TimeDiscretization::VSIMEXMethod              &time_stepping,
-      const std::shared_ptr<Mapping<dim>>           external_mapping
+  MIT(const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
+      const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
+      const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+      TimeDiscretization::VSIMEXMethod                    &time_stepping,
+      const unsigned int                                  left_wall_boundary_id,
+      const unsigned int                                  right_wall_boundary_id,
+      const std::shared_ptr<Mapping<dim>>                 external_mapping
                                 = std::shared_ptr<Mapping<dim>>(),
-      const std::shared_ptr<ConditionalOStream>     external_pcout
+      const std::shared_ptr<ConditionalOStream>           external_pcout
                                 = std::shared_ptr<ConditionalOStream>(),
-      const std::shared_ptr<TimerOutput>            external_timer 
+      const std::shared_ptr<TimerOutput>                  external_timer 
                                 = std::shared_ptr<TimerOutput>());
 
   /*!
@@ -249,8 +246,6 @@ public:
 
   /*!
    * @brief Output of the benchmark data to the terminal.
-   * @attention I had to change the name of the second template variable
-   * or else I would get a compilation error.
    */
   template<typename Stream, int dim_>
   friend Stream& operator<<(Stream &stream, const MIT<dim_> &mit);
@@ -285,19 +280,19 @@ private:
    * @brief A shared pointer to the velocity field's numerical
    * representation.
    */
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  const std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
 
   /*!
    * @brief A shared pointer to the pressure field's numerical
    * representation.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  const std::shared_ptr<const Entities::ScalarEntity<dim>>  pressure;
 
   /*!
    * @brief A shared pointer to the temperature field's numerical
    * representation.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  const std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
 
   /*!
    * @brief A vector containing all the points at which data will be
@@ -405,6 +400,16 @@ private:
    * @details Given by  \f$ A = WH \f$
    */ 
   const double                                  area;
+
+  /*!
+   * @brief The boundary id of the cavity's left wall.
+   */ 
+  const unsigned int                            left_wall_boundary_id;
+
+  /*!
+   * @brief The boundary id of the cavity's right wall.
+   */ 
+  const unsigned int                            right_wall_boundary_id;
 
   /*!
    * @brief A method that samples all the point data and computes the

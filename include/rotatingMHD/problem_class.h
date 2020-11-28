@@ -11,6 +11,8 @@
 #include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/distributed/grid_refinement.h>
 
+#include <deal.II/fe/mapping_q.h>
+
 #include <deal.II/grid/grid_refinement.h>
 
 #include <deal.II/numerics/error_estimator.h>
@@ -120,6 +122,12 @@ protected:
    * @brief Triangulation object of the problem.
    */
   parallel::distributed::Triangulation<dim>   triangulation;
+
+  /*!
+   * @brief The shared pointer to the class describing the mapping from
+   * the reference cell to the real cell.
+   */
+  std::shared_ptr<Mapping<dim>>               mapping;
 
   /*!
    * @brief Stream object which only prints output for one MPI process.

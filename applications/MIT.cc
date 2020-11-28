@@ -30,15 +30,16 @@ using namespace dealii;
 /*!
  * @class MITBenchmark
  * @brief Class solving the problem formulated in the MIT benchmark.
- * @details The study case consists of a buoyancy-driven flow for which
- * the Boussinesq approximation is assumed to be valid, i.e. the fluid's
- * behaviour is given by the adimensional equations
+ * @details The benchmark considers the case of a buoyancy-driven flow 
+ * for which the Boussinesq approximation is assumed to hold true,
+ * <em> i. e.</em>, the fluid's behaviour is described by the following
+ * dimensionless equations
  * \f[
  * \begin{equation*}
  * \begin{aligned}
  * \pd{\bs{u}}{t} + \bs{u} \cdot ( \nabla \otimes \bs{u}) &=
  * - \nabla p + \sqrt{\dfrac{\Prandtl}{\Rayleigh}} \nabla^2 \bs{u} +
- * \vartheta \bs{e}_\textrm{y}, 
+ * \vartheta \ey, 
  * &\forall (\bs{x}, t) \in \Omega \times \left[0, T \right]\\
  * \nabla \cdot \bs{u} &= 0, 
  * &\forall (\bs{x}, t) \in \Omega \times \left[0, T \right]\\
@@ -61,13 +62,13 @@ using namespace dealii;
  * \begin{equation*}
  * \begin{aligned}
  * \bs{u} &= \bs{0}, &\forall (\bs{x}, t) &\in \partial\Omega \times \left[0, T \right], \\
- * \vartheta &= 0.5, &\forall (\bs{x}, t) &\in \Gamma_1 \times \left[0, T \right], \\
- * \vartheta &= -0.5, &\forall (\bs{x}, t) &\in \Gamma_2 \times \left[0, T \right], \\
+ * \vartheta &= \frac{1}{2}, &\forall (\bs{x}, t) &\in \Gamma_1 \times \left[0, T \right], \\
+ * \vartheta &= -\frac{1}{2}, &\forall (\bs{x}, t) &\in \Gamma_2 \times \left[0, T \right], \\
  * \nabla \vartheta \cdot \bs{n} &= 0, &\forall (\bs{x}, t) &\in \Gamma_3 \cup \Gamma_4 \times \left[0, T \right]
  * \end{aligned}
  * \end{equation*}
  * \f]
- * the initial conditions are
+ * the initial conditions are given by
  * \f[
  * \bs{u}_0 = \bs{0}, \quad p_0 = 0, \quad \textrm{and} \quad
  * \vartheta_0 = 0.
@@ -103,13 +104,13 @@ private:
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  std::shared_ptr<Mapping<dim>>                 mapping;
-
   NavierStokesProjection<dim>                   navier_stokes;
   
   HeatEquation<dim>                             heat_equation;
 
   BenchmarkData::MIT<dim>                       mit_benchmark;
+
+  double                                        cfl_number;
 
   std::ofstream                                 cfl_output_file;
 
@@ -148,29 +149,28 @@ temperature_boundary_conditions(
               std::make_shared<EquationData::MIT::TemperatureBoundaryCondition<dim>>(
               parameters.time_stepping_parameters.start_time)),
 time_stepping(parameters.time_stepping_parameters),
-// The domain does not have any curved boundary, so a linear mapping
-// is sufficient.
-mapping(std::make_shared<MappingQ<dim>>(1)),
 navier_stokes(parameters,
               time_stepping,
               velocity,
               pressure,
               temperature,
-              mapping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 heat_equation(parameters,
               time_stepping,
               temperature,
               velocity,
-              mapping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 mit_benchmark(velocity,
               pressure,
               temperature,
               time_stepping,
-              mapping,
+              1,
+              2,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 cfl_output_file("MIT_cfl_number.csv"),
@@ -352,8 +352,6 @@ void MITBenchmark<dim>::postprocessing()
   // class for further information.
   mit_benchmark.compute_benchmark_data();
 
-  const double cfl_number = navier_stokes.get_cfl_number();
-
   std::cout.precision(1);
   /*! @attention For some reason, a run time error happens when I try
       to only use one pcout */
@@ -373,8 +371,10 @@ void MITBenchmark<dim>::postprocessing()
                << std::fixed
                << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
                << "%] \r";
-  cfl_output_file << time_stepping.get_current_time() << ","
-                  << cfl_number << std::endl;
+
+  if (time_stepping.get_step_number() % 10 == 0)
+    cfl_output_file << time_stepping.get_current_time() << ","
+                    << cfl_number << std::endl;
 }
 
 template <int dim>
@@ -449,11 +449,12 @@ void MITBenchmark<dim>::run()
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
+    // Compute CFL number
+    cfl_number = navier_stokes.get_cfl_number();
+
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(
-        time_stepping, 
-        navier_stokes.get_cfl_number()));
+      this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
