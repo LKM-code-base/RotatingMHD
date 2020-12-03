@@ -26,7 +26,8 @@ template <int dim>
 BoundaryConditionsBase<dim>::BoundaryConditionsBase(
   const parallel::distributed::Triangulation<dim> &triangulation)
 :
-triangulation(triangulation)
+triangulation(triangulation),
+flag_extract_boundary_ids(true)
 {}
 
 template <int dim>
@@ -133,8 +134,21 @@ void ScalarBoundaryConditions<dim>::copy
 
 template <int dim>
 void ScalarBoundaryConditions<dim>::check_boundary_id
-(const types::boundary_id boundary_id) const
+(const types::boundary_id boundary_id)
 {
+  if (this->flag_extract_boundary_ids)
+  {
+    this->boundary_ids              = this->triangulation.get_boundary_ids();
+    this->flag_extract_boundary_ids = false;
+  }
+
+  AssertThrow(std::find(this->boundary_ids.begin(), 
+                        this->boundary_ids.end(), 
+                        boundary_id) != this->boundary_ids.end(),
+              ExcMessage("The triangulation does not have a boundary"
+                         " marked with the indicator " + 
+                         std::to_string(boundary_id) + "."));
+
   AssertThrow(this->dirichlet_bcs.find(boundary_id) == this->dirichlet_bcs.end(),
               ExcMessage("A Dirichlet boundary condition was already set on "
                          "the given boundary."));
@@ -190,7 +204,6 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
     this->dirichlet_bcs[boundary_id] = zero_function_ptr;
   else
   {
-
     std::stringstream message;
     message << "Function of a Dirichlet boundary condition needs to have "
             << dim << " components.";
@@ -324,8 +337,20 @@ void VectorBoundaryConditions<dim>::copy(
 
 template <int dim>
 void VectorBoundaryConditions<dim>::check_boundary_id(
-  const types::boundary_id boundary_id) const
+  const types::boundary_id boundary_id)
 {
+  if (this->flag_extract_boundary_ids)
+  {
+    this->boundary_ids              = this->triangulation.get_boundary_ids();
+    this->flag_extract_boundary_ids = false;
+  }
+
+  AssertThrow(std::find(this->boundary_ids.begin(), 
+                        this->boundary_ids.end(), 
+                        boundary_id) != this->boundary_ids.end(),
+              ExcMessage("The triangulation does not have a boundary"
+                         " marked with the given indicator."));
+
   AssertThrow(this->dirichlet_bcs.find(boundary_id) == this->dirichlet_bcs.end(),
               ExcMessage("A Dirichlet boundary condition was already set on "
                          "the given boundary."));
@@ -341,6 +366,7 @@ void VectorBoundaryConditions<dim>::check_boundary_id(
   AssertThrow(tangential_flux_bcs.find(boundary_id) == tangential_flux_bcs.end(),
               ExcMessage("A tangential flux boundary condition was already set on "
                          "the given boundary."))
+
   for (const auto &periodic_bc : this->periodic_bcs)
     AssertThrow(boundary_id != periodic_bc.boundary_pair.first &&
                 boundary_id != periodic_bc.boundary_pair.second,

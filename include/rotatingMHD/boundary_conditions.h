@@ -6,6 +6,7 @@
 #include <deal.II/base/function.h>
 #include <deal.II/distributed/tria.h>
 
+#include <algorithm>
 #include <vector>
 #include <map>
 #include <memory.h>
@@ -117,11 +118,24 @@ public:
    * which were mark as having a time-dependent function.
    */
   std::multimap<BCType, types::boundary_id> time_dependent_bcs_map;
-private:
+
+protected:
+  /*!
+   * @brief A vector containing all boundary indicators assigned to 
+   * boundary faces of active cells of the @ref triangulation.
+   */
+  std::vector<types::boundary_id>                 boundary_ids;
+
   /*!
    * @brief Reference to the underlying triangulation.
    */
   const parallel::distributed::Triangulation<dim> &triangulation;
+
+  /*!
+   * @brief A flag indicating wether the boundary indicators are to be
+   * extracted.
+   */ 
+  bool                                            flag_extract_boundary_ids;
 };
 
 /*!
@@ -216,8 +230,7 @@ private:
    *
    * @details It returns an error if the passed boundary id is constrained.
    */
-  void check_boundary_id(const types::boundary_id boundary_id) const;
-
+  void check_boundary_id(const types::boundary_id boundary_id) ;
 };
 
 /*!
@@ -361,7 +374,7 @@ private:
    *
    * @details It returns an error if it was.
    */
-  void check_boundary_id(const types::boundary_id boundary_id) const;
+  void check_boundary_id(const types::boundary_id boundary_id);
 
 };
 
