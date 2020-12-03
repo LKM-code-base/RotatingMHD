@@ -23,6 +23,20 @@ offset(offset)
 {}
 
 template <int dim>
+BoundaryConditionsBase<dim>::BoundaryConditionsBase(
+  const parallel::distributed::Triangulation<dim> &triangulation)
+:
+triangulation(triangulation)
+{}
+
+template <int dim>
+ScalarBoundaryConditions<dim>::ScalarBoundaryConditions(
+  const parallel::distributed::Triangulation<dim> &triangulation)
+:
+BoundaryConditionsBase<dim>(triangulation)
+{}
+
+template <int dim>
 void ScalarBoundaryConditions<dim>::set_periodic_bcs(
   const types::boundary_id  first_boundary,
   const types::boundary_id  second_boundary,
@@ -137,6 +151,14 @@ void ScalarBoundaryConditions<dim>::check_boundary_id
                            "the given boundary."));
   }
 }
+
+
+template <int dim>
+VectorBoundaryConditions<dim>::VectorBoundaryConditions(
+  const parallel::distributed::Triangulation<dim> &triangulation)
+:
+BoundaryConditionsBase<dim>(triangulation)
+{}
 
 template <int dim>
 void VectorBoundaryConditions<dim>::set_periodic_bcs(

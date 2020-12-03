@@ -4,6 +4,7 @@
 #include <rotatingMHD/global.h>
 
 #include <deal.II/base/function.h>
+#include <deal.II/distributed/tria.h>
 
 #include <vector>
 #include <map>
@@ -79,6 +80,13 @@ enum class BCType
 template <int dim>
 struct BoundaryConditionsBase
 {
+public:
+  /*!
+   * @brief Constructor.
+   */
+  BoundaryConditionsBase(
+    const parallel::distributed::Triangulation<dim> &triangulation);
+
   /*!
    * @brief A typedef for a mapping using boundary ids as keys
    * and shared pointers to functions as values.
@@ -109,6 +117,11 @@ struct BoundaryConditionsBase
    * which were mark as having a time-dependent function.
    */
   std::multimap<BCType, types::boundary_id> time_dependent_bcs_map;
+private:
+  /*!
+   * @brief Reference to the underlying triangulation.
+   */
+  const parallel::distributed::Triangulation<dim> &triangulation;
 };
 
 /*!
@@ -119,6 +132,12 @@ struct BoundaryConditionsBase
 template <int dim>
 struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
 {
+  /*!
+   * @brief Constructor.
+   */
+  ScalarBoundaryConditions(
+    const parallel::distributed::Triangulation<dim> &triangulation);
+
   /*!
    * @brief This method sets a periodic boundary condition by adding a
    * @ref PeriodicBoundaryData object to the member variable
@@ -209,6 +228,12 @@ private:
 template <int dim>
 struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
 {
+  /*!
+   * @brief Constructor.
+   */
+  VectorBoundaryConditions(
+    const parallel::distributed::Triangulation<dim> &triangulation);
+
   /*!
    * @brief A typedef for the a mapping using boundary ids as keys
    * and shared pointers to functions as values.
