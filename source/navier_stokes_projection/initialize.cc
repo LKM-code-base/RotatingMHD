@@ -65,7 +65,7 @@ diffusion_prestep()
   /* The temporary velocity reduces to that of a first order IMEX
      method */
   {
-    TrilinosWrappers::MPI::Vector distributed_old_old_velocity(diffusion_step_rhs);
+    TrilinosWrappers::MPI::Vector distributed_old_old_velocity(velocity->distributed_vector);
     distributed_old_old_velocity  = velocity->old_old_solution;
     distributed_old_old_velocity  *= -1.0 / time_stepping.get_next_step_size();
     velocity_tmp                  = distributed_old_old_velocity;

@@ -52,7 +52,7 @@ solve_diffusion_step(const bool reinit_prec)
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_velocity(diffusion_step_rhs);
+  LinearAlgebra::MPI::Vector distributed_velocity(velocity->distributed_vector);
   distributed_velocity = velocity->solution;
 
   /* The following pointer holds the address to the correct matrix 

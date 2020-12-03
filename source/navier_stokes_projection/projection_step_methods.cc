@@ -29,7 +29,7 @@ void NavierStokesProjection<dim>::solve_projection_step
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_phi(projection_step_rhs);
+  LinearAlgebra::MPI::Vector distributed_phi(phi->distributed_vector);
   distributed_phi = phi->solution;
 
   if (reinit_prec)

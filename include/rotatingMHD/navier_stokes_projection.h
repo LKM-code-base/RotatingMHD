@@ -335,7 +335,7 @@ private:
   /*!
    * @brief Mass matrix of the pressure field.
    */
-  LinearAlgebra::MPI::SparseMatrix  pressure_mass_matrix;
+  LinearAlgebra::MPI::SparseMatrix  projection_mass_matrix;
 
   /*!
    * @brief Stiffness matrix of the pressure field. Assembly of  the weak of the
@@ -376,7 +376,7 @@ private:
    * @brief Vector representing the right-hand side of the projection
    * performed during the pressure-correction step. 
    */
-  LinearAlgebra::MPI::Vector        pressure_space_projection_rhs;
+  LinearAlgebra::MPI::Vector        correction_step_rhs;
 
   /*!
    * @brief A vector representing the extrapolated temperature at the

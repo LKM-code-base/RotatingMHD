@@ -25,7 +25,7 @@ solve_poisson_prestep()
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure_space_projection_rhs);
+  LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure->distributed_vector);
   distributed_old_old_pressure = pressure->old_old_solution;
 
   poisson_prestep_preconditioner.initialize(pressure_laplace_matrix);

@@ -13,17 +13,23 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Velocity");
 
+  // Resets the matrices
   velocity_mass_matrix    = 0.;
   velocity_laplace_matrix = 0.;
 
-  // Polynomial degree of the integrand
+  // Computes the highest polynomial degree of the integrand(s)
   const int p_degree = 2 * velocity->fe_degree;
 
+  // Initiates the quadrature formula needed for the exact integration
+  // of (all) the integrand(s)
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
+  // Type alias for the cell filter used to loop only through locally
+  // owned cells
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
+  // Sets up the lambda functions needed for the WorkStream
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
            VelocityMatricesAssembly::LocalCellData<dim>         &scratch,
@@ -40,6 +46,8 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
       this->copy_local_to_global_velocity_matrices(data);
     };
 
+  // Assembles the projection step's and correction step's right hand
+  // sides using the WorkStream approach.
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
               (velocity->dof_handler)->begin_active()),
@@ -54,6 +62,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
                                                 update_JxW_values),
    VelocityMatricesAssembly::MappingData<dim>(velocity->fe.dofs_per_cell));
 
+  // Compress the matrices
   velocity_mass_matrix.compress(VectorOperation::add);
   velocity_laplace_matrix.compress(VectorOperation::add);
 
@@ -138,18 +147,24 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Pressure");
 
-  pressure_mass_matrix    = 0.;
+  // Resets the matrices
+  projection_mass_matrix  = 0.;
   pressure_laplace_matrix = 0.;
   phi_laplace_matrix      = 0.;
 
-  // Polynomial degree of the integrand
+  // Computes the highest polynomial degree of the integrand(s)
   const int p_degree = 2 * pressure->fe_degree;
 
+  // Initiates the quadrature formula needed for the exact integration
+  // of (all) the integrand(s)
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
+  // Type alias for the cell filter used to loop only through locally
+  // owned cells
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
+  // Sets up the lambda functions needed for the WorkStream
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
            PressureMatricesAssembly::LocalCellData<dim>         &scratch,
@@ -166,6 +181,8 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
       this->copy_local_to_global_pressure_matrices(data);
     };
 
+  // Assembles the projection step's and correction step's right hand
+  // sides using the WorkStream approach.
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
               (pressure->dof_handler)->begin_active()),
@@ -180,9 +197,10 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
                                                 update_JxW_values),
    PressureMatricesAssembly::MappingData<dim>(pressure->fe.dofs_per_cell));
 
-  pressure_mass_matrix.compress(VectorOperation::add);
+  // Compress the matrices
   pressure_laplace_matrix.compress(VectorOperation::add);
   phi_laplace_matrix.compress(VectorOperation::add);
+  projection_mass_matrix.compress(VectorOperation::add);
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl;
@@ -245,10 +263,6 @@ void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
 (const PressureMatricesAssembly::MappingData<dim> &data)
 {
   pressure->constraints.distribute_local_to_global(
-                                      data.local_pressure_mass_matrix,
-                                      data.local_pressure_dof_indices,
-                                      pressure_mass_matrix);
-  pressure->constraints.distribute_local_to_global(
                                       data.local_phi_laplace_matrix,
                                       data.local_pressure_dof_indices,
                                       pressure_laplace_matrix);
@@ -256,6 +270,10 @@ void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
                                       data.local_phi_laplace_matrix,
                                       data.local_pressure_dof_indices,
                                       phi_laplace_matrix);
+  pressure->hanging_nodes.distribute_local_to_global(
+                                      data.local_pressure_mass_matrix,
+                                      data.local_pressure_dof_indices,
+                                      projection_mass_matrix);
 }
 
 } // namespace Step35

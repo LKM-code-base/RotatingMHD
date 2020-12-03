@@ -14,18 +14,23 @@ assemble_projection_step_rhs()
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - RHS assembly");
 
-  projection_step_rhs           = 0.;
-  pressure_space_projection_rhs = 0.;
+  // Resets the right hand sides
+  projection_step_rhs = 0.;
+  correction_step_rhs = 0.;
 
-  // Polynomial degree of the integrand
-
+  // Computes the highest polynomial degree of the integrand(s)
   const int p_degree = velocity->fe_degree + pressure->fe_degree - 1;
 
+  // Initiates the quadrature formula needed for the exact integration
+  // of (all) the integrand(s)
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
+  // Type alias for the cell filter used to loop only through locally
+  // owned cells
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
+  // Sets up the lambda functions needed for the WorkStream
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
            PressureRightHandSideAssembly::LocalCellData<dim>    &scratch,
@@ -42,6 +47,8 @@ assemble_projection_step_rhs()
       this->copy_local_to_global_projection_step_rhs(data);
     };
 
+  // Assembles the projection step's and correction step's right hand
+  // sides using the WorkStream approach.
   WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
                              (pressure->dof_handler)->begin_active()),
                   CellFilter(IteratorFilters::LocallyOwnedCell(),
@@ -58,8 +65,10 @@ assemble_projection_step_rhs()
                                           update_values),
                   PressureRightHandSideAssembly::MappingData<dim>(
                                             pressure->fe.dofs_per_cell));
+  
+  // Compress the right hand sides
   projection_step_rhs.compress(VectorOperation::add);
-  pressure_space_projection_rhs.compress(VectorOperation::add);
+  correction_step_rhs.compress(VectorOperation::add);
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl;
@@ -132,10 +141,10 @@ copy_local_to_global_projection_step_rhs(
    data.local_pressure_dof_indices,
    projection_step_rhs);
 
-  pressure->constraints.distribute_local_to_global
+  pressure->hanging_nodes.distribute_local_to_global
   (data.local_pressure_space_projection_rhs,
    data.local_pressure_dof_indices,
-   pressure_space_projection_rhs);
+   correction_step_rhs);
 }
 
 } // namespace Step35
