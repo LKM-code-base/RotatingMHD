@@ -119,12 +119,24 @@ public:
    */
   std::multimap<BCType, types::boundary_id> time_dependent_bcs_map;
 
+  /*!
+   * @brief Returns a vector containing the boundary indicators of the
+   * unconstrained boundaries.
+   */
+  std::vector<types::boundary_id> get_unconstrained_boundary_ids();
+
 protected:
   /*!
    * @brief A vector containing all boundary indicators assigned to 
    * boundary faces of active cells of the @ref triangulation.
    */
   std::vector<types::boundary_id>                 boundary_ids;
+
+  /*!
+   * @brief A vector containing all the boundary indicators of the
+   * constrainted boundaries.
+   */
+  std::vector<types::boundary_id>                 constrained_boundaries;
 
   /*!
    * @brief Reference to the underlying triangulation.
@@ -230,7 +242,7 @@ private:
    *
    * @details It returns an error if the passed boundary id is constrained.
    */
-  void check_boundary_id(const types::boundary_id boundary_id) ;
+  void check_boundary_id(const types::boundary_id boundary_id);
 };
 
 /*!
@@ -359,7 +371,7 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
    * instance.
    */
   void copy(const VectorBoundaryConditions<dim> &other);
-  
+
 private:
 
   /*!
