@@ -5,7 +5,9 @@
 
 #include <deal.II/base/function.h>
 #include <deal.II/base/tensor_function.h>
+#include <deal.II/distributed/tria.h>
 
+#include <algorithm>
 #include <vector>
 #include <map>
 #include <memory.h>
@@ -80,6 +82,13 @@ enum class BCType
 template <int dim>
 struct BoundaryConditionsBase
 {
+public:
+  /*!
+   * @brief Constructor.
+   */
+  BoundaryConditionsBase(
+    const parallel::distributed::Triangulation<dim> &triangulation);
+
   /*!
    * @brief A typedef for a mapping using boundary ids as keys
    * and shared pointers to functions as values.
@@ -104,6 +113,36 @@ struct BoundaryConditionsBase
    * which were mark as having a time-dependent function.
    */
   std::multimap<BCType, types::boundary_id> time_dependent_bcs_map;
+
+  /*!
+   * @brief Returns a vector containing the boundary indicators of the
+   * unconstrained boundaries.
+   */
+  std::vector<types::boundary_id> get_unconstrained_boundary_ids();
+
+protected:
+  /*!
+   * @brief A vector containing all boundary indicators assigned to 
+   * boundary faces of active cells of the @ref triangulation.
+   */
+  std::vector<types::boundary_id>                 boundary_ids;
+
+  /*!
+   * @brief A vector containing all the boundary indicators of the
+   * constrainted boundaries.
+   */
+  std::vector<types::boundary_id>                 constrained_boundaries;
+
+  /*!
+   * @brief Reference to the underlying triangulation.
+   */
+  const parallel::distributed::Triangulation<dim> &triangulation;
+
+  /*!
+   * @brief A flag indicating wether the boundary indicators are to be
+   * extracted.
+   */ 
+  bool                                            flag_extract_boundary_ids;
 };
 
 /*!
@@ -114,6 +153,12 @@ struct BoundaryConditionsBase
 template <int dim>
 struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
 {
+  /*!
+   * @brief Constructor.
+   */
+  ScalarBoundaryConditions(
+    const parallel::distributed::Triangulation<dim> &triangulation);
+
   /*!
    * @brief A typdef for the a mapping using boundary ids as keys
    * and functions shared pointers as value.
@@ -204,8 +249,7 @@ private:
    *
    * @details It returns an error if the passed boundary id is constrained.
    */
-  void check_boundary_id(const types::boundary_id boundary_id) const;
-
+  void check_boundary_id(const types::boundary_id boundary_id);
 };
 
 /*!
@@ -216,6 +260,12 @@ private:
 template <int dim>
 struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
 {
+  /*!
+   * @brief Constructor.
+   */
+  VectorBoundaryConditions(
+    const parallel::distributed::Triangulation<dim> &triangulation);
+
   /*!
    * @brief A typedef for the a mapping using boundary ids as keys
    * and shared pointers to functions as values.
@@ -341,7 +391,7 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
    * instance.
    */
   void copy(const VectorBoundaryConditions<dim> &other);
-  
+
 private:
 
   /*!
@@ -364,7 +414,7 @@ private:
    *
    * @details It returns an error if it was.
    */
-  void check_boundary_id(const types::boundary_id boundary_id) const;
+  void check_boundary_id(const types::boundary_id boundary_id);
 
 };
 

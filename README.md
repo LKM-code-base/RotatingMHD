@@ -17,9 +17,9 @@ To do list
 - [x] Removing the bug in the adaptive mesh refinement branch
 - [x] High Peclet number test and interpretation of the result
 - [x] Remove hard-coded absolute tolerance
-- [x] Adding the buoyancy to the Navier-Stokes solver+
+- [x] Adding the buoyancy to the Navier-Stokes solver
 - [x] Interfacing of the entities and the solvers
-- [x] Restructure the assembly scratch and copy structs and add a Mapping to the Navier-Stokes solver
+- [ ] Restructure the assembly scratch and copy structs and instance the FEValues in the Navier-Stokes solver with a Mapping
 - [ ] Python or bash script for running convergence tests
 - [ ] Adaptive timestepping
 - [ ] Initialization from analytical solution
