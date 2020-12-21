@@ -61,24 +61,30 @@ void NavierStokesProjection<dim>::setup_phi()
   // conditions on the unconstrained boundaries.
   std::vector<types::boundary_id> unconstrained_boundary_ids =
     velocity->boundary_conditions.get_unconstrained_boundary_ids();
-  
+
+  // An expection is made if there is a Dirichlet boundary condition
+  // on the pressure.
+  for (const auto &unconstrained_boundary_id: unconstrained_boundary_ids)
+    if (pressure->boundary_conditions.dirichlet_bcs.find(unconstrained_boundary_id) 
+          != pressure->boundary_conditions.dirichlet_bcs.end())
+      unconstrained_boundary_ids.erase(
+        std::remove(unconstrained_boundary_ids.begin(), 
+                    unconstrained_boundary_ids.end(), 
+                    unconstrained_boundary_id),
+        unconstrained_boundary_ids.end());
+
   if (unconstrained_boundary_ids.size() != 0)
   {
-    *pcout << "Warning: No boundary conditions for the velocity field were "
+    *pcout << std::endl
+           << "Warning: No boundary conditions for the velocity field were "
            << "assigned on the boundaries {";
     for (const auto &unconstrained_boundary_id: unconstrained_boundary_ids)
     {
-      // An expection is made if there is a Dirichlet boundary condition
-      // on the pressure.
-      if (pressure->boundary_conditions.dirichlet_bcs.find(unconstrained_boundary_id) 
-          == pressure->boundary_conditions.dirichlet_bcs.end())
-      {
-        *pcout << unconstrained_boundary_id << ", ";
-        velocity->boundary_conditions.set_neumann_bcs(unconstrained_boundary_id);
-      }
+      *pcout << unconstrained_boundary_id << ", ";
+      velocity->boundary_conditions.set_neumann_bcs(unconstrained_boundary_id);
     }
     *pcout << "\b\b}. Homogeneous Neumann boundary conditions will be "
-              " applied in order to properly constraint the problem."
+              " assumed in order to properly constraint the problem.\n"
            << std::endl;
   }
 
