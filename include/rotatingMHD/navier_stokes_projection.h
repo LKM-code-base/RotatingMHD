@@ -64,9 +64,10 @@ using namespace dealii;
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
  * incremental scheme respectively.
  * @todo Implement a generalized extrapolation scheme.
+ * @todo Expand the weak formulation for the case of unconventional 
+ * boundary conditions.
  * @attention The code is hardcoded for a second order time discretization
- * scheme. Setting a first order scheme in the parameter file will cause
- * errors.
+ * scheme.
  */
 template <int dim>
 class NavierStokesProjection
