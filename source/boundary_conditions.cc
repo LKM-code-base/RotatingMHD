@@ -49,7 +49,7 @@ std::vector<types::boundary_id> BoundaryConditionsBase<dim>::get_unconstrained_b
     if (std::find(this->constrained_boundaries.begin(),
                   this->constrained_boundaries.end(),
                   boundary_id) == this->constrained_boundaries.end())
-      unconstrained_boundaries.emplace_back(boundary_id);
+      unconstrained_boundaries.push_back(boundary_id);
 
   return unconstrained_boundaries;
 }
@@ -74,8 +74,8 @@ void ScalarBoundaryConditions<dim>::set_periodic_bcs(
   check_boundary_id(first_boundary);
   check_boundary_id(second_boundary);
 
-  this->constrained_boundaries.emplace_back(first_boundary);
-  this->constrained_boundaries.emplace_back(second_boundary);
+  this->constrained_boundaries.push_back(first_boundary);
+  this->constrained_boundaries.push_back(second_boundary);
 
   this->periodic_bcs.emplace_back(first_boundary,
                                   second_boundary,
@@ -92,7 +92,7 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
 {
   check_boundary_id(boundary_id);
 
-  this->constrained_boundaries.emplace_back(boundary_id);
+  this->constrained_boundaries.push_back(boundary_id);
 
   if (function.get() == nullptr)
     this->dirichlet_bcs[boundary_id] = zero_function_ptr;
@@ -116,7 +116,7 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
 {
   check_boundary_id(boundary_id);
 
-  this->constrained_boundaries.emplace_back(boundary_id);
+  this->constrained_boundaries.push_back(boundary_id);
 
   if (function.get() == nullptr)
     this->neumann_bcs[boundary_id] = zero_function_ptr;
@@ -221,8 +221,8 @@ void VectorBoundaryConditions<dim>::set_periodic_bcs(
   check_boundary_id(first_boundary);
   check_boundary_id(second_boundary);
 
-  this->constrained_boundaries.emplace_back(first_boundary);
-  this->constrained_boundaries.emplace_back(second_boundary);
+  this->constrained_boundaries.push_back(first_boundary);
+  this->constrained_boundaries.push_back(second_boundary);
 
   this->periodic_bcs.emplace_back(first_boundary,
                                   second_boundary,
@@ -239,7 +239,7 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
 {
   check_boundary_id(boundary_id);
 
-  this->constrained_boundaries.emplace_back(boundary_id);
+  this->constrained_boundaries.push_back(boundary_id);
 
   if (function.get() == nullptr)
     this->dirichlet_bcs[boundary_id] = zero_function_ptr;
@@ -267,7 +267,7 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
 {
   check_boundary_id(boundary_id);
 
-  this->constrained_boundaries.emplace_back(boundary_id);
+  this->constrained_boundaries.push_back(boundary_id);
 
   if (function.get() == nullptr)
     this->neumann_bcs[boundary_id] = zero_vector;
@@ -292,7 +292,7 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
 {
   check_boundary_id(boundary_id);
 
-  this->constrained_boundaries.emplace_back(boundary_id);
+  this->constrained_boundaries.push_back(boundary_id);
 
   if (function.get() == nullptr)
     normal_flux_bcs[boundary_id] = zero_function_ptr;
@@ -320,7 +320,7 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
 {
   check_boundary_id(boundary_id);
 
-  this->constrained_boundaries.emplace_back(boundary_id);
+  this->constrained_boundaries.push_back(boundary_id);
 
   if (function.get() == 0)
     tangential_flux_bcs[boundary_id] = zero_function_ptr;
