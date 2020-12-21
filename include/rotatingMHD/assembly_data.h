@@ -12,6 +12,99 @@ namespace RMHD
 {
 using namespace dealii;
 
+namespace AssemblyData
+{
+
+namespace Generic
+{
+
+namespace Matrix
+{
+
+template <int dim>  
+struct CopyBase
+{
+  CopyBase(const unsigned int dofs_per_cell);
+
+  CopyBase(const CopyBase &data);
+
+  unsigned int                          dofs_per_cell;
+
+  FullMatrix<double>                    local_matrix;
+
+  std::vector<types::global_cell_index> local_dof_indices;
+};
+
+template <int dim>  
+struct ScratchBase
+{
+  ScratchBase(const Mapping<dim>        &mapping,
+              const FiniteElement<dim>  &fe,
+              const Quadrature<dim>     &quadrature_formula,
+              const UpdateFlags         update_flags);
+
+  ScratchBase(const ScratchBase &data);
+
+  FEValues<dim>       fe_values;
+
+  const unsigned int  n_q_points;
+
+  const unsigned int  dofs_per_cell;
+};
+
+} // namespace Matrix
+ 
+namespace RightHandSide
+{
+
+} // namespace RightHandSide
+
+} // namespace Generic
+
+namespace NavierStokesProjection
+{
+
+} // namespace NavierStokesProjection
+
+namespace HeatEquation
+{
+
+namespace ConstantMatrices
+{
+
+template <int dim>  
+struct Copy : Generic::Matrix::CopyBase<dim>
+{
+  Copy(const unsigned int dofs_per_cell);
+
+  Copy(const Copy &data);
+
+  FullMatrix<double>  local_mass_matrix;
+
+  FullMatrix<double>  local_stiffness_matrix;
+};
+
+template <int dim>  
+struct Scratch : Generic::Matrix::ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const FiniteElement<dim>  &fe,
+          const Quadrature<dim>     &quadrature_formula,
+          const UpdateFlags         update_flags);
+  
+  Scratch(const Scratch &data);
+
+  std::vector<double>         phi;
+  
+  std::vector<Tensor<1, dim>> grad_phi;
+};
+
+} // namespace ConstantMatrices
+
+} // namespace HeatEquation
+
+} // namespace AssemblyData
+
 namespace AdvectionAssembly
 {
 

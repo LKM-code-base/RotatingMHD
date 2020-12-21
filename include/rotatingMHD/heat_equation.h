@@ -372,15 +372,15 @@ private:
    */
   void assemble_local_constant_matrices(
     const typename DoFHandler<dim>::active_cell_iterator    &cell,
-    TemperatureConstantMatricesAssembly::LocalCellData<dim> &scratch,
-    TemperatureConstantMatricesAssembly::MappingData<dim>   &data);
+    AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>  &scratch,
+    AssemblyData::HeatEquation::ConstantMatrices::Copy<dim>     &data);
 
   /*!
    * @brief This method copies the mass matrix into its global
    * conterpart.
    */
   void copy_local_to_global_constant_matrices(
-    const TemperatureConstantMatricesAssembly::MappingData<dim>  &data);
+    const AssemblyData::HeatEquation::ConstantMatrices::Copy<dim>  &data);
 
   /*!
    * @brief This method assembles the advection matrix on a single cell.

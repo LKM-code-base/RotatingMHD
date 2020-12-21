@@ -3,6 +3,60 @@
 namespace RMHD
 {
 
+namespace AssemblyData
+{
+
+namespace HeatEquation
+{
+
+namespace ConstantMatrices
+{
+
+template <int dim>
+Copy<dim>::Copy(const unsigned int dofs_per_cell)
+:
+Generic::Matrix::CopyBase<dim>(dofs_per_cell),
+local_mass_matrix(dofs_per_cell, dofs_per_cell),
+local_stiffness_matrix(dofs_per_cell, dofs_per_cell)
+{}
+
+template <int dim>
+Copy<dim>::Copy(const Copy &data)
+:
+Generic::Matrix::CopyBase<dim>(data),
+local_mass_matrix(data.dofs_per_cell, data.dofs_per_cell),
+local_stiffness_matrix(data.dofs_per_cell, data.dofs_per_cell)
+{}
+
+template <int dim>
+Scratch<dim>::Scratch(
+  const Mapping<dim>        &mapping,
+  const FiniteElement<dim>  &fe,
+  const Quadrature<dim>     &quadrature_formula,
+  const UpdateFlags         update_flags)
+:
+Generic::Matrix::ScratchBase<dim>(mapping,
+                                  fe,
+                                  quadrature_formula,
+                                  update_flags),
+phi(this->dofs_per_cell),
+grad_phi(this->dofs_per_cell)
+{}
+
+template <int dim>
+Scratch<dim>::Scratch(const Scratch &data)
+:
+Generic::Matrix::ScratchBase<dim>(data),
+phi(data.dofs_per_cell),
+grad_phi(data.dofs_per_cell)
+{}
+
+} // namespace ConstantMatrices
+
+} // namespace HeatEquation
+
+} // namespace AssemblyData
+
 namespace TemperatureConstantMatricesAssembly
 {
 
@@ -216,6 +270,12 @@ face_phi(dofs_per_cell)
 } // namespace TemperatureRightHandSideAssembly
 
 } // namespace RMHD
+
+template struct RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy<2>;
+template struct RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy<3>;
+
+template struct RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<2>;
+template struct RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<3>;
 
 template struct RMHD::TemperatureConstantMatricesAssembly::MappingData<2>;
 template struct RMHD::TemperatureConstantMatricesAssembly::MappingData<3>;
