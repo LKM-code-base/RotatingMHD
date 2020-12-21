@@ -82,7 +82,8 @@ VectorEntity<dim>::VectorEntity
  const std::string                               &name)
 :
 EntityBase<dim>(fe_degree, triangulation, name),
-fe(FE_Q<dim>(fe_degree), dim)
+fe(FE_Q<dim>(fe_degree), dim),
+boundary_conditions(triangulation)
 {}
 
 template <int dim>
@@ -91,7 +92,8 @@ VectorEntity<dim>::VectorEntity
  const std::string        &new_name)
 :
 EntityBase<dim>(entity, new_name),
-fe(FE_Q<dim>(entity.fe_degree), dim)
+fe(FE_Q<dim>(entity.fe_degree), dim),
+boundary_conditions(entity.get_triangulation())
 {}
 
 template <int dim>
@@ -406,7 +408,8 @@ ScalarEntity<dim>::ScalarEntity
  const std::string                               &name)
 :
 EntityBase<dim>(fe_degree, triangulation, name),
-fe(fe_degree)
+fe(fe_degree),
+boundary_conditions(triangulation)
 {}
 
 template <int dim>
@@ -415,7 +418,8 @@ ScalarEntity<dim>::ScalarEntity
  const std::string        &new_name)
 :
 EntityBase<dim>(entity, new_name),
-fe(entity.fe_degree)
+fe(entity.fe_degree),
+boundary_conditions(entity.get_triangulation())
 {}
 
 template <int dim>
