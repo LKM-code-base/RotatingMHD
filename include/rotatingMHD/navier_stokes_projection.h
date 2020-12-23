@@ -606,15 +606,15 @@ private:
    */
   void assemble_local_velocity_matrices(
     const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    VelocityMatricesAssembly::LocalCellData<dim>          &scratch,
-    VelocityMatricesAssembly::MappingData<dim>            &data);
+    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>          &scratch,
+    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>            &data);
 
   /*!
    * @brief This method copies the local mass and the local stiffness matrices
    * of the velocity field on a single cell into the global matrices.
    */
   void copy_local_to_global_velocity_matrices(
-    const VelocityMatricesAssembly::MappingData<dim>      &data);
+    const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>      &data);
 
   /*!
    * @brief This method assembles the mass \f$\bs{M}^{(p)}\f$ and the
@@ -641,15 +641,15 @@ private:
    */
   void assemble_local_pressure_matrices(
     const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    PressureMatricesAssembly::LocalCellData<dim>          &scratch,
-    PressureMatricesAssembly::MappingData<dim>            &data);
+    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>          &scratch,
+    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim>            &data);
 
   /*!
    * @brief This method copies the local mass and the local stiffness matrices
    * of the pressure field on a single cell into the global matrices.
    */
   void copy_local_to_global_pressure_matrices(
-    const PressureMatricesAssembly::MappingData<dim>      &data);
+    const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim>      &data);
 
   /*!
    * @brief This method assembles the right-hand side of the poisson

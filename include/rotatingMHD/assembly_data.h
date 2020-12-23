@@ -57,6 +57,18 @@ struct Copy : CopyBase<dim>
 };
 
 template <int dim>  
+struct MassStiffnessCopy : CopyBase<dim>
+{
+  MassStiffnessCopy(const unsigned int dofs_per_cell);
+
+  MassStiffnessCopy(const MassStiffnessCopy &data);
+
+  FullMatrix<double>  local_mass_matrix;
+
+  FullMatrix<double>  local_stiffness_matrix;
+};
+
+template <int dim>  
 struct Scratch : ScratchBase<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -106,6 +118,66 @@ struct Scratch : ScratchBase<dim>
 namespace NavierStokesProjection
 {
 
+namespace VelocityConstantMatrices
+{
+template<int dim>
+using Copy = Generic::Matrix::MassStiffnessCopy<dim>;
+
+template <int dim>  
+struct Scratch : Generic::Matrix::Scratch<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &fe,
+          const UpdateFlags         update_flags);
+  
+  Scratch(const Scratch &data);
+
+  std::vector<Tensor<1, dim>> phi;
+  
+  std::vector<Tensor<2, dim>> grad_phi;
+};
+
+} // namespace VelocityConstantMatrices
+
+namespace PressureConstantMatrices
+{
+
+template<int dim>
+using Copy = Generic::Matrix::MassStiffnessCopy<dim>;
+
+template <int dim>  
+struct Scratch : Generic::Matrix::Scratch<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &fe,
+          const UpdateFlags         update_flags);
+  
+  Scratch(const Scratch &data);
+
+  std::vector<double>         phi;
+  
+  std::vector<Tensor<1, dim>> grad_phi;
+};
+
+} // namespace PressureConstantMatrices
+
+namespace AdvectionMatrix
+{
+
+} // namespace AdvectionMatrix
+
+namespace DiffusionStepRHS
+{
+
+} // DiffusionStepRHS
+
+namespace ProjectionStepRHS
+{
+
+} // ProjectionStepRHS
+
 } // namespace NavierStokesProjection
 
 namespace HeatEquation
@@ -114,17 +186,8 @@ namespace HeatEquation
 namespace ConstantMatrices
 {
 
-template <int dim>  
-struct Copy : CopyBase<dim>
-{
-  Copy(const unsigned int dofs_per_cell);
-
-  Copy(const Copy &data);
-
-  FullMatrix<double>  local_mass_matrix;
-
-  FullMatrix<double>  local_stiffness_matrix;
-};
+template<int dim>
+using Copy = Generic::Matrix::MassStiffnessCopy<dim>;
 
 template <int dim>  
 struct Scratch : Generic::Matrix::Scratch<dim>
@@ -289,66 +352,6 @@ struct LocalCellData
   LocalCellData(const LocalCellData  &data);
 };
 }// namespace AdvectionAssembly
-
-namespace VelocityMatricesAssembly
-{
-template <int dim>
-struct MappingData
-{
-  unsigned int                          velocity_dofs_per_cell;
-  FullMatrix<double>                    local_velocity_mass_matrix;
-  FullMatrix<double>                    local_velocity_laplace_matrix;
-  std::vector<types::global_dof_index>  local_velocity_dof_indices;
-
-  MappingData(const unsigned int velocity_dofs_per_cell);
-  MappingData(const MappingData &data);
-};
-
-template <int dim>
-struct LocalCellData
-{
-  FEValues<dim>               velocity_fe_values;
-  const unsigned int          n_q_points;
-  const unsigned int          velocity_dofs_per_cell;
-  std::vector<Tensor<1,dim>>  phi_velocity;
-  std::vector<Tensor<2,dim>>  grad_phi_velocity;
-
-  LocalCellData(const FESystem<dim>  &velocity_fe,
-                const Quadrature<dim>&velocity_quadrature_formula,
-                const UpdateFlags     velocity_update_flags);
-  LocalCellData(const LocalCellData  &data);
-};
-} // namespace VelocityMatricesAssembly
-
-namespace PressureMatricesAssembly
-{
-template <int dim>
-struct MappingData
-{
-  unsigned int                          pressure_dofs_per_cell;
-  FullMatrix<double>                    local_pressure_mass_matrix;
-  FullMatrix<double>                    local_pressure_laplace_matrix;
-  std::vector<types::global_dof_index>  local_pressure_dof_indices;
-
-  MappingData(const unsigned int pressure_dofs_per_cell);
-  MappingData(const MappingData &data);
-};
-
-template <int dim>
-struct LocalCellData
-{
-  FEValues<dim>               pressure_fe_values;
-  const unsigned int          n_q_points;
-  const unsigned int          pressure_dofs_per_cell;
-  std::vector<double>         phi_pressure;
-  std::vector<Tensor<1,dim>>  grad_phi_pressure;
-
-  LocalCellData(const FE_Q<dim>      &pressure_fe,
-                const Quadrature<dim>&pressure_quadrature_formula,
-                const UpdateFlags     pressure_update_flags);
-  LocalCellData(const LocalCellData  &data);
-};
-} // namespace PressureMatricesAssembly
 
 namespace VelocityRightHandSideAssembly
 {

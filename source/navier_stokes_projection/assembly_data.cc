@@ -10,6 +10,87 @@
 namespace RMHD
 {
 
+namespace AssemblyData
+{
+
+namespace NavierStokesProjection
+{
+
+namespace VelocityConstantMatrices
+{
+
+template <int dim>
+Scratch<dim>::Scratch(
+  const Mapping<dim>        &mapping,
+  const Quadrature<dim>     &quadrature_formula,
+  const FiniteElement<dim>  &fe,
+  const UpdateFlags         update_flags)
+:
+Generic::Matrix::Scratch<dim>(mapping,
+                              quadrature_formula,
+                              fe,
+                              update_flags),
+phi(this->dofs_per_cell),
+grad_phi(this->dofs_per_cell)
+{}
+
+template <int dim>
+Scratch<dim>::Scratch(const Scratch &data)
+:
+Generic::Matrix::Scratch<dim>(data),
+phi(data.dofs_per_cell),
+grad_phi(data.dofs_per_cell)
+{}
+
+} // namespace VelocityConstantMatrices
+
+namespace PressureConstantMatrices
+{
+
+template <int dim>
+Scratch<dim>::Scratch(
+  const Mapping<dim>        &mapping,
+  const Quadrature<dim>     &quadrature_formula,
+  const FiniteElement<dim>  &fe,
+  const UpdateFlags         update_flags)
+:
+Generic::Matrix::Scratch<dim>(mapping,
+                              quadrature_formula,
+                              fe,
+                              update_flags),
+phi(this->dofs_per_cell),
+grad_phi(this->dofs_per_cell)
+{}
+
+template <int dim>
+Scratch<dim>::Scratch(const Scratch &data)
+:
+Generic::Matrix::Scratch<dim>(data),
+phi(data.dofs_per_cell),
+grad_phi(data.dofs_per_cell)
+{}
+
+} // namespace PressureConstantMatrices
+
+namespace AdvectionMatrix
+{
+
+} // namespace AdvectionMatrix
+
+namespace DiffusionStepRHS
+{
+
+} // namespace DiffusionStepRHS
+
+namespace ProjectionStepRHS
+{
+
+} // namespace ProjectionStepRHS
+
+} // namespace NavierStokesProjection
+
+} // namespace AssemblyData
+
 using namespace dealii;
 
 namespace AdvectionAssembly
@@ -63,111 +144,6 @@ curl_phi_velocity(dofs_per_cell)
 {}
 
 }// namespace AdvectionTermAssembly
-
-namespace VelocityMatricesAssembly
-{
-
-template <int dim>
-MappingData<dim>::MappingData(const unsigned int velocity_dofs_per_cell)
-:
-velocity_dofs_per_cell(velocity_dofs_per_cell),
-local_velocity_mass_matrix(velocity_dofs_per_cell,
-                           velocity_dofs_per_cell),
-local_velocity_laplace_matrix(velocity_dofs_per_cell,
-                              velocity_dofs_per_cell),
-local_velocity_dof_indices(velocity_dofs_per_cell)
-{}
-
-template <int dim>
-MappingData<dim>::MappingData(const MappingData &data)
-:
-velocity_dofs_per_cell(data.velocity_dofs_per_cell),
-local_velocity_mass_matrix(data.local_velocity_mass_matrix),
-local_velocity_laplace_matrix(data.local_velocity_laplace_matrix),
-local_velocity_dof_indices(data.local_velocity_dof_indices)
-{}
-
-template <int dim>
-LocalCellData<dim>::LocalCellData
-(const FESystem<dim> &velocity_fe,
- const Quadrature<dim>   &velocity_quadrature_formula,
- const UpdateFlags    velocity_update_flags)
-:
-velocity_fe_values(velocity_fe,
-                   velocity_quadrature_formula,
-                   velocity_update_flags),
-n_q_points(velocity_quadrature_formula.size()),
-velocity_dofs_per_cell(velocity_fe.dofs_per_cell),
-phi_velocity(velocity_dofs_per_cell),
-grad_phi_velocity(velocity_dofs_per_cell)
-{}
-
-template <int dim>
-LocalCellData<dim>::LocalCellData(const LocalCellData &data)
-:
-velocity_fe_values(data.velocity_fe_values.get_fe(),
-                   data.velocity_fe_values.get_quadrature(),
-                   data.velocity_fe_values.get_update_flags()),
-n_q_points(data.n_q_points),
-velocity_dofs_per_cell(data.velocity_dofs_per_cell),
-phi_velocity(velocity_dofs_per_cell),
-grad_phi_velocity(velocity_dofs_per_cell)
-{}
-
-} // namespace VelocityMatricesAssembly
-
-namespace PressureMatricesAssembly
-{
-
-template <int dim>
-MappingData<dim>::MappingData(const unsigned int pressure_dofs_per_cell)
-:
-pressure_dofs_per_cell(pressure_dofs_per_cell),
-local_pressure_mass_matrix(pressure_dofs_per_cell,
-                           pressure_dofs_per_cell),
-local_pressure_laplace_matrix(pressure_dofs_per_cell,
-                              pressure_dofs_per_cell),
-local_pressure_dof_indices(pressure_dofs_per_cell)
-{}
-
-template <int dim>
-MappingData<dim>::MappingData(const MappingData &data)
-:
-pressure_dofs_per_cell(data.pressure_dofs_per_cell),
-local_pressure_mass_matrix(data.local_pressure_mass_matrix),
-local_pressure_laplace_matrix(data.local_pressure_laplace_matrix),
-local_pressure_dof_indices(data.local_pressure_dof_indices)
-{}
-
-template <int dim>
-LocalCellData<dim>::LocalCellData
-(const FE_Q<dim>     &pressure_fe,
- const Quadrature<dim>   &pressure_quadrature_formula,
- const UpdateFlags    pressure_update_flags)
-:
-pressure_fe_values(pressure_fe,
-                   pressure_quadrature_formula,
-                   pressure_update_flags),
-n_q_points(pressure_quadrature_formula.size()),
-pressure_dofs_per_cell(pressure_fe.dofs_per_cell),
-phi_pressure(pressure_dofs_per_cell),
-grad_phi_pressure(pressure_dofs_per_cell)
-{}
-
-template <int dim>
-LocalCellData<dim>::LocalCellData(const LocalCellData &data)
-:
-pressure_fe_values(data.pressure_fe_values.get_fe(),
-                   data.pressure_fe_values.get_quadrature(),
-                   data.pressure_fe_values.get_update_flags()),
-n_q_points(data.n_q_points),
-pressure_dofs_per_cell(data.pressure_dofs_per_cell),
-phi_pressure(pressure_dofs_per_cell),
-grad_phi_pressure(pressure_dofs_per_cell)
-{}
-
-} // namespace PressureMatricesAssembly
-
 namespace VelocityRightHandSideAssembly
 {
 
@@ -432,23 +408,17 @@ grad_phi_pressure(pressure_dofs_per_cell)
 } // namespace RMHD
 
 // explicit instantiations
+template struct RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<2>;
+template struct RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<3>;
+
+template struct RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<2>;
+template struct RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<3>;
+
 template struct RMHD::AdvectionAssembly::MappingData<2>;
 template struct RMHD::AdvectionAssembly::MappingData<3>;
 
 template struct RMHD::AdvectionAssembly::LocalCellData<2>;
 template struct RMHD::AdvectionAssembly::LocalCellData<3>;
-
-template struct RMHD::VelocityMatricesAssembly::MappingData<2>;
-template struct RMHD::VelocityMatricesAssembly::MappingData<3>;
-
-template struct RMHD::VelocityMatricesAssembly::LocalCellData<2>;
-template struct RMHD::VelocityMatricesAssembly::LocalCellData<3>;
-
-template struct RMHD::PressureMatricesAssembly::MappingData<2>;
-template struct RMHD::PressureMatricesAssembly::MappingData<3>;
-
-template struct RMHD::PressureMatricesAssembly::LocalCellData<2>;
-template struct RMHD::PressureMatricesAssembly::LocalCellData<3>;
 
 template struct RMHD::VelocityRightHandSideAssembly::MappingData<2>;
 template struct RMHD::VelocityRightHandSideAssembly::MappingData<3>;

@@ -112,17 +112,17 @@ void HeatEquation<dim>::assemble_local_constant_matrices
                                     scratch.grad_phi[j] *
                                     scratch.fe_values.JxW(q);
       } // Loop over local degrees of freedom
-    
-    // Copy lower triangular part values into the upper triangular part
-    for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-      for (unsigned int j = i + 1; j < scratch.dofs_per_cell; ++j)
-      {
-        data.local_mass_matrix(i, j) = 
-                                      data.local_mass_matrix(j, i);
-        data.local_stiffness_matrix(i, j) = 
-                                      data.local_stiffness_matrix(j, i);
-      }
-  }
+  } // Loop over quadrature points
+
+  // Copy lower triangular part values into the upper triangular part
+  for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+    for (unsigned int j = i + 1; j < scratch.dofs_per_cell; ++j)
+    {
+      data.local_mass_matrix(i, j) = 
+                                    data.local_mass_matrix(j, i);
+      data.local_stiffness_matrix(i, j) = 
+                                    data.local_stiffness_matrix(j, i);
+    }
 }
 
 template <int dim>
