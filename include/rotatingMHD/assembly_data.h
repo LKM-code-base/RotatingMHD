@@ -15,12 +15,6 @@ using namespace dealii;
 namespace AssemblyData
 {
 
-namespace Generic
-{
-
-namespace Matrix
-{
-
 template <int dim>  
 struct CopyBase
 {
@@ -30,32 +24,80 @@ struct CopyBase
 
   unsigned int                          dofs_per_cell;
 
-  FullMatrix<double>                    local_matrix;
-
   std::vector<types::global_cell_index> local_dof_indices;
 };
 
 template <int dim>  
 struct ScratchBase
 {
-  ScratchBase(const Mapping<dim>        &mapping,
-              const FiniteElement<dim>  &fe,
-              const Quadrature<dim>     &quadrature_formula,
-              const UpdateFlags         update_flags);
+  ScratchBase(const Quadrature<dim>     &quadrature_formula,
+              const FiniteElement<dim>  &fe);
 
   ScratchBase(const ScratchBase &data);
-
-  FEValues<dim>       fe_values;
 
   const unsigned int  n_q_points;
 
   const unsigned int  dofs_per_cell;
 };
 
+namespace Generic
+{
+
+namespace Matrix
+{
+
+template <int dim>  
+struct Copy : CopyBase<dim>
+{
+  Copy(const unsigned int dofs_per_cell);
+
+  Copy(const Copy &data);
+
+  FullMatrix<double>  local_matrix;
+};
+
+template <int dim>  
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &fe,
+          const UpdateFlags         update_flags);
+
+  Scratch(const Scratch &data);
+
+  FEValues<dim> fe_values;
+};
+
 } // namespace Matrix
  
 namespace RightHandSide
 {
+
+template <int dim>  
+struct Copy : CopyBase<dim>
+{
+  Copy(const unsigned int dofs_per_cell);
+
+  Copy(const Copy &data);
+
+  Vector<double>      local_rhs;
+
+  FullMatrix<double>  local_matrix_for_inhomogeneous_bc;
+};
+
+template <int dim>  
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &fe,
+          const UpdateFlags         update_flags);
+
+  Scratch(const Scratch &data);
+
+  FEValues<dim> fe_values;
+};
 
 } // namespace RightHandSide
 
@@ -73,7 +115,7 @@ namespace ConstantMatrices
 {
 
 template <int dim>  
-struct Copy : Generic::Matrix::CopyBase<dim>
+struct Copy : CopyBase<dim>
 {
   Copy(const unsigned int dofs_per_cell);
 
@@ -85,11 +127,11 @@ struct Copy : Generic::Matrix::CopyBase<dim>
 };
 
 template <int dim>  
-struct Scratch : Generic::Matrix::ScratchBase<dim>
+struct Scratch : Generic::Matrix::Scratch<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
-          const FiniteElement<dim>  &fe,
           const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
   
   Scratch(const Scratch &data);

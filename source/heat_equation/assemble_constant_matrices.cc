@@ -47,8 +47,8 @@ void HeatEquation<dim>::assemble_constant_matrices()
    copier,
    AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>(
     *mapping,
-    temperature->fe,
     quadrature_formula,
+    temperature->fe,
     update_values|
     update_gradients|
     update_JxW_values),

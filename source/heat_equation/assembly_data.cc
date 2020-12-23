@@ -15,7 +15,7 @@ namespace ConstantMatrices
 template <int dim>
 Copy<dim>::Copy(const unsigned int dofs_per_cell)
 :
-Generic::Matrix::CopyBase<dim>(dofs_per_cell),
+CopyBase<dim>(dofs_per_cell),
 local_mass_matrix(dofs_per_cell, dofs_per_cell),
 local_stiffness_matrix(dofs_per_cell, dofs_per_cell)
 {}
@@ -23,7 +23,7 @@ local_stiffness_matrix(dofs_per_cell, dofs_per_cell)
 template <int dim>
 Copy<dim>::Copy(const Copy &data)
 :
-Generic::Matrix::CopyBase<dim>(data),
+CopyBase<dim>(data),
 local_mass_matrix(data.dofs_per_cell, data.dofs_per_cell),
 local_stiffness_matrix(data.dofs_per_cell, data.dofs_per_cell)
 {}
@@ -31,14 +31,14 @@ local_stiffness_matrix(data.dofs_per_cell, data.dofs_per_cell)
 template <int dim>
 Scratch<dim>::Scratch(
   const Mapping<dim>        &mapping,
-  const FiniteElement<dim>  &fe,
   const Quadrature<dim>     &quadrature_formula,
+  const FiniteElement<dim>  &fe,
   const UpdateFlags         update_flags)
 :
-Generic::Matrix::ScratchBase<dim>(mapping,
-                                  fe,
-                                  quadrature_formula,
-                                  update_flags),
+Generic::Matrix::Scratch<dim>(mapping,
+                              quadrature_formula,
+                              fe,
+                              update_flags),
 phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell)
 {}
@@ -46,7 +46,7 @@ grad_phi(this->dofs_per_cell)
 template <int dim>
 Scratch<dim>::Scratch(const Scratch &data)
 :
-Generic::Matrix::ScratchBase<dim>(data),
+Generic::Matrix::Scratch<dim>(data),
 phi(data.dofs_per_cell),
 grad_phi(data.dofs_per_cell)
 {}
