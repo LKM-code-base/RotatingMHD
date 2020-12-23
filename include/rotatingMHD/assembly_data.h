@@ -143,6 +143,41 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 
 } // namespace ConstantMatrices
 
+namespace AdvectionMatrix
+{
+
+template<int dim>
+using Copy = Generic::Matrix::Copy<dim>;
+
+template <int dim>  
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &temperature_fe,
+          const UpdateFlags         temperature_update_flags,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags);
+  
+  Scratch(const Scratch &data);
+
+  FEValues<dim>               temperature_fe_values;
+
+  FEValues<dim>               velocity_fe_values;
+  
+  std::vector<Tensor<1,dim>>  velocity_values;
+  
+  std::vector<Tensor<1,dim>>  old_velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_old_velocity_values;
+
+  std::vector<double>         phi;
+  
+  std::vector<Tensor<1,dim>>  grad_phi;
+};
+
+} // namespace AdvectionMatrix
+
 } // namespace HeatEquation
 
 } // namespace AssemblyData

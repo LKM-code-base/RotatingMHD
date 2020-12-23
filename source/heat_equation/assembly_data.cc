@@ -53,6 +53,56 @@ grad_phi(data.dofs_per_cell)
 
 } // namespace ConstantMatrices
 
+namespace AdvectionMatrix
+{
+
+template <int dim>
+Scratch<dim>::Scratch(
+  const Mapping<dim>        &mapping,
+  const Quadrature<dim>     &quadrature_formula,
+  const FiniteElement<dim>  &temperature_fe,
+  const UpdateFlags         temperature_update_flags,
+  const FiniteElement<dim>  &velocity_fe,
+  const UpdateFlags         velocity_update_flags)
+:
+ScratchBase<dim>(quadrature_formula,
+                 temperature_fe),
+temperature_fe_values(mapping,
+                      temperature_fe,
+                      quadrature_formula,
+                      temperature_update_flags),
+velocity_fe_values(mapping,
+                   velocity_fe,
+                   quadrature_formula,
+                   velocity_update_flags),
+velocity_values(this->n_q_points),
+old_velocity_values(this->n_q_points),
+old_old_velocity_values(this->n_q_points),
+phi(this->dofs_per_cell),
+grad_phi(this->dofs_per_cell)
+{}
+
+template <int dim>
+Scratch<dim>::Scratch(const Scratch &data)
+:
+ScratchBase<dim>(data),
+temperature_fe_values(data.temperature_fe_values.get_mapping(),
+                      data.temperature_fe_values.get_fe(),
+                      data.temperature_fe_values.get_quadrature(),
+                      data.temperature_fe_values.get_update_flags()),
+velocity_fe_values(data.velocity_fe_values.get_mapping(),
+                   data.velocity_fe_values.get_fe(),
+                   data.velocity_fe_values.get_quadrature(),
+                   data.velocity_fe_values.get_update_flags()),
+velocity_values(data.n_q_points),
+old_velocity_values(this->n_q_points),
+old_old_velocity_values(this->n_q_points),
+phi(data.dofs_per_cell),
+grad_phi(data.dofs_per_cell)
+{}
+
+} // namespace AdvectionMatrix
+
 } // namespace HeatEquation
 
 } // namespace AssemblyData
@@ -276,6 +326,9 @@ template struct RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy<3>;
 
 template struct RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<2>;
 template struct RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<3>;
+
+template struct RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Scratch<2>;
+template struct RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Scratch<3>;
 
 template struct RMHD::TemperatureConstantMatricesAssembly::MappingData<2>;
 template struct RMHD::TemperatureConstantMatricesAssembly::MappingData<3>;

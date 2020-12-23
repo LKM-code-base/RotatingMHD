@@ -387,15 +387,15 @@ private:
    */
   void assemble_local_advection_matrix(
     const typename DoFHandler<dim>::active_cell_iterator    &cell,
-    TemperatureAdvectionMatrixAssembly::LocalCellData<dim>  &scratch,
-    TemperatureAdvectionMatrixAssembly::MappingData<dim>    &data);
+    AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>  &scratch,
+    AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim>    &data);
 
   /*!
    * @brief This method copies the local advection matrix into their 
    * global conterparts.
    */
   void copy_local_to_global_advection_matrix(
-    const TemperatureAdvectionMatrixAssembly::MappingData<dim>  &data);
+    const AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim>  &data);
 
 
   /*!
