@@ -246,7 +246,6 @@ private:
    */
   LinearAlgebra::MPI::SparseMatrix              advection_matrix;
 
-
   /*!
    * @brief Vector representing the right-hand side of the linear system.
    * @todo Add formulas
