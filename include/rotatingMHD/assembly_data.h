@@ -178,6 +178,79 @@ struct Scratch : ScratchBase<dim>
 
 } // namespace AdvectionMatrix
 
+namespace RightHandSide
+{
+
+template<int dim>
+using Copy = Generic::RightHandSide::Copy<dim>;
+
+template <int dim>  
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const Quadrature<dim-1>   &face_quadrature_formula,
+          const FiniteElement<dim>  &temperature_fe,
+          const UpdateFlags         temperature_update_flags,
+          const UpdateFlags         temperature_face_update_flags,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags);
+  
+  Scratch(const Scratch &data);
+
+  FEValues<dim>               temperature_fe_values;
+
+  FEFaceValues<dim>           temperature_fe_face_values;
+
+  FEValues<dim>               velocity_fe_values;
+
+  const unsigned int          n_face_q_points;
+
+  std::vector<double>         alpha;
+
+  std::vector<double>         temperature_values;
+
+  std::vector<double>         old_temperature_values;
+  
+  std::vector<double>         old_old_temperature_values;
+
+  std::vector<double>         beta;
+
+  std::vector<Tensor<1,dim>>  velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_old_velocity_values;
+
+  std::vector<Tensor<1,dim>>  temperature_gradients;
+
+  std::vector<Tensor<1,dim>>  old_temperature_gradients;
+
+  std::vector<Tensor<1,dim>>  old_old_temperature_gradients;
+
+  std::vector<double>         gamma;
+
+  std::vector<double>         source_term_values;
+
+  std::vector<double>         old_source_term_values;
+
+  std::vector<double>         old_old_source_term_values;
+
+  std::vector<double>         neuamnn_bc_values;
+
+  std::vector<double>         old_neuamnn_bc_values;
+
+  std::vector<double>         old_old_neuamnn_bc_values;
+
+  std::vector<double>         phi;
+  
+  std::vector<Tensor<1,dim>>  grad_phi;
+
+  std::vector<double>         face_phi;
+};
+
+} // namespace RightHandSide
+
 } // namespace HeatEquation
 
 } // namespace AssemblyData

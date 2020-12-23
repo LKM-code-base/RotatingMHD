@@ -403,15 +403,14 @@ private:
    */
   void assemble_local_rhs(
     const typename DoFHandler<dim>::active_cell_iterator    &cell,
-    TemperatureRightHandSideAssembly::LocalCellData<dim> &scratch,
-    TemperatureRightHandSideAssembly::MappingData<dim>   &data);
-
+    AssemblyData::HeatEquation::RightHandSide::Scratch<dim> &scratch,
+    AssemblyData::HeatEquation::RightHandSide::Copy<dim>    &data);
   /*!
    * @brief This method copies the local right-hand side into its global
    * conterpart.
    */
   void copy_local_to_global_rhs(
-    const TemperatureRightHandSideAssembly::MappingData<dim>  &data);
+    const AssemblyData::HeatEquation::RightHandSide::Copy<dim>  &data);
 };
 
 template <int dim>
