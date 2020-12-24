@@ -166,6 +166,42 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace AdvectionMatrix
 {
 
+template<int dim>
+using Copy = Generic::Matrix::Copy<dim>;
+
+template <int dim>  
+struct Scratch : Generic::Matrix::Scratch<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &fe,
+          const UpdateFlags         update_flags);
+
+  Scratch(const Scratch &data);
+
+  /*! @note Should I make it global inside the AssemblyData namespace
+      or leave it locally in each struct for readability? */
+  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+    
+  std::vector<Tensor<1,dim>>  old_velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_old_velocity_values;
+  
+  std::vector<double>         old_velocity_divergences;
+
+  std::vector<double>         old_old_velocity_divergences;
+  
+  std::vector<CurlType>       old_velocity_curls;
+
+  std::vector<CurlType>       old_old_velocity_curls;
+
+  std::vector<Tensor<1,dim>>  phi;
+  
+  std::vector<Tensor<2,dim>>  grad_phi;
+
+  std::vector<CurlType>       curl_phi;
+};
+
 } // namespace AdvectionMatrix
 
 namespace DiffusionStepRHS
@@ -271,8 +307,6 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<double>         alpha;
 
-  std::vector<double>         temperature_values;
-
   std::vector<double>         old_temperature_values;
   
   std::vector<double>         old_old_temperature_values;
@@ -284,8 +318,6 @@ struct Scratch : ScratchBase<dim>
   std::vector<Tensor<1,dim>>  old_velocity_values;
 
   std::vector<Tensor<1,dim>>  old_old_velocity_values;
-
-  std::vector<Tensor<1,dim>>  temperature_gradients;
 
   std::vector<Tensor<1,dim>>  old_temperature_gradients;
 
@@ -317,42 +349,6 @@ struct Scratch : ScratchBase<dim>
 } // namespace HeatEquation
 
 } // namespace AssemblyData
-
-namespace AdvectionAssembly
-{
-
-  template <int dim>
-struct MappingData
-{
-  FullMatrix<double>                   local_matrix;
-  std::vector<types::global_dof_index> local_dof_indices;
-
-  MappingData(const unsigned int dofs_per_cell);
-  MappingData(const MappingData &data);
-};
-
-template <int dim>  
-struct LocalCellData
-{
-  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
-
-  FEValues<dim>               fe_values;
-  const unsigned int          n_q_points;
-  const unsigned int          dofs_per_cell;
-  std::vector<double>         extrapolated_velocity_divergences;
-  std::vector<Tensor<1,dim>>  extrapolated_velocity_values;
-  std::vector<CurlType>       extrapolated_velocity_curls;
-  std::vector<Tensor<1,dim>>  phi_velocity;
-  std::vector<Tensor<2,dim>>  grad_phi_velocity;
-  std::vector<CurlType>       curl_phi_velocity;
-
-  LocalCellData(const FESystem<dim>  &fe,
-                const Quadrature<dim>&quadrature_formula,
-                const UpdateFlags     flags);
-  LocalCellData(const LocalCellData  &data);
-};
-}// namespace AdvectionAssembly
-
 namespace VelocityRightHandSideAssembly
 {
 template <int dim>

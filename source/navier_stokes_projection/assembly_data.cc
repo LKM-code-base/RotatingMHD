@@ -10,6 +10,8 @@
 namespace RMHD
 {
 
+using namespace dealii;
+
 namespace AssemblyData
 {
 
@@ -75,6 +77,43 @@ grad_phi(data.dofs_per_cell)
 namespace AdvectionMatrix
 {
 
+template <int dim>
+Scratch<dim>::Scratch(
+  const Mapping<dim>        &mapping,
+  const Quadrature<dim>     &quadrature_formula,
+  const FiniteElement<dim>  &fe,
+  const UpdateFlags         update_flags)
+:
+Generic::Matrix::Scratch<dim>(mapping,
+                              quadrature_formula,
+                              fe,
+                              update_flags),
+old_velocity_values(this->n_q_points),
+old_old_velocity_values(this->n_q_points),
+old_velocity_divergences(this->n_q_points),
+old_old_velocity_divergences(this->n_q_points),
+old_velocity_curls(this->n_q_points),
+old_old_velocity_curls(this->n_q_points),
+phi(this->dofs_per_cell),
+grad_phi(this->dofs_per_cell),
+curl_phi(this->dofs_per_cell)
+{}
+
+template <int dim>
+Scratch<dim>::Scratch(const Scratch &data)
+:
+Generic::Matrix::Scratch<dim>(data),
+old_velocity_values(data.n_q_points),
+old_old_velocity_values(data.n_q_points),
+old_velocity_divergences(data.n_q_points),
+old_old_velocity_divergences(data.n_q_points),
+old_velocity_curls(data.n_q_points),
+old_old_velocity_curls(data.n_q_points),
+phi(data.dofs_per_cell),
+grad_phi(data.dofs_per_cell),
+curl_phi(data.dofs_per_cell)
+{}
+
 } // namespace AdvectionMatrix
 
 namespace DiffusionStepRHS
@@ -91,59 +130,6 @@ namespace ProjectionStepRHS
 
 } // namespace AssemblyData
 
-using namespace dealii;
-
-namespace AdvectionAssembly
-{
-
-template <int dim>
-MappingData<dim>::MappingData(const unsigned int dofs_per_cell)
-:
-local_matrix(dofs_per_cell, dofs_per_cell),
-local_dof_indices(dofs_per_cell)
-{}
-
-template <int dim>
-MappingData<dim>::MappingData(const MappingData &data)
-:
-local_matrix(data.local_matrix),
-local_dof_indices(data.local_dof_indices)
-{}
-
-template <int dim>  
-LocalCellData<dim>::LocalCellData
-(const FESystem<dim>   &fe,
- const Quadrature<dim> &quadrature_formula,
- const UpdateFlags      flags)
-:
-fe_values(fe, quadrature_formula, flags),
-n_q_points(quadrature_formula.size()),
-dofs_per_cell(fe.dofs_per_cell),
-extrapolated_velocity_divergences(n_q_points),
-extrapolated_velocity_values(n_q_points),
-extrapolated_velocity_curls(n_q_points),
-phi_velocity(dofs_per_cell),
-grad_phi_velocity(dofs_per_cell),
-curl_phi_velocity(dofs_per_cell)
-{}
-
-template <int dim>
-LocalCellData<dim>::LocalCellData(const LocalCellData &data)
-:
-fe_values(data.fe_values.get_fe(),
-          data.fe_values.get_quadrature(),
-          data.fe_values.get_update_flags()),
-n_q_points(data.n_q_points),
-dofs_per_cell(data.dofs_per_cell),
-extrapolated_velocity_divergences(n_q_points),
-extrapolated_velocity_values(n_q_points),
-extrapolated_velocity_curls(n_q_points),
-phi_velocity(dofs_per_cell),
-grad_phi_velocity(dofs_per_cell),
-curl_phi_velocity(dofs_per_cell)
-{}
-
-}// namespace AdvectionTermAssembly
 namespace VelocityRightHandSideAssembly
 {
 
@@ -414,11 +400,8 @@ template struct RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatr
 template struct RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<3>;
 
-template struct RMHD::AdvectionAssembly::MappingData<2>;
-template struct RMHD::AdvectionAssembly::MappingData<3>;
-
-template struct RMHD::AdvectionAssembly::LocalCellData<2>;
-template struct RMHD::AdvectionAssembly::LocalCellData<3>;
+template struct RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<2>;
+template struct RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<3>;
 
 template struct RMHD::VelocityRightHandSideAssembly::MappingData<2>;
 template struct RMHD::VelocityRightHandSideAssembly::MappingData<3>;
