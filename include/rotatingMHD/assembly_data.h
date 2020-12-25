@@ -207,12 +207,106 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace DiffusionStepRHS
 {
 
+template<int dim>
+using Copy = Generic::RightHandSide::Copy<dim>;
+
+template <int dim>  
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const Quadrature<dim-1>   &face_quadrature_formula,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags,
+          const UpdateFlags         velocity_face_update_flags,
+          const FiniteElement<dim>  &pressure_fe,
+          const UpdateFlags         pressure_update_flags,
+          const FiniteElement<dim>  &temperature_fe,
+          const UpdateFlags         temperature_update_flags);
+  
+  Scratch(const Scratch &data);
+
+  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+
+  FEValues<dim>               velocity_fe_values;
+
+  FEFaceValues<dim>           velocity_fe_face_values;
+
+  FEValues<dim>               pressure_fe_values;
+
+  FEValues<dim>               temperature_fe_values;
+
+  const unsigned int          n_face_q_points;
+
+  std::vector<double>         old_pressure_values;
+  
+  std::vector<double>         old_phi_values;
+
+  std::vector<double>         old_old_phi_values;
+
+  std::vector<Tensor<1,dim>>  old_velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_old_velocity_values;
+
+  std::vector<Tensor<2,dim>>  old_velocity_gradients;
+
+  std::vector<Tensor<2,dim>>  old_old_velocity_gradients;
+
+  std::vector<double>         old_velocity_divergences;
+
+  std::vector<double>         old_old_velocity_divergences;
+
+  std::vector<CurlType>       old_velocity_curls;
+
+  std::vector<CurlType>       old_old_velocity_curls;
+
+  std::vector<Tensor<1,dim>>  old_rotation_values;
+
+  std::vector<Tensor<1,dim>>  old_old_rotation_values;
+
+  std::vector<double>         old_temperature_values;
+
+  std::vector<double>         old_old_temperature_values;
+
+  std::vector<Tensor<1,dim>>  gravity_unit_vector_values;
+
+  std::vector<Tensor<1,dim>>  body_force_values;
+
+  std::vector<Tensor<1,dim>>  old_body_force_values;
+
+  std::vector<Tensor<1,dim>>  old_old_body_force_values;
+
+  /*! @note For the time being I will use the more general naming
+      convention of neumann_bc_values instead of traction_vector_values.
+      I would like to discuss a couple of aspects in this line*/
+  std::vector<Tensor<1,dim>>  neuamnn_bc_values;
+
+  std::vector<Tensor<1,dim>>  old_neuamnn_bc_values;
+
+  std::vector<Tensor<1,dim>>  old_old_neuamnn_bc_values;
+
+  std::vector<Tensor<1,dim>>  phi;
+  
+  std::vector<Tensor<2,dim>>  grad_phi;
+
+  std::vector<double>         div_phi;
+
+  std::vector<CurlType>       curl_phi;
+
+  std::vector<Tensor<1,dim>>  face_phi;
+};
+
 } // DiffusionStepRHS
 
 namespace ProjectionStepRHS
 {
 
 } // ProjectionStepRHS
+
+namespace PoissonStepRHS
+{
+
+} // namespace PoissonStepRHS
 
 } // namespace NavierStokesProjection
 
@@ -305,13 +399,9 @@ struct Scratch : ScratchBase<dim>
 
   const unsigned int          n_face_q_points;
 
-  std::vector<double>         alpha;
-
   std::vector<double>         old_temperature_values;
   
   std::vector<double>         old_old_temperature_values;
-
-  std::vector<double>         beta;
 
   std::vector<Tensor<1,dim>>  velocity_values;
 
@@ -322,8 +412,6 @@ struct Scratch : ScratchBase<dim>
   std::vector<Tensor<1,dim>>  old_temperature_gradients;
 
   std::vector<Tensor<1,dim>>  old_old_temperature_gradients;
-
-  std::vector<double>         gamma;
 
   std::vector<double>         source_term_values;
 
@@ -351,17 +439,6 @@ struct Scratch : ScratchBase<dim>
 } // namespace AssemblyData
 namespace VelocityRightHandSideAssembly
 {
-template <int dim>
-struct MappingData
-{
-  unsigned int                          velocity_dofs_per_cell;
-  Vector<double>                        local_diffusion_step_rhs;
-  FullMatrix<double>                    local_matrix_for_inhomogeneous_bc;
-  std::vector<types::global_dof_index>  local_velocity_dof_indices;
-
-  MappingData(const unsigned int velocity_dofs_per_cell);
-  MappingData(const MappingData &data);
-};
 
 template <int dim>
 struct LocalCellData

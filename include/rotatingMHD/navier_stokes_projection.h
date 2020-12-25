@@ -691,14 +691,19 @@ private:
   void assemble_local_diffusion_step_rhs(
     const typename DoFHandler<dim>::active_cell_iterator  &cell,
     VelocityRightHandSideAssembly::LocalCellData<dim>     &scratch,
-    VelocityRightHandSideAssembly::MappingData<dim>       &data);
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>       &data);
+
+  void assemble_local_diffusion_step_rhs2(
+    const typename DoFHandler<dim>::active_cell_iterator                  &cell,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>  &scratch,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>     &data);
 
   /*!
    * @brief This method copies the local right-hand side of the diffusion step
    * into the global vector.
    */
   void copy_local_to_global_diffusion_step_rhs(
-    const VelocityRightHandSideAssembly::MappingData<dim> &data);
+    const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim> &data);
 
   /*!
    * @brief This method assembles the right-hand side of the projection step

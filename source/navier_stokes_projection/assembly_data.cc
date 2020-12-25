@@ -119,6 +119,125 @@ curl_phi(data.dofs_per_cell)
 namespace DiffusionStepRHS
 {
 
+template <int dim>
+Scratch<dim>::Scratch
+(const Mapping<dim>        &mapping,
+ const Quadrature<dim>     &quadrature_formula,
+ const Quadrature<dim-1>   &face_quadrature_formula,
+ const FiniteElement<dim>  &velocity_fe,
+ const UpdateFlags         velocity_update_flags,
+ const UpdateFlags         velocity_face_update_flags,
+ const FiniteElement<dim>  &pressure_fe,
+ const UpdateFlags         pressure_update_flags,
+ const FiniteElement<dim>  &temperature_fe,
+ const UpdateFlags         temperature_update_flags)
+:
+ScratchBase<dim>(quadrature_formula,
+                 velocity_fe),
+velocity_fe_values(
+  mapping,
+  velocity_fe,
+  quadrature_formula,
+  velocity_update_flags),
+velocity_fe_face_values(
+  mapping,
+  velocity_fe,
+  face_quadrature_formula,
+  velocity_face_update_flags),
+pressure_fe_values(
+  mapping,
+  pressure_fe,
+  quadrature_formula,
+  pressure_update_flags),
+temperature_fe_values(
+  mapping,
+  temperature_fe,
+  quadrature_formula,
+  temperature_update_flags),
+n_face_q_points(face_quadrature_formula.size()),
+old_pressure_values(this->n_q_points),
+old_phi_values(this->n_q_points),
+old_old_phi_values(this->n_q_points),
+old_velocity_values(this->n_q_points),
+old_old_velocity_values(this->n_q_points),
+old_velocity_gradients(this->n_q_points),
+old_old_velocity_gradients(this->n_q_points),
+old_velocity_divergences(this->n_q_points),
+old_old_velocity_divergences(this->n_q_points),
+old_velocity_curls(this->n_q_points),
+old_old_velocity_curls(this->n_q_points),
+old_rotation_values(this->n_q_points),
+old_old_rotation_values(this->n_q_points),
+old_temperature_values(this->n_q_points),
+old_old_temperature_values(this->n_q_points),
+gravity_unit_vector_values(this->n_q_points),
+body_force_values(this->n_q_points),
+old_body_force_values(this->n_q_points),
+old_old_body_force_values(this->n_q_points),
+neuamnn_bc_values(n_face_q_points),
+old_neuamnn_bc_values(n_face_q_points),
+old_old_neuamnn_bc_values(n_face_q_points),
+phi(this->dofs_per_cell),
+grad_phi(this->dofs_per_cell),
+div_phi(this->dofs_per_cell),
+curl_phi(this->dofs_per_cell),
+face_phi(this->dofs_per_cell)
+{}
+
+template <int dim>
+Scratch<dim>::Scratch(const Scratch &data)
+:
+ScratchBase<dim>(data),
+velocity_fe_values(
+  data.velocity_fe_values.get_mapping(),
+  data.velocity_fe_values.get_fe(),
+  data.velocity_fe_values.get_quadrature(),
+  data.velocity_fe_values.get_update_flags()),
+velocity_fe_face_values(
+  data.velocity_fe_face_values.get_mapping(),
+  data.velocity_fe_face_values.get_fe(),
+  data.velocity_fe_face_values.get_quadrature(),
+  data.velocity_fe_face_values.get_update_flags()),
+pressure_fe_values(
+  data.pressure_fe_values.get_mapping(),
+  data.pressure_fe_values.get_fe(),
+  data.pressure_fe_values.get_quadrature(),
+  data.pressure_fe_values.get_update_flags()),
+temperature_fe_values(
+  data.temperature_fe_values.get_mapping(),
+  data.temperature_fe_values.get_fe(),
+  data.temperature_fe_values.get_quadrature(),
+  data.temperature_fe_values.get_update_flags()),
+n_face_q_points(data.n_face_q_points),
+old_pressure_values(this->n_q_points),
+old_phi_values(this->n_q_points),
+old_old_phi_values(this->n_q_points),
+old_velocity_values(this->n_q_points),
+old_old_velocity_values(this->n_q_points),
+old_velocity_gradients(this->n_q_points),
+old_old_velocity_gradients(this->n_q_points),
+old_velocity_divergences(this->n_q_points),
+old_old_velocity_divergences(this->n_q_points),
+old_velocity_curls(this->n_q_points),
+old_old_velocity_curls(this->n_q_points),
+old_rotation_values(this->n_q_points),
+old_old_rotation_values(this->n_q_points),
+old_temperature_values(this->n_q_points),
+old_old_temperature_values(this->n_q_points),
+gravity_unit_vector_values(this->n_q_points),
+body_force_values(this->n_q_points),
+old_body_force_values(this->n_q_points),
+old_old_body_force_values(this->n_q_points),
+neuamnn_bc_values(n_face_q_points),
+old_neuamnn_bc_values(n_face_q_points),
+old_old_neuamnn_bc_values(n_face_q_points),
+phi(this->dofs_per_cell),
+grad_phi(this->dofs_per_cell),
+div_phi(this->dofs_per_cell),
+curl_phi(this->dofs_per_cell),
+face_phi(this->dofs_per_cell)
+{}
+
 } // namespace DiffusionStepRHS
 
 namespace ProjectionStepRHS
@@ -132,25 +251,6 @@ namespace ProjectionStepRHS
 
 namespace VelocityRightHandSideAssembly
 {
-
-template <int dim>
-MappingData<dim>::MappingData(const unsigned int velocity_dofs_per_cell)
-:
-velocity_dofs_per_cell(velocity_dofs_per_cell),
-local_diffusion_step_rhs(velocity_dofs_per_cell),
-local_matrix_for_inhomogeneous_bc(velocity_dofs_per_cell,
-                                  velocity_dofs_per_cell),
-local_velocity_dof_indices(velocity_dofs_per_cell)
-{}
-
-template <int dim>
-MappingData<dim>::MappingData(const MappingData &data)
-:
-velocity_dofs_per_cell(data.velocity_dofs_per_cell),
-local_diffusion_step_rhs(data.local_diffusion_step_rhs),
-local_matrix_for_inhomogeneous_bc(data.local_matrix_for_inhomogeneous_bc),
-local_velocity_dof_indices(data.local_velocity_dof_indices)
-{}
 
 template <int dim>
 LocalCellData<dim>::LocalCellData
@@ -403,8 +503,8 @@ template struct RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatr
 template struct RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<3>;
 
-template struct RMHD::VelocityRightHandSideAssembly::MappingData<2>;
-template struct RMHD::VelocityRightHandSideAssembly::MappingData<3>;
+template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<2>;
+template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<3>;
 
 template struct RMHD::VelocityRightHandSideAssembly::LocalCellData<2>;
 template struct RMHD::VelocityRightHandSideAssembly::LocalCellData<3>;
