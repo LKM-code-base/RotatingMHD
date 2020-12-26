@@ -723,16 +723,16 @@ private:
    * step on a single cell.
    */
   void assemble_local_projection_step_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    PressureRightHandSideAssembly::LocalCellData<dim>     &scratch,
-    PressureRightHandSideAssembly::MappingData<dim>       &data);
+    const typename DoFHandler<dim>::active_cell_iterator                  &cell,
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim> &scratch,
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim>    &data);
 
   /*!
    * @brief This method copies the local right-hand side of the projection step
    * on a single cell to the global vector.
    */
   void copy_local_to_global_projection_step_rhs(
-    const PressureRightHandSideAssembly::MappingData<dim> &data);
+    const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim> &data);
 
   /*!
    * @brief This method assembles the velocity advection matrix using the

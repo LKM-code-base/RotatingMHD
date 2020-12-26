@@ -301,6 +301,39 @@ struct Scratch : ScratchBase<dim>
 namespace ProjectionStepRHS
 {
 
+template<int dim>
+struct Copy : CopyBase<dim>
+{
+  Copy(const unsigned int dofs_per_cell);
+
+  Copy(const Copy &data);
+
+  Vector<double>      local_projection_step_rhs;
+
+  Vector<double>      local_correction_step_rhs;
+};
+
+template <int dim>  
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags,
+          const FiniteElement<dim>  &pressure_fe,
+          const UpdateFlags         pressure_update_flags);
+  
+  Scratch(const Scratch &data);
+
+  FEValues<dim>       velocity_fe_values;
+
+  FEValues<dim>       pressure_fe_values;
+
+  std::vector<double> velocity_divergences;
+
+  std::vector<double> phi;
+};
+
 } // ProjectionStepRHS
 
 namespace PoissonStepRHS

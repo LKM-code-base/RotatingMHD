@@ -243,6 +243,65 @@ face_phi(this->dofs_per_cell)
 namespace ProjectionStepRHS
 {
 
+template <int dim>
+Copy<dim>::Copy(const unsigned int dofs_per_cell)
+:
+CopyBase<dim>(dofs_per_cell),
+local_projection_step_rhs(dofs_per_cell),
+local_correction_step_rhs(dofs_per_cell)
+{}
+
+template <int dim>
+Copy<dim>::Copy(const Copy &data)
+:
+CopyBase<dim>(data),
+local_projection_step_rhs(data.local_projection_step_rhs),
+local_correction_step_rhs(data.local_correction_step_rhs)
+{}
+
+template <int dim>
+Scratch<dim>::Scratch
+(const Mapping<dim>        &mapping,
+ const Quadrature<dim>     &quadrature_formula,
+ const FiniteElement<dim>  &velocity_fe,
+ const UpdateFlags         velocity_update_flags,
+ const FiniteElement<dim>  &pressure_fe,
+ const UpdateFlags         pressure_update_flags)
+:
+ScratchBase<dim>(quadrature_formula,
+                 pressure_fe),
+velocity_fe_values(
+  mapping,
+  velocity_fe,
+  quadrature_formula,
+  velocity_update_flags),
+pressure_fe_values(
+  mapping,
+  pressure_fe,
+  quadrature_formula,
+  pressure_update_flags),
+velocity_divergences(this->n_q_points),
+phi(this->dofs_per_cell)
+{}
+
+template <int dim>
+Scratch<dim>::Scratch(const Scratch &data)
+:
+ScratchBase<dim>(data),
+velocity_fe_values(
+  data.velocity_fe_values.get_mapping(),
+  data.velocity_fe_values.get_fe(),
+  data.velocity_fe_values.get_quadrature(),
+  data.velocity_fe_values.get_update_flags()),
+pressure_fe_values(
+  data.pressure_fe_values.get_mapping(),
+  data.pressure_fe_values.get_fe(),
+  data.pressure_fe_values.get_quadrature(),
+  data.pressure_fe_values.get_update_flags()),
+velocity_divergences(this->n_q_points),
+phi(this->dofs_per_cell)
+{}
+
 } // namespace ProjectionStepRHS
 
 } // namespace NavierStokesProjection
@@ -505,6 +564,13 @@ template struct RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scr
 
 template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<3>;
+
+template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<2>;
+template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<3>;
+
+template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<2>;
+template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<3>;
+
 
 template struct RMHD::VelocityRightHandSideAssembly::LocalCellData<2>;
 template struct RMHD::VelocityRightHandSideAssembly::LocalCellData<3>;
