@@ -132,8 +132,6 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
       vsimex_scheme = VSIMEXScheme::CNLF;
     else if (vsimex_type_str == "BDF2")
       vsimex_scheme = VSIMEXScheme::BDF2;
-    else if (vsimex_type_str == "Euler")
-      vsimex_scheme = VSIMEXScheme::ForwardEuler;
     else
       AssertThrow(false,
                   ExcMessage("Unexpected string for variable step size "
@@ -199,9 +197,6 @@ void TimeSteppingParameters::write(Stream &stream) const
          << "   imex_scheme: ";
   switch (vsimex_scheme)
   {
-  case VSIMEXScheme::ForwardEuler:
-       stream << "Euler" << std::endl;
-      break;
   case VSIMEXScheme::CNAB:
       stream << "CNAB" << std::endl;
       break;
@@ -391,9 +386,6 @@ std::string VSIMEXMethod::get_name() const
 
   switch (parameters.vsimex_scheme)
   {
-    case VSIMEXScheme::ForwardEuler:
-      name.assign("Euler");
-      break;
     case VSIMEXScheme::CNAB:
       name.assign("Crank-Nicolson-Adams-Bashforth");
       break;
@@ -431,16 +423,6 @@ flag_coefficients_changed(true)
 
   switch (parameters.vsimex_scheme)
   {
-    case VSIMEXScheme::ForwardEuler :
-      order = 1;
-      vsimex_parameters.resize(order);
-      vsimex_parameters[0] = 0.;
-      break;
-    case VSIMEXScheme::CNFE :
-      order = 1;
-      vsimex_parameters.resize(order);
-      vsimex_parameters[0] = 0.5;
-      break;
     case VSIMEXScheme::BDF2 :
       order = 2;
       vsimex_parameters.resize(order);

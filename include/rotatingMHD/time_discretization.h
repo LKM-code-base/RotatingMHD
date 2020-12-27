@@ -23,18 +23,7 @@ namespace TimeDiscretization
 enum class VSIMEXScheme
 {
   /*!
-   * Forward Euler method.
-   */
-  ForwardEuler,
-  /*!
-   * @brief Combination of the Crank-Nicolson and forward Euler method.
-   * @details Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$.
-   * @attention SG: What is meant by \f$ f(u) \f$ and \f$ g(u) \f$? What is the
-   * wealth of combining both schemes?
-   */
-  CNFE,
-  /*!
-   * @brief Applies the backward differentiation formula of second order.
+   * @brief The second order backward differentiation formula.
    */
   BDF2,
   /*!
