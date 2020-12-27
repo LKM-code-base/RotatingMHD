@@ -288,46 +288,6 @@ private:
   LinearAlgebra::MPI::SparseMatrix  velocity_advection_matrix;
 
   /*!
-   * @brief A vector representing the extrapolated velocity at the
-   * current timestep using a Taylor expansion
-   * @details The Taylor expansion is given by
-   * \f{eqnarray*}{
-   * u^{n} &\approx& u^{n-1} + \frac{\partial u^{n-1}}{\partial t} \Delta t \\
-   *         &\approx& u^{n-1} + \frac{u^{n-1} - u^{n-2}}{\Delta t} \Delta t \\
-   *         &\approx& 2 u^{n-1} - u^{n-2}.
-   * \f}
-   * In the case of a variable time step the approximation is given by
-   * \f[
-   * u^{n} \approx (1 + \omega) u^{n-1} - \omega u^{n-2}
-   * \f] 
-   * where  \f$ \omega = \frac{\Delta t_{n-1}}{\Delta t_{n-2}}.\f$
-   * @attention The extrapolation is hardcoded to the second order described
-   * above. First and higher order are pending.
-   */
-  LinearAlgebra::MPI::Vector        extrapolated_velocity;
-
-  /*!
-   * @brief Vector representing the sum of the time discretization terms
-   * that belong to the right hand side of the equation.
-   * @details For example: A BDF2 scheme with a constant time step
-   * expands the time derivative in three terms
-   * \f[
-   * \frac{\partial u}{\partial t} \approx 
-   * \frac{1.5}{\Delta t} u^{n} - \frac{2}{\Delta t} u^{n-1}
-   * + \frac{0.5}{\Delta t} u^{n-2},
-   * \f] 
-   * the last two terms are known quantities so they belong to the 
-   * right hand side of the equation. Therefore, we define
-   * \f[
-   * u_\textrm{tmp} = - \frac{2}{\Delta t} u^{n-1}
-   * + \frac{0.5}{\Delta t} u^{n-2},
-   * \f].
-   * which we use when assembling the right hand side of the diffusion
-   * step.
-   */
-  LinearAlgebra::MPI::Vector        velocity_tmp;
-
-  /*!
    * @brief Vector representing the right-hand side of the linear system of the
    * diffusion step.
    */
@@ -345,17 +305,6 @@ private:
   LinearAlgebra::MPI::SparseMatrix  pressure_laplace_matrix;
 
   /*!
-   * @brief Vector representing the pressure used in the diffusion step.
-   * @details The pressure is given by
-   * \f[
-   * p_\textrm{tmp} = p^{n-1} + 
-   *                  \sum_{j=1}^{2} \frac{\Delta t_{n-1-j}}{\Delta t_{n-1}}
-   *                  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^\textrm{n-j} 
-   * \f] 
-   */  
-  LinearAlgebra::MPI::Vector        pressure_tmp;
-
-  /*!
    * @brief Vector representing the right-hand side of the linear system of the
    * projection step.
    */
@@ -366,25 +315,6 @@ private:
    * poisson prestep.
    */
   LinearAlgebra::MPI::Vector        poisson_prestep_rhs;
-
-  /*!
-   * @brief A vector representing the extrapolated temperature at the
-   * current timestep using a Taylor expansion
-   * @details The Taylor expansion is given by
-   * \f{eqnarray*}{
-   * u^{n} &\approx& u^{n-1} + \frac{\partial u^{n-1}}{\partial t} \Delta t \\
-   *         &\approx& u^{n-1} + \frac{u^{n-1} - u^{n-2}}{\Delta t} \Delta t \\
-   *         &\approx& 2 u^{n-1} - u^{n-2}.
-   * \f}
-   * In the case of a variable time step the approximation is given by
-   * \f[
-   * u^{n} \approx (1 + \omega) u^{n-1} - \omega u^{n-2}
-   * \f] 
-   * where  \f$ \omega = \frac{\Delta t_{n-1}}{\Delta t_{n-2}}.\f$
-   * @attention The extrapolation is hardcoded to the second order described
-   * above. First and higher order are pending.
-   */
-  LinearAlgebra::MPI::Vector        extrapolated_temperature;
 
   /*!
    * @brief The preconditioner of the diffusion step.
@@ -689,11 +619,6 @@ private:
    * step on a single cell.
    */
   void assemble_local_diffusion_step_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    VelocityRightHandSideAssembly::LocalCellData<dim>     &scratch,
-    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>       &data);
-
-  void assemble_local_diffusion_step_rhs2(
     const typename DoFHandler<dim>::active_cell_iterator                  &cell,
     AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>  &scratch,
     AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>     &data);

@@ -38,8 +38,7 @@ assemble_diffusion_step_rhs()
   // Set up the lamba function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator                 &cell,
-           VelocityRightHandSideAssembly::LocalCellData<dim>                    &scratch,
-           /*AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,*/
+           AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
            AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>    &data)
     {
       this->assemble_local_diffusion_step_rhs(cell, 
@@ -65,7 +64,7 @@ assemble_diffusion_step_rhs()
               (velocity->dof_handler)->end()),
    worker,
    copier,
-   /*AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>(
+   AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>(
      *mapping,
      quadrature_formula,
      face_quadrature_formula,
@@ -80,18 +79,9 @@ assemble_diffusion_step_rhs()
      pressure->fe,
      update_values,
      *temperature_fe_ptr,
-     update_values),*/
-   VelocityRightHandSideAssembly::LocalCellData<dim>(velocity->fe,
-                                                     pressure->fe,
-                                                     *temperature_fe_ptr,
-                                                     quadrature_formula,
-                                                     update_values|
-                                                     update_gradients|
-                                                     update_JxW_values|
-                                                     update_quadrature_points,
-                                                     update_values,
-                                                     update_values),
-   AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>(velocity->fe.dofs_per_cell));
+     update_values),
+   AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>(
+     velocity->fe.dofs_per_cell));
 
   // Compress global data
   velocity_rhs.compress(VectorOperation::add);
@@ -102,377 +92,6 @@ assemble_diffusion_step_rhs()
 
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
-(const typename DoFHandler<dim>::active_cell_iterator               &cell,
- VelocityRightHandSideAssembly::LocalCellData<dim>                  &scratch,
- AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>  &data)
-{
-  // reset local matrix and vector
-  data.local_rhs = 0.;
-  data.local_matrix_for_inhomogeneous_bc = 0.;
-
-  // prepare velocity part
-  const FEValuesExtractors::Vector  velocities(0);
-
-  scratch.velocity_fe_values.reinit(cell);
-  
-  cell->get_dof_indices(data.local_dof_indices);
-
-  scratch.velocity_fe_values[velocities].get_function_values
-  (velocity_tmp,
-   scratch.velocity_tmp_values);
-
-  // The velocity gradients of previous solutions are
-  // needed for the laplacian term
-  scratch.velocity_fe_values[velocities].get_function_gradients
-  (velocity->old_solution,
-  scratch.old_velocity_gradients);
-  
-  scratch.velocity_fe_values[velocities].get_function_gradients
-  (velocity->old_old_solution,
-  scratch.old_old_velocity_gradients);
-
-  if (!parameters.flag_semi_implicit_convection)
-  {
-    // The velocity, its divergence and its curl of previous solutions
-    //  are needed for the convection term
-    scratch.velocity_fe_values[velocities].get_function_values
-    (velocity->old_solution,
-    scratch.old_velocity_values);
-    scratch.velocity_fe_values[velocities].get_function_divergences
-    (velocity->old_solution,
-    scratch.old_velocity_divergences);
-    scratch.velocity_fe_values[velocities].get_function_curls
-    (velocity->old_solution,
-    scratch.old_velocity_curls);
-    
-    scratch.velocity_fe_values[velocities].get_function_values
-    (velocity->old_old_solution,
-    scratch.old_old_velocity_values);
-    scratch.velocity_fe_values[velocities].get_function_divergences
-    (velocity->old_old_solution,
-    scratch.old_old_velocity_divergences);
-    scratch.velocity_fe_values[velocities].get_function_curls
-    (velocity->old_old_solution,
-    scratch.old_old_velocity_curls);
-  }
-
-  // prepare pressure part
-  typename DoFHandler<dim>::active_cell_iterator
-  pressure_cell(&velocity->get_triangulation(),
-                 cell->level(),
-                 cell->index(),
-                (pressure->dof_handler).get());
-
-  scratch.pressure_fe_values.reinit(pressure_cell);
-  
-  scratch.pressure_fe_values.get_function_values
-  (pressure_tmp,
-  scratch.pressure_tmp_values);
-
-  // Prepare temperature part
-  if (!flag_ignore_bouyancy_term)
-  {
-    typename DoFHandler<dim>::active_cell_iterator
-    temperature_cell(&velocity->get_triangulation(),
-                     cell->level(),
-                     cell->index(),
-                     (temperature->dof_handler).get());
-
-    scratch.temperature_fe_values.reinit(temperature_cell);
-
-    scratch.temperature_fe_values.get_function_values(
-      extrapolated_temperature,
-      scratch.extrapolated_temperature_values);
-  }
-
-  /*! @attention Quick fix for the benchmark. A more general approach
-      has to be come up with */
-  Tensor<1, dim>  downwards_unit_vector;
-  downwards_unit_vector[dim-1] = 1.0;
-
-  if (body_force_ptr != nullptr)
-    body_force_ptr->value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.body_force_values);
-  else
-    scratch.body_force_values = 
-      std::vector<Tensor<1,dim>>(scratch.n_q_points, Tensor<1,dim>());
-
-  // loop over quadrature points
-  for (unsigned int q = 0; q < scratch.n_q_points; ++q)
-  {
-    for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
-    {
-      scratch.phi_velocity[i] = 
-                  scratch.velocity_fe_values[velocities].value(i, q);
-      scratch.div_phi_velocity[i] =
-                  scratch.velocity_fe_values[velocities].divergence(i, q);
-      scratch.grad_phi_velocity[i] = 
-                scratch.velocity_fe_values[velocities].gradient(i, q);
-      scratch.curl_phi_velocity[i] =
-                scratch.velocity_fe_values[velocities].curl(i, q);
-    }
-    
-    // loop over local dofs
-    for (unsigned int i = 0; i < scratch.velocity_dofs_per_cell; ++i)
-    {
-      {
-        data.local_rhs(i) +=
-                                  scratch.velocity_fe_values.JxW(q) * (
-                                  scratch.pressure_tmp_values[q] *
-                                  scratch.div_phi_velocity[i]
-                                  - 
-                                  scratch.velocity_tmp_values[q] *
-                                  scratch.phi_velocity[i]
-                                  +
-                                  scratch.phi_velocity[i] *
-                                  scratch.body_force_values[q]
-                                  -
-                                  time_stepping.get_gamma()[1] /
-                                  parameters.Re *
-                                  scalar_product(
-                                  scratch.old_velocity_gradients[q],
-                                  scratch.grad_phi_velocity[i])
-                                  -
-                                  time_stepping.get_gamma()[2] /
-                                  parameters.Re *
-                                  scalar_product(
-                                  scratch.old_old_velocity_gradients[q],
-                                  scratch.grad_phi_velocity[i]));
-        if (!parameters.flag_semi_implicit_convection)
-          switch (parameters.convection_term_form)
-          {
-            case RunTimeParameters::ConvectionTermForm::standard:
-            {
-              data.local_rhs(i) -=
-                    scratch.velocity_fe_values.JxW(q) * (
-                    time_stepping.get_beta()[0] *
-                    scratch.phi_velocity[i] *
-                    scratch.old_velocity_gradients[q] *  
-                    scratch.old_velocity_values[q]
-                    +
-                    time_stepping.get_beta()[1] *
-                    scratch.phi_velocity[i] *
-                    scratch.old_old_velocity_gradients[q] *  
-                    scratch.old_old_velocity_values[q]);
-              break;
-            }
-            case RunTimeParameters::ConvectionTermForm::skewsymmetric:
-            {
-              data.local_rhs(i) -=
-                    scratch.velocity_fe_values.JxW(q) * (
-                    time_stepping.get_beta()[0] *
-                    (scratch.phi_velocity[i] *
-                    scratch.old_velocity_gradients[q] *
-                    scratch.old_velocity_values[q]
-                    +
-                    0.5 *
-                    scratch.old_velocity_divergences[q] *
-                    scratch.old_velocity_values[q] * 
-                    scratch.phi_velocity[i])
-                    +
-                    time_stepping.get_beta()[1] *
-                    (scratch.phi_velocity[i] *
-                    scratch.old_old_velocity_gradients[q] *
-                    scratch.old_old_velocity_values[q]
-                    +
-                    0.5 *
-                    scratch.old_old_velocity_divergences[q] *
-                    scratch.old_old_velocity_values[q] * 
-                    scratch.phi_velocity[i]));
-              break;
-            }
-            case RunTimeParameters::ConvectionTermForm::divergence:
-            {
-              data.local_rhs(i) -=
-                    scratch.velocity_fe_values.JxW(q) * (
-                    time_stepping.get_beta()[0] *
-                    (scratch.phi_velocity[i] *
-                    scratch.old_velocity_gradients[q] *
-                    scratch.old_velocity_values[q]
-                    +
-                    scratch.old_velocity_divergences[q] *
-                    scratch.old_velocity_values[q] *
-                    scratch.phi_velocity[i])
-                    +
-                    time_stepping.get_beta()[1] *
-                    (scratch.phi_velocity[i] *
-                    scratch.old_old_velocity_gradients[q] *
-                    scratch.old_old_velocity_values[q]
-                    +
-                    scratch.old_old_velocity_divergences[q] *
-                    scratch.old_old_velocity_values[q] * 
-                    scratch.phi_velocity[i]));
-              break;
-            }
-            case RunTimeParameters::ConvectionTermForm::rotational:
-            {
-              // The minus sign in the argument of cross_product_2d
-              // method is due to how the method is defined.
-              if constexpr(dim == 2)
-                data.local_rhs(i) -=
-                      scratch.velocity_fe_values.JxW(q) * (
-                      time_stepping.get_beta()[0] *
-                      (scratch.phi_velocity[i] *
-                      scratch.old_velocity_curls[q][0] *
-                      cross_product_2d(
-                        - scratch.old_velocity_values[q]))
-                      +
-                      time_stepping.get_beta()[1] *
-                      (scratch.phi_velocity[i] *
-                      scratch.old_old_velocity_curls[q][0] *
-                      cross_product_2d(
-                        - scratch.old_old_velocity_values[q])));
-              else if constexpr(dim == 3)
-                data.local_rhs(i) -=
-                      scratch.velocity_fe_values.JxW(q) * (
-                      time_stepping.get_beta()[0] *
-                      (scratch.phi_velocity[i] *
-                      cross_product_3d(
-                        scratch.old_velocity_curls[q],
-                        scratch.old_velocity_values[q]))
-                      +
-                      time_stepping.get_beta()[1] *
-                      (scratch.phi_velocity[i]  *
-                      cross_product_3d(
-                        scratch.old_old_velocity_curls[q],
-                        scratch.old_old_velocity_values[q])));
-              break;
-            }
-            default:
-              Assert(false, ExcNotImplemented());
-          };
-        if (!flag_ignore_bouyancy_term)
-          data.local_rhs(i) += 
-                    scratch.velocity_fe_values.JxW(q) *
-                    scratch.phi_velocity[i] *
-                    downwards_unit_vector * 
-                    scratch.extrapolated_temperature_values[q];
-      }
-
-      // assemble matrix for inhomogeneous boundary conditions
-      if (velocity->constraints.is_inhomogeneously_constrained(
-          data.local_dof_indices[i]))
-      {
-        // The values inside the scope are only needed for the
-        // semi-implicit scheme.
-        if (parameters.flag_semi_implicit_convection || 
-            flag_initializing)
-        {
-          scratch.velocity_fe_values[velocities].get_function_values(
-                                    extrapolated_velocity, 
-                                    scratch.extrapolated_velocity_values);
-          scratch.velocity_fe_values[velocities].get_function_divergences(
-                              extrapolated_velocity, 
-                              scratch.extrapolated_velocity_divergences);
-          scratch.velocity_fe_values[velocities].get_function_curls(
-                              extrapolated_velocity, 
-                              scratch.extrapolated_velocity_curls);
-        }
-
-        for (unsigned int j = 0; j < scratch.velocity_dofs_per_cell; ++j)
-        {
-          /* The following if scope is added to reuse the assembly
-          method for the diffusion prestep */ 
-          if (!flag_initializing)
-          {
-            data.local_matrix_for_inhomogeneous_bc(j, i) += (
-                              time_stepping.get_alpha()[0] / 
-                              time_stepping.get_next_step_size() *
-                              scratch.phi_velocity[j] *
-                              scratch.phi_velocity[i]
-                              +
-                              time_stepping.get_gamma()[0] /
-                              parameters.Re *
-                              scalar_product(
-                                scratch.grad_phi_velocity[j],
-                                scratch.grad_phi_velocity[i])) * 
-                              scratch.velocity_fe_values.JxW(q);
-          }
-          else
-          {
-            data.local_matrix_for_inhomogeneous_bc(j, i) += (
-                              1.0 / time_stepping.get_next_step_size() *
-                              scratch.phi_velocity[j] *
-                              scratch.phi_velocity[i]
-                              +
-                              1.0 / parameters.Re *
-                              scalar_product(
-                                scratch.grad_phi_velocity[j],
-                                scratch.grad_phi_velocity[i])) * 
-                              scratch.velocity_fe_values.JxW(q);
-          }
-          if (parameters.flag_semi_implicit_convection || 
-              flag_initializing)
-            switch (parameters.convection_term_form)
-            {
-              case RunTimeParameters::ConvectionTermForm::standard:
-              {
-                data.local_matrix_for_inhomogeneous_bc(j, i) +=
-                      scratch.velocity_fe_values.JxW(q) * (
-                      scratch.phi_velocity[j] *
-                      scratch.grad_phi_velocity[i] *
-                      scratch.extrapolated_velocity_values[q]);
-                break;
-              }
-              case RunTimeParameters::ConvectionTermForm::skewsymmetric:
-              {
-                data.local_matrix_for_inhomogeneous_bc(j, i) +=
-                      scratch.velocity_fe_values.JxW(q) * (
-                      scratch.phi_velocity[j] *
-                      scratch.grad_phi_velocity[i] *  
-                      scratch.extrapolated_velocity_values[q]            
-                      +                                    
-                      0.5 *                                
-                      scratch.extrapolated_velocity_divergences[q] *            
-                      scratch.phi_velocity[j] * 
-                      scratch.phi_velocity[i]);
-                break;
-              }
-              case RunTimeParameters::ConvectionTermForm::divergence:
-              {
-                data.local_matrix_for_inhomogeneous_bc(j, i) +=
-                      scratch.velocity_fe_values.JxW(q) * (
-                      scratch.phi_velocity[j] *
-                      scratch.grad_phi_velocity[i] *  
-                      scratch.extrapolated_velocity_values[q]
-                      +
-                      scratch.extrapolated_velocity_divergences[q] *
-                      scratch.phi_velocity[j] * 
-                      scratch.phi_velocity[i]);
-                break;
-              }
-              case RunTimeParameters::ConvectionTermForm::rotational:
-              {
-                // The minus sign in the argument of cross_product_2d
-                // method is due to how the method is defined.
-                if constexpr(dim == 2)
-                  data.local_matrix_for_inhomogeneous_bc(j, i) +=
-                        scratch.velocity_fe_values.JxW(q) * (
-                        scratch.phi_velocity[j] *
-                        scratch.curl_phi_velocity[i][0] *
-                        cross_product_2d(
-                          - scratch.extrapolated_velocity_values[q]));
-                else if constexpr(dim == 3)
-                  data.local_matrix_for_inhomogeneous_bc(j, i) +=
-                        scratch.velocity_fe_values.JxW(q) * (
-                        scratch.phi_velocity[j] *
-                        cross_product_3d(
-                          scratch.curl_phi_velocity[i],
-                          scratch.extrapolated_velocity_values[q]));
-                break;
-              }
-              default:
-                Assert(false, ExcNotImplemented());
-            };
-        }
-      }
-    } // loop over local dofs
-  } // loop over quadrature points
-}
-
-template <int dim>
-void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs2
 (const typename DoFHandler<dim>::active_cell_iterator                 &cell,
  AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
  AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>    &data)
@@ -584,24 +203,27 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs2
   }
 
   // Body force
+  /*! @note Should body forces be also treated inside the VSIMEX scheme?
+      Just a thought, as they are given functions that do not depend
+      (in our code formulation) on the fields.*/
   if (body_force_ptr != nullptr)
   {
     body_force_ptr->set_time(time_stepping.get_current_time() -
                              time_stepping.get_previous_step_size());
     body_force_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.body_force_values);
+      scratch.old_old_body_force_values);
 
     body_force_ptr->set_time(time_stepping.get_current_time() +
                              time_stepping.get_next_step_size());
     body_force_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.old_body_force_values);
+      scratch.body_force_values);
 
     body_force_ptr->set_time(time_stepping.get_current_time());
     body_force_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.old_old_body_force_values);
+      scratch.old_body_force_values);
   }
   else
   {
@@ -988,23 +610,13 @@ template void RMHD::NavierStokesProjection<2>::assemble_diffusion_step_rhs();
 template void RMHD::NavierStokesProjection<3>::assemble_diffusion_step_rhs();
 
 template void RMHD::NavierStokesProjection<2>::assemble_local_diffusion_step_rhs
-(const typename DoFHandler<2>::active_cell_iterator     &,
- RMHD::VelocityRightHandSideAssembly::LocalCellData<2>  &,
- RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<2>    &);
-template void RMHD::NavierStokesProjection<3>::assemble_local_diffusion_step_rhs
-(const typename DoFHandler<3>::active_cell_iterator     &,
- RMHD::VelocityRightHandSideAssembly::LocalCellData<3>  &,
- RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<3>    &);
-
-template void RMHD::NavierStokesProjection<2>::assemble_local_diffusion_step_rhs2
 (const typename DoFHandler<2>::active_cell_iterator                       &,
  RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<2> &,
  RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<2>    &);
-template void RMHD::NavierStokesProjection<3>::assemble_local_diffusion_step_rhs2
+template void RMHD::NavierStokesProjection<3>::assemble_local_diffusion_step_rhs
 (const typename DoFHandler<3>::active_cell_iterator                       &,
  RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<3> &,
  RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<3>    &);
-
 
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_diffusion_step_rhs
 (const RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<2>  &);

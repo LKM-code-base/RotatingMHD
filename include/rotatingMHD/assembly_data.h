@@ -546,49 +546,6 @@ struct Scratch : ScratchBase<dim>
 } // namespace HeatEquation
 
 } // namespace AssemblyData
-namespace VelocityRightHandSideAssembly
-{
-
-template <int dim>
-struct LocalCellData
-{
-  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
-
-  FEValues<dim>                         velocity_fe_values;
-  FEValues<dim>                         pressure_fe_values;
-  FEValues<dim>                         temperature_fe_values;
-  const unsigned int                    n_q_points;
-  const unsigned int                    velocity_dofs_per_cell;
-  std::vector<double>                   pressure_tmp_values;
-  std::vector<Tensor<1, dim>>           velocity_tmp_values;
-  std::vector<Tensor<1, dim>>           phi_velocity;
-  std::vector<double>                   div_phi_velocity;
-  std::vector<double>                   extrapolated_velocity_divergences;
-  std::vector<Tensor<1,dim>>            extrapolated_velocity_values;
-  std::vector<CurlType>                 extrapolated_velocity_curls;
-  std::vector<double>                   old_velocity_divergences;
-  std::vector<Tensor<1, dim>>           old_velocity_values;
-  std::vector<CurlType>                 old_velocity_curls;
-  std::vector<Tensor<2,dim>>            old_velocity_gradients;
-  std::vector<double>                   old_old_velocity_divergences;
-  std::vector<Tensor<1, dim>>           old_old_velocity_values;
-  std::vector<CurlType>                 old_old_velocity_curls;
-  std::vector<Tensor<2,dim>>            old_old_velocity_gradients;
-  std::vector<double>                   extrapolated_temperature_values;
-  std::vector<Tensor<1,dim>>            body_force_values;
-  std::vector<Tensor<2,dim>>            grad_phi_velocity;
-  std::vector<CurlType>                 curl_phi_velocity;
-
-  LocalCellData(const FESystem<dim>  &velocity_fe,
-                const FE_Q<dim>      &pressure_fe,
-                const FE_Q<dim>      &temperature_fe,
-                const Quadrature<dim>&velocity_quadrature_formula,
-                const UpdateFlags     velocity_update_flags,
-                const UpdateFlags     pressure_update_flags,
-                const UpdateFlags     temperature_update_flags);
-  LocalCellData(const LocalCellData  &data);
-};
-} // namespace VelocityRightHandSideAssembly
 
 } // namespace RMHD
 

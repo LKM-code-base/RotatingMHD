@@ -15,7 +15,7 @@ initialize()
 
   flag_initializing = true;
 
-  if (velocity->solution.size() != velocity_tmp.size() )
+  if (velocity->solution.size() != velocity_rhs.size())
     setup();
 
   if (body_force_ptr != nullptr)
@@ -53,27 +53,6 @@ template <int dim>
 void NavierStokesProjection<dim>::
 diffusion_prestep()
 {
-  /* In the diffusion prestep the extrapolated velocity reduces to
-     the velocity at t = t_0 */
-  {
-    extrapolated_velocity = velocity->old_old_solution;
-  }
-  /* The temporary pressure reduces to the pressure at t = t_0 */
-  {
-    pressure_tmp = pressure->old_old_solution;
-  }
-  /* The temporary velocity reduces to that of a first order IMEX
-     method */
-  {
-    TrilinosWrappers::MPI::Vector distributed_old_old_velocity(velocity_rhs);
-    distributed_old_old_velocity  = velocity->old_old_solution;
-    distributed_old_old_velocity  *= -1.0 / time_stepping.get_next_step_size();
-    velocity_tmp                  = distributed_old_old_velocity;
-  }
-  
-  if (!flag_ignore_bouyancy_term)
-    extrapolated_temperature = temperature->old_old_solution;
-
   /* Assemble linear system */
   assemble_diffusion_prestep();
   /* Solve linear system */

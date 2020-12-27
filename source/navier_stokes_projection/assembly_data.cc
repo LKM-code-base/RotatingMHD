@@ -438,88 +438,6 @@ face_phi(this->dofs_per_cell)
 
 } // namespace AssemblyData
 
-namespace VelocityRightHandSideAssembly
-{
-
-template <int dim>
-LocalCellData<dim>::LocalCellData
-(const FESystem<dim>    &velocity_fe,
- const FE_Q<dim>        &pressure_fe,
- const FE_Q<dim>        &temperature_fe,
- const Quadrature<dim>  &velocity_quadrature_formula,
- const UpdateFlags      velocity_update_flags,
- const UpdateFlags      pressure_update_flags,
- const UpdateFlags      temperature_update_flags)
-:
-velocity_fe_values(velocity_fe,
-                   velocity_quadrature_formula,
-                   velocity_update_flags),
-pressure_fe_values(pressure_fe,
-                   velocity_quadrature_formula,
-                   pressure_update_flags),
-temperature_fe_values(temperature_fe,
-                      velocity_quadrature_formula,
-                      temperature_update_flags),
-n_q_points(velocity_quadrature_formula.size()),
-velocity_dofs_per_cell(velocity_fe.dofs_per_cell),
-pressure_tmp_values(n_q_points),
-velocity_tmp_values(n_q_points),
-phi_velocity(velocity_dofs_per_cell),
-div_phi_velocity(velocity_dofs_per_cell),
-extrapolated_velocity_divergences(n_q_points),
-extrapolated_velocity_values(n_q_points),
-extrapolated_velocity_curls(n_q_points),
-old_velocity_divergences(n_q_points),
-old_velocity_values(n_q_points),
-old_velocity_curls(n_q_points),
-old_velocity_gradients(n_q_points),
-old_old_velocity_divergences(n_q_points),
-old_old_velocity_values(n_q_points),
-old_old_velocity_curls(n_q_points),
-old_old_velocity_gradients(n_q_points),
-extrapolated_temperature_values(n_q_points),
-body_force_values(n_q_points),
-grad_phi_velocity(velocity_dofs_per_cell),
-curl_phi_velocity(velocity_dofs_per_cell)
-{}
-
-template <int dim>
-LocalCellData<dim>::LocalCellData(const LocalCellData &data)
-:
-velocity_fe_values(data.velocity_fe_values.get_fe(),
-                   data.velocity_fe_values.get_quadrature(),
-                   data.velocity_fe_values.get_update_flags()),
-pressure_fe_values(data.pressure_fe_values.get_fe(),
-                   data.pressure_fe_values.get_quadrature(),
-                   data.pressure_fe_values.get_update_flags()),
-temperature_fe_values(data.temperature_fe_values.get_fe(),
-                      data.temperature_fe_values.get_quadrature(),
-                      data.temperature_fe_values.get_update_flags()),
-n_q_points(data.n_q_points),
-velocity_dofs_per_cell(data.velocity_dofs_per_cell),
-pressure_tmp_values(n_q_points),
-velocity_tmp_values(n_q_points),
-phi_velocity(velocity_dofs_per_cell),
-div_phi_velocity(velocity_dofs_per_cell),
-extrapolated_velocity_divergences(n_q_points),
-extrapolated_velocity_values(n_q_points),
-extrapolated_velocity_curls(n_q_points),
-old_velocity_divergences(n_q_points),
-old_velocity_values(n_q_points),
-old_velocity_curls(n_q_points),
-old_velocity_gradients(n_q_points),
-old_old_velocity_divergences(n_q_points),
-old_old_velocity_values(n_q_points),
-old_old_velocity_curls(n_q_points),
-old_old_velocity_gradients(n_q_points),
-extrapolated_temperature_values(n_q_points),
-body_force_values(n_q_points),
-grad_phi_velocity(velocity_dofs_per_cell),
-curl_phi_velocity(velocity_dofs_per_cell)
-{}
-
-} // namespace VelocityRightHandSideAssembly
-
 } // namespace RMHD
 
 // explicit instantiations
@@ -543,6 +461,3 @@ template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::S
 
 template struct RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<3>;
-
-template struct RMHD::VelocityRightHandSideAssembly::LocalCellData<2>;
-template struct RMHD::VelocityRightHandSideAssembly::LocalCellData<3>;
