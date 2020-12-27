@@ -657,15 +657,15 @@ private:
    */
   void assemble_local_poisson_prestep_rhs(
     const typename DoFHandler<dim>::active_cell_iterator        &cell,
-    PoissonPrestepRightHandSideAssembly::LocalCellData<dim>     &scratch,
-    PoissonPrestepRightHandSideAssembly::MappingData<dim>       &data);
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>     &scratch,
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>       &data);
 
   /*!
    * @brief This method assembles the local right-hand side of the poisson
    * prestep on a single cell.
    */
   void copy_local_to_global_poisson_prestep_rhs(
-    const PoissonPrestepRightHandSideAssembly::MappingData<dim> &data);
+    const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim> &data);
 
   /*!
    * @brief This method assembles the right-hand side of the diffusion step
