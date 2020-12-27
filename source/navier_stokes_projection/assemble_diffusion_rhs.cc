@@ -566,7 +566,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs2
         it is pending. Here is hardcoded to the last unit vector of dim 
         to replicate MIT benchmark*/
     Tensor<1, dim>  unit_vector;
-    unit_vector[dim-1] = 1.0;
+    unit_vector[dim-1] = -1.0;
 
     for (auto &gravity_unit_vector : scratch.gravity_unit_vector_values)
       gravity_unit_vector = unit_vector;
@@ -666,14 +666,14 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs2
                 -
                 beta[0] *
                 (0.0 // Coriolis acceleration
-                 -
+                 +
                  scratch.phi[i] * 
                  scratch.gravity_unit_vector_values[q] *
                  scratch.old_temperature_values[q])
                 -
                 beta[1] *
                 (0.0 // Coriolis acceleration
-                 -
+                 +
                  scratch.phi[i] * 
                  scratch.gravity_unit_vector_values[q] *
                  scratch.old_old_temperature_values[q])

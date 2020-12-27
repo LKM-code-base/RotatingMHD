@@ -59,36 +59,37 @@ assemble_poisson_prestep_rhs()
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
-  WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             (pressure->dof_handler)->begin_active()),
-                  CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             (pressure->dof_handler)->end()),
-                  worker,
-                  copier,
-                  AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>(
-                                  *mapping,
-                                  quadrature_formula,
-                                  face_quadrature_formula,
-                                  velocity->fe,
-                                  update_values |
-                                  update_gradients,
-                                  update_values |
-                                  update_hessians,
-                                  pressure->fe,
-                                  update_JxW_values|
-                                  update_values|
-                                  update_gradients |
-                                  update_quadrature_points,
-                                  update_JxW_values |
-                                  update_values |
-                                  update_quadrature_points |
-                                  update_normal_vectors,
-                                  *temperature_fe_ptr,
-                                  update_values |
-                                  update_gradients,
-                                  update_values),
-                  AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>(
-                                          pressure->fe.dofs_per_cell));
+  WorkStream::run(
+    CellFilter(IteratorFilters::LocallyOwnedCell(),
+               (pressure->dof_handler)->begin_active()),
+    CellFilter(IteratorFilters::LocallyOwnedCell(),
+               (pressure->dof_handler)->end()),
+    worker,
+    copier,
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>(
+      *mapping,
+      quadrature_formula,
+      face_quadrature_formula,
+      velocity->fe,
+      update_values |
+      update_gradients,
+      update_values |
+      update_hessians,
+      pressure->fe,
+      update_JxW_values|
+      update_values|
+      update_gradients |
+      update_quadrature_points,
+      update_JxW_values |
+      update_values |
+      update_quadrature_points |
+      update_normal_vectors,
+      *temperature_fe_ptr,
+      update_values |
+      update_gradients,
+      update_values),
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>(
+      pressure->fe.dofs_per_cell));
   
   // Compress global data
   poisson_prestep_rhs.compress(VectorOperation::add);
@@ -118,13 +119,13 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
   const FEValuesExtractors::Vector  vector_extractor(0);
 
-  scratch.velocity_fe_values[vector_extractor].get_function_values(
+  /*scratch.velocity_fe_values[vector_extractor].get_function_values(
     velocity->old_old_solution,
     scratch.velocity_values);
 
   scratch.velocity_fe_values[vector_extractor].get_function_curls(
     velocity->old_old_solution,
-    scratch.velocity_curls);
+    scratch.velocity_curls);*/
 
   // Temperature 
   if (!flag_ignore_bouyancy_term)
@@ -137,6 +138,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
     scratch.temperature_fe_values.reinit(temperature_cell);
 
+    
     scratch.temperature_fe_values.get_function_values(
       temperature->old_old_solution,
       scratch.temperature_values);
@@ -145,8 +147,11 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       temperature->old_old_solution,
       scratch.temperature_gradients);
 
+    /*! @note User has to specify the gravity unit vector. Structure for 
+        it is pending. Here is hardcoded to the last unit vector of dim 
+        to replicate MIT benchmark*/
     Tensor<1, dim>  unit_vector;
-    unit_vector[dim-1] = 1.0;
+    unit_vector[dim-1] = -1.0;
 
     for (auto &gravity_unit_vector : scratch.gravity_unit_vector_values)
       gravity_unit_vector = unit_vector;
@@ -203,13 +208,13 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
               scratch.phi[i] *
               (scratch.body_force_divergences[q]
                -
-               -1.0 * // parameters.C2 * 
+               // parameters.C2 * 
                (scratch.phi[i] *
                 scratch.temperature_gradients[q] *
                 scratch.gravity_unit_vector_values[q]
                 +
-                0.0 /*scratch.temperature_values[q] *
-                scratch.gravity_unit_vector_divergences[q]*/)
+                scratch.temperature_values[q] *
+                scratch.gravity_unit_vector_divergences[q])
                /*+
                -
                - 1.0 * // parameters.C3
@@ -292,7 +297,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
           scratch.temperature_face_values);
 
         Tensor<1, dim>  unit_vector;
-        unit_vector[dim-1] = 1.0;
+        unit_vector[dim-1] = -1.0;
 
         for (auto &gravity_unit_vector : scratch.gravity_unit_vector_face_values)
           gravity_unit_vector = unit_vector;
@@ -348,8 +353,8 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                              +
                              scratch.body_force_values[q]
                              -
-                             - 1.0 * // parameters.C2
-                             scratch.temperature_values[q] *
+                             // parameters.C2
+                             scratch.temperature_face_values[q] *
                              scratch.gravity_unit_vector_face_values[q])*
                             scratch.normal_vectors[q] *
                             scratch.pressure_fe_face_values.JxW(q);  
