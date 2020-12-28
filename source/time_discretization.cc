@@ -226,33 +226,6 @@ void TimeSteppingParameters::write(Stream &stream) const
          << "   verbose: " << (verbose? "true": "false") << std::endl;
 }
 
-void VSIMEXMethod::reinit()
-{
-  alpha.resize(order+1, 0.0);
-  beta.resize(order, 0.0);
-  gamma.resize(order+1, 0.0);
-  eta.resize(order, 0.0);
-
-  old_step_size_values.resize(order, this->get_next_step_size());
-  
-  double old_alpha_zero_init_value;
-  switch (order)
-  {
-  case 1:
-    old_alpha_zero_init_value = 1.0;
-    break;
-  case 2:
-    old_alpha_zero_init_value = (1.0 + 2.0 * vsimex_parameters[0])/2.0 ;
-    break;
-  default:
-    Assert(false,
-    ExcMessage("The order is not implemented in the reinit method."));
-    break;
-  } 
-  old_alpha_zero.resize(order, old_alpha_zero_init_value);
-  alpha[0] = old_alpha_zero_init_value;
-}
-
 template<typename Stream>
 Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
 {
@@ -456,6 +429,19 @@ flag_coefficients_changed(true)
   reinit();
 }
 
+void VSIMEXMethod::reinit()
+{
+  // Resize all coefficient vectors according to the scheme's order
+  // and initializing their values to zero excepct of those acting as
+  // divisor.
+  alpha.resize(order+1, 0.0);
+  beta.resize(order, 0.0);
+  gamma.resize(order+1, 0.0);
+  eta.resize(order, 0.0);
+  old_step_size_values.resize(order, 0.0);
+  old_alpha_zero.resize(order, 1.0);
+}
+
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 {
   if (time_step_size < parameters.minimum_time_step)
@@ -468,79 +454,92 @@ void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 
 void VSIMEXMethod::update_coefficients()
 {
-  if (get_step_number() > 1)
+  // Computes the ration of the next and previous time step sizes.
+  // It is nested in an if as get_previous_step_size() returns zero
+  // at the start time.
+  if (get_step_number() > 0)
+  {
     omega = get_next_step_size() / get_previous_step_size();
+    AssertIsFinite(omega);
+  }
 
-  AssertIsFinite(omega);
-
+  // The elimination of the solenoidal velocity in the pressure
+  // correction scheme requires to store older values of 
+  // \f$ \alpha_0\f$ and time steps. The following updates
+  // the std::vectors storing those values
   for (unsigned int i = order-1; i > 0; --i)
   {
-    old_alpha_zero[i]   = old_alpha_zero[i-1];
+    old_alpha_zero[i]       = old_alpha_zero[i-1];
     old_step_size_values[i] = old_step_size_values[i-1];
   }
-  old_alpha_zero[0] = alpha[0];
+
+  // and stores their previous values. The inline if considers 
+  old_alpha_zero[0]       = (get_step_number() > 1)
+                            ? alpha[0]
+                            : (1.0 + 2.0 * vsimex_parameters[0])/2.0;
   old_step_size_values[0] = get_previous_step_size();
 
-  /*! @attention I had to explicitly cast omega to a float. Otherwise
-      the boolean does not work as expected. Can you check this? */
-
-  // The second boolean, i.e. get_step_number() == (get_order() - 1),
+  // Checks if the time step size changes. If not, exit the method.
+  // The second boolean, i.e. get_step_number() <= (get_order() - 1),
   // takes the first step into account.
-  if ((float)omega != 1. || get_step_number() == (get_order() - 1))
-  {
+  if ((float)omega != 1. || get_step_number() <= (get_order() - 1))
     flag_coefficients_changed = true;
-  }
   else
   {
     flag_coefficients_changed = false;
     return;  
   }
 
-  switch (order)
+  if (get_step_number() < (get_order() - 1))
   {
-    case 1 :
-    {
-      const double a   = vsimex_parameters[0];
+    // Hardcoded coefficients for a Crank-Nicolson first order scheme
+    alpha[0] = 1.0;
+    alpha[1] = - 1.0;
+    alpha[2] = 0.0;
 
-      alpha[0] = 1.0;
-      alpha[1] = - 1.0;
+    beta[0]  = 1.0;
+    beta[1]  = 0.0;
 
-      beta[0]  = 1.0;
+    gamma[0] = 0.5;
+    gamma[1] = 0.5;
+    gamma[2] = 0.0;
 
-      gamma[0] = a;
-      gamma[1] = (1.0 - a);
-
-      eta[0]   = 1.0;
-      eta[1]   = 0.0;
-
-      break;
-    }
-    case 2 :
-    {
-      const double a = vsimex_parameters[0];
-      const double b = vsimex_parameters[1];
-
-      alpha[0] = (1.0 + 2.0 * a * omega) / (1.0 + omega);
-      alpha[1] = ((1.0 - 2.0 * a) * omega - 1.0);
-      alpha[2] = (2.0 * a - 1.0) * omega * omega / (1.0 + omega);
-
-      beta[0]  = 1.0 + a * omega;
-      beta[1]  = - a * omega;
-
-      gamma[0] = a + b / (2.0 * omega);
-      gamma[1] = 1.0 - a - (1.0 + 1.0 / omega) * b / 2.0;
-      gamma[2] = b / 2.0;
-
-      eta[0]   = 1.0 + omega;
-      eta[1]   = - omega;
-
-      break;
-    }
-    default :
-     Assert(false,
-            ExcMessage("Only VSIMEX of first and second order are currently implemented"));
-     break;
+    // First order Taylor extrapolation coefficients
+    eta[0]   = 1.0;
+    eta[1]   = 0.0;
   }
+  else
+  {
+    // VSIMEX coefficient's formulas
+    const double a = vsimex_parameters[0];
+    const double b = vsimex_parameters[1];
+
+    alpha[0] = (1.0 + 2.0 * a * omega) / (1.0 + omega);
+    alpha[1] = ((1.0 - 2.0 * a) * omega - 1.0);
+    alpha[2] = (2.0 * a - 1.0) * omega * omega / (1.0 + omega);
+
+    beta[0]  = 1.0 + a * omega;
+    beta[1]  = - a * omega;
+
+    gamma[0] = a + b / (2.0 * omega);
+    gamma[1] = 1.0 - a - (1.0 + 1.0 / omega) * b / 2.0;
+    gamma[2] = b / 2.0;
+
+    // Second order Tayor extrapolation coefficients
+    eta[0]   = 1.0 + omega;
+    eta[1]   = - omega;
+  }
+
+  AssertIsFinite(alpha[0]);
+  AssertIsFinite(alpha[1]);
+  AssertIsFinite(alpha[2]);
+  AssertIsFinite(beta[0]);
+  AssertIsFinite(beta[1]);
+  AssertIsFinite(gamma[0]);
+  AssertIsFinite(gamma[1]);
+  AssertIsFinite(gamma[2]);
+  AssertIsFinite(eta[0]);
+  AssertIsFinite(eta[1]);
 }
 
 } // namespace TimeDiscretiation

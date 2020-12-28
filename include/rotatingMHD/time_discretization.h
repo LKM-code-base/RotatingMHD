@@ -156,6 +156,12 @@ public:
   unsigned int get_order() const;
 
   /*!
+   * @brief Returns a string with the name of the variable step size IMEX
+   * scheme.
+   */
+  std::string get_name() const;
+
+  /*!
    * @brief A method returning the coefficients \f$\alpha_i \f$.
    */
   const std::vector<double>& get_alpha() const;
@@ -208,12 +214,6 @@ public:
    */
   template<typename Stream>
   void print_coefficients(Stream &stream) const;
-
-  /*!
-   * @brief Returns a string with the name of the variable step size IMEX
-   * scheme.
-   */
-  std::string get_name() const;
 
   /*!
   *  @brief A method that updates the coefficients.
