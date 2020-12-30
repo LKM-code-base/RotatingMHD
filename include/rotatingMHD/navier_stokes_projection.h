@@ -141,12 +141,6 @@ public:
   void set_body_force(RMHD::EquationData::BodyForce<dim> &body_force);
 
   /*!
-   * @brief Currently this method only sets the vector of the two pressure
-   * updates @ref old_phi and @ref old_old_phi to zero.
-   */
-  void initialize();
-
-  /*!
    *  @brief Solves the problem for one single timestep.
    *
    *  @details Performs the diffusion and the projection step for one single
@@ -435,35 +429,6 @@ private:
    * @brief This method solves the linear system of the poisson prestep.
    */
   void solve_poisson_prestep();
-
-  /*!
-   * @brief This method performs the diffusion prestep.
-   */
-  void diffusion_prestep();
-
-  /*!
-   * @brief This method assembles the system matrix of the diffusion
-   * prestep and calls assemble_diffusion_prestep_rhs
-   * @details The system matrix \f$\bs{A}^{(\bs{v})}\f$ is constructed from the mass
-   * \f$\bs{M}^{(\bs{v})}\f$, the stiffness \f$\bs{K}^{(\bs{v})}\f$ and
-   * the advection matrices \f$\bs{C}^{(\bs{v})}\f$ as follows
-   *
-   * \f[
-   * \bs{A} = \frac{1}{\Delta t_{n-1}} \bs{M}^{(\bs{v})}+ \frac{1}{\Reynolds}
-   * \bs{K}^{(\bs{v})} + \bs{C}^{(\bs{v})} \,.
-   * \f]
-   */
-  void assemble_diffusion_prestep();
-
-  /*!
-   * @brief This method performs the projection prestep.
-   */
-  void projection_prestep();
-
-  /*!
-   * @brief This method performs the pressure correction prestep.
-   */
-  void pressure_correction_prestep();
 
   /*!
    * @brief This method performs one complete diffusion step.

@@ -250,6 +250,19 @@ void NavierStokesProjection<dim>::reset_phi()
   flag_setup_phi = true;
 }
 
+template <int dim>
+void NavierStokesProjection<dim>::
+poisson_prestep()
+{
+  /* Assemble linear system */
+  assemble_poisson_prestep();
+  /* Solve linear system */
+  solve_poisson_prestep();
+
+  velocity->old_solution = velocity->old_old_solution;
+  pressure->old_solution = pressure->old_old_solution;
+}
+
 }
 
 // explicit instantiations
@@ -270,3 +283,6 @@ template void RMHD::NavierStokesProjection<3>::set_body_force(RMHD::EquationData
 
 template void RMHD::NavierStokesProjection<2>::reset_phi();
 template void RMHD::NavierStokesProjection<3>::reset_phi();
+
+template void RMHD::NavierStokesProjection<2>::poisson_prestep();
+template void RMHD::NavierStokesProjection<3>::poisson_prestep();
