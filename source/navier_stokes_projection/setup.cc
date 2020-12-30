@@ -28,6 +28,9 @@ void NavierStokesProjection<dim>::setup()
     flag_normalize_pressure = true;
 
   flag_add_mass_and_stiffness_matrices = true;
+
+  if (time_stepping.get_step_number() == 0)
+    poisson_prestep();
 }
 
 template <int dim>

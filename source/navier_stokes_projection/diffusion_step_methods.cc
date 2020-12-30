@@ -114,10 +114,8 @@ solve_diffusion_step(const bool reinit_prec)
   velocity->solution = distributed_velocity;
 
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
-
-  if (parameters.verbose)
-    *pcout << "    Number of GMRES iterations: " 
+    *pcout << " done!" << std::endl
+           << "    Number of GMRES iterations: " 
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;

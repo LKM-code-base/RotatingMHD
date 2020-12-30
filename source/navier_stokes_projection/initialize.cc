@@ -47,6 +47,9 @@ poisson_prestep()
   assemble_poisson_prestep();
   /* Solve linear system */
   solve_poisson_prestep();
+
+  velocity->old_solution = velocity->old_old_solution;
+  pressure->old_solution = pressure->old_old_solution;
 }
 
 template <int dim>

@@ -444,7 +444,9 @@ void VSIMEXMethod::reinit()
 
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 {
-  if (time_step_size < parameters.minimum_time_step)
+  if (is_at_start())
+    DiscreteTime::set_desired_next_step_size(parameters.initial_time_step);
+  else if (time_step_size < parameters.minimum_time_step)
     DiscreteTime::set_desired_next_step_size(parameters.minimum_time_step);
   else if (time_step_size > parameters.maximum_time_step)
     DiscreteTime::set_desired_next_step_size(parameters.maximum_time_step);
@@ -473,7 +475,9 @@ void VSIMEXMethod::update_coefficients()
     old_step_size_values[i] = old_step_size_values[i-1];
   }
 
-  // and stores their previous values. The inline if considers 
+  // and stores their previous values. The inline if considers the
+  // change from a first to second order scheme between the first and
+  // second time steps.
   old_alpha_zero[0]       = (get_step_number() > 1)
                             ? alpha[0]
                             : (1.0 + 2.0 * vsimex_parameters[0])/2.0;
@@ -490,9 +494,13 @@ void VSIMEXMethod::update_coefficients()
     return;  
   }
 
+  // Updates the VSIMEX coefficients. For the first time step, the
+  // method returns the coefficients of the Backward Euler scheme instead.
   if (get_step_number() < (get_order() - 1))
   {
-    // Hardcoded coefficients for a Crank-Nicolson first order scheme
+    // Hardcoded coefficients for a Backward Euler first order scheme
+    const double a = 1.0;
+    
     alpha[0] = 1.0;
     alpha[1] = - 1.0;
     alpha[2] = 0.0;
@@ -500,8 +508,8 @@ void VSIMEXMethod::update_coefficients()
     beta[0]  = 1.0;
     beta[1]  = 0.0;
 
-    gamma[0] = 0.5;
-    gamma[1] = 0.5;
+    gamma[0] = a;
+    gamma[1] = 1.0 - a;
     gamma[2] = 0.0;
 
     // First order Taylor extrapolation coefficients
