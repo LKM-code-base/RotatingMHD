@@ -348,13 +348,6 @@ private:
    * scheme step.
    */ 
   double                                  norm_projection_rhs;
-
-  /*!
-   * @brief A flag for the initializing of the solver.
-   * @details It is only set as true while initializing in order to 
-   * reuse methods of the normal solve procedure.
-   */
-  bool                                  flag_initializing;
   
   /*!
    * @brief A flag to normalize the pressure field.

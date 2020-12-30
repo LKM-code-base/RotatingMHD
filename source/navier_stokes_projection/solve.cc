@@ -81,14 +81,13 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           distributed_old_pressure  = pressure->old_solution;
           distributed_phi           = phi->solution; 
 
-          pressure_rhs /= (!flag_initializing ?
-                            time_stepping.get_alpha()[0] / 
-                            time_stepping.get_next_step_size()  :
-                            1.0 / time_stepping.get_next_step_size());
+          pressure_rhs /= time_stepping.get_alpha()[0] / 
+                          time_stepping.get_next_step_size();
 
           SolverControl solver_control(parameters.n_maximum_iterations,
-                                       std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
-                                                absolute_tolerance));
+                                       std::max(parameters.relative_tolerance * 
+                                                pressure_rhs.l2_norm(),
+                                       absolute_tolerance));
 
           if (reinit_prec)
             correction_step_preconditioner.initialize(pressure_mass_matrix);

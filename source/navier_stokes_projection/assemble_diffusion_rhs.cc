@@ -429,22 +429,17 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
             data.local_dof_indices[i]))
         for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
         {
-          /*! @note All the following flag_initializing are going to 
-              be deleted in a comming overhaul */
           data.local_matrix_for_inhomogeneous_bc(j,i) +=
-                (((!flag_initializing) ? alpha[0] : 1.0) / 
-                 time_stepping.get_next_step_size() *
+                (alpha[0] / time_stepping.get_next_step_size() *
                  scratch.phi[j] *
                  scratch.phi[i]
                  +
-                 ((!flag_initializing) ? gamma[0] : 1.0) / 
-                 parameters.Re *
+                 gamma[0] / parameters.Re *
                  scalar_product(scratch.grad_phi[j],
                                 scratch.grad_phi[i])) *
                 scratch.velocity_fe_values.JxW(q);
           
-          if (parameters.flag_semi_implicit_convection || 
-              flag_initializing)
+          if (parameters.flag_semi_implicit_convection)
             switch (parameters.convection_term_form)
             {
               case RunTimeParameters::ConvectionTermForm::standard:
@@ -452,10 +447,10 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                 data.local_matrix_for_inhomogeneous_bc(j, i) +=
                       (scratch.phi[j] *
                        scratch.grad_phi[i] *
-                       (((!flag_initializing) ? eta[0] : 1.0 ) *
+                       (eta[0] *
                         scratch.old_velocity_values[q]
                         +
-                        ((!flag_initializing) ? eta[1] : 0.0 ) *
+                        eta[1] *
                         scratch.old_old_velocity_values[q])) *
                       scratch.velocity_fe_values.JxW(q);
                 break;
@@ -465,17 +460,17 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                 data.local_matrix_for_inhomogeneous_bc(j, i) +=
                       (scratch.phi[j] *
                        scratch.grad_phi[i] *  
-                       (((!flag_initializing) ? eta[0] : 1.0 ) *
+                       (eta[0] *
                         scratch.old_velocity_values[q]
                         +
-                        ((!flag_initializing) ? eta[1] : 0.0 ) *
+                        eta[1] *
                         scratch.old_old_velocity_values[q])
                        +
                        0.5 *
-                       (((!flag_initializing) ? eta[0] : 1.0 ) *
+                       (eta[0] *
                         scratch.old_velocity_divergences[q]
                         +
-                        ((!flag_initializing) ? eta[1] : 0.0 ) *
+                        eta[1] *
                         scratch.old_old_velocity_divergences[q]) *
                        scratch.phi[j] * 
                        scratch.phi[i]) *
@@ -487,16 +482,16 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                 data.local_matrix_for_inhomogeneous_bc(j, i) +=
                       (scratch.phi[j] *
                        scratch.grad_phi[i] *  
-                       (((!flag_initializing) ? eta[0] : 1.0 ) *
+                       (eta[0] *
                         scratch.old_velocity_values[q]
                         +
-                        ((!flag_initializing) ? eta[1] : 0.0 ) *
+                        eta[1] *
                         scratch.old_old_velocity_values[q])
                        +
-                       (((!flag_initializing) ? eta[0] : 1.0 ) *
+                       (eta[0] *
                         scratch.old_velocity_divergences[q]
                         +
-                        ((!flag_initializing) ? eta[1] : 0.0 ) *
+                        eta[1] *
                         scratch.old_old_velocity_divergences[q]) *
                        scratch.phi[j] * 
                        scratch.phi[i]) *
@@ -512,10 +507,10 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                       (scratch.phi[j] *
                        scratch.curl_phi[i][0] *
                        cross_product_2d(
-                        ((!flag_initializing) ? -eta[0] : -1.0 ) *
+                        -eta[0] *
                         scratch.old_velocity_values[q]
                         -
-                        ((!flag_initializing) ? eta[1] : 0.0 ) *
+                        eta[1] *
                         scratch.old_old_velocity_values[q])) *
                       scratch.velocity_fe_values.JxW(q);
                 else if constexpr(dim == 3)
@@ -523,10 +518,10 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                       (scratch.phi[j] *
                        cross_product_3d(
                          scratch.curl_phi[i],
-                         ((!flag_initializing) ? eta[0] : 1.0 ) *
+                         eta[0] *
                          scratch.old_velocity_values[q]
                          +
-                         ((!flag_initializing) ? eta[1] : 0.0 ) *
+                         eta[1] *
                          scratch.old_old_velocity_values[q])) *
                       scratch.velocity_fe_values.JxW(q);
                 break;
