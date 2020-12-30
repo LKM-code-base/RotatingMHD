@@ -77,9 +77,7 @@ SET(TARGET_SRC
     source/navier_stokes_projection/assemble_poisson_prestep_rhs.cc
     source/navier_stokes_projection/assemble_projection_rhs.cc
     source/navier_stokes_projection/assembly_data.cc
-    source/navier_stokes_projection/diffusion_prestep_methods.cc
     source/navier_stokes_projection/diffusion_step_methods.cc
-    source/navier_stokes_projection/initialize.cc
     source/navier_stokes_projection/poisson_prestep_methods.cc
     source/navier_stokes_projection/projection_step_methods.cc
     source/navier_stokes_projection/setup.cc
