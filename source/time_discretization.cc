@@ -444,9 +444,7 @@ void VSIMEXMethod::reinit()
 
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 {
-  if (is_at_start())
-    DiscreteTime::set_desired_next_step_size(parameters.initial_time_step);
-  else if (time_step_size < parameters.minimum_time_step)
+  if (time_step_size < parameters.minimum_time_step)
     DiscreteTime::set_desired_next_step_size(parameters.minimum_time_step);
   else if (time_step_size > parameters.maximum_time_step)
     DiscreteTime::set_desired_next_step_size(parameters.maximum_time_step);
