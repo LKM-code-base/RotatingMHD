@@ -121,24 +121,21 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     velocity->old_old_solution,
     scratch.old_old_velocity_gradients);
 
-  if (!parameters.flag_semi_implicit_convection)
-  {
-    scratch.velocity_fe_values[vector_extractor].get_function_divergences(
-      velocity->old_solution,
-      scratch.old_velocity_divergences);
+  scratch.velocity_fe_values[vector_extractor].get_function_divergences(
+    velocity->old_solution,
+    scratch.old_velocity_divergences);
 
-    scratch.velocity_fe_values[vector_extractor].get_function_divergences(
-      velocity->old_old_solution,
-      scratch.old_old_velocity_divergences);
+  scratch.velocity_fe_values[vector_extractor].get_function_divergences(
+    velocity->old_old_solution,
+    scratch.old_old_velocity_divergences);
 
-    scratch.velocity_fe_values[vector_extractor].get_function_curls(
-      velocity->old_solution,
-      scratch.old_velocity_curls);
+  scratch.velocity_fe_values[vector_extractor].get_function_curls(
+    velocity->old_solution,
+    scratch.old_velocity_curls);
 
-    scratch.velocity_fe_values[vector_extractor].get_function_curls(
-      velocity->old_old_solution,
-      scratch.old_old_velocity_curls);
-  }
+  scratch.velocity_fe_values[vector_extractor].get_function_curls(
+    velocity->old_old_solution,
+    scratch.old_old_velocity_curls);
 
   // Pressure
   typename DoFHandler<dim>::active_cell_iterator
@@ -208,22 +205,20 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       (in our code formulation) on the fields.*/
   if (body_force_ptr != nullptr)
   {
-    body_force_ptr->set_time(time_stepping.get_current_time() -
-                             time_stepping.get_previous_step_size());
+    body_force_ptr->set_time(time_stepping.get_previous_time());
     body_force_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.old_old_body_force_values);
-
-    body_force_ptr->set_time(time_stepping.get_current_time() +
-                             time_stepping.get_next_step_size());
-    body_force_ptr->value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.body_force_values);
 
     body_force_ptr->set_time(time_stepping.get_current_time());
     body_force_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.old_body_force_values);
+
+    body_force_ptr->set_time(time_stepping.get_next_time());
+    body_force_ptr->value_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.body_force_values);
   }
   else
   {
@@ -549,22 +544,22 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       
       /*! @note This is meant for the Neumann BC branch
       velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-        time_stepping.get_current_time() - time_stepping.get_previous_step_size());
+        time_stepping.get_previous_time());
       velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
         scratch.velocity_fe_face_values.get_quadrature_points(),
         scratch.old_old_neuamnn_bc_values);
-
-      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-        time_stepping.get_current_time() + time_stepping.get_next_step_size());
-      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-        scratch.velocity_fe_face_values.get_quadrature_points(),
-        scratch.neuamnn_bc_values);
 
       velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
         time_stepping.get_current_time());
       velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
         scratch.velocity_fe_face_values.get_quadrature_points(),
         scratch.old_neuamnn_bc_values);
+
+      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
+        time_stepping.get_next_time());
+      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
+        scratch.velocity_fe_face_values.get_quadrature_points(),
+        scratch.neuamnn_bc_values);
       */
 
       // Loop over face quadrature points
