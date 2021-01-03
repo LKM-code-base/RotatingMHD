@@ -167,22 +167,20 @@ void HeatEquation<dim>::assemble_local_rhs(
   // Source term
   if (source_term_ptr != nullptr)
   {
-    source_term_ptr->set_time(time_stepping.get_current_time() -
-                              time_stepping.get_previous_step_size());
+    source_term_ptr->set_time(time_stepping.get_previous_time());
     source_term_ptr->value_list(
       scratch.temperature_fe_values.get_quadrature_points(),
       scratch.old_old_source_term_values);
-
-    source_term_ptr->set_time(time_stepping.get_current_time() +
-                              time_stepping.get_next_step_size());
-    source_term_ptr->value_list(
-      scratch.temperature_fe_values.get_quadrature_points(),
-      scratch.source_term_values);
 
     source_term_ptr->set_time(time_stepping.get_current_time());
     source_term_ptr->value_list(
       scratch.temperature_fe_values.get_quadrature_points(),
       scratch.old_source_term_values);
+
+    source_term_ptr->set_time(time_stepping.get_next_time());
+    source_term_ptr->value_list(
+      scratch.temperature_fe_values.get_quadrature_points(),
+      scratch.source_term_values);
   }
   else
   {
