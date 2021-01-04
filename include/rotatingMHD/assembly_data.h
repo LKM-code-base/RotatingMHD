@@ -160,12 +160,20 @@ struct Scratch : Generic::Matrix::Scratch<dim>
   
   std::vector<Tensor<1, dim>> grad_phi;
 };
+
+} // namespace PressureConstantMatrices
+
+namespace AdvectionMatrix
+{
+
+template<int dim>
 using Copy = Generic::Matrix::Copy<dim>;
 
 template <int dim>  
 struct Scratch : Generic::Matrix::Scratch<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
 

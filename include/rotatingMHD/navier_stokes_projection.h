@@ -340,6 +340,8 @@ private:
    */
   LinearAlgebra::MPI::PreconditionILU     poisson_prestep_preconditioner;
 
+  /*!
+   * @brief The preconditioner of the correction step.
    * @attention Hardcoded for a Jacobi preconditioner.
    */
   LinearAlgebra::MPI::PreconditionJacobi  correction_step_preconditioner;

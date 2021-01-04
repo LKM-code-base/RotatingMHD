@@ -26,8 +26,8 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   // Set up the lamba function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>         &scratch,
-           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>           &data)
+           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim> &scratch,
+           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>    &data)
     {
       this->assemble_local_velocity_matrices(cell, 
                                              scratch,
@@ -261,12 +261,12 @@ void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
                                       data.local_dof_indices,
                                       pressure_laplace_matrix);
   phi->constraints.distribute_local_to_global(
-                                      data.local_phi_laplace_matrix,
-                                      data.local_pressure_dof_indices,
+                                      data.local_stiffness_matrix,
+                                      data.local_dof_indices,
                                       phi_laplace_matrix);
   pressure->hanging_nodes.distribute_local_to_global(
-                                      data.local_pressure_mass_matrix,
-                                      data.local_pressure_dof_indices,
+                                      data.local_mass_matrix,
+                                      data.local_dof_indices,
                                       projection_mass_matrix);
 }
 

@@ -8,7 +8,7 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::solve()
 {
-  if (velocity->solution.size() != velocity_rhs.size())
+  if (velocity->solution.size() != diffusion_step_rhs.size())
   {
     setup();
 
