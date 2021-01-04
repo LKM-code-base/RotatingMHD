@@ -169,7 +169,8 @@ double Problem<dim>::compute_next_time_step
  const double                           cfl_number,
  const double                           max_cfl_number) const
 {
-  if (!prm.time_stepping_parameters.adaptive_time_stepping)
+  if (!prm.time_stepping_parameters.adaptive_time_stepping ||
+      time_stepping.get_step_number() == 0)
     return time_stepping.get_next_step_size();
 
   return max_cfl_number / cfl_number * 

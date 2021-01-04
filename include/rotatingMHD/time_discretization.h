@@ -23,18 +23,7 @@ namespace TimeDiscretization
 enum class VSIMEXScheme
 {
   /*!
-   * Forward Euler method.
-   */
-  ForwardEuler,
-  /*!
-   * @brief Combination of the Crank-Nicolson and forward Euler method.
-   * @details Applies Crank-Nicolson to \f$ g(u) \f$ and forward Euler to \f$ f(u) \f$.
-   * @attention SG: What is meant by \f$ f(u) \f$ and \f$ g(u) \f$? What is the
-   * wealth of combining both schemes?
-   */
-  CNFE,
-  /*!
-   * @brief Applies the backward differentiation formula of second order.
+   * @brief The second order backward differentiation formula.
    */
   BDF2,
   /*!
@@ -167,6 +156,12 @@ public:
   unsigned int get_order() const;
 
   /*!
+   * @brief Returns a string with the name of the variable step size IMEX
+   * scheme.
+   */
+  std::string get_name() const;
+
+  /*!
    * @brief A method returning the coefficients \f$\alpha_i \f$.
    */
   const std::vector<double>& get_alpha() const;
@@ -219,12 +214,6 @@ public:
    */
   template<typename Stream>
   void print_coefficients(Stream &stream) const;
-
-  /*!
-   * @brief Returns a string with the name of the variable step size IMEX
-   * scheme.
-   */
-  std::string get_name() const;
 
   /*!
   *  @brief A method that updates the coefficients.

@@ -78,11 +78,6 @@ int main(int /* argc */, char **/* argv[] */)
 
     std::cout << "================================="
                  "========================================" << std::endl;
-    parameters.vsimex_scheme = VSIMEXScheme::ForwardEuler;
-    checkTimeStepper(parameters);
-
-    std::cout << "================================="
-                 "========================================" << std::endl;
     parameters.vsimex_scheme = VSIMEXScheme::BDF2;
     checkTimeStepper(parameters);
 

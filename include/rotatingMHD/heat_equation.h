@@ -246,7 +246,6 @@ private:
    */
   LinearAlgebra::MPI::SparseMatrix              advection_matrix;
 
-
   /*!
    * @brief Vector representing the right-hand side of the linear system.
    * @todo Add formulas
@@ -372,30 +371,30 @@ private:
    */
   void assemble_local_constant_matrices(
     const typename DoFHandler<dim>::active_cell_iterator    &cell,
-    TemperatureConstantMatricesAssembly::LocalCellData<dim> &scratch,
-    TemperatureConstantMatricesAssembly::MappingData<dim>   &data);
+    AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>  &scratch,
+    AssemblyData::HeatEquation::ConstantMatrices::Copy<dim>     &data);
 
   /*!
    * @brief This method copies the mass matrix into its global
    * conterpart.
    */
   void copy_local_to_global_constant_matrices(
-    const TemperatureConstantMatricesAssembly::MappingData<dim>  &data);
+    const AssemblyData::HeatEquation::ConstantMatrices::Copy<dim>  &data);
 
   /*!
    * @brief This method assembles the advection matrix on a single cell.
    */
   void assemble_local_advection_matrix(
     const typename DoFHandler<dim>::active_cell_iterator    &cell,
-    TemperatureAdvectionMatrixAssembly::LocalCellData<dim>  &scratch,
-    TemperatureAdvectionMatrixAssembly::MappingData<dim>    &data);
+    AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>  &scratch,
+    AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim>    &data);
 
   /*!
    * @brief This method copies the local advection matrix into their 
    * global conterparts.
    */
   void copy_local_to_global_advection_matrix(
-    const TemperatureAdvectionMatrixAssembly::MappingData<dim>  &data);
+    const AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim>  &data);
 
 
   /*!
@@ -403,15 +402,14 @@ private:
    */
   void assemble_local_rhs(
     const typename DoFHandler<dim>::active_cell_iterator    &cell,
-    TemperatureRightHandSideAssembly::LocalCellData<dim> &scratch,
-    TemperatureRightHandSideAssembly::MappingData<dim>   &data);
-
+    AssemblyData::HeatEquation::RightHandSide::Scratch<dim> &scratch,
+    AssemblyData::HeatEquation::RightHandSide::Copy<dim>    &data);
   /*!
    * @brief This method copies the local right-hand side into its global
    * conterpart.
    */
   void copy_local_to_global_rhs(
-    const TemperatureRightHandSideAssembly::MappingData<dim>  &data);
+    const AssemblyData::HeatEquation::RightHandSide::Copy<dim>  &data);
 };
 
 template <int dim>

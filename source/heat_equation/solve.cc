@@ -8,52 +8,11 @@ namespace RMHD
 template <int dim>
 void HeatEquation<dim>::solve()
 {
-  if (temperature->solution.size() != temperature_tmp.size())
+  if (temperature->solution.size() != mass_matrix.m())
   {
     setup();
     flag_reinit_preconditioner            = true;
     flag_add_mass_and_stiffness_matrices  = true;
-  }
-
-  // In the following scope we create temporal non ghosted copies
-  // of the pertinent vectors to be able to perform the sadd()
-  // operations.
-  {
-    /*! 
-     * @todo Should we move all these asserts to the VSIMEXMethod class?
-     */
-    const std::vector<double> alpha = time_stepping.get_alpha();
-    AssertIsFinite(alpha[1]);
-    AssertIsFinite(alpha[2]);
-    AssertIsFinite(time_stepping.get_next_step_size());
-    AssertIsFinite(alpha[1] / time_stepping.get_next_step_size());
-    AssertIsFinite(alpha[2] / time_stepping.get_next_step_size());
-
-    LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
-    LinearAlgebra::MPI::Vector distributed_old_old_temperature(temperature->distributed_vector);
-    distributed_old_temperature      = temperature->old_solution;
-    distributed_old_old_temperature  = temperature->old_old_solution;
-    distributed_old_temperature.sadd(
-      alpha[1] / time_stepping.get_next_step_size(),
-      alpha[2] / time_stepping.get_next_step_size(),
-      distributed_old_old_temperature);
-    temperature_tmp = distributed_old_temperature;
-  }
-
-  if (velocity != nullptr)
-  {
-    const std::vector<double> eta = time_stepping.get_eta();
-    AssertIsFinite(eta[0]);
-    AssertIsFinite(eta[1]);
-
-    LinearAlgebra::MPI::Vector distributed_old_velocity(velocity->distributed_vector);
-    LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity->distributed_vector);
-    distributed_old_velocity      = velocity->old_solution;
-    distributed_old_old_velocity  = velocity->old_old_solution;
-    distributed_old_velocity.sadd(eta[0],
-                                  eta[1],
-                                  distributed_old_old_velocity);
-    extrapolated_velocity = distributed_old_velocity;
   }
 
   assemble_linear_system();

@@ -58,8 +58,7 @@ solve_diffusion_step(const bool reinit_prec)
   /* The following pointer holds the address to the correct matrix 
   depending on if the semi-implicit scheme is chosen or not */
   const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
-  if (parameters.flag_semi_implicit_convection ||
-      flag_initializing)
+  if (parameters.flag_semi_implicit_convection)
     system_matrix = &velocity_system_matrix;
   else
     system_matrix = &velocity_mass_plus_laplace_matrix;
@@ -114,10 +113,8 @@ solve_diffusion_step(const bool reinit_prec)
   velocity->solution = distributed_velocity;
 
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
-
-  if (parameters.verbose)
-    *pcout << "    Number of GMRES iterations: " 
+    *pcout << " done!" << std::endl
+           << "    Number of GMRES iterations: " 
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;

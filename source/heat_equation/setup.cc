@@ -118,11 +118,6 @@ setup_vectors()
 
   // Initializing the temperature related vectors
   rhs.reinit(temperature->distributed_vector);
-  temperature_tmp.reinit(temperature->solution);
-
-  // Initializing the velocity related vector
-  if (!flag_ignore_advection && velocity != nullptr)
-    extrapolated_velocity.reinit(velocity->solution);
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl;
