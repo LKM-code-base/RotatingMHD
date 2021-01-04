@@ -110,6 +110,8 @@ private:
 
   BenchmarkData::MIT<dim>                       mit_benchmark;
 
+  EquationData::MIT::GravityUnitVector<dim>     gravity_unit_vector;
+
   double                                        cfl_number;
 
   std::ofstream                                 cfl_output_file;
@@ -173,12 +175,14 @@ mit_benchmark(velocity,
               this->mapping,
               this->pcout,
               this->computing_timer),
+gravity_unit_vector(parameters.time_stepping_parameters.start_time),
 cfl_output_file("MIT_cfl_number.csv"),
 flag_local_refinement(true)
 {
   *this->pcout << "Problem: MIT Benchmark" << std::endl;
 
   AssertDimension(dim, 2);
+  navier_stokes.set_gravity_unit_vector(gravity_unit_vector);
   make_grid(parameters.n_global_refinements);
   setup_dofs();
   setup_constraints();
