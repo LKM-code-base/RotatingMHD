@@ -141,6 +141,15 @@ public:
   void set_body_force(RMHD::EquationData::BodyForce<dim> &body_force);
 
   /*!
+   *  @brief Sets the gravity unit vector of the problem.
+   *
+   *  @details Stores the memory address of the gravity unit vector 
+   *  function in the pointer @ref gravity_unit_vector_ptr.
+   */
+  void set_gravity_unit_vector(RMHD::EquationData::BodyForce<dim> &gravity_unit_vector);
+
+
+  /*!
    *  @brief Solves the problem for one single timestep.
    *
    *  @details Performs the diffusion and the projection step for one single
@@ -227,6 +236,11 @@ private:
    * @brief A pointer to the body force function.
    */
   RMHD::EquationData::BodyForce<dim>    *body_force_ptr;
+
+  /*!
+   * @brief A pointer to the gravity unit vector function.
+   */
+  RMHD::EquationData::BodyForce<dim>    *gravity_unit_vector_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
