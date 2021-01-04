@@ -9,6 +9,11 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_poisson_prestep_rhs()
 {
+  if (parameters.verbose)
+    *pcout << "  Navier Stokes: Assembling poisson pre-step's right hand side...";
+
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Poisson pre-step - RHS assembly");
+
   // Reset data
   poisson_prestep_rhs = 0.;
 
@@ -93,6 +98,9 @@ assemble_poisson_prestep_rhs()
   
   // Compress global data
   poisson_prestep_rhs.compress(VectorOperation::add);
+
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
