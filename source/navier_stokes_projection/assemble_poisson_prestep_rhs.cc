@@ -155,27 +155,34 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       temperature->old_old_solution,
       scratch.temperature_gradients);
 
-    /*! @note User has to specify the gravity unit vector. Structure for 
-        it is pending. Here is hardcoded to the last unit vector of dim 
-        to replicate MIT benchmark*/
-    Tensor<1, dim>  unit_vector;
-    unit_vector[dim-1] = -1.0;
+    Assert(gravity_unit_vector_ptr != nullptr,
+           ExcMessage("No unit vector for the gravity has been specified."))
+    
+    gravity_unit_vector_ptr->value_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.gravity_unit_vector_values);
 
-    for (auto &gravity_unit_vector : scratch.gravity_unit_vector_values)
-      gravity_unit_vector = unit_vector;
+    gravity_unit_vector_ptr->divergence_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.gravity_unit_vector_divergences);
   }
   else
   {
     ZeroFunction<dim>().value_list(
-      scratch.pressure_fe_values.get_quadrature_points(),
+      scratch.velocity_fe_values.get_quadrature_points(),
       scratch.temperature_values);
 
     ZeroTensorFunction<1,dim>().value_list(
-      scratch.pressure_fe_values.get_quadrature_points(),
+      scratch.velocity_fe_values.get_quadrature_points(),
       scratch.temperature_gradients);
 
-    for (auto &gravity_unit_vector : scratch.gravity_unit_vector_values)
-      gravity_unit_vector = Tensor<1, dim>();
+    ZeroTensorFunction<1,dim>().value_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.gravity_unit_vector_values);
+
+    ZeroFunction<dim>().value_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.gravity_unit_vector_divergences);
   }
 
   // Body force
@@ -304,11 +311,12 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
           temperature->old_old_solution,
           scratch.temperature_face_values);
 
-        Tensor<1, dim>  unit_vector;
-        unit_vector[dim-1] = -1.0;
-
-        for (auto &gravity_unit_vector : scratch.gravity_unit_vector_face_values)
-          gravity_unit_vector = unit_vector;
+        Assert(gravity_unit_vector_ptr != nullptr,
+              ExcMessage("No unit vector for the gravity has been specified."))
+        
+        gravity_unit_vector_ptr->value_list(
+          scratch.temperature_fe_face_values.get_quadrature_points(),
+          scratch.gravity_unit_vector_face_values);
       }
       else
       {
@@ -316,9 +324,11 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
           scratch.pressure_fe_face_values.get_quadrature_points(),
           scratch.temperature_face_values);
       
-        for (auto &gravity_unit_vector : scratch.gravity_unit_vector_face_values)
-          gravity_unit_vector = Tensor<1, dim>();
+        ZeroTensorFunction<1, dim>().value_list(
+          scratch.temperature_fe_face_values.get_quadrature_points(),
+          scratch.gravity_unit_vector_face_values);
       }
+
       // Body force
       if (body_force_ptr != nullptr)
         body_force_ptr->value_list(

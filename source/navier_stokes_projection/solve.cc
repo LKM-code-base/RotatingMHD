@@ -66,7 +66,23 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
   switch (parameters.projection_method)
     {
       case RunTimeParameters::ProjectionMethod::standard:
-        pressure->solution += phi->solution;
+        {
+        // In the following scope we create temporal non ghosted copies
+        // of the pertinent vectors to be able to perform algebraic
+        // operations.
+          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
+          LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
+
+          distributed_old_pressure  = pressure->old_solution;
+          distributed_phi           = phi->solution; 
+
+          distributed_old_pressure  += distributed_phi;
+
+          if (flag_normalize_pressure)
+            VectorTools::subtract_mean_value(distributed_old_pressure);
+
+          pressure->solution = distributed_old_pressure;
+        }
         break;
       case RunTimeParameters::ProjectionMethod::rotational:
         // In the following scope we create temporal non ghosted copies

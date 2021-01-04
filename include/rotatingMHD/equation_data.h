@@ -373,6 +373,16 @@ private:
   const double beta = 10.;
 };
 
+template <int dim>
+class GravityUnitVector: public RMHD::EquationData::BodyForce<dim>
+{
+public:
+  GravityUnitVector(const double time = 0);
+
+  virtual Tensor<1, dim> value(
+    const Point<dim>  &point) const override;
+};
+
 }
 
 } // namespace EquationData

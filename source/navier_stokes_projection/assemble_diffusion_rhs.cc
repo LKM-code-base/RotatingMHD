@@ -185,14 +185,12 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       temperature->old_old_solution,
       scratch.old_old_temperature_values);
 
-    /*! @note User has to specify the gravity unit vector. Structure for 
-        it is pending. Here is hardcoded to the last unit vector of dim 
-        to replicate MIT benchmark*/
-    Tensor<1, dim>  unit_vector;
-    unit_vector[dim-1] = -1.0;
-
-    for (auto &gravity_unit_vector : scratch.gravity_unit_vector_values)
-      gravity_unit_vector = unit_vector;
+    Assert(gravity_unit_vector_ptr != nullptr,
+           ExcMessage("No unit vector for the gravity has been specified."))
+    
+    gravity_unit_vector_ptr->value_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.gravity_unit_vector_values);
   }
   else
   {
