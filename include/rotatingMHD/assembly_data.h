@@ -279,11 +279,11 @@ struct Scratch : ScratchBase<dim>
   /*! @note For the time being I will use the more general naming
       convention of neumann_bc_values instead of traction_vector_values.
       I would like to discuss a couple of aspects in this line*/
-  std::vector<Tensor<1,dim>>  neuamnn_bc_values;
+  std::vector<Tensor<1,dim>>  neumann_bc_values;
 
-  std::vector<Tensor<1,dim>>  old_neuamnn_bc_values;
+  std::vector<Tensor<1,dim>>  old_neumann_bc_values;
 
-  std::vector<Tensor<1,dim>>  old_old_neuamnn_bc_values;
+  std::vector<Tensor<1,dim>>  old_old_neumann_bc_values;
 
   std::vector<Tensor<1,dim>>  phi;
   
@@ -528,11 +528,11 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<double>         old_old_source_term_values;
 
-  std::vector<double>         neuamnn_bc_values;
+  std::vector<double>         neumann_bc_values;
 
-  std::vector<double>         old_neuamnn_bc_values;
+  std::vector<double>         old_neumann_bc_values;
 
-  std::vector<double>         old_old_neuamnn_bc_values;
+  std::vector<double>         old_old_neumann_bc_values;
 
   std::vector<double>         phi;
   

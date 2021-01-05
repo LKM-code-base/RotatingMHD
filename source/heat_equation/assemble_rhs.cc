@@ -318,19 +318,19 @@ void HeatEquation<dim>::assemble_local_rhs(
           time_stepping.get_current_time() - time_stepping.get_previous_step_size());
         temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
           scratch.temperature_fe_face_values.get_quadrature_points(),
-          scratch.old_old_neuamnn_bc_values);
+          scratch.old_old_neumann_bc_values);
 
         temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
           time_stepping.get_current_time() + time_stepping.get_next_step_size());
         temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
           scratch.temperature_fe_face_values.get_quadrature_points(),
-          scratch.neuamnn_bc_values);
+          scratch.neumann_bc_values);
 
         temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
           time_stepping.get_current_time());
         temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
           scratch.temperature_fe_face_values.get_quadrature_points(),
-          scratch.old_neuamnn_bc_values);
+          scratch.old_neumann_bc_values);
         
         // Loop over face quadrature points
         for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
@@ -345,13 +345,13 @@ void HeatEquation<dim>::assemble_local_rhs(
             data.local_rhs(i) +=
               scratch.face_phi[i] * (
                 gamma[0] *
-                scratch.neuamnn_bc_values[q]
+                scratch.neumann_bc_values[q]
                 +
                 gamma[1] *
-                scratch.old_neuamnn_bc_values[q]
+                scratch.old_neumann_bc_values[q]
                 +
                 gamma[2] *
-                scratch.old_old_neuamnn_bc_values[q]) *
+                scratch.old_old_neumann_bc_values[q]) *
               scratch.temperature_fe_face_values.JxW(q);
         } // Loop over face quadrature points
       } // Loop over the faces of the cell
