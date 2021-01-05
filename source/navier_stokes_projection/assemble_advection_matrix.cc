@@ -9,31 +9,36 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 {
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Advection matrix assembly");
 
+  // Reset data
   velocity_advection_matrix = 0.;
 
-  // Polynomial degree of the integrand
+  // Compute the highest polynomial degree from all the integrands 
   const int p_degree = 3 * velocity->fe_degree - 1;
 
+  // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
-  using CellFilter =
-    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
-
+  // Set up the lamba function for the local assembly operation
   auto worker =
-    [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-           AdvectionAssembly::LocalCellData<dim>                &scratch,
-           AdvectionAssembly::MappingData<dim>                  &data)
+    [this](const typename DoFHandler<dim>::active_cell_iterator                 &cell,
+           AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>  &scratch,
+           AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>     &data)
     {
       this->assemble_local_velocity_advection_matrix(cell, 
                                                      scratch,
                                                      data);
     };
-  
+
+  // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AdvectionAssembly::MappingData<dim> &data) 
+    [this](const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim> &data) 
     {
       this->copy_local_to_global_velocity_advection_matrix(data);
     };
+
+  // Assemble using the WorkStream approach
+  using CellFilter =
+    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
@@ -42,13 +47,16 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
               (*velocity->dof_handler).end()),
    worker,
    copier,
-   AdvectionAssembly::LocalCellData<dim>(velocity->fe,
+   AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>(
+     *mapping,
                                          quadrature_formula,
+                                             velocity->fe,
                                          update_values|
                                          update_JxW_values|
                                          update_gradients),
-   AdvectionAssembly::MappingData<dim>(velocity->fe.dofs_per_cell));
+   AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>(velocity->fe.dofs_per_cell));
 
+  // Compress global data
   velocity_advection_matrix.compress(VectorOperation::add);
 
 }
@@ -56,83 +64,123 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
- AdvectionAssembly::LocalCellData<dim>                 &scratch,
- AdvectionAssembly::MappingData<dim>                   &data)
+ AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>  &scratch,
+ AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>     &data)
 {
-  // reset local matrix
+  // Reset local data
   data.local_matrix = 0.;
 
-  // initialize velocity part
-  const FEValuesExtractors::Vector      velocities(0);
-
+  // Velocity's cell data
   scratch.fe_values.reinit(cell);
 
-  cell->get_dof_indices(data.local_dof_indices);
+  const FEValuesExtractors::Vector  vector_extractor(0);
 
-  scratch.fe_values[velocities].get_function_values
-  (extrapolated_velocity,
-   scratch.extrapolated_velocity_values);
+  scratch.fe_values[vector_extractor].get_function_values(
+    velocity->old_solution,
+    scratch.old_velocity_values);
 
-  scratch.fe_values[velocities].get_function_divergences
-  (extrapolated_velocity,
-   scratch.extrapolated_velocity_divergences);
+  scratch.fe_values[vector_extractor].get_function_values(
+    velocity->old_old_solution,
+    scratch.old_old_velocity_values);
 
-  
+  scratch.fe_values[vector_extractor].get_function_divergences(
+    velocity->old_solution,
+    scratch.old_velocity_divergences);
+
+  scratch.fe_values[vector_extractor].get_function_divergences(
+    velocity->old_old_solution,
+    scratch.old_old_velocity_divergences);
+
+  /*! @note Should I leave this if in? */
   if (parameters.convection_term_form == 
         RunTimeParameters::ConvectionTermForm::rotational)
-    scratch.fe_values[velocities].get_function_curls(
-      extrapolated_velocity, 
-      scratch.extrapolated_velocity_curls);
+  {
+    scratch.fe_values[vector_extractor].get_function_curls(
+      velocity->old_solution,
+      scratch.old_velocity_curls);
+    scratch.fe_values[vector_extractor].get_function_curls(
+      velocity->old_old_solution,
+      scratch.old_old_velocity_curls);
+  }
 
+  // Taylor extrapolation coefficients
+  const std::vector<double> eta   = time_stepping.get_eta();
 
-  // loop over quadrature points
+  // Local to global indices mapping
+  cell->get_dof_indices(data.local_dof_indices);
+
+  // Loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
   {
+    // Extract test function values at the quadrature points
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
-      scratch.phi_velocity[i] = scratch.fe_values[velocities].value(i,q);
-      scratch.grad_phi_velocity[i] = scratch.fe_values[velocities].gradient(i,q);
-      scratch.curl_phi_velocity[i] = scratch.fe_values[velocities].curl(i,q);
+      scratch.phi[i]        = scratch.fe_values[vector_extractor].value(i, q);
+      scratch.grad_phi[i]   = scratch.fe_values[vector_extractor].gradient(i, q);
+      /*! @note As above, should I leave this if in? */
+      if (parameters.convection_term_form == 
+        RunTimeParameters::ConvectionTermForm::rotational)
+        scratch.curl_phi[i] = scratch.fe_values[vector_extractor].curl(i,q);
     }
-    // loop over local dofs
+    // Loop over local degrees of freedom
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
       for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
         switch (parameters.convection_term_form)
         {
           case RunTimeParameters::ConvectionTermForm::standard:
           {
-            data.local_matrix(i, j) += ( 
-                          scratch.phi_velocity[i] *
-                          scratch.grad_phi_velocity[j] *
-                          scratch.extrapolated_velocity_values[q])
-                          * scratch.fe_values.JxW(q);
+            data.local_matrix(i, j) +=
+                          scratch.phi[i] *
+                          scratch.grad_phi[j] *
+                          (eta[0] *
+                           scratch.old_velocity_values[q]
+                           +
+                           eta[1] *
+                           scratch.old_old_velocity_values[q]) *
+                          scratch.fe_values.JxW(q);
             break;
           }
           case RunTimeParameters::ConvectionTermForm::skewsymmetric:
           {
             data.local_matrix(i, j) += ( 
-                          scratch.phi_velocity[i] *
-                          scratch.grad_phi_velocity[j] *
-                          scratch.extrapolated_velocity_values[q]
+                          scratch.phi[i] *
+                          scratch.grad_phi[j] *
+                          (eta[0] *
+                           scratch.old_velocity_values[q]
+                           +
+                           eta[1] *
+                           scratch.old_old_velocity_values[q])
                           +
                           0.5 *
-                          scratch.extrapolated_velocity_divergences[q] *
-                          scratch.phi_velocity[i] * 
-                          scratch.phi_velocity[j] )
-                          * scratch.fe_values.JxW(q);
+                          (eta[0] *
+                           scratch.old_velocity_divergences[q]
+                           +
+                           eta[1] *
+                           scratch.old_old_velocity_divergences[q]) *
+                          scratch.phi[i] * 
+                          scratch.phi[j]) *
+                          scratch.fe_values.JxW(q);
             break;
           }
           case RunTimeParameters::ConvectionTermForm::divergence:
           {
             data.local_matrix(i, j) += ( 
-                          scratch.phi_velocity[i] *
-                          scratch.grad_phi_velocity[j] *
-                          scratch.extrapolated_velocity_values[q]
+                          scratch.phi[i] *
+                          scratch.grad_phi[j] *
+                          (eta[0] *
+                           scratch.old_velocity_values[q]
+                           +
+                           eta[1] *
+                           scratch.old_old_velocity_values[q])
                           +
-                          scratch.extrapolated_velocity_divergences[q] *
-                          scratch.phi_velocity[i] * 
-                          scratch.phi_velocity[j] )
-                          * scratch.fe_values.JxW(q);
+                          (eta[0] *
+                           scratch.old_velocity_divergences[q]
+                           +
+                           eta[1] *
+                           scratch.old_old_velocity_divergences[q]) *
+                          scratch.phi[i] * 
+                          scratch.phi[j]) *
+                          scratch.fe_values.JxW(q);
             break;
           }
           case RunTimeParameters::ConvectionTermForm::rotational:
@@ -140,31 +188,39 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
             // The minus sign in the argument of cross_product_2d
             // method is due to how the method is defined.
             if constexpr(dim == 2)
-              data.local_matrix(i, j) += ( 
-                          scratch.phi_velocity[i] *
-                          scratch.curl_phi_velocity[j][0] *
+              data.local_matrix(i, j) += 
+                          scratch.phi[i] *
+                          scratch.curl_phi[j][0] *
                           cross_product_2d(
-                            - scratch.extrapolated_velocity_values[q])) * 
+                            - (eta[0] *
+                               scratch.old_velocity_values[q]
+                               +
+                               eta[1] *
+                               scratch.old_old_velocity_values[q])) * 
                           scratch.fe_values.JxW(q);
             else if constexpr(dim == 3)
-              data.local_matrix(i, j) += ( 
-                          scratch.phi_velocity[i]  *
+              data.local_matrix(i, j) +=
+                          scratch.phi[i] *
                           cross_product_3d(
-                            scratch.curl_phi_velocity[j],
-                            scratch.extrapolated_velocity_values[q])) *
+                            scratch.curl_phi[j],
+                            (eta[0] *
+                             scratch.old_velocity_values[q]
+                             +
+                             eta[1] *
+                             scratch.old_old_velocity_values[q])) *
                           scratch.fe_values.JxW(q);
             break;
           }
           default:
             Assert(false, ExcNotImplemented());
-        };
-    // loop over local dofs
-  } // loop over quadrature points
-}
+        }; // Loop over local degrees of freedom (End of switch)
+  } // Loop over quadrature points
+
+} // assemble_local_velocity_advection_matrix
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_advection_matrix
-(const AdvectionAssembly::MappingData<dim> &data)
+(const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim> &data)
 {
   velocity->constraints.distribute_local_to_global(
                                       data.local_matrix,
@@ -178,15 +234,16 @@ template void RMHD::NavierStokesProjection<2>::assemble_velocity_advection_matri
 template void RMHD::NavierStokesProjection<3>::assemble_velocity_advection_matrix();
 
 template void RMHD::NavierStokesProjection<2>::assemble_local_velocity_advection_matrix
-(const typename DoFHandler<2>::active_cell_iterator &,
- RMHD::AdvectionAssembly::LocalCellData<2>          &,
- RMHD::AdvectionAssembly::MappingData<2>            &);
+(const typename DoFHandler<2>::active_cell_iterator                       &,
+ RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<2>  &,
+ RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<2>     &);
 template void RMHD::NavierStokesProjection<3>::assemble_local_velocity_advection_matrix
-(const typename DoFHandler<3>::active_cell_iterator &,
- RMHD::AdvectionAssembly::LocalCellData<3>          &,
- RMHD::AdvectionAssembly::MappingData<3>            &);
+(const typename DoFHandler<3>::active_cell_iterator                       &,
+ RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<3>  &,
+ RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<3>     &);
+
 
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_velocity_advection_matrix
-(const RMHD::AdvectionAssembly::MappingData<2> &);
+(const RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<2> &);
 template void RMHD::NavierStokesProjection<3>::copy_local_to_global_velocity_advection_matrix
-(const RMHD::AdvectionAssembly::MappingData<3> &);
+(const RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<3> &);

@@ -14,49 +14,56 @@ assemble_projection_step_rhs()
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - RHS assembly");
 
+  // Reset data
   pressure_rhs = 0.;
 
-  // Polynomial degree of the integrand
-
+  // Compute the highest polynomial degree from all the integrands 
   const int p_degree = velocity->fe_degree + pressure->fe_degree - 1;
 
+  // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
-  using CellFilter =
-    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
-
+  // Set up the lamba function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-           PressureRightHandSideAssembly::LocalCellData<dim>    &scratch,
-           PressureRightHandSideAssembly::MappingData<dim>      &data)
+           AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>    &scratch,
+           AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim>      &data)
     {
       this->assemble_local_projection_step_rhs(cell, 
                                                scratch,
                                                data);
     };
   
+  // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const PressureRightHandSideAssembly::MappingData<dim> &data) 
+    [this](const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim> &data) 
     {
       this->copy_local_to_global_projection_step_rhs(data);
     };
 
-  WorkStream::run(CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             (pressure->dof_handler)->begin_active()),
-                  CellFilter(IteratorFilters::LocallyOwnedCell(),
-                             (pressure->dof_handler)->end()),
-                  worker,
-                  copier,
-                  PressureRightHandSideAssembly::LocalCellData<dim>(
-                                          velocity->fe,
-                                          pressure->fe,
-                                          quadrature_formula,
-                                          update_values |
-                                          update_gradients,
-                                          update_JxW_values |
-                                          update_values),
-                  PressureRightHandSideAssembly::MappingData<dim>(
-                                            pressure->fe.dofs_per_cell));
+  // Assemble using the WorkStream approach
+  using CellFilter =
+    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
+
+  WorkStream::run(
+    CellFilter(IteratorFilters::LocallyOwnedCell(),
+               (pressure->dof_handler)->begin_active()),
+    CellFilter(IteratorFilters::LocallyOwnedCell(),
+               (pressure->dof_handler)->end()),
+    worker,
+    copier,
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>(
+      *mapping,
+      quadrature_formula,
+      velocity->fe,
+      update_gradients,
+      pressure->fe,
+      update_JxW_values |
+      update_values),
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim>(
+      pressure->fe.dofs_per_cell));
+  
+  // Compress global data
   pressure_rhs.compress(VectorOperation::add);
 
   if (parameters.verbose)
@@ -66,21 +73,16 @@ assemble_projection_step_rhs()
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
- PressureRightHandSideAssembly::LocalCellData<dim>     &scratch,
- PressureRightHandSideAssembly::MappingData<dim>       &data)
+ AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>     &scratch,
+ AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim>       &data)
 {
-  // reset local rhs
+  // Reset local data
   data.local_projection_step_rhs = 0.;
-  data.local_matrix_for_inhomogeneous_bc = 0.;
 
-  // initialize pressure part
+  // Pressure
   scratch.pressure_fe_values.reinit(cell);
 
-  cell->get_dof_indices(data.local_pressure_dof_indices);
-
-  // initialize velocity part
-  const FEValuesExtractors::Vector  velocities(0);
-
+  // Velocity
   typename DoFHandler<dim>::active_cell_iterator
   velocity_cell(&velocity->get_triangulation(),
                  cell->level(),
@@ -89,38 +91,50 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
 
   scratch.velocity_fe_values.reinit(velocity_cell);
 
-  scratch.velocity_fe_values[velocities].get_function_divergences(
-                              velocity->solution,
-                              scratch.velocity_divergence_values);
+  const FEValuesExtractors::Vector  vector_extractor(0);
 
-  // loop over quadrature points
+  scratch.velocity_fe_values[vector_extractor].get_function_divergences(
+    velocity->solution,
+    scratch.velocity_divergences);
+
+  // VSIMEX coefficient
+  const std::vector<double> alpha = time_stepping.get_alpha();
+
+  // Local to global indices mapping
+  cell->get_dof_indices(data.local_dof_indices);
+
+  // Loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
   {
-    for (unsigned int i = 0; i < scratch.pressure_dofs_per_cell; ++i)
-      scratch.phi_pressure[i] = 
-                          scratch.pressure_fe_values.shape_value(i, q);
+    // Extract test function values at the quadrature points
+    for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+      scratch.phi[i] = scratch.pressure_fe_values.shape_value(i, q);
 
-    // loop over local dofs
-    for (unsigned int i = 0; i < scratch.pressure_dofs_per_cell; ++i)
-      data.local_projection_step_rhs(i) += 
-                          - (!flag_initializing ?
-                              time_stepping.get_alpha()[0] / 
-                              time_stepping.get_next_step_size() :
-                              1.0 / time_stepping.get_next_step_size()) *
-                          scratch.pressure_fe_values.JxW(q) *
-                          scratch.velocity_divergence_values[q] *
-                          scratch.phi_pressure[i];
-  } // loop over quadrature points
+    // Loop over local degrees of freedom
+    for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+    {
+      const double phi_div_v = 
+              scratch.phi[i] * 
+              scratch.velocity_divergences[q] *
+              scratch.pressure_fe_values.JxW(q);
+
+      data.local_projection_step_rhs(i) -= 
+              alpha[0] / time_stepping.get_next_step_size() *
+              phi_div_v;
+
+      data.local_correction_step_rhs(i) -= phi_div_v;
+    } // Loop over local degrees of freedom
+  } // Loop over quadrature points
 }
 
 template <int dim>
 void NavierStokesProjection<dim>::
 copy_local_to_global_projection_step_rhs(
-  const PressureRightHandSideAssembly::MappingData<dim>  &data)
+  const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim>  &data)
 {
   pressure->constraints.distribute_local_to_global
   (data.local_projection_step_rhs,
-   data.local_pressure_dof_indices,
+   data.local_dof_indices,
    pressure_rhs);
 }
 
@@ -131,15 +145,15 @@ template void RMHD::NavierStokesProjection<2>::assemble_projection_step_rhs();
 template void RMHD::NavierStokesProjection<3>::assemble_projection_step_rhs();
 
 template void RMHD::NavierStokesProjection<2>::assemble_local_projection_step_rhs
-(const typename DoFHandler<2>::active_cell_iterator     &,
- RMHD::PressureRightHandSideAssembly::LocalCellData<2>  &,
- RMHD::PressureRightHandSideAssembly::MappingData<2>    &);
+(const typename DoFHandler<2>::active_cell_iterator                         &,
+ RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<2>  &,
+ RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<2>     &);
 template void RMHD::NavierStokesProjection<3>::assemble_local_projection_step_rhs
-(const typename DoFHandler<3>::active_cell_iterator     &,
- RMHD::PressureRightHandSideAssembly::LocalCellData<3>  &,
- RMHD::PressureRightHandSideAssembly::MappingData<3>    &);
+(const typename DoFHandler<3>::active_cell_iterator                         &,
+ RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<3>  &,
+ RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<3>     &);
 
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_projection_step_rhs
-(const RMHD::PressureRightHandSideAssembly::MappingData<2> &);
+(const RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<2> &);
 template void RMHD::NavierStokesProjection<3>::copy_local_to_global_projection_step_rhs
-(const RMHD::PressureRightHandSideAssembly::MappingData<3> &);
+(const RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<3> &);

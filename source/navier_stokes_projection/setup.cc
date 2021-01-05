@@ -28,6 +28,9 @@ void NavierStokesProjection<dim>::setup()
     flag_normalize_pressure = true;
 
   flag_add_mass_and_stiffness_matrices = true;
+
+  if (time_stepping.get_step_number() == 0)
+    poisson_prestep();
 }
 
 template <int dim>
@@ -217,14 +220,8 @@ setup_vectors()
 
   pressure_rhs.reinit(pressure->distributed_vector);
   poisson_prestep_rhs.reinit(pressure->distributed_vector);
-  pressure_tmp.reinit(pressure->solution);
-
   velocity_rhs.reinit(velocity->distributed_vector);
-  extrapolated_velocity.reinit(velocity->solution);
-  velocity_tmp.reinit(velocity->solution);
 
-  if (!flag_ignore_bouyancy_term)
-    extrapolated_temperature.reinit(temperature->solution);
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl;
@@ -243,7 +240,14 @@ template <int dim>
 void NavierStokesProjection<dim>::set_body_force(
   RMHD::EquationData::BodyForce<dim> &body_force)
 {
-  body_force_ptr  = &body_force;
+  body_force_ptr = &body_force;
+}
+
+template <int dim>
+void NavierStokesProjection<dim>::set_gravity_unit_vector(
+  RMHD::EquationData::BodyForce<dim> &gravity_unit_vector)
+{
+  gravity_unit_vector_ptr = &gravity_unit_vector;
 }
 
 template <int dim>
@@ -251,6 +255,19 @@ void NavierStokesProjection<dim>::reset_phi()
 {
   phi->set_solution_vectors_to_zero();
   flag_setup_phi = true;
+}
+
+template <int dim>
+void NavierStokesProjection<dim>::
+poisson_prestep()
+{
+  /* Assemble linear system */
+  assemble_poisson_prestep();
+  /* Solve linear system */
+  solve_poisson_prestep();
+
+  velocity->old_solution = velocity->old_old_solution;
+  pressure->old_solution = pressure->old_old_solution;
 }
 
 }
@@ -271,5 +288,11 @@ template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<2>::set_body_force(RMHD::EquationData::BodyForce<2> &);
 template void RMHD::NavierStokesProjection<3>::set_body_force(RMHD::EquationData::BodyForce<3> &);
 
+template void RMHD::NavierStokesProjection<2>::set_gravity_unit_vector(RMHD::EquationData::BodyForce<2> &);
+template void RMHD::NavierStokesProjection<3>::set_gravity_unit_vector(RMHD::EquationData::BodyForce<3> &);
+
 template void RMHD::NavierStokesProjection<2>::reset_phi();
 template void RMHD::NavierStokesProjection<3>::reset_phi();
+
+template void RMHD::NavierStokesProjection<2>::poisson_prestep();
+template void RMHD::NavierStokesProjection<3>::poisson_prestep();

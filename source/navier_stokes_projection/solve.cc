@@ -8,7 +8,7 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::solve()
 {
-  if (velocity->solution.size() != velocity_tmp.size())
+  if (velocity->solution.size() != velocity_rhs.size())
   {
     setup();
 
@@ -34,88 +34,6 @@ void NavierStokesProjection<dim>::solve()
 template <int dim>
 void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 {
-  // In the following scopes we create temporal non ghosted copies
-  // of the pertinent vectors to be able to perform the sadd()
-  // operations.
-  {
-    const std::vector<double> eta = time_stepping.get_eta();
-    AssertIsFinite(eta[0]);
-    AssertIsFinite(eta[1]);
-
-    LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
-    LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
-    distributed_old_velocity      = velocity->old_solution;
-    distributed_old_old_velocity  = velocity->old_old_solution;
-    distributed_old_velocity.sadd(eta[0],
-                                  eta[1],
-                                  distributed_old_old_velocity);
-    extrapolated_velocity = distributed_old_velocity;
-
-    if (!flag_ignore_bouyancy_term)
-    {
-      LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
-      LinearAlgebra::MPI::Vector distributed_old_old_temperature(temperature->distributed_vector);
-      distributed_old_temperature      = temperature->old_solution;
-      distributed_old_old_temperature  = temperature->old_old_solution;
-      distributed_old_temperature.sadd(eta[0],
-                                       eta[1],
-                                       distributed_old_old_temperature);
-      extrapolated_temperature = distributed_old_temperature;
-    }
-  }
-
-  {
-    const std::vector<double> alpha           = time_stepping.get_alpha();
-    const std::vector<double> old_alpha_zero  = time_stepping.get_old_alpha_zero();
-    const std::vector<double> old_step_size   = time_stepping.get_old_step_size();
-    AssertIsFinite(time_stepping.get_next_step_size());
-    AssertIsFinite(alpha[1]);
-    AssertIsFinite(alpha[2]);
-    AssertIsFinite(old_alpha_zero[0]);
-    AssertIsFinite(old_alpha_zero[1]);
-    AssertIsFinite(old_step_size[0]);
-    AssertIsFinite(old_step_size[1]);
-
-    LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
-    LinearAlgebra::MPI::Vector distributed_old_phi(pressure_rhs);
-    LinearAlgebra::MPI::Vector distributed_old_old_phi(pressure_rhs);
-    distributed_old_pressure  = pressure->old_solution;
-    distributed_old_phi       = phi->old_solution;
-    distributed_old_old_phi   = phi->old_old_solution;
-
-    distributed_old_pressure.sadd(1.,
-                                  - old_step_size[0] /
-                                  time_stepping.get_next_step_size() *
-                                  alpha[1] / old_alpha_zero[0],
-                                  distributed_old_phi);
-
-    distributed_old_pressure.sadd(1.,
-                                  - old_step_size[1] /
-                                  time_stepping.get_next_step_size() *
-                                  alpha[2] / old_alpha_zero[1],
-                                  distributed_old_old_phi);
-                                  
-    pressure_tmp = distributed_old_pressure;
-  }
-
-  {
-    const std::vector<double> alpha = time_stepping.get_alpha();
-    AssertIsFinite(alpha[1]);
-    AssertIsFinite(alpha[2]);
-    AssertIsFinite(time_stepping.get_next_step_size());
-    AssertIsFinite(alpha[1] / time_stepping.get_next_step_size());
-    AssertIsFinite(alpha[2] / time_stepping.get_next_step_size());
-
-    LinearAlgebra::MPI::Vector distributed_old_velocity(velocity_rhs);
-    LinearAlgebra::MPI::Vector distributed_old_old_velocity(velocity_rhs);
-    distributed_old_velocity      = velocity->old_solution;
-    distributed_old_old_velocity  = velocity->old_old_solution;
-    distributed_old_velocity.sadd(alpha[1] / time_stepping.get_next_step_size(),
-                                  alpha[2] / time_stepping.get_next_step_size(),
-                                  distributed_old_old_velocity);
-    velocity_tmp = distributed_old_velocity;
-  }
-
   /* Assemble linear system */
   assemble_diffusion_step();
 
@@ -148,7 +66,23 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
   switch (parameters.projection_method)
     {
       case RunTimeParameters::ProjectionMethod::standard:
-        pressure->solution += phi->solution;
+        {
+        // In the following scope we create temporal non ghosted copies
+        // of the pertinent vectors to be able to perform algebraic
+        // operations.
+          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
+          LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
+
+          distributed_old_pressure  = pressure->old_solution;
+          distributed_phi           = phi->solution; 
+
+          distributed_old_pressure  += distributed_phi;
+
+          if (flag_normalize_pressure)
+            VectorTools::subtract_mean_value(distributed_old_pressure);
+
+          pressure->solution = distributed_old_pressure;
+        }
         break;
       case RunTimeParameters::ProjectionMethod::rotational:
         // In the following scope we create temporal non ghosted copies
@@ -163,14 +97,13 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           distributed_old_pressure  = pressure->old_solution;
           distributed_phi           = phi->solution; 
 
-          pressure_rhs /= (!flag_initializing ?
-                            time_stepping.get_alpha()[0] / 
-                            time_stepping.get_next_step_size()  :
-                            1.0 / time_stepping.get_next_step_size());
+          pressure_rhs /= time_stepping.get_alpha()[0] / 
+                          time_stepping.get_next_step_size();
 
           SolverControl solver_control(parameters.n_maximum_iterations,
-                                       std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
-                                                absolute_tolerance));
+                                       std::max(parameters.relative_tolerance * 
+                                                pressure_rhs.l2_norm(),
+                                       absolute_tolerance));
 
           if (reinit_prec)
             correction_step_preconditioner.initialize(pressure_mass_matrix);

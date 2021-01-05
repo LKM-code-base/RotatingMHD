@@ -439,7 +439,26 @@ double TemperatureBoundaryCondition<dim>::value
   return ( sign * 0.5 * (1.0 - exp(- beta * t)));
 }
 
+
+template <int dim>
+GravityUnitVector<dim>::GravityUnitVector
+(const double time)
+: 
+RMHD::EquationData::BodyForce<dim>(time)
+{}
+
+template <int dim>
+Tensor<1, dim> GravityUnitVector<dim>::value(const Point<dim> &/*point*/) const
+{
+  Tensor<1, dim> value;
+
+  value[0] = 0.0;
+  value[1] = -1.0;
+
+  return value;
 }
+
+} // namespace MIT
 
 } // namespace EquationData
 
@@ -486,4 +505,8 @@ template class RMHD::EquationData::ThermalTGV::VelocityField<3>;
 
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<2>;
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<3>;
+
+template class RMHD::EquationData::MIT::GravityUnitVector<2>;
+template class RMHD::EquationData::MIT::GravityUnitVector<3>;
+
 

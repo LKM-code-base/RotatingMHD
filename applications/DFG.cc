@@ -421,8 +421,6 @@ void DFG<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_initial_condition, 
                                time_stepping);
-  
-  navier_stokes.initialize();
 }
 
 template <int dim>
@@ -480,10 +478,6 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
                    const unsigned int  terminal_output_periodicity,
                    const unsigned int  graphical_output_periodicity)
 {
-  // Advances the time to t^{k-1}, either t^0 or t^1
-  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
-    time_stepping.advance_time();
-
   *(this->pcout) << "Solving until t = 350..." << std::endl;
   while (time_stepping.get_current_time() <= 350.0)
   {
@@ -516,13 +510,6 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
   time_stepping.restart();
   velocity->old_old_solution = velocity->solution;
   navier_stokes.reset_phi();
-  navier_stokes.initialize();
-  velocity->solution = velocity->old_solution;
-  pressure->solution = pressure->old_solution;
-  output();
-
-  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
-    time_stepping.advance_time();
 
   *(this->pcout)  << "Solving until t = " << time_stepping.get_end_time()
                   << "..." << std::endl;
