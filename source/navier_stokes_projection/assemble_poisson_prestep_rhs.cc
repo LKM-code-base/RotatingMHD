@@ -260,137 +260,138 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
   } // Loop over quadrature points
 
   // Loop over the faces of the cell
-  for (const auto &face : cell->face_iterators())
-    if (face->at_boundary())
-    {
-      // Pressure
-      scratch.pressure_fe_face_values.reinit(cell, face);
-
-      // Velocity
-      typename DoFHandler<dim>::active_cell_iterator
-      velocity_cell(&velocity->get_triangulation(),
-                    cell->level(),
-                    cell->index(),
-                    velocity->dof_handler.get());
-
-      typename DoFHandler<dim>::active_face_iterator
-      velocity_face(&velocity->get_triangulation(),
-                     face->level(),
-                     face->index(),
-                    velocity->dof_handler.get());
-
-      scratch.velocity_fe_face_values.reinit(velocity_cell, velocity_face);
-
-      scratch.velocity_fe_face_values[vector_extractor].get_function_values(
-        velocity->old_old_solution,
-        scratch.velocity_face_values);
-
-      scratch.velocity_fe_face_values[vector_extractor].get_function_laplacians(
-                                    velocity->old_old_solution,
-                                    scratch.velocity_laplacians);
-
-      // Temperature
-      if (!flag_ignore_bouyancy_term)
+  if (cell->at_boundary())
+    for (const auto &face : cell->face_iterators())
+      if (face->at_boundary())
       {
+        // Pressure
+        scratch.pressure_fe_face_values.reinit(cell, face);
+
+        // Velocity
         typename DoFHandler<dim>::active_cell_iterator
-        temperature_cell(&pressure->get_triangulation(),
-                         cell->level(),
-                         cell->index(),
-                         (temperature->dof_handler).get());
+        velocity_cell(&velocity->get_triangulation(),
+                      cell->level(),
+                      cell->index(),
+                      velocity->dof_handler.get());
 
         typename DoFHandler<dim>::active_face_iterator
-        temperature_face(&velocity->get_triangulation(),
-                         face->level(),
-                         face->index(),
-                         temperature->dof_handler.get());
+        velocity_face(&velocity->get_triangulation(),
+                      face->level(),
+                      face->index(),
+                      velocity->dof_handler.get());
 
-        scratch.temperature_fe_face_values.reinit(temperature_cell,
-                                                  temperature_face);
+        scratch.velocity_fe_face_values.reinit(velocity_cell, velocity_face);
 
-        scratch.temperature_fe_face_values.get_function_values(
-          temperature->old_old_solution,
-          scratch.temperature_face_values);
+        scratch.velocity_fe_face_values[vector_extractor].get_function_values(
+          velocity->old_old_solution,
+          scratch.velocity_face_values);
 
-        Assert(gravity_unit_vector_ptr != nullptr,
-              ExcMessage("No unit vector for the gravity has been specified."))
-        
-        gravity_unit_vector_ptr->value_list(
-          scratch.pressure_fe_face_values.get_quadrature_points(),
-          scratch.gravity_unit_vector_face_values);
-      }
-      else
-      {
-        ZeroFunction<dim>().value_list(
-          scratch.pressure_fe_face_values.get_quadrature_points(),
-          scratch.temperature_face_values);
-      
-        ZeroTensorFunction<1, dim>().value_list(
-          scratch.pressure_fe_face_values.get_quadrature_points(),
-          scratch.gravity_unit_vector_face_values);
-      }
+        scratch.velocity_fe_face_values[vector_extractor].get_function_laplacians(
+                                      velocity->old_old_solution,
+                                      scratch.velocity_laplacians);
 
-      // Body force
-      if (body_force_ptr != nullptr)
-        body_force_ptr->value_list(
-          scratch.pressure_fe_face_values.get_quadrature_points(),
-          scratch.body_force_values);
-      else
-        ZeroTensorFunction<1,dim>().value_list(
-          scratch.pressure_fe_face_values.get_quadrature_points(),
-          scratch.body_force_values);
-
-      // Coriolis acceleration
-      /*if (rotation_ptr != nullptr)
-        rotation_ptr->value_list(
-          scratch.pressure_fe_face_values.get_quadrature_points(),
-          scratch.rotation_face_values);
-      else
-        ZeroTensorFunction<1,dim>().value_list(
-          scratch.pressure_fe_face_values.get_quadrature_points(),
-          scratch.rotation_face_values);*/
-      
-      // Normal vector
-      scratch.normal_vectors = 
-                    scratch.pressure_fe_face_values.get_normal_vectors();
-
-      // Loop over face quadrature points
-      for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
+        // Temperature
+        if (!flag_ignore_bouyancy_term)
         {
-          // Extract the test function's values at the face quadrature points
-          for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-            scratch.face_phi[i] = 
-                        scratch.pressure_fe_face_values.shape_value(i, q);
+          typename DoFHandler<dim>::active_cell_iterator
+          temperature_cell(&pressure->get_triangulation(),
+                          cell->level(),
+                          cell->index(),
+                          (temperature->dof_handler).get());
 
-          // Loop over the degrees of freedom
-          for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+          typename DoFHandler<dim>::active_face_iterator
+          temperature_face(&velocity->get_triangulation(),
+                          face->level(),
+                          face->index(),
+                          temperature->dof_handler.get());
+
+          scratch.temperature_fe_face_values.reinit(temperature_cell,
+                                                    temperature_face);
+
+          scratch.temperature_fe_face_values.get_function_values(
+            temperature->old_old_solution,
+            scratch.temperature_face_values);
+
+          Assert(gravity_unit_vector_ptr != nullptr,
+                ExcMessage("No unit vector for the gravity has been specified."))
+          
+          gravity_unit_vector_ptr->value_list(
+            scratch.pressure_fe_face_values.get_quadrature_points(),
+            scratch.gravity_unit_vector_face_values);
+        }
+        else
+        {
+          ZeroFunction<dim>().value_list(
+            scratch.pressure_fe_face_values.get_quadrature_points(),
+            scratch.temperature_face_values);
+        
+          ZeroTensorFunction<1, dim>().value_list(
+            scratch.pressure_fe_face_values.get_quadrature_points(),
+            scratch.gravity_unit_vector_face_values);
+        }
+
+        // Body force
+        if (body_force_ptr != nullptr)
+          body_force_ptr->value_list(
+            scratch.pressure_fe_face_values.get_quadrature_points(),
+            scratch.body_force_values);
+        else
+          ZeroTensorFunction<1,dim>().value_list(
+            scratch.pressure_fe_face_values.get_quadrature_points(),
+            scratch.body_force_values);
+
+        // Coriolis acceleration
+        /*if (rotation_ptr != nullptr)
+          rotation_ptr->value_list(
+            scratch.pressure_fe_face_values.get_quadrature_points(),
+            scratch.rotation_face_values);
+        else
+          ZeroTensorFunction<1,dim>().value_list(
+            scratch.pressure_fe_face_values.get_quadrature_points(),
+            scratch.rotation_face_values);*/
+        
+        // Normal vector
+        scratch.normal_vectors = 
+                      scratch.pressure_fe_face_values.get_normal_vectors();
+
+        // Loop over face quadrature points
+        for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
           {
-            data.local_rhs(i) += 
-                            scratch.face_phi[i] * 
-                            (1.0 / parameters.Re * // parameters.C1
-                             scratch.velocity_laplacians[q]
-                             +
-                             scratch.body_force_values[q]
-                             -
-                             // parameters.C2
-                             scratch.temperature_face_values[q] *
-                             scratch.gravity_unit_vector_face_values[q])*
-                            scratch.normal_vectors[q] *
-                            scratch.pressure_fe_face_values.JxW(q);  
-            if constexpr(dim == 2)
-              data.local_rhs(i) -=
-                            0.0 * /* parameters.C3 * 
-                            scratch.face_phi[i] **/
-                            scratch.pressure_fe_face_values.JxW(q);
-            else if constexpr(dim == 3)
-              data.local_rhs(i) -=
-                            0.0 * /* parameters.C3 *
-                            scratch.face_phi[i] *
-                            cross_product_3d(scratch.rotation_values[q],
-                                             scratch.velocity_values[q]) * */
-                            scratch.pressure_fe_face_values.JxW(q);
-          } // Loop over the degrees of freedom
-        } // Loop over face quadrature points
-    } // Loop over the faces of the cell
+            // Extract the test function's values at the face quadrature points
+            for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+              scratch.face_phi[i] = 
+                          scratch.pressure_fe_face_values.shape_value(i, q);
+
+            // Loop over the degrees of freedom
+            for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+            {
+              data.local_rhs(i) += 
+                              scratch.face_phi[i] * 
+                              (1.0 / parameters.Re * // parameters.C1
+                              scratch.velocity_laplacians[q]
+                              +
+                              scratch.body_force_values[q]
+                              -
+                              // parameters.C2
+                              scratch.temperature_face_values[q] *
+                              scratch.gravity_unit_vector_face_values[q])*
+                              scratch.normal_vectors[q] *
+                              scratch.pressure_fe_face_values.JxW(q);  
+              if constexpr(dim == 2)
+                data.local_rhs(i) -=
+                              0.0 * /* parameters.C3 * 
+                              scratch.face_phi[i] **/
+                              scratch.pressure_fe_face_values.JxW(q);
+              else if constexpr(dim == 3)
+                data.local_rhs(i) -=
+                              0.0 * /* parameters.C3 *
+                              scratch.face_phi[i] *
+                              cross_product_3d(scratch.rotation_values[q],
+                                              scratch.velocity_values[q]) * */
+                              scratch.pressure_fe_face_values.JxW(q);
+            } // Loop over the degrees of freedom
+          } // Loop over face quadrature points
+      } // Loop over the faces of the cell
 }
 
 template <int dim>
