@@ -2,7 +2,7 @@
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/grid/filtered_iterator.h>
-
+#include <deal.II/fe/fe_nothing.h>
 namespace RMHD
 {
 
@@ -19,7 +19,7 @@ void HeatEquation<dim>::assemble_rhs()
   rhs = 0.;
 
   // Dummy finite element for when the velocity is given by a function
-  const FESystem<dim> dummy_fe_system(FE_Q<dim>(2), dim);
+  const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(2), dim);
 
   // Create pointer to the pertinent finite element
   const FESystem<dim>* const velocity_fe = 
