@@ -86,7 +86,7 @@ void NavierStokesProjection<dim>::setup_phi()
       *pcout << unconstrained_boundary_id << ", ";
       velocity->boundary_conditions.set_neumann_bcs(unconstrained_boundary_id);
     }
-    *pcout << "\b\b}. Homogeneous Neumann boundary conditions will be "
+    *pcout << "\b\b}. Homogeneous Neumann boundary conditions will be"
               " assumed in order to properly constraint the problem.\n"
            << std::endl;
   }
