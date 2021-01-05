@@ -70,8 +70,8 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
         // In the following scope we create temporal non ghosted copies
         // of the pertinent vectors to be able to perform algebraic
         // operations.
-          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
-          LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
+          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure->distributed_vector);
+          LinearAlgebra::MPI::Vector distributed_phi(phi->distributed_vector);
 
           distributed_old_pressure  = pressure->old_solution;
           distributed_phi           = phi->solution; 

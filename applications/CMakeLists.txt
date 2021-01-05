@@ -10,6 +10,7 @@ SET(SOURCE_FILES
     step-35.cc
     TGV.cc
     Guermond.cc
+    Guermond103.cc
     Couette.cc
     ThermalTGV.cc
     MIT.cc

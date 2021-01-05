@@ -365,7 +365,7 @@ void MIT<dim>::print_data_to_file(std::string file_name)
 template<typename Stream, int dim>
 Stream& operator<<(Stream &stream, const MIT<dim> &mit)
 {
-  stream << std::noshowpos << std::scientific
+  stream << std::noshowpos << std::scientific << std::setprecision(1)
          << "ux_1 = "
          << mit.velocity_at_p1[0]
          << ", T_1 = "

@@ -159,29 +159,29 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
            ExcMessage("No unit vector for the gravity has been specified."))
     
     gravity_unit_vector_ptr->value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.pressure_fe_values.get_quadrature_points(),
       scratch.gravity_unit_vector_values);
 
     gravity_unit_vector_ptr->divergence_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.pressure_fe_values.get_quadrature_points(),
       scratch.gravity_unit_vector_divergences);
   }
   else
   {
     ZeroFunction<dim>().value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.pressure_fe_values.get_quadrature_points(),
       scratch.temperature_values);
 
     ZeroTensorFunction<1,dim>().value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.pressure_fe_values.get_quadrature_points(),
       scratch.temperature_gradients);
 
     ZeroTensorFunction<1,dim>().value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.pressure_fe_values.get_quadrature_points(),
       scratch.gravity_unit_vector_values);
 
     ZeroFunction<dim>().value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.pressure_fe_values.get_quadrature_points(),
       scratch.gravity_unit_vector_divergences);
   }
 
@@ -315,7 +315,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
               ExcMessage("No unit vector for the gravity has been specified."))
         
         gravity_unit_vector_ptr->value_list(
-          scratch.temperature_fe_face_values.get_quadrature_points(),
+          scratch.pressure_fe_face_values.get_quadrature_points(),
           scratch.gravity_unit_vector_face_values);
       }
       else
@@ -325,7 +325,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
           scratch.temperature_face_values);
       
         ZeroTensorFunction<1, dim>().value_list(
-          scratch.temperature_fe_face_values.get_quadrature_points(),
+          scratch.pressure_fe_face_values.get_quadrature_points(),
           scratch.gravity_unit_vector_face_values);
       }
 
