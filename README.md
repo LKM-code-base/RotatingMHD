@@ -19,14 +19,14 @@ To do list
 - [x] Remove hard-coded absolute tolerance
 - [x] Adding the buoyancy to the Navier-Stokes solver
 - [x] Interfacing of the entities and the solvers
-- [ ] Restructure the assembly scratch and copy structs and instance the FEValues in the Navier-Stokes solver with a Mapping
+- [x] Restructure the assembly scratch and copy structs and instance the FEValues in the Navier-Stokes solver with a Mapping
+- [x] Reduce global communication and do not compute extrapolated values using vectors
+- [x] Neumann boundary conditions in the incremental pressure projection scheme (Navier-Stokes solver)
 - [ ] Python or bash script for running convergence tests
 - [ ] Adaptive timestepping
 - [ ] Initialization from analytical solution
 - [ ] Restart from numerical solution
-- [ ] Neumann boundary conditions in the incremental pressure projection scheme (Navier-Stokes solver)
 - [ ] Algebraic multigrid preconditioning in both solvers
-- [ ] Reduce global communication and do not compute extrapolated values using vectors
 - [ ] Restructure the parameters of the solvers
 
 
