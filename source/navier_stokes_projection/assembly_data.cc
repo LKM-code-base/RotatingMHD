@@ -37,7 +37,7 @@ grad_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 phi(data.dofs_per_cell),
@@ -65,7 +65,7 @@ grad_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 phi(data.dofs_per_cell),
@@ -100,7 +100,7 @@ curl_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 old_velocity_values(data.n_q_points),
@@ -185,7 +185,7 @@ face_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 velocity_fe_values(
@@ -283,7 +283,7 @@ phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 velocity_fe_values(
@@ -375,7 +375,7 @@ face_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 velocity_fe_values(

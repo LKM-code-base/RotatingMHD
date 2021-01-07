@@ -28,7 +28,7 @@ grad_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 phi(data.dofs_per_cell),
@@ -67,7 +67,7 @@ grad_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 temperature_fe_values(data.temperature_fe_values.get_mapping(),
@@ -135,7 +135,7 @@ face_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 temperature_fe_values(

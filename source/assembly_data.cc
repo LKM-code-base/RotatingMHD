@@ -28,7 +28,7 @@ dofs_per_cell(fe.dofs_per_cell)
 {}
 
 template <int dim>
-ScratchBase<dim>::ScratchBase(const ScratchBase &data)
+ScratchBase<dim>::ScratchBase(const ScratchBase<dim> &data)
 :
 n_q_points(data.n_q_points),
 dofs_per_cell(data.dofs_per_cell)
@@ -81,8 +81,7 @@ fe_values(mapping,
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(
-  const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 fe_values(data.fe_values.get_mapping(),
@@ -125,8 +124,7 @@ fe_values(mapping,
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(
-  const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 fe_values(data.fe_values.get_mapping(),
