@@ -21,9 +21,9 @@ local_dof_indices(data.local_dof_indices)
 {}
 
 template <int dim>
-ScratchBase<dim>::ScratchBase(
-  const Quadrature<dim>     &quadrature_formula,
-  const FiniteElement<dim>  &fe)
+ScratchBase<dim>::ScratchBase
+(const Quadrature<dim>     &quadrature_formula,
+ const FiniteElement<dim>  &fe)
 :
 n_q_points(quadrature_formula.size()),
 dofs_per_cell(fe.dofs_per_cell)
@@ -52,7 +52,7 @@ local_matrix(dofs_per_cell, dofs_per_cell)
 template <int dim>
 Copy<dim>::Copy(const Copy &data)
 :
-CopyBase<dim>(data.dofs_per_cell),
+CopyBase<dim>(data),
 local_matrix(data.local_matrix)
 {}
 
@@ -67,7 +67,7 @@ local_stiffness_matrix(dofs_per_cell, dofs_per_cell)
 template <int dim>
 MassStiffnessCopy<dim>::MassStiffnessCopy(const MassStiffnessCopy &data)
 :
-CopyBase<dim>(data.dofs_per_cell),
+CopyBase<dim>(data),
 local_mass_matrix(data.local_mass_matrix),
 local_stiffness_matrix(data.local_stiffness_matrix)
 {}
@@ -91,8 +91,7 @@ template <int dim>
 Scratch<dim>::Scratch(
   const Scratch &data)
 :
-ScratchBase<dim>(data.fe_values.get_quadrature(),
-                 data.fe_values.get_fe()),
+ScratchBase<dim>(data),
 fe_values(data.fe_values.get_mapping(),
           data.fe_values.get_fe(),
           data.fe_values.get_quadrature(),
@@ -115,7 +114,7 @@ local_matrix_for_inhomogeneous_bc(dofs_per_cell, dofs_per_cell)
 template <int dim>
 Copy<dim>::Copy(const Copy &data)
 :
-CopyBase<dim>(data.dofs_per_cell),
+CopyBase<dim>(data),
 local_rhs(data.local_rhs),
 local_matrix_for_inhomogeneous_bc(data.local_matrix_for_inhomogeneous_bc)
 {}
@@ -138,8 +137,7 @@ template <int dim>
 Scratch<dim>::Scratch(
   const Scratch &data)
 :
-ScratchBase<dim>(data.fe_values.get_quadrature(),
-                 data.fe_values.get_fe()),
+ScratchBase<dim>(data),
 fe_values(data.fe_values.get_mapping(),
           data.fe_values.get_fe(),
           data.fe_values.get_quadrature(),
