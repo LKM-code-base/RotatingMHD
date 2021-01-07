@@ -2,7 +2,6 @@
  *@file TGV
  *@brief The .cc file solving the TGV benchmark.
  */
-#include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/convergence_struct.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
@@ -11,6 +10,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -92,21 +92,24 @@ TGV<dim>::TGV(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
 outputFile("TGV_Log.csv"),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
-            parameters.p_fe_degree + 1, this->triangulation)),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
-            parameters.p_fe_degree, this->triangulation)),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+                                                       this->triangulation,
+                                                       "velocity")),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
+                                                       this->triangulation,
+                                                       "pressure")),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
+              time_stepping,
               velocity,
               pressure,
-              time_stepping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 velocity_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
 pressure_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
-velocity_convergence_table(velocity, velocity_exact_solution, "Velocity"),
-pressure_convergence_table(pressure, pressure_exact_solution, "Pressure"),
+velocity_convergence_table(velocity, velocity_exact_solution),
+pressure_convergence_table(pressure, pressure_exact_solution),
 flag_set_exact_pressure_constant(true)
 {
 outputFile << "Step" << "," << "Time" << ","
@@ -303,27 +306,35 @@ void TGV<dim>::output()
 
   std::vector<std::string> names(dim, "velocity");
   std::vector<std::string> error_name(dim, "velocity_error");
+
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
-    component_interpretation(
-      dim, DataComponentInterpretation::component_is_part_of_vector);
+  component_interpretation(dim,
+                           DataComponentInterpretation::component_is_part_of_vector);
+
   DataOut<dim>        data_out;
+
   data_out.add_data_vector(*(velocity->dof_handler),
                            velocity->solution,
                            names, 
                            component_interpretation);
+
   data_out.add_data_vector(*(velocity->dof_handler),
                            velocity_error,
                            error_name, 
                            component_interpretation);
+
   data_out.add_data_vector(*(pressure->dof_handler), 
                            pressure->solution, 
                            "pressure");
+
   data_out.add_data_vector(*(pressure->dof_handler), 
                            pressure_error, 
                            "pressure_error");
+
   data_out.build_patches(velocity->fe_degree);
   
   static int out_index = 0;
+
   data_out.write_vtu_with_pvtu_record("./",
                                       "solution",
                                       out_index,
@@ -466,16 +477,18 @@ void TGV<dim>::run(const bool flag_convergence_test)
     }
   }
   
-  std::string tablefilename = (this->prm.flag_spatial_convergence_test) ?
-                              "TGVSpatialTest" : 
-                              "TGVTemporalTest_Level" + 
-                              std::to_string(this->prm.initial_refinement_level);
-  tablefilename += "_Re" + std::to_string((int)this->prm.Re);
+  *(this->pcout) << velocity_convergence_table;
+  *(this->pcout) << pressure_convergence_table;
 
-  velocity_convergence_table.print_table_to_terminal();
-  velocity_convergence_table.print_table_to_file(tablefilename + "_Velocity");
-  pressure_convergence_table.print_table_to_terminal();
-  pressure_convergence_table.print_table_to_file(tablefilename + "_Pressure");
+  std::ostringstream tablefilename;
+  tablefilename << ((this->prm.flag_spatial_convergence_test) ?
+                    "TGVSpatialTest" : "TGVTemporalTest_Level")
+                << this->prm.initial_refinement_level
+                << "_Re"
+                << this->prm.Re;
+
+  velocity_convergence_table.write_text(tablefilename.str() + "_Velocity");
+  pressure_convergence_table.write_text(tablefilename.str() + "_Pressure");
 }
 
 } // namespace RMHD

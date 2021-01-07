@@ -1,9 +1,8 @@
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/problem_class.h>
 
-//#include <deal.II/base/utilities.h>
 #include <deal.II/base/quadrature_lib.h>
-//#include <deal.II/grid/grid_tools.h>
+#include <deal.II/fe/mapping_manifold.h>
 #include <deal.II/numerics/vector_tools.h>
 
 namespace RMHD
@@ -35,6 +34,10 @@ triangulation(mpi_communicator,
               typename Triangulation<dim>::MeshSmoothing(
               Triangulation<dim>::smoothing_on_refinement |
               Triangulation<dim>::smoothing_on_coarsening)),
+/*! @todo Include a the mapping's polynomial degree as a parameter in 
+    the parameter struct overhaul. For the time being, this will be 
+    hardcoded to linear mappings. */
+mapping(std::make_shared<MappingQ<dim>>(1, false)),
 pcout(std::make_shared<ConditionalOStream>(std::cout,
       (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))),
 computing_timer(
@@ -166,7 +169,8 @@ double Problem<dim>::compute_next_time_step
  const double                           cfl_number,
  const double                           max_cfl_number) const
 {
-  if (!prm.time_stepping_parameters.adaptive_time_stepping)
+  if (!prm.time_stepping_parameters.adaptive_time_stepping ||
+      time_stepping.get_step_number() == 0)
     return time_stepping.get_next_step_size();
 
   return max_cfl_number / cfl_number * 

@@ -11,7 +11,7 @@ assemble_poisson_prestep()
 {
   /* System matrix setup */
   // System matrix is constant and assembled in the
-  // NavierStokesProjection constructor.
+  // in the NavierStokesProjection::setup method.
 
   /* Right hand side setup */
   assemble_poisson_prestep_rhs();
@@ -22,6 +22,11 @@ void
 NavierStokesProjection<dim>::
 solve_poisson_prestep()
 {
+  if (parameters.verbose)
+    *pcout << "  Navier Stokes: Solving the Poisson pre-step...";
+
+  TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Poisson pre-step - Solve");
+
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
@@ -54,7 +59,7 @@ solve_poisson_prestep()
     std::cerr << std::endl << std::endl
               << "----------------------------------------------------"
               << std::endl;
-    std::cerr << "Exception in the solve method of the projection step: " << std::endl
+    std::cerr << "Exception in the solve method of the poisson pre-step: " << std::endl
               << exc.what() << std::endl
               << "Aborting!" << std::endl
               << "----------------------------------------------------"
@@ -66,7 +71,7 @@ solve_poisson_prestep()
     std::cerr << std::endl << std::endl
               << "----------------------------------------------------"
                 << std::endl;
-    std::cerr << "Unknown exception in the solve method of the projection step!" << std::endl
+    std::cerr << "Unknown exception in the solve method of the poisson pre-step!" << std::endl
               << "Aborting!" << std::endl
               << "----------------------------------------------------"
               << std::endl;
@@ -79,6 +84,13 @@ solve_poisson_prestep()
     VectorTools::subtract_mean_value(distributed_old_old_pressure);
 
   pressure->old_old_solution = distributed_old_old_pressure;
+
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl
+           << "    Number of GMRES iterations: " 
+           << solver_control.last_step()
+           << ", Final residual: " << solver_control.last_value() << "."
+           << std::endl;
 }
 
 } // namespace RMHD

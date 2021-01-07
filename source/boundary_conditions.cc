@@ -2,10 +2,66 @@
 
 namespace RMHD
 {
-  using namespace dealii;
+
+using namespace dealii;
 
 namespace Entities
 {
+
+template <int dim>
+PeriodicBoundaryData<dim>::PeriodicBoundaryData
+(const types::boundary_id first_boundary,
+ const types::boundary_id second_boundary,
+ const unsigned int       direction,
+ const FullMatrix<double> rotation_matrix,
+ const Tensor<1,dim>      offset)
+:
+boundary_pair(std::make_pair(first_boundary, second_boundary)),
+direction(direction),
+rotation_matrix(rotation_matrix),
+offset(offset)
+{}
+
+template <int dim>
+BoundaryConditionsBase<dim>::BoundaryConditionsBase(
+  const parallel::distributed::Triangulation<dim> &triangulation)
+:
+triangulation(triangulation),
+flag_extract_boundary_ids(true)
+{}
+
+template <int dim>
+std::vector<types::boundary_id> BoundaryConditionsBase<dim>::get_unconstrained_boundary_ids()
+{
+  // Extracts the boundary indicators from the triangulation
+  if (this->flag_extract_boundary_ids)
+  {
+    this->boundary_ids              = this->triangulation.get_boundary_ids();
+    this->flag_extract_boundary_ids = false;
+  }
+
+  // Initiates the returns vector
+  std::vector<types::boundary_id> unconstrained_boundaries;
+
+  // Loops through the triangulation's boundary indicators and adds them
+  // to the return vector if they are not constrained.
+  for (const auto &boundary_id : this->boundary_ids)
+    if (std::find(this->constrained_boundaries.begin(),
+                  this->constrained_boundaries.end(),
+                  boundary_id) == this->constrained_boundaries.end())
+      unconstrained_boundaries.push_back(boundary_id);
+
+  return unconstrained_boundaries;
+}
+
+
+template <int dim>
+ScalarBoundaryConditions<dim>::ScalarBoundaryConditions(
+  const parallel::distributed::Triangulation<dim> &triangulation)
+:
+BoundaryConditionsBase<dim>(triangulation)
+{}
+
 
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_periodic_bcs(
@@ -18,13 +74,14 @@ void ScalarBoundaryConditions<dim>::set_periodic_bcs(
   check_boundary_id(first_boundary);
   check_boundary_id(second_boundary);
 
-  PeriodicBoundaryData  periodic_bc(first_boundary,
-                                    second_boundary,
-                                    direction,
-                                    rotation_matrix,
-                                    offset);
-  
-  this->periodic_bcs.push_back(periodic_bc);
+  this->constrained_boundaries.push_back(first_boundary);
+  this->constrained_boundaries.push_back(second_boundary);
+
+  this->periodic_bcs.emplace_back(first_boundary,
+                                  second_boundary,
+                                  direction,
+                                  rotation_matrix,
+                                  offset);
 }
 
 template <int dim>
@@ -35,26 +92,20 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
 {
   check_boundary_id(boundary_id);
 
-  if (function.get() == 0)
+  this->constrained_boundaries.push_back(boundary_id);
+
+  if (function.get() == nullptr)
     this->dirichlet_bcs[boundary_id] = zero_function_ptr;
   else
   {
-    AssertThrow(
-      function->n_components == 1,
-      ExcMessage("Scalar boundary function need to have a single component."));
+    AssertThrow(function->n_components == 1,
+                ExcMessage("Function of a Dirichlet boundary condition needs to have a single component."));
 
     this->dirichlet_bcs[boundary_id] = function;
   }
 
   if (time_dependent)
-  {
-    typedef std::multimap<BCType, types::boundary_id> MapType;
-
-    this->time_dependent_bcs_map.insert(
-      MapType::value_type(
-        BCType::dirichlet, 
-        boundary_id));
-  }
+    this->time_dependent_bcs_map.emplace(BCType::dirichlet, boundary_id);
 }
 
 template <int dim>
@@ -65,26 +116,21 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
 {
   check_boundary_id(boundary_id);
 
-  if (function.get() == 0)
+  this->constrained_boundaries.push_back(boundary_id);
+
+  if (function.get() == nullptr)
     this->neumann_bcs[boundary_id] = zero_function_ptr;
   else
   {
     AssertThrow(
       function->n_components == 1,
-      ExcMessage("Scalar boundary function need to have a single component."));
+      ExcMessage("Function of a Neumann boundary condition needs to have a single component."));
     
     this->neumann_bcs[boundary_id] = function;
   }
 
   if (time_dependent)
-  {
-    typedef std::multimap<BCType, types::boundary_id> MapType;
-
-    this->time_dependent_bcs_map.insert(
-      MapType::value_type(
-        BCType::neumann, 
-        boundary_id));
-  }
+    this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
 }
 
 template <int dim>
@@ -92,6 +138,7 @@ void ScalarBoundaryConditions<dim>::set_time(const double time)
 {
   for (const auto &dirichlet_bc : this->dirichlet_bcs)
     dirichlet_bc.second->set_time(time);
+
   for (const auto &neumann_bc : this->neumann_bcs)
     neumann_bc.second->set_time(time);
 }
@@ -100,13 +147,17 @@ template <int dim>
 void ScalarBoundaryConditions<dim>::clear()
 {
   this->dirichlet_bcs.clear();
+
   this->neumann_bcs.clear();
+
   this->periodic_bcs.clear();
+
+  this->time_dependent_bcs_map.clear();
 }
 
 template <int dim>
-void ScalarBoundaryConditions<dim>::copy(
-  const ScalarBoundaryConditions<dim> &other)
+void ScalarBoundaryConditions<dim>::copy
+(const ScalarBoundaryConditions<dim> &other)
 {
   this->dirichlet_bcs           = other.dirichlet_bcs;
   this->neumann_bcs             = other.neumann_bcs;
@@ -115,25 +166,49 @@ void ScalarBoundaryConditions<dim>::copy(
 }
 
 template <int dim>
-void ScalarBoundaryConditions<dim>::check_boundary_id(
-  types::boundary_id boundary_id) const
+void ScalarBoundaryConditions<dim>::check_boundary_id
+(const types::boundary_id boundary_id)
 {
+  if (this->flag_extract_boundary_ids)
+  {
+    this->boundary_ids              = this->triangulation.get_boundary_ids();
+    this->flag_extract_boundary_ids = false;
+  }
+
+  AssertThrow(std::find(this->boundary_ids.begin(), 
+                        this->boundary_ids.end(), 
+                        boundary_id) != this->boundary_ids.end(),
+              ExcMessage("The triangulation does not have a boundary"
+                         " marked with the indicator " + 
+                         std::to_string(boundary_id) + "."));
+
   AssertThrow(this->dirichlet_bcs.find(boundary_id) == this->dirichlet_bcs.end(),
-                ExcMessage("A Dirichlet boundary condition was already set on "
-                           "the given boundary."));
+              ExcMessage("A Dirichlet boundary condition was already set on "
+                         "the boundary marked with the indicator " +
+                         std::to_string(boundary_id) + "."));
 
   AssertThrow(this->neumann_bcs.find(boundary_id) == this->neumann_bcs.end(),
-                ExcMessage("A Neumann boundary condition was already set on "
-                           "the given boundary."))
+              ExcMessage("A Neumann boundary condition was already set on "
+                         "the boundary marked with the indicator " +
+                         std::to_string(boundary_id) + "."));
   
-  for (auto &periodic_bc : this->periodic_bcs)
+  for (const auto &periodic_bc : this->periodic_bcs)
   {
-    AssertThrow( boundary_id != periodic_bc.boundary_pair.first &&
-                 boundary_id != periodic_bc.boundary_pair.second,
+    AssertThrow(boundary_id != periodic_bc.boundary_pair.first &&
+                boundary_id != periodic_bc.boundary_pair.second,
                 ExcMessage("A periodic boundary condition was already set on "
-                           "the given boundary."));
+                           "the boundary marked with the indicator " +
+                           std::to_string(boundary_id) + "."));
   }
 }
+
+
+template <int dim>
+VectorBoundaryConditions<dim>::VectorBoundaryConditions(
+  const parallel::distributed::Triangulation<dim> &triangulation)
+:
+BoundaryConditionsBase<dim>(triangulation)
+{}
 
 template <int dim>
 void VectorBoundaryConditions<dim>::set_periodic_bcs(
@@ -146,13 +221,14 @@ void VectorBoundaryConditions<dim>::set_periodic_bcs(
   check_boundary_id(first_boundary);
   check_boundary_id(second_boundary);
 
-  PeriodicBoundaryData  periodic_bc(first_boundary,
-                                    second_boundary,
-                                    direction,
-                                    rotation_matrix,
-                                    offset);
-  
-  this->periodic_bcs.push_back(periodic_bc);
+  this->constrained_boundaries.push_back(first_boundary);
+  this->constrained_boundaries.push_back(second_boundary);
+
+  this->periodic_bcs.emplace_back(first_boundary,
+                                  second_boundary,
+                                  direction,
+                                  rotation_matrix,
+                                  offset);
 }
 
 template <int dim>
@@ -163,26 +239,24 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
 {
   check_boundary_id(boundary_id);
 
-  if (function.get() == 0)
+  this->constrained_boundaries.push_back(boundary_id);
+
+  if (function.get() == nullptr)
     this->dirichlet_bcs[boundary_id] = zero_function_ptr;
   else
   {
-    AssertThrow(
-      function->n_components == dim,
-      ExcMessage("Scalar boundary function need to have a single component."));
+    std::stringstream message;
+    message << "Function of a Dirichlet boundary condition needs to have "
+            << dim << " components.";
+
+    AssertThrow(function->n_components == dim,
+                ExcMessage(message.str()));
 
     this->dirichlet_bcs[boundary_id] = function;
   }
 
   if (time_dependent)
-  {
-    typedef std::multimap<BCType, types::boundary_id> MapType;
-
-    this->time_dependent_bcs_map.insert(
-      MapType::value_type(
-        BCType::dirichlet, 
-        boundary_id));
-  }
+    this->time_dependent_bcs_map.emplace(BCType::dirichlet, boundary_id);
 }
 
 template <int dim>
@@ -193,26 +267,24 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
 {
   check_boundary_id(boundary_id);
 
-  if (function.get() == 0)
+  this->constrained_boundaries.push_back(boundary_id);
+
+  if (function.get() == nullptr)
     this->neumann_bcs[boundary_id] = zero_function_ptr;
   else
   {
-    AssertThrow(
-      function->n_components == dim,
-      ExcMessage("Neumann boundary function needs to have dim components."));
+    std::stringstream message;
+    message << "Function of a Neumann boundary condition needs to have "
+            << dim << " components.";
+
+    AssertThrow(function->n_components == dim,
+                ExcMessage(message.str()));
     
     this->neumann_bcs[boundary_id] = function;
   }
 
   if (time_dependent)
-  {
-    typedef std::multimap<BCType, types::boundary_id> MapType;
-
-    this->time_dependent_bcs_map.insert(
-      MapType::value_type(
-        BCType::neumann, 
-        boundary_id));
-  }
+    this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
 }
 
 template <int dim>
@@ -223,26 +295,24 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
 {
   check_boundary_id(boundary_id);
 
-  if (function.get() == 0)
+  this->constrained_boundaries.push_back(boundary_id);
+
+  if (function.get() == nullptr)
     normal_flux_bcs[boundary_id] = zero_function_ptr;
   else
   {
-    AssertThrow(
-      function->n_components == dim,
-      ExcMessage("Neumann boundary function needs to have dim components."));
+    std::stringstream message;
+    message << "Function of a normal flux boundary condition needs to have "
+            << dim << " components.";
+
+    AssertThrow(function->n_components == dim,
+                ExcMessage(message.str()));
     
     normal_flux_bcs[boundary_id] = function;
   }
 
   if (time_dependent)
-  {
-    typedef std::multimap<BCType, types::boundary_id> MapType;
-
-    this->time_dependent_bcs_map.insert(
-      MapType::value_type(
-        BCType::normal_flux, 
-        boundary_id));
-  }
+    this->time_dependent_bcs_map.emplace(BCType::normal_flux, boundary_id);
 }
 
 template <int dim>
@@ -253,37 +323,39 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
 {
   check_boundary_id(boundary_id);
 
+  this->constrained_boundaries.push_back(boundary_id);
+
   if (function.get() == 0)
     tangential_flux_bcs[boundary_id] = zero_function_ptr;
   else
   {
-    AssertThrow(
-      function->n_components == dim,
-      ExcMessage("Neumann boundary function needs to have dim components."));
+    std::stringstream message;
+    message << "Function of a tangential flux boundary condition needs to have "
+            << dim << " components.";
+
+    AssertThrow(function->n_components == dim,
+                ExcMessage(message.str()));
     
     tangential_flux_bcs[boundary_id] = function;
   }
 
   if (time_dependent)
-  {
-    typedef std::multimap<BCType, types::boundary_id> MapType;
-
-    this->time_dependent_bcs_map.insert(
-      MapType::value_type(
-        BCType::tangential_flux, 
-        boundary_id));
-  }
+    this->time_dependent_bcs_map.emplace(BCType::tangential_flux, boundary_id);
 }
 
 template <int dim>
 void VectorBoundaryConditions<dim>::set_time(const double time)
 {
+
   for (const auto &dirichlet_bc : this->dirichlet_bcs)
     dirichlet_bc.second->set_time(time);
+
   for (const auto &neumann_bc : this->neumann_bcs)
     neumann_bc.second->set_time(time);
+
   for (const auto &normal_flux_bc : this->normal_flux_bcs)
     normal_flux_bc.second->set_time(time);
+
   for (const auto &tangential_flux_bc : this->tangential_flux_bcs)
     tangential_flux_bc.second->set_time(time);
 }
@@ -312,30 +384,47 @@ void VectorBoundaryConditions<dim>::copy(
 
 template <int dim>
 void VectorBoundaryConditions<dim>::check_boundary_id(
-  types::boundary_id boundary_id) const
+  const types::boundary_id boundary_id)
 {
+  if (this->flag_extract_boundary_ids)
+  {
+    this->boundary_ids              = this->triangulation.get_boundary_ids();
+    this->flag_extract_boundary_ids = false;
+  }
+
+  AssertThrow(std::find(this->boundary_ids.begin(), 
+                        this->boundary_ids.end(), 
+                        boundary_id) != this->boundary_ids.end(),
+              ExcMessage("The triangulation does not have a boundary"
+                         " marked with the indicator " + 
+                         std::to_string(boundary_id) + "."));
+
   AssertThrow(this->dirichlet_bcs.find(boundary_id) == this->dirichlet_bcs.end(),
-                ExcMessage("A Dirichlet boundary condition was already set on "
-                           "the given boundary."));
+              ExcMessage("A Dirichlet boundary condition was already set on "
+                           "the boundary marked with the indicator " +
+                           std::to_string(boundary_id) + "."));
 
   AssertThrow(this->neumann_bcs.find(boundary_id) == this->neumann_bcs.end(),
-                ExcMessage("A Neumann boundary condition was already set on "
-                           "the given boundary."))
-
+              ExcMessage("A Neumann boundary condition was already set on "
+                           "the boundary marked with the indicator " +
+                           std::to_string(boundary_id) + "."));
+                           
   AssertThrow(normal_flux_bcs.find(boundary_id) == normal_flux_bcs.end(),
-                ExcMessage("A normal flux boundary condition was already set on "
-                           "the given boundary."))
+              ExcMessage("A normal flux boundary condition was already set on "
+                           "the boundary marked with the indicator " +
+                           std::to_string(boundary_id) + "."));
 
   AssertThrow(tangential_flux_bcs.find(boundary_id) == tangential_flux_bcs.end(),
-                ExcMessage("A tangential flux boundary condition was already set on "
-                           "the given boundary."))
-  for (auto &periodic_bc : this->periodic_bcs)
-  {
-    AssertThrow( boundary_id != periodic_bc.boundary_pair.first &&
-                 boundary_id != periodic_bc.boundary_pair.second,
+              ExcMessage("A tangential flux boundary condition was already set on "
+                           "the boundary marked with the indicator " +
+                           std::to_string(boundary_id) + "."));
+
+  for (const auto &periodic_bc : this->periodic_bcs)
+    AssertThrow(boundary_id != periodic_bc.boundary_pair.first &&
+                boundary_id != periodic_bc.boundary_pair.second,
                 ExcMessage("A periodic boundary condition was already set on "
-                           "the given boundary."));
-  }
+                           "the boundary marked with the indicator " +
+                           std::to_string(boundary_id) + "."));
 }
 
 } // namespace Entities

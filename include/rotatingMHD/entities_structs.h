@@ -41,6 +41,19 @@ struct EntityBase
 {
 public:
   /*!
+   * @brief Constructor.
+   */
+  EntityBase(const unsigned int                               fe_degree,
+             const parallel::distributed::Triangulation<dim> &triangulation,
+             const std::string                               &name = "entity");
+
+  /*!
+   * @brief Copy constructor.
+   */
+  EntityBase(const EntityBase<dim>  &entity,
+             const std::string      &new_name = "entity");
+
+  /*!
    * @brief The degree of the finite element.
    */
   const unsigned int                fe_degree;
@@ -54,6 +67,11 @@ public:
    * @brief The DoFHandler<dim> instance of the entity.
    */
   std::shared_ptr<DoFHandler<dim>>  dof_handler;
+
+  /*!
+   * @brief Name of the physical field which is contained in the entity.
+   */
+  const std::string                 name;
 
   /*!
    * @brief The AffineConstraints<double> instance handling the 
@@ -96,18 +114,15 @@ public:
   LinearAlgebra::MPI::Vector        old_old_solution;
 
   /*!
-   * @brief Constructor.
+   * @brief The entity's distributed vector.
+   * @details It is used to initiate the right hand sides of the
+   * linear systems and the distributed instances of the
+   * solution vectors needed to perform algebraic operations with them.
    */
-  EntityBase(const unsigned int                               fe_degree,
-             const parallel::distributed::Triangulation<dim> &triangulation);
+  LinearAlgebra::MPI::Vector        distributed_vector;
 
   /*!
-   * @brief Copy constructor.
-   */
-  EntityBase(const EntityBase<dim>  &entity);
-
-  /*!
-   * @brief Method returning.
+   * @brief Method returning a reference to the triangulation.
    */
   const parallel::distributed::Triangulation<dim> &get_triangulation() const;
 
@@ -180,6 +195,19 @@ template <int dim>
 struct VectorEntity : EntityBase<dim>
 {
   /*!
+   * @brief Constructor.
+   */
+  VectorEntity(const unsigned int                               fe_degree,
+               const parallel::distributed::Triangulation<dim> &triangulation,
+               const std::string                               &name = "entity");
+
+  /*!
+   * @brief Copy constructor.
+   */
+  VectorEntity(const VectorEntity<dim>  &entity,
+               const std::string        &new_name);
+
+  /*!
    * @brief The finite element of the vector field.
    */
   FESystem<dim>                 fe;
@@ -189,18 +217,6 @@ struct VectorEntity : EntityBase<dim>
    * boundary conditions of the vector field.
    */
   VectorBoundaryConditions<dim> boundary_conditions;
-
-  /*!
-   * @brief Constructor.
-   */
-  VectorEntity(const unsigned int                               fe_degree,
-               const parallel::distributed::Triangulation<dim> &triangulation);
-
-  /*!
-   * @brief Copy constructor.
-   */
-  VectorEntity(const VectorEntity<dim>  &entity);
-
 
   /*!
    * @brief Set ups the degrees of freedom of the vector field.
@@ -252,6 +268,19 @@ template <int dim>
 struct ScalarEntity : EntityBase<dim>
 {
   /*!
+   * @brief Constructor.
+   */
+  ScalarEntity(const unsigned int                               fe_degree,
+               const parallel::distributed::Triangulation<dim> &triangulation,
+               const std::string                               &name = "entity");
+
+  /*!
+   * @brief Copy constructor.
+   */
+  ScalarEntity(const ScalarEntity<dim>  &entity,
+               const std::string        &new_name = "entity");
+
+  /*!
    * @brief The finite element of the scalar field.
    */
   FE_Q<dim> fe;
@@ -261,17 +290,6 @@ struct ScalarEntity : EntityBase<dim>
    * boundary conditions of the scalar field.
    */
   ScalarBoundaryConditions<dim>       boundary_conditions;
-
-  /*!
-   * @brief Constructor.
-   */
-  ScalarEntity(const unsigned int                               fe_degree,
-               const parallel::distributed::Triangulation<dim> &triangulation);
-
-  /*!
-   * @brief Copy constructor.
-   */
-  ScalarEntity(const ScalarEntity<dim>  &entity);
 
   /*!
    * @brief Set ups the degrees of freedom of the scalar field.

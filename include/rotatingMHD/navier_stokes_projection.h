@@ -74,11 +74,40 @@ class NavierStokesProjection
 {
 
 public:
+  /*!
+   * @brief The constructor of the Navier-Stokes projection class where 
+   * the bouyancy term is neglected.
+   * 
+   * @details Stores local references to the input parameters and 
+   * pointers for the mapping and terminal output entities.
+   */
   NavierStokesProjection
   (const RunTimeParameters::ParameterSet        &parameters,
+   TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
    std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   const std::shared_ptr<Mapping<dim>>          external_mapping =
+       std::shared_ptr<Mapping<dim>>(),
+   const std::shared_ptr<ConditionalOStream>    external_pcout =
+       std::shared_ptr<ConditionalOStream>(),
+   const std::shared_ptr<TimerOutput>           external_timer =
+       std::shared_ptr<TimerOutput>());
+
+  /*!
+   * @brief The constructor of the Navier-Stokes projection class where 
+   * the bouyancy term is considered.
+   * 
+   * @details Stores local references to the input parameters and 
+   * pointers for the mapping and terminal output entities.
+   */
+  NavierStokesProjection
+  (const RunTimeParameters::ParameterSet        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
+   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+   const std::shared_ptr<Mapping<dim>>          external_mapping =
+       std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =
        std::shared_ptr<ConditionalOStream>(),
    const std::shared_ptr<TimerOutput>           external_timer =
@@ -112,10 +141,13 @@ public:
   void set_body_force(RMHD::EquationData::BodyForce<dim> &body_force);
 
   /*!
-   * @brief Currently this method only sets the vector of the two pressure
-   * updates @ref old_phi and @ref old_old_phi to zero.
+   *  @brief Sets the gravity unit vector of the problem.
+   *
+   *  @details Stores the memory address of the gravity unit vector 
+   *  function in the pointer @ref gravity_unit_vector_ptr.
    */
-  void initialize();
+  void set_gravity_unit_vector(RMHD::EquationData::BodyForce<dim> &gravity_unit_vector);
+
 
   /*!
    *  @brief Solves the problem for one single timestep.
@@ -181,19 +213,34 @@ private:
   std::shared_ptr<TimerOutput>            computing_timer;
 
   /*!
+   * @brief Pointer to the mapping to be used throughout the solver.
+   */
+  std::shared_ptr<Mapping<dim>>           mapping;
+
+  /*!
    * @brief A reference to the entity of velocity field.
    */
-  std::shared_ptr<Entities::VectorEntity<dim>>  &velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure;
+  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+
+  /*!
+   * @brief A reference to the entity of the temperature field.
+   */
+  std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
 
   /*!
    * @brief A pointer to the body force function.
    */
   RMHD::EquationData::BodyForce<dim>    *body_force_ptr;
+
+  /*!
+   * @brief A pointer to the gravity unit vector function.
+   */
+  RMHD::EquationData::BodyForce<dim>    *gravity_unit_vector_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
@@ -249,46 +296,6 @@ private:
   LinearAlgebra::MPI::SparseMatrix  velocity_advection_matrix;
 
   /*!
-   * @brief A vector representing the extrapolated velocity at the
-   * current timestep using a Taylor expansion
-   * @details The Taylor expansion is given by
-   * \f{eqnarray*}{
-   * u^{n} &\approx& u^{n-1} + \frac{\partial u^{n-1}}{\partial t} \Delta t \\
-   *         &\approx& u^{n-1} + \frac{u^{n-1} - u^{n-2}}{\Delta t} \Delta t \\
-   *         &\approx& 2 u^{n-1} - u^{n-2}.
-   * \f}
-   * In the case of a variable time step the approximation is given by
-   * \f[
-   * u^{n} \approx (1 + \omega) u^{n-1} - \omega u^{n-2}
-   * \f] 
-   * where  \f$ \omega = \frac{\Delta t_{n-1}}{\Delta t_{n-2}}.\f$
-   * @attention The extrapolation is hardcoded to the second order described
-   * above. First and higher order are pending.
-   */
-  LinearAlgebra::MPI::Vector        extrapolated_velocity;
-
-  /*!
-   * @brief Vector representing the sum of the time discretization terms
-   * that belong to the right hand side of the equation.
-   * @details For example: A BDF2 scheme with a constant time step
-   * expands the time derivative in three terms
-   * \f[
-   * \frac{\partial u}{\partial t} \approx 
-   * \frac{1.5}{\Delta t} u^{n} - \frac{2}{\Delta t} u^{n-1}
-   * + \frac{0.5}{\Delta t} u^{n-2},
-   * \f] 
-   * the last two terms are known quantities so they belong to the 
-   * right hand side of the equation. Therefore, we define
-   * \f[
-   * u_\textrm{tmp} = - \frac{2}{\Delta t} u^{n-1}
-   * + \frac{0.5}{\Delta t} u^{n-2},
-   * \f].
-   * which we use when assembling the right hand side of the diffusion
-   * step.
-   */
-  LinearAlgebra::MPI::Vector        velocity_tmp;
-
-  /*!
    * @brief Vector representing the right-hand side of the linear system of the
    * diffusion step.
    */
@@ -304,17 +311,6 @@ private:
    * Laplace operator.
    */
   LinearAlgebra::MPI::SparseMatrix  pressure_laplace_matrix;
-
-  /*!
-   * @brief Vector representing the pressure used in the diffusion step.
-   * @details The pressure is given by
-   * \f[
-   * p_\textrm{tmp} = p^{n-1} + 
-   *                  \sum_{j=1}^{2} \frac{\Delta t_{n-1-j}}{\Delta t_{n-1}}
-   *                  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^\textrm{n-j} 
-   * \f] 
-   */  
-  LinearAlgebra::MPI::Vector        pressure_tmp;
 
   /*!
    * @brief Vector representing the right-hand side of the linear system of the
@@ -366,13 +362,6 @@ private:
    * scheme step.
    */ 
   double                                  norm_projection_rhs;
-
-  /*!
-   * @brief A flag for the initializing of the solver.
-   * @details It is only set as true while initializing in order to 
-   * reuse methods of the normal solve procedure.
-   */
-  bool                                  flag_initializing;
   
   /*!
    * @brief A flag to normalize the pressure field.
@@ -381,7 +370,6 @@ private:
    * has to be set to true in order to constraint the pressure field.
    */
   bool                                  flag_normalize_pressure;
-
 
   /*!
    * @brief A flag indicating if the scalar field  \f$ \phi\f$ is to 
@@ -395,6 +383,11 @@ private:
    * matrices are to be added.
    */
   bool                                  flag_add_mass_and_stiffness_matrices;
+
+  /*!
+   * @brief A flag indicating if bouyancy term is to be ignored.
+   */
+  bool                                  flag_ignore_bouyancy_term;
 
   /*!
    * @brief A method initiating the scalar field  \f$ \phi\f$.
@@ -443,35 +436,6 @@ private:
    * @brief This method solves the linear system of the poisson prestep.
    */
   void solve_poisson_prestep();
-
-  /*!
-   * @brief This method performs the diffusion prestep.
-   */
-  void diffusion_prestep();
-
-  /*!
-   * @brief This method assembles the system matrix of the diffusion
-   * prestep and calls assemble_diffusion_prestep_rhs
-   * @details The system matrix \f$\bs{A}^{(\bs{v})}\f$ is constructed from the mass
-   * \f$\bs{M}^{(\bs{v})}\f$, the stiffness \f$\bs{K}^{(\bs{v})}\f$ and
-   * the advection matrices \f$\bs{C}^{(\bs{v})}\f$ as follows
-   *
-   * \f[
-   * \bs{A} = \frac{1}{\Delta t_{n-1}} \bs{M}^{(\bs{v})}+ \frac{1}{\Reynolds}
-   * \bs{K}^{(\bs{v})} + \bs{C}^{(\bs{v})} \,.
-   * \f]
-   */
-  void assemble_diffusion_prestep();
-
-  /*!
-   * @brief This method performs the projection prestep.
-   */
-  void projection_prestep();
-
-  /*!
-   * @brief This method performs the pressure correction prestep.
-   */
-  void pressure_correction_prestep();
 
   /*!
    * @brief This method performs one complete diffusion step.
@@ -544,15 +508,15 @@ private:
    */
   void assemble_local_velocity_matrices(
     const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    VelocityMatricesAssembly::LocalCellData<dim>          &scratch,
-    VelocityMatricesAssembly::MappingData<dim>            &data);
+    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>  &scratch,
+    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>     &data);
 
   /*!
    * @brief This method copies the local mass and the local stiffness matrices
    * of the velocity field on a single cell into the global matrices.
    */
   void copy_local_to_global_velocity_matrices(
-    const VelocityMatricesAssembly::MappingData<dim>      &data);
+    const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim> &data);
 
   /*!
    * @brief This method assembles the mass \f$\bs{M}^{(p)}\f$ and the
@@ -579,15 +543,15 @@ private:
    */
   void assemble_local_pressure_matrices(
     const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    PressureMatricesAssembly::LocalCellData<dim>          &scratch,
-    PressureMatricesAssembly::MappingData<dim>            &data);
+    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>  &scratch,
+    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim>     &data);
 
   /*!
    * @brief This method copies the local mass and the local stiffness matrices
    * of the pressure field on a single cell into the global matrices.
    */
   void copy_local_to_global_pressure_matrices(
-    const PressureMatricesAssembly::MappingData<dim>      &data);
+    const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim> &data);
 
   /*!
    * @brief This method assembles the right-hand side of the poisson
@@ -595,15 +559,15 @@ private:
    */
   void assemble_local_poisson_prestep_rhs(
     const typename DoFHandler<dim>::active_cell_iterator        &cell,
-    PoissonPrestepRightHandSideAssembly::LocalCellData<dim>     &scratch,
-    PoissonPrestepRightHandSideAssembly::MappingData<dim>       &data);
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>     &scratch,
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>       &data);
 
   /*!
    * @brief This method assembles the local right-hand side of the poisson
    * prestep on a single cell.
    */
   void copy_local_to_global_poisson_prestep_rhs(
-    const PoissonPrestepRightHandSideAssembly::MappingData<dim> &data);
+    const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim> &data);
 
   /*!
    * @brief This method assembles the right-hand side of the diffusion step
@@ -627,16 +591,16 @@ private:
    * step on a single cell.
    */
   void assemble_local_diffusion_step_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    VelocityRightHandSideAssembly::LocalCellData<dim>     &scratch,
-    VelocityRightHandSideAssembly::MappingData<dim>       &data);
+    const typename DoFHandler<dim>::active_cell_iterator                  &cell,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>  &scratch,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>     &data);
 
   /*!
    * @brief This method copies the local right-hand side of the diffusion step
    * into the global vector.
    */
   void copy_local_to_global_diffusion_step_rhs(
-    const VelocityRightHandSideAssembly::MappingData<dim> &data);
+    const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim> &data);
 
   /*!
    * @brief This method assembles the right-hand side of the projection step
@@ -656,16 +620,16 @@ private:
    * step on a single cell.
    */
   void assemble_local_projection_step_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    PressureRightHandSideAssembly::LocalCellData<dim>     &scratch,
-    PressureRightHandSideAssembly::MappingData<dim>       &data);
+    const typename DoFHandler<dim>::active_cell_iterator                  &cell,
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim> &scratch,
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim>    &data);
 
   /*!
    * @brief This method copies the local right-hand side of the projection step
    * on a single cell to the global vector.
    */
   void copy_local_to_global_projection_step_rhs(
-    const PressureRightHandSideAssembly::MappingData<dim> &data);
+    const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim> &data);
 
   /*!
    * @brief This method assembles the velocity advection matrix using the
@@ -690,16 +654,16 @@ private:
    * single cell.
    */
   void assemble_local_velocity_advection_matrix(
-    const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    AdvectionAssembly::LocalCellData<dim>                 &scratch,
-    AdvectionAssembly::MappingData<dim>                   &data);
+    const typename DoFHandler<dim>::active_cell_iterator                &cell,
+    AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim> &scratch,
+    AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>    &data);
 
   /*!
    * @brief This method copies the local velocity advection matrix into the
    * global matrix.
    */
   void copy_local_to_global_velocity_advection_matrix(
-    const AdvectionAssembly::MappingData<dim>             &data);
+    const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>  &data);
   
 };
 

@@ -5,6 +5,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <deal.II/fe/mapping_q.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -45,9 +46,9 @@ private:
   EquationData::Step35::VelocityInflowBoundaryCondition<dim>  
                                       inflow_boundary_condition;
   EquationData::Step35::VelocityInitialCondition<dim>         
-                                      velocity_initial_conditions;
+                                      velocity_initial_condition;
   EquationData::Step35::PressureInitialCondition<dim>         
-                                      pressure_initial_conditions;
+                                      pressure_initial_condition;
 
   void make_grid(const unsigned int n_global_refinements);
 
@@ -67,18 +68,23 @@ Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
 :
 Problem<dim>(parameters),
 params(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1, this->triangulation)),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree, this->triangulation)),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+                                                       this->triangulation,
+                                                       "velocity")),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
+                                                       this->triangulation,
+                                                       "pressure")),
 time_stepping(parameters.time_stepping_parameters),
 navier_stokes(parameters,
+              time_stepping,
               velocity,
               pressure,
-              time_stepping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
-velocity_initial_conditions(parameters.time_stepping_parameters.start_time),
-pressure_initial_conditions(parameters.time_stepping_parameters.start_time)
+velocity_initial_condition(dim),
+pressure_initial_condition()
 {
   make_grid(parameters.n_global_refinements);
   setup_dofs();
@@ -112,9 +118,9 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
   boundary_ids = this->triangulation.get_boundary_ids();
 
   *(this->pcout) << "Number of refines                     = "
-              << n_global_refinements << std::endl;
+                 << n_global_refinements << std::endl;
   *(this->pcout) << "Number of active cells                = "
-              << this->triangulation.n_global_active_cells() << std::endl;
+                 << this->triangulation.n_global_active_cells() << std::endl;
 }
 
 template <int dim>
@@ -126,11 +132,11 @@ void Step35<dim>::setup_dofs()
   pressure->setup_dofs();
   
   *(this->pcout) << "Number of velocity degrees of freedom = "
-              << (velocity->dof_handler)->n_dofs()
-              << std::endl
-              << "Number of pressure degrees of freedom = "
-              << pressure->dof_handler->n_dofs()
-              << std::endl;
+                 << (velocity->dof_handler)->n_dofs()
+                 << std::endl
+                 << "Number of pressure degrees of freedom = "
+                 << pressure->dof_handler->n_dofs()
+                 << std::endl;
 }
 
 template <int dim>
@@ -141,7 +147,7 @@ void Step35<dim>::setup_constraints()
   velocity->boundary_conditions.set_dirichlet_bcs(1);
   velocity->boundary_conditions.set_dirichlet_bcs(2,
     std::shared_ptr<Function<dim>> 
-      (new EquationData::Step35::VelocityInflowBoundaryCondition<dim>(dim)));
+    (new EquationData::Step35::VelocityInflowBoundaryCondition<dim>()));
   velocity->boundary_conditions.set_dirichlet_bcs(4);
   velocity->boundary_conditions.set_tangential_flux_bcs(3);
   
@@ -159,10 +165,10 @@ void Step35<dim>::initialize()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
   this->set_initial_conditions(velocity, 
-                               velocity_initial_conditions, 
+                               velocity_initial_condition, 
                                time_stepping);
   this->set_initial_conditions(pressure,
-                               pressure_initial_conditions, 
+                               pressure_initial_condition, 
                                time_stepping);
   //navier_stokes.initialize();
   velocity->solution = velocity->old_solution;
@@ -262,8 +268,7 @@ void Step35<dim>::run()
 }
 
 template <int dim>
-void Step35<dim>::
-point_evaluation(const Point<dim>   &point) const
+void Step35<dim>::point_evaluation(const Point<dim> &point) const
 {
   const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
   cell_point =

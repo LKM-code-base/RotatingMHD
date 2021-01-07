@@ -10,6 +10,8 @@ SET(SOURCE_FILES
     step-35.cc
     TGV.cc
     Guermond.cc
+    ThermalTGV.cc
+    MIT.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})
