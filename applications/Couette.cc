@@ -26,20 +26,21 @@ namespace RMHD
 /*!
  * @class Couette
  * @brief This class solves the Couette flow problem.
- * @details The Couette flow was chosen as study case to test the
+ * @details The Couette flow was chosen as a test problem to verify the
  * correct implementation of the Neumann boundary conditions in the
- * @ref NavierStokesProjection solver. The study case consist of the
- * stationary state of a channel flow, where the lower plate is fixed 
- * and the upper one is being moved. The problem is governed by the 
- * equation
+ * @ref NavierStokesProjection solver. The problem considers stationary
+ * laminar flow of fluid between two infinitely long horiozontal plates,
+ * where the lower plate is fixed and the upper one is being moved. 
+ * The problem is governed by the equation
  * \f[
  * \ddsqr{u_\mathrm{x}}{y} = 0, \quad \forall \bs{x} \in \Omega
  * \f]
- * which can be easily obtained from the linear impulse conservation by
- * considering an isotropic and homogeneous fluid; an unidirectional and
- * stationary flow in the \f$ x\f$-direction; no body forces; and no
- * pressure gradient. An unique solution is obtained by considering a
- * no-slip boundary condition at the lower plate and a traction vector
+ * which can be easily obtained from the momentum equation by
+ * considering an isotropic and homogeneous fluid, an unidirectional and
+ * stationary flow in the \f$ x\f$-direction, neglecting body forces and
+ * a vanishing horizontal pressure gradient. An unique solution is 
+ * obtained by considering a no-slip boundary condition at the lower 
+ * plate and a traction vector
  * \f$ \bs{t} = t_0 \bs{e}_\textrm{x} \f$ applied to the upper plate.
  * This leads to
  * \f[
@@ -49,7 +50,7 @@ namespace RMHD
  * number and the height of the channel. The stationary solution is
  * obtained at around \f$ t ~ H^2 \Reynolds \f$.
  * @note Periodic boundary conditions are implemented in order to 
- * simulate an infinate channel.
+ * simulate an infinitely long channel.
  */  
 template <int dim>
 class Couette : public Problem<dim>
@@ -159,7 +160,7 @@ make_grid(const unsigned int &n_global_refinements)
                                  true);
   
   // The infinite domain is implemented with periodic boundary conditions,
-  // said periodicity has to be first implemented in the triangulation.
+  // this periodicity has to be first implemented in the triangulation.
   std::vector<GridTools::PeriodicFacePair<
     typename parallel::distributed::Triangulation<dim>::cell_iterator>>
     periodicity_vector;
@@ -205,8 +206,8 @@ void Couette<dim>::setup_constraints()
   velocity->boundary_conditions.clear();
   pressure->boundary_conditions.clear();
 
-  // The domain is an infinite channel, which considering the
-  // analytical solution allows periodic boundary conditions to be 
+  // The domain represents an infinite channel. In order to obtain the
+  // analytical solution, periodic boundary conditions need to be 
   // implemented. 
   velocity->boundary_conditions.set_periodic_bcs(0, 1, 0);
   pressure->boundary_conditions.set_periodic_bcs(0, 1, 0);
@@ -308,12 +309,8 @@ void Couette<dim>::solve(const unsigned int &level)
   error.reinit(velocity->solution);
   initialize();
 
-  // Advances the time to t^{k-1}, either t^0 or t^1
-  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
-    time_stepping.advance_time();
-  
   // Outputs the fields at t_0, i.e. the initial conditions.
-    output();
+  output();
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {

@@ -170,7 +170,6 @@ void Step35<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_initial_condition, 
                                time_stepping);
-  //navier_stokes.initialize();
   velocity->solution = velocity->old_solution;
   pressure->solution = pressure->old_solution;
   output();
@@ -226,9 +225,6 @@ void Step35<dim>::update_solution_vectors()
 template <int dim>
 void Step35<dim>::run()
 {
-  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
-    time_stepping.advance_time();
-
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}

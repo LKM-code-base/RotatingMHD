@@ -362,6 +362,8 @@ void TGV<dim>::solve(const unsigned int &level)
   initialize();
 
   // Advances the time to t^{k-1}, either t^0 or t^1
+  // This is needed since the boundary integral of the Poisson pre-step
+  // is not defined for this problem.
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
   

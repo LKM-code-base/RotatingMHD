@@ -328,7 +328,7 @@ double BodyForce<dim>::divergence(const Point<dim>  &point) const
 
 } // namespace Guermond
 
-namespace Guermond103
+namespace GuermondNeumannBC
 {
 
 template <int dim>
@@ -342,9 +342,10 @@ void VelocityExactSolution<dim>::vector_value(
                                         const Point<dim>  &point,
                                         Vector<double>    &values) const
 {
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+  
   values[0] = sin(x) * sin(y + t);
   values[1] = cos(x) * cos(y + t);
 }
@@ -356,9 +357,10 @@ Tensor<1, dim> VelocityExactSolution<dim>::gradient(
 {
   Tensor<1, dim>  return_value;
 
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+  
   // The gradient has to match that of dealii, i.e. from the right.
   if (component == 0)
   {
@@ -385,9 +387,10 @@ double PressureExactSolution<dim>::value
 (const Point<dim> &point,
  const unsigned int /* component */) const
 {
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+  
   return (cos(x) * sin(y + t));
 }
 
@@ -397,9 +400,9 @@ Tensor<1, dim> PressureExactSolution<dim>::gradient
  const unsigned int /* component */) const
 {
   Tensor<1, dim>  return_value;
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
 
   return_value[0] =  - sin(x) * sin(y + t);
   return_value[1] = cos(x) * cos(y + t);
@@ -423,17 +426,19 @@ Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
   // term is ignored.
   Tensor<1, dim> value;
 
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
 
   // With advection term
   value[0] = (sin(x)*(Re*(cos(x) + cos(t + y)) - 1.*(-2. + Re)*sin(t + y)))/Re;
   value[1] = (((2. + Re)*cos(x)*cos(t + y))/Re - 1.*(cos(x) + cos(t + y))*sin(t + y));
 
-  /*// Without advection term
+  /*
+  // Without advection term
   value[0] = ((sin(x)*(Re*cos(t + y) - 1.*(-2. + Re)*sin(t + y)))/Re);
-  value[1] = (cos(x)*((2. + Re)*cos(t + y) - 1.*Re*sin(t + y)))/Re;*/
+  value[1] = (cos(x)*((2. + Re)*cos(t + y) - 1.*Re*sin(t + y)))/Re;
+  */
 
   return value;
 }
@@ -448,11 +453,13 @@ double BodyForce<dim>::divergence(const Point<dim>  &point) const
   // With advection term
   return (cos(2.*x) - 1.*cos(2.*(t + y)) - 2.*cos(x)*sin(t + y));
 
-  /*// Without advection term
-  return (-2.*cos(x)*sin(t + y));*/
+  /*
+  // Without advection term
+  return (-2.*cos(x)*sin(t + y));
+  */
 }
 
-} // namespace Guermond103
+} // namespace GuermondNeumannBC
 namespace Couette
 {
 
@@ -688,14 +695,14 @@ template class RMHD::EquationData::Guermond::PressureExactSolution<3>;
 template class RMHD::EquationData::Guermond::BodyForce<2>;
 template class RMHD::EquationData::Guermond::BodyForce<3>;
 
-template class RMHD::EquationData::Guermond103::VelocityExactSolution<2>;
-template class RMHD::EquationData::Guermond103::VelocityExactSolution<3>;
+template class RMHD::EquationData::GuermondNeumannBC::VelocityExactSolution<2>;
+template class RMHD::EquationData::GuermondNeumannBC::VelocityExactSolution<3>;
 
-template class RMHD::EquationData::Guermond103::PressureExactSolution<2>;
-template class RMHD::EquationData::Guermond103::PressureExactSolution<3>;
+template class RMHD::EquationData::GuermondNeumannBC::PressureExactSolution<2>;
+template class RMHD::EquationData::GuermondNeumannBC::PressureExactSolution<3>;
 
-template class RMHD::EquationData::Guermond103::BodyForce<2>;
-template class RMHD::EquationData::Guermond103::BodyForce<3>;
+template class RMHD::EquationData::GuermondNeumannBC::BodyForce<2>;
+template class RMHD::EquationData::GuermondNeumannBC::BodyForce<3>;
 
 template class RMHD::EquationData::Couette::VelocityExactSolution<2>;
 template class RMHD::EquationData::Couette::VelocityExactSolution<3>;

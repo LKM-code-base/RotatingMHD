@@ -337,9 +337,6 @@ void MITBenchmark<dim>::initialize()
     temperature->old_old_solution = distributed_old_old_temperature;
   }
 
-  // heat_equation.initialize();
-  // navier_stokes.initialize();
-
   // Outputs the initial conditions
   temperature->solution = temperature->old_old_solution;
   output();
@@ -444,10 +441,6 @@ void MITBenchmark<dim>::run()
                << " Initial time step                        = " 
                << time_stepping.get_next_step_size() << std::endl
                << std::endl;
-
-  // Advances the time to t^{k-1}
-  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
-    time_stepping.advance_time();
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {

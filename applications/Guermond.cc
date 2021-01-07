@@ -335,9 +335,6 @@ void Guermond<dim>::solve(const unsigned int &level)
   pressure_error.reinit(pressure->solution);
   initialize();
 
-  // Advances the time to t^{k-1}, either t^0 or t^1
-  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
-    time_stepping.advance_time();
 
   // Outputs the fields at t_0, i.e. the initial conditions.
   { 

@@ -221,7 +221,7 @@ public:
 
 } // namespace Guermond
 
-namespace Guermond103
+namespace GuermondNeumannBC
 {
 template <int dim>
 class VelocityExactSolution : public Function<dim>
@@ -264,7 +264,7 @@ public:
   const double Re;
 };
 
-} // namespace Guermond103
+} // namespace GuermondNeumannBC
 
 namespace Couette
 {
