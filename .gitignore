@@ -74,6 +74,7 @@ _deps
 # Eclipse
 .cproject
 .project
+.settings
 
 # Meshes and Output
 *.med
@@ -96,11 +97,10 @@ _deps
 *.gz
 *.iso
 *.jar
+*.rar
+*.tar
+*.zip
 
 # Doxygen
 documentation/html/
 documentation/latex/
-
-*.rar
-*.tar
-*.zip
