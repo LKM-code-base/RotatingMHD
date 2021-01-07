@@ -250,13 +250,6 @@ local_projection_step_rhs(dofs_per_cell),
 local_correction_step_rhs(dofs_per_cell)
 {}
 
-Copy::Copy(const Copy &data)
-:
-CopyBase(data),
-local_projection_step_rhs(data.local_projection_step_rhs),
-local_correction_step_rhs(data.local_correction_step_rhs)
-{}
-
 template <int dim>
 Scratch<dim>::Scratch
 (const Mapping<dim>        &mapping,

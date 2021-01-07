@@ -19,8 +19,6 @@ struct CopyBase
 {
   CopyBase(const unsigned int dofs_per_cell);
 
-  CopyBase(const CopyBase &data);
-
   unsigned int                          dofs_per_cell;
 
   std::vector<types::global_cell_index> local_dof_indices;
@@ -49,16 +47,12 @@ struct Copy : CopyBase
 {
   Copy(const unsigned int dofs_per_cell);
 
-  Copy(const Copy &data);
-
   FullMatrix<double>  local_matrix;
 };
 
 struct MassStiffnessCopy : CopyBase
 {
   MassStiffnessCopy(const unsigned int dofs_per_cell);
-
-  MassStiffnessCopy(const MassStiffnessCopy &data);
 
   FullMatrix<double>  local_mass_matrix;
 
@@ -86,8 +80,6 @@ namespace RightHandSide
 struct Copy : CopyBase
 {
   Copy(const unsigned int dofs_per_cell);
-
-  Copy(const Copy &data);
 
   Vector<double>      local_rhs;
 
@@ -297,8 +289,6 @@ namespace ProjectionStepRHS
 struct Copy : CopyBase
 {
   Copy(const unsigned int dofs_per_cell);
-
-  Copy(const Copy &data);
 
   Vector<double>      local_projection_step_rhs;
 

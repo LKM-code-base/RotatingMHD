@@ -1,8 +1,10 @@
 #include <rotatingMHD/heat_equation.h>
+
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/grid/filtered_iterator.h>
 #include <deal.II/fe/fe_nothing.h>
+
 namespace RMHD
 {
 

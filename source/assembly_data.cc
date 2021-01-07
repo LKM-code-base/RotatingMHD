@@ -12,12 +12,6 @@ dofs_per_cell(dofs_per_cell),
 local_dof_indices(dofs_per_cell)
 {}
 
-CopyBase::CopyBase(const CopyBase &data)
-:
-dofs_per_cell(data.dofs_per_cell),
-local_dof_indices(data.local_dof_indices)
-{}
-
 template <int dim>
 ScratchBase<dim>::ScratchBase(
   const Quadrature<dim>     &quadrature_formula,
@@ -46,24 +40,11 @@ CopyBase(dofs_per_cell),
 local_matrix(dofs_per_cell, dofs_per_cell)
 {}
 
-Copy::Copy(const Copy &data)
-:
-CopyBase(data),
-local_matrix(data.local_matrix)
-{}
-
 MassStiffnessCopy::MassStiffnessCopy(const unsigned int dofs_per_cell)
 :
 CopyBase(dofs_per_cell),
 local_mass_matrix(dofs_per_cell, dofs_per_cell),
 local_stiffness_matrix(dofs_per_cell, dofs_per_cell)
-{}
-
-MassStiffnessCopy::MassStiffnessCopy(const MassStiffnessCopy &data)
-:
-CopyBase(data),
-local_mass_matrix(data.local_mass_matrix),
-local_stiffness_matrix(data.local_stiffness_matrix)
 {}
 
 template <int dim>
@@ -100,13 +81,6 @@ Copy::Copy(const unsigned int dofs_per_cell)
 CopyBase(dofs_per_cell),
 local_rhs(dofs_per_cell),
 local_matrix_for_inhomogeneous_bc(dofs_per_cell, dofs_per_cell)
-{}
-
-Copy::Copy(const Copy &data)
-:
-CopyBase(data),
-local_rhs(data.local_rhs),
-local_matrix_for_inhomogeneous_bc(data.local_matrix_for_inhomogeneous_bc)
 {}
 
 template <int dim>
