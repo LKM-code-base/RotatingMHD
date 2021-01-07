@@ -243,18 +243,16 @@ face_phi(this->dofs_per_cell)
 namespace ProjectionStepRHS
 {
 
-template <int dim>
-Copy<dim>::Copy(const unsigned int dofs_per_cell)
+Copy::Copy(const unsigned int dofs_per_cell)
 :
-CopyBase<dim>(dofs_per_cell),
+CopyBase(dofs_per_cell),
 local_projection_step_rhs(dofs_per_cell),
 local_correction_step_rhs(dofs_per_cell)
 {}
 
-template <int dim>
-Copy<dim>::Copy(const Copy &data)
+Copy::Copy(const Copy &data)
 :
-CopyBase<dim>(data),
+CopyBase(data),
 local_projection_step_rhs(data.local_projection_step_rhs),
 local_correction_step_rhs(data.local_correction_step_rhs)
 {}
@@ -452,9 +450,6 @@ template struct RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scr
 
 template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<3>;
-
-template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<2>;
-template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<3>;
 
 template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<3>;

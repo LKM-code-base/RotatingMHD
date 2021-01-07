@@ -55,7 +55,7 @@ void HeatEquation<dim>::assemble_rhs()
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
            AssemblyData::HeatEquation::RightHandSide::Scratch<dim>  &scratch,
-           AssemblyData::HeatEquation::RightHandSide::Copy<dim>     &data)
+           AssemblyData::HeatEquation::RightHandSide::Copy          &data)
     {
       this->assemble_local_rhs(cell, 
                                scratch,
@@ -64,7 +64,7 @@ void HeatEquation<dim>::assemble_rhs()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::HeatEquation::RightHandSide::Copy<dim> &data) 
+    [this](const AssemblyData::HeatEquation::RightHandSide::Copy    &data)
     {
       this->copy_local_to_global_rhs(data);
     };
@@ -94,8 +94,7 @@ void HeatEquation<dim>::assemble_rhs()
     update_quadrature_points,
     *velocity_fe,
     update_values),
-   AssemblyData::HeatEquation::RightHandSide::Copy<dim>(
-     temperature->fe.dofs_per_cell));
+   AssemblyData::HeatEquation::RightHandSide::Copy(temperature->fe.dofs_per_cell));
 
   // Compress global data
   rhs.compress(VectorOperation::add);
@@ -106,9 +105,9 @@ void HeatEquation<dim>::assemble_rhs()
 
 template <int dim>
 void HeatEquation<dim>::assemble_local_rhs(
-  const typename DoFHandler<dim>::active_cell_iterator    &cell,
-  AssemblyData::HeatEquation::RightHandSide::Scratch<dim> &scratch,
-  AssemblyData::HeatEquation::RightHandSide::Copy<dim>    &data)
+  const typename DoFHandler<dim>::active_cell_iterator      &cell,
+  AssemblyData::HeatEquation::RightHandSide::Scratch<dim>   &scratch,
+  AssemblyData::HeatEquation::RightHandSide::Copy           &data)
 {
   // Reset local data
   data.local_rhs                          = 0.;
@@ -359,7 +358,7 @@ void HeatEquation<dim>::assemble_local_rhs(
 
 template <int dim>
 void HeatEquation<dim>::copy_local_to_global_rhs
-(const AssemblyData::HeatEquation::RightHandSide::Copy<dim> &data)
+(const AssemblyData::HeatEquation::RightHandSide::Copy  &data)
 {
   temperature->constraints.distribute_local_to_global(
     data.local_rhs,
@@ -375,16 +374,16 @@ template void RMHD::HeatEquation<2>::assemble_rhs();
 template void RMHD::HeatEquation<3>::assemble_rhs();
 
 template void RMHD::HeatEquation<2>::assemble_local_rhs
-(const typename DoFHandler<2>::active_cell_iterator          &cell,
- RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<2> &scratch,
- RMHD::AssemblyData::HeatEquation::RightHandSide::Copy<2>    &data);
+(const typename DoFHandler<2>::active_cell_iterator         &,
+ RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<2>&,
+ RMHD::AssemblyData::HeatEquation::RightHandSide::Copy      &);
 
 template void RMHD::HeatEquation<3>::assemble_local_rhs
-(const typename DoFHandler<3>::active_cell_iterator          &cell,
- RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<3> &scratch,
- RMHD::AssemblyData::HeatEquation::RightHandSide::Copy<3>    &data);
+(const typename DoFHandler<3>::active_cell_iterator         &,
+ RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<3>&,
+ RMHD::AssemblyData::HeatEquation::RightHandSide::Copy      &);
 
 template void RMHD::HeatEquation<2>::copy_local_to_global_rhs
-(const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy<2> &);
+(const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy &);
 template void RMHD::HeatEquation<3>::copy_local_to_global_rhs
-(const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy<3> &);
+(const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy &);

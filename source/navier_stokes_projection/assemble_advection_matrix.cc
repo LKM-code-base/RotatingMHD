@@ -22,7 +22,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator                 &cell,
            AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>  &scratch,
-           AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>     &data)
+           AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy          &data)
     {
       this->assemble_local_velocity_advection_matrix(cell, 
                                                      scratch,
@@ -31,7 +31,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim> &data) 
+    [this](const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy    &data)
     {
       this->copy_local_to_global_velocity_advection_matrix(data);
     };
@@ -54,7 +54,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
                                          update_values|
                                          update_JxW_values|
                                          update_gradients),
-   AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>(velocity->fe.dofs_per_cell));
+   AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy(velocity->fe.dofs_per_cell));
 
   // Compress global data
   velocity_advection_matrix.compress(VectorOperation::add);
@@ -64,8 +64,8 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
- AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>  &scratch,
- AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>     &data)
+ AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>&scratch,
+ AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy        &data)
 {
   // Reset local data
   data.local_matrix = 0.;
@@ -220,7 +220,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_advection_matrix
-(const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim> &data)
+(const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy  &data)
 {
   velocity->constraints.distribute_local_to_global(
                                       data.local_matrix,
@@ -236,14 +236,13 @@ template void RMHD::NavierStokesProjection<3>::assemble_velocity_advection_matri
 template void RMHD::NavierStokesProjection<2>::assemble_local_velocity_advection_matrix
 (const typename DoFHandler<2>::active_cell_iterator                       &,
  RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<2>  &,
- RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<2>     &);
+ RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy        &);
 template void RMHD::NavierStokesProjection<3>::assemble_local_velocity_advection_matrix
 (const typename DoFHandler<3>::active_cell_iterator                       &,
  RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<3>  &,
- RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<3>     &);
-
+ RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy        &);
 
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_velocity_advection_matrix
-(const RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<2> &);
+(const RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy &);
 template void RMHD::NavierStokesProjection<3>::copy_local_to_global_velocity_advection_matrix
-(const RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<3> &);
+(const RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy &);

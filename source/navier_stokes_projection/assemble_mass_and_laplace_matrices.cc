@@ -26,8 +26,8 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   // Set up the lamba function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>         &scratch,
-           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>           &data)
+           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim> &scratch,
+           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy         &data)
     {
       this->assemble_local_velocity_matrices(cell, 
                                              scratch,
@@ -36,7 +36,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim> &data) 
+    [this](const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy   &data)
     {
       this->copy_local_to_global_velocity_matrices(data);
     };
@@ -59,7 +59,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
     update_values|
     update_gradients|
     update_JxW_values),
-   AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>(velocity->fe.dofs_per_cell));
+   AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy(velocity->fe.dofs_per_cell));
 
   // Compress global data
   velocity_mass_matrix.compress(VectorOperation::add);
@@ -72,8 +72,8 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_velocity_matrices
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
- AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>          &scratch,
- AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>            &data)
+ AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>   &scratch,
+ AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy           &data)
 {
   // Reset local data
   data.local_mass_matrix = 0.;
@@ -124,7 +124,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_matrices
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_matrices
-(const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim> &data)
+(const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy &data)
 {
   velocity->constraints.distribute_local_to_global(
                                       data.local_mass_matrix,
@@ -157,8 +157,8 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   // Set up the lamba function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-           AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>         &scratch,
-           AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim>           &data)
+           AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim> &scratch,
+           AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy         &data)
     {
       this->assemble_local_pressure_matrices(cell, 
                                              scratch,
@@ -167,7 +167,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim> &data) 
+    [this](const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy &data)
     {
       this->copy_local_to_global_pressure_matrices(data);
     };
@@ -190,7 +190,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
     update_values|
     update_gradients|
     update_JxW_values),
-   AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim>(pressure->fe.dofs_per_cell));
+   AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy(pressure->fe.dofs_per_cell));
 
   // Compress global data
   pressure_mass_matrix.compress(VectorOperation::add);
@@ -203,8 +203,8 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_pressure_matrices
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
- AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>          &scratch,
- AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim>            &data)
+ AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>   &scratch,
+ AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy           &data)
 {
   // Reset local data
   data.local_mass_matrix      = 0.;
@@ -252,7 +252,7 @@ void NavierStokesProjection<dim>::assemble_local_pressure_matrices
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
-(const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim> &data)
+(const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy &data)
 {
   pressure->constraints.distribute_local_to_global(
                                       data.local_mass_matrix,
@@ -272,31 +272,31 @@ template void RMHD::NavierStokesProjection<3>::assemble_velocity_matrices();
 
 template void RMHD::NavierStokesProjection<2>::assemble_local_velocity_matrices
 (const typename DoFHandler<2>::active_cell_iterator  &,
- RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<2>    &,
- RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<2>      &);
+ RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<2> &,
+ RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy       &);
 template void RMHD::NavierStokesProjection<3>::assemble_local_velocity_matrices
 (const typename DoFHandler<3>::active_cell_iterator  &,
- RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<3>    &,
- RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<3>      &);
+ RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<3> &,
+ RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy       &);
 
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_velocity_matrices
-(const RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<2>  &);
+(const RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy &);
 template void RMHD::NavierStokesProjection<3>::copy_local_to_global_velocity_matrices
-(const RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<3>  &);
+(const RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy &);
 
 template void RMHD::NavierStokesProjection<2>::assemble_pressure_matrices();
 template void RMHD::NavierStokesProjection<3>::assemble_pressure_matrices();
 
 template void RMHD::NavierStokesProjection<2>::assemble_local_pressure_matrices
 (const typename DoFHandler<2>::active_cell_iterator  &,
- RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<2>    &,
- RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<2>      &);
+ RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<2> &,
+ RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy       &);
 template void RMHD::NavierStokesProjection<3>::assemble_local_pressure_matrices
 (const typename DoFHandler<3>::active_cell_iterator  &,
- RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<3>    &,
- RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<3>      &);
+ RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<3>   &,
+ RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy         &);
 
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_pressure_matrices
-(const RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<2>  &);
+(const RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy   &);
 template void RMHD::NavierStokesProjection<3>::copy_local_to_global_pressure_matrices
-(const RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<3>  &);
+(const RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy   &);

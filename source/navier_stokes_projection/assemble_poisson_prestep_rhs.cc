@@ -45,8 +45,8 @@ assemble_poisson_prestep_rhs()
   // Set up the lamba function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
-           AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>  &scratch,
-           AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>    &data)
+           AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>   &scratch,
+           AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy           &data)
     {
       this->assemble_local_poisson_prestep_rhs(cell, 
                                                scratch,
@@ -55,7 +55,7 @@ assemble_poisson_prestep_rhs()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim> &data) 
+    [this](const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy &data)
     {
       this->copy_local_to_global_poisson_prestep_rhs(data);
     };
@@ -93,8 +93,7 @@ assemble_poisson_prestep_rhs()
       update_values |
       update_gradients,
       update_values),
-    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>(
-      pressure->fe.dofs_per_cell));
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy(pressure->fe.dofs_per_cell));
   
   // Compress global data
   poisson_prestep_rhs.compress(VectorOperation::add);
@@ -106,8 +105,8 @@ assemble_poisson_prestep_rhs()
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 (const typename DoFHandler<dim>::active_cell_iterator        &cell,
- AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>     &scratch,
- AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>       &data)
+ AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim> &scratch,
+ AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy         &data)
 {
   // Reset local data
   data.local_rhs = 0.;
@@ -397,7 +396,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 template <int dim>
 void NavierStokesProjection<dim>::
 copy_local_to_global_poisson_prestep_rhs(
-  const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>  &data)
+  const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy  &data)
 {
   pressure->constraints.distribute_local_to_global(
                                 data.local_rhs,
@@ -411,14 +410,14 @@ copy_local_to_global_poisson_prestep_rhs(
 template void RMHD::NavierStokesProjection<2>::assemble_poisson_prestep_rhs();
 template void RMHD::NavierStokesProjection<3>::assemble_poisson_prestep_rhs();
 template void RMHD::NavierStokesProjection<2>::assemble_local_poisson_prestep_rhs(
-    const typename DoFHandler<2>::active_cell_iterator              &,
-    RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<2>     &,
-    RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<2>       &);
+    const typename DoFHandler<2>::active_cell_iterator                      &,
+    RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<2>  &,
+    RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy        &);
 template void RMHD::NavierStokesProjection<3>::assemble_local_poisson_prestep_rhs(
-    const typename DoFHandler<3>::active_cell_iterator              &,
-    RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<3>     &,
-    RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<3>       &);
+    const typename DoFHandler<3>::active_cell_iterator                      &,
+    RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<3>  &,
+    RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy        &);
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_poisson_prestep_rhs(
-    const RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<2> &);
+    const RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy &);
 template void RMHD::NavierStokesProjection<3>::copy_local_to_global_poisson_prestep_rhs(
-    const RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<3> &);
+    const RMHD::AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy &);
