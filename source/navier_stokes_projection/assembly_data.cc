@@ -37,7 +37,7 @@ grad_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 phi(data.dofs_per_cell),
@@ -65,7 +65,7 @@ grad_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 phi(data.dofs_per_cell),
@@ -100,7 +100,7 @@ curl_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 old_velocity_values(data.n_q_points),
@@ -185,7 +185,7 @@ face_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 velocity_fe_values(
@@ -243,20 +243,11 @@ face_phi(this->dofs_per_cell)
 namespace ProjectionStepRHS
 {
 
-template <int dim>
-Copy<dim>::Copy(const unsigned int dofs_per_cell)
+Copy::Copy(const unsigned int dofs_per_cell)
 :
-CopyBase<dim>(dofs_per_cell),
+CopyBase(dofs_per_cell),
 local_projection_step_rhs(dofs_per_cell),
 local_correction_step_rhs(dofs_per_cell)
-{}
-
-template <int dim>
-Copy<dim>::Copy(const Copy &data)
-:
-CopyBase<dim>(data),
-local_projection_step_rhs(data.local_projection_step_rhs),
-local_correction_step_rhs(data.local_correction_step_rhs)
 {}
 
 template <int dim>
@@ -285,7 +276,7 @@ phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 velocity_fe_values(
@@ -377,7 +368,7 @@ face_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 velocity_fe_values(
@@ -452,9 +443,6 @@ template struct RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scr
 
 template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<3>;
-
-template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<2>;
-template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<3>;
 
 template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<3>;

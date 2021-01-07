@@ -15,12 +15,9 @@ using namespace dealii;
 namespace AssemblyData
 {
 
-template <int dim>  
 struct CopyBase
 {
   CopyBase(const unsigned int dofs_per_cell);
-
-  CopyBase(const CopyBase &data);
 
   unsigned int                          dofs_per_cell;
 
@@ -33,7 +30,7 @@ struct ScratchBase
   ScratchBase(const Quadrature<dim>     &quadrature_formula,
               const FiniteElement<dim>  &fe);
 
-  ScratchBase(const ScratchBase &data);
+  ScratchBase(const ScratchBase<dim>    &data);
 
   const unsigned int  n_q_points;
 
@@ -46,22 +43,16 @@ namespace Generic
 namespace Matrix
 {
 
-template <int dim>  
-struct Copy : CopyBase<dim>
+struct Copy : CopyBase
 {
   Copy(const unsigned int dofs_per_cell);
-
-  Copy(const Copy &data);
 
   FullMatrix<double>  local_matrix;
 };
 
-template <int dim>  
-struct MassStiffnessCopy : CopyBase<dim>
+struct MassStiffnessCopy : CopyBase
 {
   MassStiffnessCopy(const unsigned int dofs_per_cell);
-
-  MassStiffnessCopy(const MassStiffnessCopy &data);
 
   FullMatrix<double>  local_mass_matrix;
 
@@ -76,7 +67,7 @@ struct Scratch : ScratchBase<dim>
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
 
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>        &data);
 
   FEValues<dim> fe_values;
 };
@@ -86,12 +77,9 @@ struct Scratch : ScratchBase<dim>
 namespace RightHandSide
 {
 
-template <int dim>  
-struct Copy : CopyBase<dim>
+struct Copy : CopyBase
 {
   Copy(const unsigned int dofs_per_cell);
-
-  Copy(const Copy &data);
 
   Vector<double>      local_rhs;
 
@@ -106,7 +94,7 @@ struct Scratch : ScratchBase<dim>
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
 
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>        &data);
 
   FEValues<dim> fe_values;
 };
@@ -120,8 +108,8 @@ namespace NavierStokesProjection
 
 namespace VelocityConstantMatrices
 {
-template<int dim>
-using Copy = Generic::Matrix::MassStiffnessCopy<dim>;
+
+using Copy = Generic::Matrix::MassStiffnessCopy;
 
 template <int dim>  
 struct Scratch : Generic::Matrix::Scratch<dim>
@@ -131,7 +119,7 @@ struct Scratch : Generic::Matrix::Scratch<dim>
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
   
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>    &data);
 
   std::vector<Tensor<1, dim>> phi;
   
@@ -143,8 +131,7 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace PressureConstantMatrices
 {
 
-template<int dim>
-using Copy = Generic::Matrix::MassStiffnessCopy<dim>;
+using Copy = Generic::Matrix::MassStiffnessCopy;
 
 template <int dim>  
 struct Scratch : Generic::Matrix::Scratch<dim>
@@ -154,7 +141,7 @@ struct Scratch : Generic::Matrix::Scratch<dim>
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
   
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>        &data);
 
   std::vector<double>         phi;
   
@@ -166,8 +153,7 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace AdvectionMatrix
 {
 
-template<int dim>
-using Copy = Generic::Matrix::Copy<dim>;
+using Copy = Generic::Matrix::Copy;
 
 template <int dim>  
 struct Scratch : Generic::Matrix::Scratch<dim>
@@ -177,7 +163,7 @@ struct Scratch : Generic::Matrix::Scratch<dim>
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
 
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>    &data);
 
   /*! @note Should I make it global inside the AssemblyData namespace
       or leave it locally in each struct for readability? */
@@ -207,8 +193,7 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace DiffusionStepRHS
 {
 
-template<int dim>
-using Copy = Generic::RightHandSide::Copy<dim>;
+using Copy = Generic::RightHandSide::Copy;
 
 template <int dim>  
 struct Scratch : ScratchBase<dim>
@@ -224,7 +209,7 @@ struct Scratch : ScratchBase<dim>
           const FiniteElement<dim>  &temperature_fe,
           const UpdateFlags         temperature_update_flags);
   
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>    &data);
 
   using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
 
@@ -301,12 +286,9 @@ struct Scratch : ScratchBase<dim>
 namespace ProjectionStepRHS
 {
 
-template<int dim>
-struct Copy : CopyBase<dim>
+struct Copy : CopyBase
 {
   Copy(const unsigned int dofs_per_cell);
-
-  Copy(const Copy &data);
 
   Vector<double>      local_projection_step_rhs;
 
@@ -323,7 +305,7 @@ struct Scratch : ScratchBase<dim>
           const FiniteElement<dim>  &pressure_fe,
           const UpdateFlags         pressure_update_flags);
   
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>    &data);
 
   FEValues<dim>       velocity_fe_values;
 
@@ -339,8 +321,7 @@ struct Scratch : ScratchBase<dim>
 namespace PoissonStepRHS
 {
 
-template<int dim>
-using Copy = Generic::RightHandSide::Copy<dim>;
+using Copy = Generic::RightHandSide::Copy;
 
 template <int dim>  
 struct Scratch : ScratchBase<dim>
@@ -358,7 +339,7 @@ struct Scratch : ScratchBase<dim>
           const UpdateFlags         temperature_update_flags,
           const UpdateFlags         temperature_face_update_flags);
   
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>    &data);
 
   using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
 
@@ -425,10 +406,9 @@ namespace HeatEquation
 namespace ConstantMatrices
 {
 
-template<int dim>
-using Copy = Generic::Matrix::MassStiffnessCopy<dim>;
+using Copy = Generic::Matrix::MassStiffnessCopy;
 
-template <int dim>  
+template<int dim>
 struct Scratch : Generic::Matrix::Scratch<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -436,7 +416,7 @@ struct Scratch : Generic::Matrix::Scratch<dim>
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
   
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>    &data);
 
   std::vector<double>         phi;
   
@@ -448,8 +428,7 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace AdvectionMatrix
 {
 
-template<int dim>
-using Copy = Generic::Matrix::Copy<dim>;
+using Copy = Generic::Matrix::Copy;
 
 template <int dim>  
 struct Scratch : ScratchBase<dim>
@@ -461,7 +440,7 @@ struct Scratch : ScratchBase<dim>
           const FiniteElement<dim>  &velocity_fe,
           const UpdateFlags         velocity_update_flags);
   
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>    &data);
 
   FEValues<dim>               temperature_fe_values;
 
@@ -483,8 +462,7 @@ struct Scratch : ScratchBase<dim>
 namespace RightHandSide
 {
 
-template<int dim>
-using Copy = Generic::RightHandSide::Copy<dim>;
+using Copy = Generic::RightHandSide::Copy;
 
 template <int dim>  
 struct Scratch : ScratchBase<dim>
@@ -498,7 +476,7 @@ struct Scratch : ScratchBase<dim>
           const FiniteElement<dim>  &velocity_fe,
           const UpdateFlags         velocity_update_flags);
   
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>    &data);
 
   FEValues<dim>               temperature_fe_values;
 

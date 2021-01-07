@@ -1,4 +1,5 @@
 #include <rotatingMHD/heat_equation.h>
+
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/grid/filtered_iterator.h>
@@ -26,9 +27,9 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
   // Set up the lamba function for the local assembly operation
   auto worker =
-    [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
-           AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>  &scratch,
-           AssemblyData::HeatEquation::ConstantMatrices::Copy<dim>    &data)
+    [this](const typename DoFHandler<dim>::active_cell_iterator         &cell,
+           AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>   &scratch,
+           AssemblyData::HeatEquation::ConstantMatrices::Copy           &data)
     {
       this->assemble_local_constant_matrices(cell, 
                                              scratch,
@@ -37,7 +38,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::HeatEquation::ConstantMatrices::Copy<dim> &data) 
+    [this](const AssemblyData::HeatEquation::ConstantMatrices::Copy &data)
     {
       this->copy_local_to_global_constant_matrices(data);
     };
@@ -60,8 +61,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
     update_values|
     update_gradients|
     update_JxW_values),
-   AssemblyData::HeatEquation::ConstantMatrices::Copy<dim>(
-     temperature->fe.dofs_per_cell));
+   AssemblyData::HeatEquation::ConstantMatrices::Copy(temperature->fe.dofs_per_cell));
 
   // Compress global data
   mass_matrix.compress(VectorOperation::add);
@@ -73,9 +73,9 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
 template <int dim>
 void HeatEquation<dim>::assemble_local_constant_matrices
-(const typename DoFHandler<dim>::active_cell_iterator     &cell,
- AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>  &scratch,
- AssemblyData::HeatEquation::ConstantMatrices::Copy<dim>    &data)
+(const typename DoFHandler<dim>::active_cell_iterator       &cell,
+ AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim> &scratch,
+ AssemblyData::HeatEquation::ConstantMatrices::Copy         &data)
 {
   // Reset local data
   data.local_mass_matrix      = 0.;
@@ -127,7 +127,7 @@ void HeatEquation<dim>::assemble_local_constant_matrices
 
 template <int dim>
 void HeatEquation<dim>::copy_local_to_global_constant_matrices
-(const AssemblyData::HeatEquation::ConstantMatrices::Copy<dim> &data)
+(const AssemblyData::HeatEquation::ConstantMatrices::Copy   &data)
 {
   temperature->constraints.distribute_local_to_global(
                                       data.local_mass_matrix,
@@ -147,15 +147,15 @@ template void RMHD::HeatEquation<2>::assemble_constant_matrices();
 template void RMHD::HeatEquation<3>::assemble_constant_matrices();
 
 template void RMHD::HeatEquation<2>::assemble_local_constant_matrices
-(const typename DoFHandler<2>::active_cell_iterator  &,
- RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<2>    &,
- RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy<2>      &);
+(const typename DoFHandler<2>::active_cell_iterator             &,
+ RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<2> &,
+ RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy       &);
 template void RMHD::HeatEquation<3>::assemble_local_constant_matrices
-(const typename DoFHandler<3>::active_cell_iterator  &,
- RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<3>    &,
- RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy<3>      &);
+(const typename DoFHandler<3>::active_cell_iterator             &,
+ RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<3> &,
+ RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy       &);
 
 template void RMHD::HeatEquation<2>::copy_local_to_global_constant_matrices
-(const RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy<2>  &);
+(const RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy &);
 template void RMHD::HeatEquation<3>::copy_local_to_global_constant_matrices
-(const RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy<3>  &);
+(const RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy &);

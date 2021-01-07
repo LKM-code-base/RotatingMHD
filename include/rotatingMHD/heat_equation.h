@@ -370,31 +370,31 @@ private:
    * @brief This method assembles the mass matrix on a single cell.
    */
   void assemble_local_constant_matrices(
-    const typename DoFHandler<dim>::active_cell_iterator    &cell,
+    const typename DoFHandler<dim>::active_cell_iterator        &cell,
     AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>  &scratch,
-    AssemblyData::HeatEquation::ConstantMatrices::Copy<dim>     &data);
+    AssemblyData::HeatEquation::ConstantMatrices::Copy          &data);
 
   /*!
    * @brief This method copies the mass matrix into its global
    * conterpart.
    */
   void copy_local_to_global_constant_matrices(
-    const AssemblyData::HeatEquation::ConstantMatrices::Copy<dim>  &data);
+    const AssemblyData::HeatEquation::ConstantMatrices::Copy    &data);
 
   /*!
    * @brief This method assembles the advection matrix on a single cell.
    */
   void assemble_local_advection_matrix(
-    const typename DoFHandler<dim>::active_cell_iterator    &cell,
-    AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>  &scratch,
-    AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim>    &data);
+    const typename DoFHandler<dim>::active_cell_iterator        &cell,
+    AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>   &scratch,
+    AssemblyData::HeatEquation::AdvectionMatrix::Copy           &data);
 
   /*!
    * @brief This method copies the local advection matrix into their 
    * global conterparts.
    */
   void copy_local_to_global_advection_matrix(
-    const AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim>  &data);
+    const AssemblyData::HeatEquation::AdvectionMatrix::Copy &data);
 
 
   /*!
@@ -403,13 +403,13 @@ private:
   void assemble_local_rhs(
     const typename DoFHandler<dim>::active_cell_iterator    &cell,
     AssemblyData::HeatEquation::RightHandSide::Scratch<dim> &scratch,
-    AssemblyData::HeatEquation::RightHandSide::Copy<dim>    &data);
+    AssemblyData::HeatEquation::RightHandSide::Copy         &data);
   /*!
    * @brief This method copies the local right-hand side into its global
    * conterpart.
    */
   void copy_local_to_global_rhs(
-    const AssemblyData::HeatEquation::RightHandSide::Copy<dim>  &data);
+    const AssemblyData::HeatEquation::RightHandSide::Copy   &data);
 };
 
 template <int dim>

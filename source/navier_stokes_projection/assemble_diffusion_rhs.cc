@@ -46,7 +46,7 @@ assemble_diffusion_step_rhs()
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator                 &cell,
            AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
-           AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>    &data)
+           AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data)
     {
       this->assemble_local_diffusion_step_rhs(cell, 
                                               scratch,
@@ -55,7 +55,7 @@ assemble_diffusion_step_rhs()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim> &data) 
+    [this](const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy   &data)
     {
       this->copy_local_to_global_diffusion_step_rhs(data);
     };
@@ -87,8 +87,7 @@ assemble_diffusion_step_rhs()
      update_values,
      *temperature_fe_ptr,
      update_values),
-   AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>(
-     velocity->fe.dofs_per_cell));
+   AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy(velocity->fe.dofs_per_cell));
 
   // Compress global data
   diffusion_step_rhs.compress(VectorOperation::add);
@@ -101,7 +100,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 (const typename DoFHandler<dim>::active_cell_iterator                 &cell,
  AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
- AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>    &data)
+ AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data)
 {
   // Reset local data
   data.local_rhs                          = 0.;
@@ -587,7 +586,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_diffusion_step_rhs
-(const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>  &data)
+(const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy &data)
 {
   velocity->constraints.distribute_local_to_global(
                                 data.local_rhs,
@@ -605,13 +604,13 @@ template void RMHD::NavierStokesProjection<3>::assemble_diffusion_step_rhs();
 template void RMHD::NavierStokesProjection<2>::assemble_local_diffusion_step_rhs
 (const typename DoFHandler<2>::active_cell_iterator                       &,
  RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<2> &,
- RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<2>    &);
+ RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy       &);
 template void RMHD::NavierStokesProjection<3>::assemble_local_diffusion_step_rhs
 (const typename DoFHandler<3>::active_cell_iterator                       &,
  RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<3> &,
- RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<3>    &);
+ RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy       &);
 
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_diffusion_step_rhs
-(const RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<2>  &);
+(const RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy &);
 template void RMHD::NavierStokesProjection<3>::copy_local_to_global_diffusion_step_rhs
-(const RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<3>  &);
+(const RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy &);

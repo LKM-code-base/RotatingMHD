@@ -525,16 +525,16 @@ private:
    * matrices of the velocity field on a single cell.
    */
   void assemble_local_velocity_matrices(
-    const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>  &scratch,
-    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>     &data);
+    const typename DoFHandler<dim>::active_cell_iterator                        &cell,
+    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>&scratch,
+    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy        &data);
 
   /*!
    * @brief This method copies the local mass and the local stiffness matrices
    * of the velocity field on a single cell into the global matrices.
    */
   void copy_local_to_global_velocity_matrices(
-    const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy  &data);
 
   /*!
    * @brief This method assembles the mass \f$\bs{M}^{(p)}\f$ and the
@@ -560,32 +560,32 @@ private:
    * matrices of the velocity field on a single cell.
    */
   void assemble_local_pressure_matrices(
-    const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>  &scratch,
-    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim>     &data);
+    const typename DoFHandler<dim>::active_cell_iterator                        &cell,
+    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>&scratch,
+    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy        &data);
 
   /*!
    * @brief This method copies the local mass and the local stiffness matrices
    * of the pressure field on a single cell into the global matrices.
    */
   void copy_local_to_global_pressure_matrices(
-    const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy  &data);
 
   /*!
    * @brief This method assembles the right-hand side of the poisson
    * prestep using the WorkStream approach.
    */
   void assemble_local_poisson_prestep_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator        &cell,
-    AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>     &scratch,
-    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>       &data);
+    const typename DoFHandler<dim>::active_cell_iterator                &cell,
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>  &scratch,
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy          &data);
 
   /*!
    * @brief This method assembles the local right-hand side of the poisson
    * prestep on a single cell.
    */
   void copy_local_to_global_poisson_prestep_rhs(
-    const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy    &data);
 
   /*!
    * @brief This method assembles the right-hand side of the diffusion step
@@ -609,16 +609,16 @@ private:
    * step on a single cell.
    */
   void assemble_local_diffusion_step_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator                  &cell,
-    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>  &scratch,
-    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>     &data);
+    const typename DoFHandler<dim>::active_cell_iterator                 &cell,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data);
 
   /*!
    * @brief This method copies the local right-hand side of the diffusion step
    * into the global vector.
    */
   void copy_local_to_global_diffusion_step_rhs(
-    const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy  &data);
 
   /*!
    * @brief This method assembles the right-hand side of the projection step
@@ -638,16 +638,16 @@ private:
    * step on a single cell.
    */
   void assemble_local_projection_step_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator                  &cell,
-    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim> &scratch,
-    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim>    &data);
+    const typename DoFHandler<dim>::active_cell_iterator                    &cell,
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>   &scratch,
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy           &data);
 
   /*!
    * @brief This method copies the local right-hand side of the projection step
    * on a single cell to the global vector.
    */
   void copy_local_to_global_projection_step_rhs(
-    const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy &data);
 
   /*!
    * @brief This method assembles the velocity advection matrix using the
@@ -674,14 +674,14 @@ private:
   void assemble_local_velocity_advection_matrix(
     const typename DoFHandler<dim>::active_cell_iterator                &cell,
     AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim> &scratch,
-    AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>    &data);
+    AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy         &data);
 
   /*!
    * @brief This method copies the local velocity advection matrix into the
    * global matrix.
    */
   void copy_local_to_global_velocity_advection_matrix(
-    const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>  &data);
+    const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy   &data);
   
 };
 

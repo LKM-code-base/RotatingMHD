@@ -1,4 +1,5 @@
 #include <rotatingMHD/heat_equation.h>
+
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/grid/filtered_iterator.h>
@@ -39,8 +40,8 @@ void HeatEquation<dim>::assemble_advection_matrix()
   // Set up the lamba function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
-           AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>  &scratch,
-           AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim>    &data)
+           AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>&scratch,
+           AssemblyData::HeatEquation::AdvectionMatrix::Copy        &data)
     {
       this->assemble_local_advection_matrix(cell, 
                                              scratch,
@@ -49,7 +50,7 @@ void HeatEquation<dim>::assemble_advection_matrix()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim> &data) 
+    [this](const AssemblyData::HeatEquation::AdvectionMatrix::Copy  &data)
     {
       this->copy_local_to_global_advection_matrix(data);
     };
@@ -75,8 +76,7 @@ void HeatEquation<dim>::assemble_advection_matrix()
     update_quadrature_points,
     *velocity_fe,
     update_values),
-   AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim>(
-     temperature->fe.dofs_per_cell));
+   AssemblyData::HeatEquation::AdvectionMatrix::Copy(temperature->fe.dofs_per_cell));
 
   // Compress global data
   advection_matrix.compress(VectorOperation::add);
@@ -87,9 +87,9 @@ void HeatEquation<dim>::assemble_advection_matrix()
 
 template <int dim>
 void HeatEquation<dim>::assemble_local_advection_matrix
-(const typename DoFHandler<dim>::active_cell_iterator     &cell,
+(const typename DoFHandler<dim>::active_cell_iterator       &cell,
  AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>  &scratch,
- AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim>    &data)
+ AssemblyData::HeatEquation::AdvectionMatrix::Copy          &data)
 {
   // Reset local data
   data.local_matrix = 0.;
@@ -164,7 +164,7 @@ void HeatEquation<dim>::assemble_local_advection_matrix
 
 template <int dim>
 void HeatEquation<dim>::copy_local_to_global_advection_matrix
-(const AssemblyData::HeatEquation::AdvectionMatrix::Copy<dim> &data)
+(const AssemblyData::HeatEquation::AdvectionMatrix::Copy    &data)
 {
   temperature->constraints.distribute_local_to_global(
                                       data.local_matrix,
@@ -179,15 +179,15 @@ template void RMHD::HeatEquation<2>::assemble_advection_matrix();
 template void RMHD::HeatEquation<3>::assemble_advection_matrix();
 
 template void RMHD::HeatEquation<2>::assemble_local_advection_matrix
-(const typename DoFHandler<2>::active_cell_iterator  &,
- RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Scratch<2>    &,
- RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy<2>      &);
+(const typename DoFHandler<2>::active_cell_iterator             &,
+ RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Scratch<2>  &,
+ RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy        &);
 template void RMHD::HeatEquation<3>::assemble_local_advection_matrix
-(const typename DoFHandler<3>::active_cell_iterator  &,
- RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Scratch<3>    &,
- RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy<3>      &);
+(const typename DoFHandler<3>::active_cell_iterator             &,
+ RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Scratch<3>  &,
+ RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy        &);
 
 template void RMHD::HeatEquation<2>::copy_local_to_global_advection_matrix
-(const RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy<2>  &);
+(const RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy  &);
 template void RMHD::HeatEquation<3>::copy_local_to_global_advection_matrix
-(const RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy<3>  &);
+(const RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy  &);
