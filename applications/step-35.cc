@@ -15,6 +15,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <string>
 
