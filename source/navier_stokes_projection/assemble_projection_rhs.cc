@@ -15,8 +15,9 @@ assemble_projection_step_rhs()
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Projection step - RHS assembly");
 
   // Reset data
-  pressure_rhs = 0.;
-
+  projection_step_rhs = 0.;
+  correction_step_rhs = 0.;
+  
   // Compute the highest polynomial degree from all the integrands 
   const int p_degree = velocity->fe_degree + pressure->fe_degree - 1;
 
@@ -63,7 +64,8 @@ assemble_projection_step_rhs()
     AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy(pressure->fe.dofs_per_cell));
   
   // Compress global data
-  pressure_rhs.compress(VectorOperation::add);
+  projection_step_rhs.compress(VectorOperation::add);
+  correction_step_rhs.compress(VectorOperation::add);
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl;
@@ -77,6 +79,7 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
 {
   // Reset local data
   data.local_projection_step_rhs = 0.;
+  data.local_correction_step_rhs = 0.;
 
   // Pressure
   scratch.pressure_fe_values.reinit(cell);
@@ -131,10 +134,15 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_projection_step_rhs(
   const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy   &data)
 {
-  pressure->constraints.distribute_local_to_global
+  phi->constraints.distribute_local_to_global
   (data.local_projection_step_rhs,
    data.local_dof_indices,
-   pressure_rhs);
+   projection_step_rhs);
+
+  pressure->hanging_nodes.distribute_local_to_global
+  (data.local_correction_step_rhs,
+   data.local_dof_indices,
+   correction_step_rhs);
 }
 
 } // namespace Step35

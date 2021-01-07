@@ -286,8 +286,8 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
           scratch.velocity_face_values);
 
         scratch.velocity_fe_face_values[vector_extractor].get_function_laplacians(
-                                      velocity->old_old_solution,
-                                      scratch.velocity_laplacians);
+          velocity->old_old_solution,
+          scratch.velocity_laplacians);
 
         // Temperature
         if (!flag_ignore_bouyancy_term)

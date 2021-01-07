@@ -145,8 +145,9 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Constant matrices assembly - Pressure");
 
   // Reset data
-  pressure_mass_matrix    = 0.;
+  projection_mass_matrix  = 0.;
   pressure_laplace_matrix = 0.;
+  phi_laplace_matrix      = 0.;
 
   // Compute the highest polynomial degree from all the integrands 
   const int p_degree = 2 * pressure->fe_degree;
@@ -193,8 +194,9 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy(pressure->fe.dofs_per_cell));
 
   // Compress global data
-  pressure_mass_matrix.compress(VectorOperation::add);
   pressure_laplace_matrix.compress(VectorOperation::add);
+  phi_laplace_matrix.compress(VectorOperation::add);
+  projection_mass_matrix.compress(VectorOperation::add);
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl;
@@ -255,13 +257,17 @@ void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
 (const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy &data)
 {
   pressure->constraints.distribute_local_to_global(
-                                      data.local_mass_matrix,
-                                      data.local_dof_indices,
-                                      pressure_mass_matrix);
-  pressure->constraints.distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       pressure_laplace_matrix);
+  phi->constraints.distribute_local_to_global(
+                                      data.local_stiffness_matrix,
+                                      data.local_dof_indices,
+                                      phi_laplace_matrix);
+  pressure->hanging_nodes.distribute_local_to_global(
+                                      data.local_mass_matrix,
+                                      data.local_dof_indices,
+                                      projection_mass_matrix);
 }
 
 } // namespace Step35
@@ -279,6 +285,7 @@ template void RMHD::NavierStokesProjection<3>::assemble_local_velocity_matrices
  RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<3> &,
  RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy       &);
 
+
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_velocity_matrices
 (const RMHD::AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy &);
 template void RMHD::NavierStokesProjection<3>::copy_local_to_global_velocity_matrices
@@ -295,6 +302,7 @@ template void RMHD::NavierStokesProjection<3>::assemble_local_pressure_matrices
 (const typename DoFHandler<3>::active_cell_iterator  &,
  RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<3>   &,
  RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy         &);
+
 
 template void RMHD::NavierStokesProjection<2>::copy_local_to_global_pressure_matrices
 (const RMHD::AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy   &);

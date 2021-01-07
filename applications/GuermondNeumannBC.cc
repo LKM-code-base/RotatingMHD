@@ -1,7 +1,7 @@
 /*!
  *@file Guermond
  *@brief The .cc file replicating the numerical test of section
-  3.7.2 of the Guermond paper.
+  10.3 of the Guermond paper.
  */
 #include <rotatingMHD/convergence_struct.h>
 #include <rotatingMHD/entities_structs.h>
@@ -55,21 +55,19 @@ private:
 
   NavierStokesProjection<dim>                 navier_stokes;
 
-  EquationData::Guermond::VelocityExactSolution<dim>         
+  EquationData::GuermondNeumannBC::VelocityExactSolution<dim>         
                                       velocity_exact_solution;
 
-  EquationData::Guermond::PressureExactSolution<dim>         
+  EquationData::GuermondNeumannBC::PressureExactSolution<dim>         
                                       pressure_exact_solution;
 
-  EquationData::Guermond::BodyForce<dim>      body_force;
+  EquationData::GuermondNeumannBC::BodyForce<dim>      body_force;
 
   ConvergenceAnalysisData<dim>                velocity_convergence_table;
 
   ConvergenceAnalysisData<dim>                pressure_convergence_table;
 
   const bool                                  flag_set_exact_pressure_constant;
-
-  const bool                                  flag_square_domain;
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -113,8 +111,7 @@ pressure_exact_solution(parameters.time_stepping_parameters.start_time),
 body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
 velocity_convergence_table(velocity, velocity_exact_solution),
 pressure_convergence_table(pressure, pressure_exact_solution),
-flag_set_exact_pressure_constant(true),
-flag_square_domain(true)
+flag_set_exact_pressure_constant(false)
 {
   navier_stokes.set_body_force(body_force);
   outputFile << "Step" << "," << "Time" << ","
@@ -128,19 +125,11 @@ make_grid(const unsigned int &n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
-  if (flag_square_domain)
-    GridGenerator::hyper_cube(this->triangulation,
-                              0.0,
-                              1.0,
-                              true);
-  else
-  {
-    const double radius = 0.5;
-    GridGenerator::hyper_ball(this->triangulation,
-                              Point<dim>(),
-                              radius,
-                              true);
-  }
+  GridGenerator::hyper_cube(this->triangulation,
+                            0.0,
+                            1.0,
+                            true);
+
 
   this->triangulation.refine_global(n_global_refinements);
   boundary_ids = this->triangulation.get_boundary_ids();
@@ -171,14 +160,27 @@ void Guermond<dim>::setup_constraints()
   velocity->boundary_conditions.clear();
   pressure->boundary_conditions.clear();
 
-  for (const auto& boundary_id : boundary_ids)
-    velocity->boundary_conditions.set_dirichlet_bcs(
-      boundary_id,
-      std::shared_ptr<Function<dim>> 
-        (new EquationData::Guermond::VelocityExactSolution<dim>(
-          this->prm.time_stepping_parameters.start_time)),
-      true);
-  
+  velocity->boundary_conditions.set_neumann_bcs(0);
+
+  velocity->boundary_conditions.set_dirichlet_bcs(
+    1,
+    std::shared_ptr<Function<dim>> 
+      (new EquationData::GuermondNeumannBC::VelocityExactSolution<dim>(
+        this->prm.time_stepping_parameters.start_time)),
+    true);
+  velocity->boundary_conditions.set_dirichlet_bcs(
+    2,
+    std::shared_ptr<Function<dim>> 
+      (new EquationData::GuermondNeumannBC::VelocityExactSolution<dim>(
+        this->prm.time_stepping_parameters.start_time)),
+    true);
+  velocity->boundary_conditions.set_dirichlet_bcs(
+    3,
+    std::shared_ptr<Function<dim>> 
+      (new EquationData::GuermondNeumannBC::VelocityExactSolution<dim>(
+        this->prm.time_stepping_parameters.start_time)),
+    true);
+
   velocity->apply_boundary_conditions();
   pressure->apply_boundary_conditions();
 }
@@ -194,7 +196,6 @@ void Guermond<dim>::initialize()
   this->set_initial_conditions(pressure,
                                pressure_exact_solution, 
                                time_stepping);
-  //navier_stokes.initialize();
 }
 
 template <int dim>
@@ -335,7 +336,6 @@ void Guermond<dim>::solve(const unsigned int &level)
   pressure_error.reinit(pressure->solution);
   initialize();
 
-
   // Outputs the fields at t_0, i.e. the initial conditions.
   { 
     velocity->solution = velocity->old_old_solution;
@@ -452,7 +452,7 @@ void Guermond<dim>::run(const bool flag_convergence_test)
 
   std::ostringstream tablefilename;
   tablefilename << ((this->prm.flag_spatial_convergence_test) ?
-                    "GuermondSpatialTest" : "GuermondTemporalTest_Level")
+                    "GuermondNeumannBCSpatialTest" : "GuermondNeumannBCTemporalTest_Level")
                 << this->prm.initial_refinement_level
                 << "_Re"
                 << this->prm.Re;
@@ -473,7 +473,7 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ParameterSet parameter_set("Guermond.prm");
+      RunTimeParameters::ParameterSet parameter_set("GuermondNeumannBC.prm");
 
       deallog.depth_console(parameter_set.verbose ? 2 : 0);
 
