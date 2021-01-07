@@ -446,9 +446,9 @@ Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
 template <int dim>
 double BodyForce<dim>::divergence(const Point<dim>  &point) const
 {
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
 
   // With advection term
   return (cos(2.*x) - 1.*cos(2.*(t + y)) - 2.*cos(x)*sin(t + y));
@@ -481,7 +481,7 @@ void VelocityExactSolution<dim>::vector_value(
   const Point<dim>  &point,
   Vector<double>    &values) const
 {
-  double y = point(1);
+  const double y = point(1);
 
   values[0] = t_0 * Re * y / H;
   values[1] = 0.0;
