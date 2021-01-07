@@ -15,7 +15,7 @@ assemble_diffusion_step_rhs()
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Diffusion step - RHS assembly");
 
   // Reset data
-  velocity_rhs  = 0.;
+  diffusion_step_rhs  = 0.;
 
   // Dummy finite element for when there is no bouyancy
   const FE_Q<dim> dummy_fe(1);
@@ -24,16 +24,23 @@ assemble_diffusion_step_rhs()
   const FE_Q<dim> * const temperature_fe_ptr = 
           (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
 
+  // Polynomial degree of the body force and the neumann function
+  const int p_degree_body_force       = velocity->fe_degree;
+
+  const int p_degree_neumann_function = velocity->fe_degree;
+
   // Compute the highest polynomial degree from all the integrands 
-  const int p_degree = 3 * velocity->fe_degree - 1;
+  const int p_degree = std::max(3 * velocity->fe_degree - 1,
+                                velocity->fe_degree + p_degree_body_force);
+
+  // Compute the highest polynomial degree from all the boundary integrands 
+  const int face_p_degree = velocity->fe_degree + p_degree_neumann_function;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
-  /*! @note This face quadrature rule is momentarily just acting as a 
-      placeholder. Its proper implementation will be done after merge
-      into the neumann_boundary_condition branch*/
-  const QGauss<dim-1> face_quadrature_formula(1);
+  // Initiate the face quadrature formula for exact numerical integration
+  const QGauss<dim-1> face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
 
   // Set up the lamba function for the local assembly operation
   auto worker =
@@ -84,7 +91,7 @@ assemble_diffusion_step_rhs()
      velocity->fe.dofs_per_cell));
 
   // Compress global data
-  velocity_rhs.compress(VectorOperation::add);
+  diffusion_step_rhs.compress(VectorOperation::add);
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl;
@@ -535,7 +542,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       // Neumann boundary condition
       scratch.velocity_fe_face_values.reinit(cell, face);
       
-      /*! @note This is meant for the Neumann BC branch
       velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
         time_stepping.get_previous_time());
       velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
@@ -553,7 +559,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
         scratch.velocity_fe_face_values.get_quadrature_points(),
         scratch.neumann_bc_values);
-      */
 
       // Loop over face quadrature points
       for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
@@ -565,7 +570,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
         
         // Loop over the degrees of freedom
         for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-          data.local_rhs(i) += 0.0; /*
+          data.local_rhs(i) +=
             scratch.face_phi[i] * (
               gamma[0] *
               scratch.neumann_bc_values[q]
@@ -575,7 +580,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
               +
               gamma[2] *
               scratch.old_old_neumann_bc_values[q]) *
-            scratch.velocity_fe_face_values.JxW(q); */
+            scratch.velocity_fe_face_values.JxW(q);
       } // Loop over face quadrature points
     } // Loop over the faces of the cell
 } // assemble_local_diffusion_step_rhs
@@ -587,7 +592,7 @@ void NavierStokesProjection<dim>::copy_local_to_global_diffusion_step_rhs
   velocity->constraints.distribute_local_to_global(
                                 data.local_rhs,
                                 data.local_dof_indices,
-                                velocity_rhs,
+                                diffusion_step_rhs,
                                 data.local_matrix_for_inhomogeneous_bc);
 }
 

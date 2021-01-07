@@ -64,10 +64,10 @@ using namespace dealii;
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
  * incremental scheme respectively.
  * @todo Implement a generalized extrapolation scheme.
- * @todo Implement Neumann boundary conditions.
+ * @todo Expand the weak formulation for the case of unconventional 
+ * boundary conditions.
  * @attention The code is hardcoded for a second order time discretization
- * scheme. Setting a first order scheme in the parameter file will cause
- * errors.
+ * scheme.
  */
 template <int dim>
 class NavierStokesProjection
@@ -299,12 +299,12 @@ private:
    * @brief Vector representing the right-hand side of the linear system of the
    * diffusion step.
    */
-  LinearAlgebra::MPI::Vector        velocity_rhs;
+  LinearAlgebra::MPI::Vector        diffusion_step_rhs;
 
   /*!
    * @brief Mass matrix of the pressure field.
    */
-  LinearAlgebra::MPI::SparseMatrix  pressure_mass_matrix;
+  LinearAlgebra::MPI::SparseMatrix  projection_mass_matrix;
 
   /*!
    * @brief Stiffness matrix of the pressure field. Assembly of  the weak of the
@@ -313,16 +313,28 @@ private:
   LinearAlgebra::MPI::SparseMatrix  pressure_laplace_matrix;
 
   /*!
+   * @brief Stiffness matrix of the phi field. Assembly of  the weak of the
+   * Laplace operator.
+   */
+  LinearAlgebra::MPI::SparseMatrix  phi_laplace_matrix;
+
+  /*!
    * @brief Vector representing the right-hand side of the linear system of the
    * projection step.
    */
-  LinearAlgebra::MPI::Vector        pressure_rhs;
+  LinearAlgebra::MPI::Vector        projection_step_rhs;
 
   /*!
    * @brief Vector representing the right-hand side of the linear system of the
    * poisson prestep.
    */
   LinearAlgebra::MPI::Vector        poisson_prestep_rhs;
+
+  /*!
+   * @brief Vector representing the right-hand side of the projection
+   * performed during the pressure-correction step. 
+   */
+  LinearAlgebra::MPI::Vector        correction_step_rhs;
 
   /*!
    * @brief The preconditioner of the diffusion step.
@@ -335,7 +347,13 @@ private:
    * @attention Hardcoded for a ILU preconditioner.
    */
   LinearAlgebra::MPI::PreconditionILU     projection_step_preconditioner;
-  
+
+  /*!
+   * @brief The preconditioner of the poisson prestep.
+   * @attention Hardcoded for a ILU preconditioner.
+   */
+  LinearAlgebra::MPI::PreconditionILU     poisson_prestep_preconditioner;
+
   /*!
    * @brief The preconditioner of the correction step.
    * @attention Hardcoded for a Jacobi preconditioner.

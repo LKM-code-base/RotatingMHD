@@ -52,7 +52,7 @@ solve_diffusion_step(const bool reinit_prec)
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_velocity(velocity_rhs);
+  LinearAlgebra::MPI::Vector distributed_velocity(velocity->distributed_vector);
   distributed_velocity = velocity->solution;
 
   /* The following pointer holds the address to the correct matrix 
@@ -67,7 +67,7 @@ solve_diffusion_step(const bool reinit_prec)
     diffusion_step_preconditioner.initialize(*system_matrix);
 
   SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * velocity_rhs.l2_norm(),
+                               std::max(parameters.relative_tolerance * diffusion_step_rhs.l2_norm(),
                                         absolute_tolerance));
 
   #ifdef USE_PETSC_LA
@@ -81,7 +81,7 @@ solve_diffusion_step(const bool reinit_prec)
   {
     solver.solve(*system_matrix,
                  distributed_velocity,
-                 velocity_rhs,
+                 diffusion_step_rhs,
                  diffusion_step_preconditioner);
   }
   catch (std::exception &exc)
