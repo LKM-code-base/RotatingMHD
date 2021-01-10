@@ -38,6 +38,38 @@ using namespace dealii;
 
 using namespace RMHD::TimeDiscretization;
 
+namespace EquationData
+{
+
+template<int dim>
+class VelocityField : public TensorFunction<1,dim>
+{
+
+public:
+    VelocityField(const double time = 0);
+
+    virtual Tensor<1,dim> value(const Point<dim>  &p) const override;
+};
+
+template<int dim>
+VelocityField<dim>::VelocityField(const double time)
+:
+TensorFunction<1,dim>(time)
+{}
+
+template<int dim>
+Tensor<1,dim> VelocityField<dim>::value(const Point<dim> &p) const
+{
+    Tensor<1,dim> velocity;
+    velocity[0] = sin(2.0*numbers::PI*p[0]);
+    for (int d = 0; d < dim; ++d)
+        velocity[d] = 0;
+
+    return velocity;
+}
+
+}  // namespace EquationData
+
 template <int dim>
 class ConvectionDiffusionSolver
 {
@@ -60,6 +92,8 @@ private:
   void refine_grid(const unsigned int desired_level);
 
   void coarsen_grid(const unsigned int desired_level);
+
+  EquationData::VelocityField   velocity;
 
   Triangulation<dim>        triangulation;
 
@@ -139,7 +173,8 @@ void ConvectionDiffusionSolver<dim>::assemble_system()
 
   const unsigned int dofs_per_cell = fe.dofs_per_cell;
 
-  FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
+  FullMatrix<double>    cell_mass_matrix(dofs_per_cell, dofs_per_cell);
+  FullMatrix<double>    cell_stiffness_matrix(dofs_per_cell, dofs_per_cell);
 
 //  Vector<double>     cell_rhs(dofs_per_cell);
 
@@ -147,21 +182,23 @@ void ConvectionDiffusionSolver<dim>::assemble_system()
 
   for (const auto &cell : dof_handler.active_cell_iterators())
   {
-    cell_matrix = 0;
+    cell_mass_matrix = 0;
+    cell_stiffness_matrix = 0;
 
     fe_values.reinit(cell);
 
     for (const unsigned int q_index : fe_values.quadrature_point_indices())
     {
       for (const unsigned int i : fe_values.dof_indices())
-      {
         for (const unsigned int j : fe_values.dof_indices())
-          cell_matrix(i, j) +=
+        {
+          cell_mass_matrix(i, j) +=
+          cell_stiffness_matrix(i, j) +=
               (current_coefficient *              // a(x_q)
                fe_values.shape_grad(i, q_index) * // grad phi_i(x_q)
                fe_values.shape_grad(j, q_index) * // grad phi_j(x_q)
                fe_values.JxW(q_index));           // dx
-      }
+        }
     }
 
     cell->get_dof_indices(local_dof_indices);
@@ -218,9 +255,9 @@ void ConvectionDiffusionSolver<dim>::run()
     {
       std::cout << "Cycle " << cycle << ':' << std::endl;
       if (cycle == 0)
-        {
+      {
 
-        }
+      }
       else
         refine_grid();
       std::cout << "   Number of active cells:       "
@@ -233,11 +270,6 @@ void ConvectionDiffusionSolver<dim>::run()
       output_results(cycle);
     }
 }
-
-
-
-
-
 
 void checkTimeStepper(const TimeSteppingParameters &parameters,
                       const unsigned int n_points = 64,
