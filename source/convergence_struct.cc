@@ -174,7 +174,7 @@ Stream& operator<<(Stream &stream,
 
   data.convergence_table.write_text(aux_stream);
 
-  stream << aux_stream.str();
+  stream << aux_stream.str().c_str();
 
   return (stream);
 }
@@ -185,7 +185,6 @@ void ConvergenceAnalysisData<dim>::write_text(std::string filename) const
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
     const std::string suffix(".txt");
-
 
     // Check if the suffix of the filename matches the desired suffix
     if (std::equal(suffix.rbegin(), suffix.rend(), filename.rbegin()) == false)
