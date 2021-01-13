@@ -26,7 +26,7 @@ std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
 }
 
 template<int dim>
-Problem<dim>::Problem(const RunTimeParameters::ParameterSet &prm)
+Problem<dim>::Problem(const RunTimeParameters::ProblemParameters &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
 prm(prm),
@@ -252,19 +252,18 @@ void Problem<dim>::adaptive_mesh_refinement()
     GridRefinement::refine_and_coarsen_fixed_fraction(
       triangulation,
       estimated_error_per_cell,
-      0.3,
-      0.1);
-
+      prm.cell_fraction_to_coarsen,
+      prm.cell_fraction_to_refine);
 
     // Clear refinement flags if refinement level exceeds maximum
-    if (triangulation.n_levels() > prm.refinement_and_coarsening_max_level)
+    if (triangulation.n_global_levels() > prm.n_maximum_levels)
       for (auto cell: triangulation.active_cell_iterators_on_level(
-                        prm.refinement_and_coarsening_max_level))
+                        prm.n_maximum_levels))
         cell->clear_refine_flag();
 
     // Clear coarsen flags if level decreases minimum
     for (auto cell: triangulation.active_cell_iterators_on_level(
-                      prm.refinement_and_coarsening_min_level))
+                      prm.n_minimum_levels))
         cell->clear_coarsen_flag();
 
     // Count number of cells to be refined and coarsened

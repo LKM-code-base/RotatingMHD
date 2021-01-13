@@ -105,7 +105,7 @@ public:
   /*!
    * @brief Default constructor which initializes the member variables.
    */
-  Problem(const RunTimeParameters::ParameterSet &prm);
+  Problem(const RunTimeParameters::ProblemParameters &prm);
 
 protected:
   /*!
@@ -116,7 +116,7 @@ protected:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const RunTimeParameters::ParameterSet      &prm;
+  const RunTimeParameters::ProblemParameters      &prm;
 
   /*!
    * @brief Triangulation object of the problem.

@@ -82,7 +82,7 @@ public:
    * pointers for the mapping and terminal output entities.
    */
   NavierStokesProjection
-  (const RunTimeParameters::ParameterSet        &parameters,
+  (const RunTimeParameters::NavierStokesParameters  &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
    std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
@@ -101,7 +101,7 @@ public:
    * pointers for the mapping and terminal output entities.
    */
   NavierStokesProjection
-  (const RunTimeParameters::ParameterSet        &parameters,
+  (const RunTimeParameters::NavierStokesParameters        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
    std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
@@ -195,7 +195,7 @@ private:
   /*!
    * @brief A reference to the parameters which control the solution process.
    */
-  const RunTimeParameters::ParameterSet  &parameters;
+  const RunTimeParameters::NavierStokesParameters  &parameters;
 
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
@@ -360,13 +360,6 @@ private:
    */
   LinearAlgebra::MPI::PreconditionJacobi  correction_step_preconditioner;
 
-  /*!
-   * @brief The aboslute tolerance of all internal solvers used
-   * for the pressure-correction scheme.
-   * @attention Its value is hardcoded to \f$ \num{1e-9}\f$.
-   */
-  const double                          absolute_tolerance = 1.0e-9;
-  
   /*!
    * @brief The norm of the right hand side of the diffusion step.
    * @details Its value is that of the last computed pressure-correction

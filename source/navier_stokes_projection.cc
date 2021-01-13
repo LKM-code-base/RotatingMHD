@@ -8,7 +8,7 @@ namespace RMHD
 
 template <int dim>
 NavierStokesProjection<dim>::NavierStokesProjection
-(const RunTimeParameters::ParameterSet        &parameters,
+(const RunTimeParameters::NavierStokesParameters        &parameters,
  TimeDiscretization::VSIMEXMethod             &time_stepping,
  std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
  std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
@@ -65,7 +65,7 @@ flag_ignore_bouyancy_term(true)
 
 template <int dim>
 NavierStokesProjection<dim>::NavierStokesProjection
-(const RunTimeParameters::ParameterSet        &parameters,
+(const RunTimeParameters::NavierStokesParameters        &parameters,
  TimeDiscretization::VSIMEXMethod             &time_stepping,
  std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
  std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,

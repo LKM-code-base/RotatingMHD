@@ -222,7 +222,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
               scratch.phi[i] *
               (scratch.body_force_divergences[q]
                -
-               // parameters.C2 * 
+               parameters.C3 * 
                (scratch.phi[i] *
                 scratch.temperature_gradients[q] *
                 scratch.gravity_unit_vector_values[q]
@@ -231,7 +231,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                 scratch.gravity_unit_vector_divergences[q])
                /*+
                -
-               - 1.0 * // parameters.C3
+               - parameters.C3
                (scratch.rotation_curls[q] *
                 scratch.velocity_values[q]
                 -
@@ -366,24 +366,24 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
             {
               data.local_rhs(i) += 
                               scratch.face_phi[i] * 
-                              (1.0 / parameters.Re * // parameters.C1
+                              (parameters.C2 *
                               scratch.velocity_laplacians[q]
                               +
                               scratch.body_force_values[q]
                               -
-                              // parameters.C2
+                              parameters.C3 *
                               scratch.temperature_face_values[q] *
                               scratch.gravity_unit_vector_face_values[q])*
                               scratch.normal_vectors[q] *
                               scratch.pressure_fe_face_values.JxW(q);  
               if constexpr(dim == 2)
                 data.local_rhs(i) -=
-                              0.0 * /* parameters.C3 * 
+                              0.0 * /* parameters.C5 * 
                               scratch.face_phi[i] **/
                               scratch.pressure_fe_face_values.JxW(q);
               else if constexpr(dim == 3)
                 data.local_rhs(i) -=
-                              0.0 * /* parameters.C3 *
+                              0.0 * /* parameters.C5 *
                               scratch.face_phi[i] *
                               cross_product_3d(scratch.rotation_values[q],
                                               scratch.velocity_values[q]) * */

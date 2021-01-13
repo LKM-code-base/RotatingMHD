@@ -28,11 +28,11 @@ template <int dim>
 class Step35 : public Problem<dim>
 {
 public:
-  Step35(const RunTimeParameters::ParameterSet &parameters);
+  Step35(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 private:
-  const RunTimeParameters::ParameterSet       &params;
+  const RunTimeParameters::ProblemParameters       &params;
 
   std::vector<types::boundary_id>             boundary_ids;
 
@@ -65,18 +65,18 @@ private:
 };
 
 template <int dim>
-Step35<dim>::Step35(const RunTimeParameters::ParameterSet &parameters)
+Step35<dim>::Step35(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 params(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.navier_stokes_parameters.fe_degree + 1,
                                                        this->triangulation,
                                                        "velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.navier_stokes_parameters.fe_degree,
                                                        this->triangulation,
                                                        "pressure")),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters,
+navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
               pressure,
@@ -87,7 +87,8 @@ inflow_boundary_condition(parameters.time_stepping_parameters.start_time),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
-  make_grid(parameters.n_global_refinements);
+  *this->pcout << parameters << std::endl;
+  make_grid(parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
   velocity->reinit();
@@ -248,16 +249,16 @@ void Step35<dim>::run()
 
     // Snapshot stage
     postprocessing((time_stepping.get_step_number() % 
-                    this->prm.terminal_output_interval == 0) ||
+                    this->prm.terminal_output_frequency == 0) ||
                    (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()));
 
     if (time_stepping.get_step_number() % 
-        this->prm.adaptive_meshing_interval == 0)
+        this->prm.adaptive_mesh_refinement_frequency == 0)
       this->adaptive_mesh_refinement();
 
     if ((time_stepping.get_step_number() % 
-          this->prm.graphical_output_interval == 0) ||
+          this->prm.graphical_output_frequency == 0) ||
         (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()))
       output();
@@ -306,9 +307,15 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ParameterSet parameter_set("step-35.prm");
+      RunTimeParameters::ProblemParameters parameter_set("step-35.prm");
 
-      deallog.depth_console(parameter_set.verbose ? 2 : 0);
+      RunTimeParameters::ProblemParameters test("test.prm");
+
+      std::cout << "C1 = " << parameter_set.navier_stokes_parameters.C1
+                << ", C2 = " << parameter_set.navier_stokes_parameters.C2
+                << ", C3 = " << parameter_set.navier_stokes_parameters.C3
+                << ", C5 = " << parameter_set.navier_stokes_parameters.C5
+                << std::endl;
 
       Step35<2> simulation(parameter_set);
       simulation.run();

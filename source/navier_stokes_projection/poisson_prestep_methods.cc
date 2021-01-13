@@ -35,10 +35,11 @@ solve_poisson_prestep()
 
   poisson_prestep_preconditioner.initialize(pressure_laplace_matrix);
 
-  SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * 
-                                        poisson_prestep_rhs.l2_norm(),
-                                        absolute_tolerance));
+  SolverControl solver_control(
+    parameters.poisson_prestep_solver_parameters.n_maximum_iterations,
+    std::max(parameters.poisson_prestep_solver_parameters.relative_tolerance * 
+             poisson_prestep_rhs.l2_norm(),
+             parameters.poisson_prestep_solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverCG solver(solver_control,
@@ -87,7 +88,7 @@ solve_poisson_prestep()
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of GMRES iterations: " 
+           << "    Number of CG iterations: " 
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;

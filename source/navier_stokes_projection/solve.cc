@@ -21,7 +21,7 @@ void NavierStokesProjection<dim>::solve()
   else 
   {
     diffusion_step(time_stepping.get_step_number() % 
-                    parameters.solver_update_preconditioner == 0);
+                   parameters.preconditioner_update_frequency == 0);
 
     projection_step(false);
 
@@ -63,9 +63,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Pressure correction step");
 
-  switch (parameters.projection_method)
+  switch (parameters.pressure_correction_scheme)
     {
-      case RunTimeParameters::ProjectionMethod::standard:
+      case RunTimeParameters::PressureCorrectionScheme::standard:
         {
         // In the following scope we create temporal non ghosted copies
         // of the pertinent vectors to be able to perform algebraic
@@ -84,7 +84,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           pressure->solution = distributed_old_pressure;
         }
         break;
-      case RunTimeParameters::ProjectionMethod::rotational:
+      case RunTimeParameters::PressureCorrectionScheme::rotational:
         // In the following scope we create temporal non ghosted copies
         // of the pertinent vectors to be able to perform the solve()
         // operation.
@@ -100,10 +100,11 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           // The divergence of the velocity field is projected into a
           // unconstrained pressure space through the following solve
           // operation.
-          SolverControl solver_control(parameters.n_maximum_iterations,
-                                       std::max(parameters.relative_tolerance * 
-                                                correction_step_rhs.l2_norm(),
-                                                absolute_tolerance));
+          SolverControl solver_control(
+            parameters.correction_step_solver_parameters.n_maximum_iterations,
+            std::max(parameters.correction_step_solver_parameters.relative_tolerance * 
+                       correction_step_rhs.l2_norm(),
+                     parameters.correction_step_solver_parameters.absolute_tolerance));
 
           if (reinit_prec)
             correction_step_preconditioner.initialize(projection_mass_matrix);
@@ -150,7 +151,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           // The projected divergence is scaled and the old pressure
           // is added to it
-          distributed_pressure.sadd(1.0 / parameters.Re, 
+          distributed_pressure.sadd(parameters.C2, 
                                     1.,
                                     distributed_old_pressure);
           
