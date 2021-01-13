@@ -44,8 +44,11 @@ enum class VSIMEXScheme
   CNLF
 };
 
+
+
 /*!
  * @struct TimeSteppingParameters
+ * 
  * @brief This structure manages the parameters of the time stepping scheme and
  * is used to control the behavior of VSIMEXMethod.
  */
@@ -77,9 +80,12 @@ struct TimeSteppingParameters
 
   /*!
    * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
    */
   template<typename Stream>
-  void write(Stream &stream) const;
+  friend Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm);
 
   /*!
    * @brief Type of variable step-size IMEX scheme which is applied.
@@ -129,14 +135,29 @@ struct TimeSteppingParameters
   double        final_time;
 
   /*!
-   * @brief Boolean flag to enable verbose output of VSIMEXMethod.
+   * @brief Boolean flag to enable verbose output of @ref VSIMEXMethod.
    */
   bool          verbose;
 };
 
+
+
+/*!
+ * @brief Method forwarding the parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm);
+
+
+
 /*!
 * @class VSIMEXMethod
+*
 * @brief A time stepping class implementing the VSIMEX coefficients.
+*
 * @details Here goes a longer explanation with formulas of the VSIMEX
 * general scheme.
 */
@@ -309,8 +330,16 @@ private:
   bool                flag_coefficients_changed;
 };
 
+
+
+/*!
+ * @brief Output of the current step number, the current time and the size of
+ * the time step.
+ */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex);
+
+
 
 // inline functions
 inline unsigned int VSIMEXMethod::get_order() const
