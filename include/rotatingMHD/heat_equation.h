@@ -73,14 +73,14 @@ public:
    * pointers for the mapping and terminal output entities.
    */
   HeatEquation
-  (const RunTimeParameters::ParameterSet        &parameters,
-   TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
-   const std::shared_ptr<Mapping<dim>>          external_mapping =
+  (const RunTimeParameters::HeatEquationParameters  &parameters,
+   TimeDiscretization::VSIMEXMethod                 &time_stepping,
+   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
-   const std::shared_ptr<ConditionalOStream>    external_pcout =
+   const std::shared_ptr<ConditionalOStream>        external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>           external_timer =
+   const std::shared_ptr<TimerOutput>               external_timer =
        std::shared_ptr<TimerOutput>());
 
   /*!
@@ -91,15 +91,15 @@ public:
    * pointers for the mapping and terminal output entities.
    */
   HeatEquation
-  (const RunTimeParameters::ParameterSet        &parameters,
-   TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   const std::shared_ptr<Mapping<dim>>          external_mapping =
+  (const RunTimeParameters::HeatEquationParameters  &parameters,
+   TimeDiscretization::VSIMEXMethod                 &time_stepping,
+   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+   const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
-   const std::shared_ptr<ConditionalOStream>    external_pcout =
+   const std::shared_ptr<ConditionalOStream>        external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>           external_timer =
+   const std::shared_ptr<TimerOutput>               external_timer =
        std::shared_ptr<TimerOutput>());
 
   /*!
@@ -110,15 +110,15 @@ public:
    * pointers for the mapping and terminal output entities.
    */
   HeatEquation
-  (const RunTimeParameters::ParameterSet        &parameters,
-   TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
-   std::shared_ptr<TensorFunction<1, dim>>      &velocity,
-   const std::shared_ptr<Mapping<dim>>          external_mapping =
+  (const RunTimeParameters::HeatEquationParameters  &parameters,
+   TimeDiscretization::VSIMEXMethod                 &time_stepping,
+   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   std::shared_ptr<TensorFunction<1, dim>>          &velocity,
+   const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
-   const std::shared_ptr<ConditionalOStream>    external_pcout =
+   const std::shared_ptr<ConditionalOStream>        external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>           external_timer =
+   const std::shared_ptr<TimerOutput>               external_timer =
        std::shared_ptr<TimerOutput>());
   /*!
    *  @brief Setups and initializes all the internal entities for
@@ -159,7 +159,7 @@ private:
   /*!
    * @brief A reference to the parameters which control the solution process.
    */
-  const RunTimeParameters::ParameterSet         &parameters;
+  const RunTimeParameters::HeatEquationParameters &parameters;
 
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.

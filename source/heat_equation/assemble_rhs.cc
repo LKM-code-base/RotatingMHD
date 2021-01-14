@@ -234,8 +234,7 @@ void HeatEquation<dim>::assemble_local_rhs(
            scratch.source_term_values[q]
            +
            gamma[1] * (
-             1.0 /
-             parameters.Pe * 
+             parameters.C4 * 
              scratch.grad_phi[i] *
              scratch.old_temperature_gradients[q]
              -
@@ -243,16 +242,15 @@ void HeatEquation<dim>::assemble_local_rhs(
              scratch.old_source_term_values[q])
            +
            gamma[2] * (
-             1.0 /
-             parameters.Pe *
+             parameters.C4 *
              scratch.grad_phi[i] *
              scratch.old_old_temperature_gradients[q]
              -
              scratch.phi[i] * 
              scratch.old_old_source_term_values[q])) *
           scratch.temperature_fe_values.JxW(q);
-
-      if (!parameters.flag_semi_implicit_convection && 
+      if (parameters.convective_term_time_discretization ==
+            RunTimeParameters::ConvectiveTermTimeDiscretization::fully_explicit &&
           !flag_ignore_advection)
         data.local_rhs(i) -=
           (beta[0] *
@@ -282,13 +280,14 @@ void HeatEquation<dim>::assemble_local_rhs(
                scratch.phi[j] * 
                scratch.phi[i]
                +
-               gamma[0] /
-               parameters.Pe *
+               gamma[0] *
+               parameters.C4 *
                scratch.grad_phi[j] *
                scratch.grad_phi[i]) *
               scratch.temperature_fe_values.JxW(q);
           
-          if (parameters.flag_semi_implicit_convection && 
+          if (parameters.convective_term_time_discretization ==
+                RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit &&
               !flag_ignore_advection)
             data.local_matrix_for_inhomogeneous_bc(j,i) +=
               (scratch.phi[j] * (
