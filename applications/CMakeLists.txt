@@ -13,7 +13,7 @@ SET(SOURCE_FILES
     #GuermondNeumannBC.cc
     #Couette.cc
     #ThermalTGV.cc
-    #MIT.cc
+    MIT.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})

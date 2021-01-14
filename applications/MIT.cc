@@ -84,14 +84,12 @@ template <int dim>
 class MITBenchmark : public Problem<dim>
 {
 public:
-  MITBenchmark(const RunTimeParameters::ParameterSet &parameters);
+  MITBenchmark(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
 private:
-  const RunTimeParameters::ParameterSet         &params;
-
-  std::vector<types::boundary_id>               boundary_ids;
+  const RunTimeParameters::ProblemParameters    &params;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
@@ -134,24 +132,24 @@ private:
 };
 
 template <int dim>
-MITBenchmark<dim>::MITBenchmark(const RunTimeParameters::ParameterSet &parameters)
+MITBenchmark<dim>::MITBenchmark(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 params(parameters),
 velocity(std::make_shared<Entities::VectorEntity<dim>>(
-              parameters.p_fe_degree + 1, 
+              parameters.fe_degree_velocity, 
               this->triangulation)),
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(
-              parameters.p_fe_degree, 
+              parameters.fe_degree_pressure, 
               this->triangulation)),
 temperature(std::make_shared<Entities::ScalarEntity<dim>>(
-              parameters.temperature_fe_degree, 
+              parameters.fe_degree_temperature, 
               this->triangulation)),
 temperature_boundary_conditions(
               std::make_shared<EquationData::MIT::TemperatureBoundaryCondition<dim>>(
               parameters.time_stepping_parameters.start_time)),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters,
+navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
               pressure,
@@ -159,7 +157,7 @@ navier_stokes(parameters,
               this->mapping,
               this->pcout,
               this->computing_timer),
-heat_equation(parameters,
+heat_equation(parameters.heat_equation_parameters,
               time_stepping,
               temperature,
               velocity,
@@ -179,11 +177,11 @@ gravity_unit_vector(parameters.time_stepping_parameters.start_time),
 cfl_output_file("MIT_cfl_number.csv"),
 flag_local_refinement(true)
 {
-  *this->pcout << "Problem: MIT Benchmark" << std::endl;
+  *this->pcout << parameters << std::endl << std::endl;
 
   AssertDimension(dim, 2);
   navier_stokes.set_gravity_unit_vector(gravity_unit_vector);
-  make_grid(parameters.n_global_refinements);
+  make_grid(parameters.refinement_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
   velocity->reinit();
@@ -228,13 +226,7 @@ void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
     this->triangulation.execute_coarsening_and_refinement();
   }
 
-  boundary_ids = this->triangulation.get_boundary_ids();
-
-  *(this->pcout) << std::endl
-                 << "Triangulation:"
-                 << std::endl
-                 << " Number of initial global refinements     = "
-                 << n_global_refinements 
+  *(this->pcout) << "Triangulation:"
                  << std::endl
                  << " Number of initial active cells           = "
                  << this->triangulation.n_global_active_cells() 
@@ -432,16 +424,6 @@ void MITBenchmark<dim>::update_solution_vectors()
 template <int dim>
 void MITBenchmark<dim>::run()
 {
-  *this->pcout << "Time discretization:" << std::endl
-               << " VSIMEX scheme                            = " 
-               << time_stepping.get_name() << std::endl
-               << " Semi-implicit advection term             = "
-               << std::boolalpha << this->prm.flag_semi_implicit_convection
-               << std::endl 
-               << " Initial time step                        = " 
-               << time_stepping.get_next_step_size() << std::endl
-               << std::endl;
-
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
@@ -473,12 +455,12 @@ void MITBenchmark<dim>::run()
 
     // Performs coarsening and refining of the triangulation
     if (time_stepping.get_step_number() % 
-        this->prm.adaptive_meshing_interval == 0)
+        this->prm.refinement_parameters.adaptive_mesh_refinement_frequency == 0)
       this->adaptive_mesh_refinement();
 
     // Graphical output of the solution vectors
     if ((time_stepping.get_step_number() % 
-          this->prm.graphical_output_interval == 0) ||
+          this->prm.graphical_output_frequency == 0) ||
         (time_stepping.get_current_time() == 
                    time_stepping.get_end_time()))
       output();
@@ -500,7 +482,7 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 2);
 
-      RunTimeParameters::ParameterSet parameter_set("MIT.prm");
+      RunTimeParameters::ProblemParameters parameter_set("MIT.prm");
 
       MITBenchmark<2> simulation(parameter_set);
       simulation.run();
