@@ -26,45 +26,43 @@ namespace RMHD
  * @class TGV
  * @brief This class solves the Taylor-Green vortex benchmark
  * @todo Add documentation
- */  
+ */
 template <int dim>
 class TGV : public Problem<dim>
 {
 public:
 
-  TGV(const RunTimeParameters::ParameterSet &parameters);
+  TGV(const RunTimeParameters::ProblemParameters &parameters);
 
-  void run(const bool flag_convergence_test);
-
-  std::ofstream outputFile;
+  void run();
 
 private:
 
-  std::vector<types::boundary_id>             boundary_ids;
+  std::ofstream                                 log_file;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
-  LinearAlgebra::MPI::Vector                  velocity_error;
+  LinearAlgebra::MPI::Vector                    velocity_error;
 
-  LinearAlgebra::MPI::Vector                  pressure_error;
+  LinearAlgebra::MPI::Vector                    pressure_error;
 
-  TimeDiscretization::VSIMEXMethod            time_stepping;
+  TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  NavierStokesProjection<dim>                 navier_stokes;
+  NavierStokesProjection<dim>                   navier_stokes;
 
-  EquationData::TGV::VelocityExactSolution<dim>         
-                                      velocity_exact_solution;
+  std::shared_ptr<EquationData::TGV::VelocityExactSolution<dim>>
+                                                velocity_exact_solution;
 
-  EquationData::TGV::PressureExactSolution<dim>         
-                                      pressure_exact_solution;
+  std::shared_ptr<EquationData::TGV::PressureExactSolution<dim>>
+                                                pressure_exact_solution;
 
-  ConvergenceAnalysisData<dim>                velocity_convergence_table;
+  ConvergenceAnalysisData<dim>                  velocity_convergence_table;
 
-  ConvergenceAnalysisData<dim>                pressure_convergence_table;
+  ConvergenceAnalysisData<dim>                  pressure_convergence_table;
 
-  const bool                                  flag_set_exact_pressure_constant;
+  const bool                                    flag_set_exact_pressure_constant;
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -81,40 +79,44 @@ private:
   void update_entities();
 
   void solve(const unsigned int &level);
-
-  void compute_error_vector(LinearAlgebra::MPI::Vector  &error_vector,
-                            Entities::EntityBase<dim>   &entity,
-                            Function<dim>               &exact_solution);
 };
 
 template <int dim>
-TGV<dim>::TGV(const RunTimeParameters::ParameterSet &parameters)
+TGV<dim>::TGV(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-outputFile("TGV_Log.csv"),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+log_file("TGV_Log.csv"),
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
-                                                       "velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
+                                                       "Velocity")),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
-                                                       "pressure")),
+                                                       "Pressure")),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters,
+navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
               pressure,
               this->mapping,
               this->pcout,
               this->computing_timer),
-velocity_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
-pressure_exact_solution(parameters.Re, parameters.time_stepping_parameters.start_time),
-velocity_convergence_table(velocity, velocity_exact_solution),
-pressure_convergence_table(pressure, pressure_exact_solution),
+velocity_exact_solution(
+  std::make_shared<EquationData::TGV::VelocityExactSolution<dim>>(
+    parameters.Re, parameters.time_stepping_parameters.start_time)),
+pressure_exact_solution(
+  std::make_shared<EquationData::TGV::PressureExactSolution<dim>>(
+    parameters.Re, parameters.time_stepping_parameters.start_time)),
+velocity_convergence_table(velocity, *velocity_exact_solution),
+pressure_convergence_table(pressure, *pressure_exact_solution),
 flag_set_exact_pressure_constant(true)
 {
-outputFile << "Step" << "," << "Time" << ","
-           << "Norm_diffusion" << "," << "Norm_projection"
-           << "," << "dt" << "," << "CFL" << std::endl;
+  *this->pcout << parameters << std::endl << std::endl;
+  log_file << "Step" << ","
+           << "Time" << ","
+           << "Norm_diffusion" << ","
+           << "Norm_projection" << ","
+           << "dt" << ","
+           << "CFL" << std::endl;
 }
 
 template <int dim>
@@ -132,37 +134,20 @@ make_grid(const unsigned int &n_global_refinements)
     typename parallel::distributed::Triangulation<dim>::cell_iterator>>
     periodicity_vector;
 
-  FullMatrix<double> rotation_matrix(dim);
-  rotation_matrix[0][0] = 1.;
-  rotation_matrix[1][1] = 1.;    
-
-  Tensor<1,dim> offset_x;
-  offset_x[0] = 1.0;
-  offset_x[1] = 0.0;
-
-  Tensor<1,dim> offset_y;
-  offset_y[0] = 0.0;
-  offset_y[1] = 1.0;
-
   GridTools::collect_periodic_faces(this->triangulation,
                                     0,
                                     1,
                                     0,
-                                    periodicity_vector,
-                                    offset_x,
-                                    rotation_matrix);
+                                    periodicity_vector);
   GridTools::collect_periodic_faces(this->triangulation,
                                     2,
                                     3,
                                     1,
-                                    periodicity_vector,
-                                    offset_y,
-                                    rotation_matrix);
+                                    periodicity_vector);
 
   this->triangulation.add_periodicity(periodicity_vector);
 
   this->triangulation.refine_global(n_global_refinements);
-  boundary_ids = this->triangulation.get_boundary_ids();
 }
 
 template <int dim>
@@ -172,12 +157,13 @@ void TGV<dim>::setup_dofs()
 
   velocity->setup_dofs();
   pressure->setup_dofs();
-  *(this->pcout)  << "  Number of active cells                = " 
+
+  *(this->pcout)  << "  Number of active cells                = "
                   << this->triangulation.n_global_active_cells() << std::endl;
-  *(this->pcout)  << "  Number of velocity degrees of freedom = " 
+  *(this->pcout)  << "  Number of velocity degrees of freedom = "
                   << (velocity->dof_handler)->n_dofs()
                   << std::endl
-                  << "  Number of pressure degrees of freedom = " 
+                  << "  Number of pressure degrees of freedom = "
                   << (pressure->dof_handler)->n_dofs()
                   << std::endl;
 }
@@ -189,12 +175,12 @@ void TGV<dim>::setup_constraints()
 
   velocity->boundary_conditions.clear();
   pressure->boundary_conditions.clear();
-  
+
   velocity->boundary_conditions.set_periodic_bcs(0, 1, 0);
   velocity->boundary_conditions.set_periodic_bcs(2, 3, 1);
   pressure->boundary_conditions.set_periodic_bcs(0, 1, 0);
   pressure->boundary_conditions.set_periodic_bcs(2, 3, 1);
-  
+
   velocity->apply_boundary_conditions();
   pressure->apply_boundary_conditions();
 }
@@ -204,17 +190,12 @@ void TGV<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
-  this->set_initial_conditions(velocity, 
-                               velocity_exact_solution, 
+  this->set_initial_conditions(velocity,
+                               *velocity_exact_solution,
                                time_stepping);
   this->set_initial_conditions(pressure,
-                               pressure_exact_solution, 
+                               *pressure_exact_solution,
                                time_stepping);
-  // The diffusion prestep does not produce physical results.
-  // Could this be due to the boundary conditions? Since there is no
-  // body force in this problem the problem reduces to a boundary integral
-  // whhose integrand is projected in the normal to the boundary direction.
-  //navier_stokes.initialize();
 }
 
 template <int dim>
@@ -237,7 +218,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
       VectorTools::project(*(pressure->dof_handler),
                           pressure->constraints,
                           QGauss<dim>(pressure->fe_degree + 2),
-                          pressure_exact_solution,
+                          *pressure_exact_solution,
                           tmp_analytical_pressure);
 
       analytical_pressure = tmp_analytical_pressure;
@@ -259,7 +240,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
       distributed_analytical_pressure = analytical_pressure;
       distributed_numerical_pressure  = pressure->solution;
 
-      distributed_numerical_pressure.add(  
+      distributed_numerical_pressure.add(
         distributed_analytical_pressure.mean_value() -
         distributed_numerical_pressure.mean_value());
 
@@ -270,25 +251,26 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
   if (flag_point_evaluation)
   {
     std::cout.precision(1);
-    *(this->pcout)  << time_stepping
-                    << " Norms = ("
-                    << std::noshowpos << std::scientific
-                    << navier_stokes.get_diffusion_step_rhs_norm()
-                    << ", "
-                    << navier_stokes.get_projection_step_rhs_norm()
-                    << ") CFL = "
-                    << navier_stokes.get_cfl_number()
-                    << " ["
-                    << std::setw(5) 
-                    << std::fixed
-                    << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-                    << "%] \r";
-    outputFile << time_stepping.get_step_number() << ","
-               << time_stepping.get_current_time() << ","
-               << navier_stokes.get_diffusion_step_rhs_norm() << ","
-               << navier_stokes.get_projection_step_rhs_norm() << ","
-               << time_stepping.get_next_step_size() << ","
-               << navier_stokes.get_cfl_number() << std::endl;
+    *this->pcout  << time_stepping
+                  << " Norms = ("
+                  << std::noshowpos << std::scientific
+                  << navier_stokes.get_diffusion_step_rhs_norm()
+                  << ", "
+                  << navier_stokes.get_projection_step_rhs_norm()
+                  << ") CFL = "
+                  << navier_stokes.get_cfl_number()
+                  << " ["
+                  << std::setw(5)
+                  << std::fixed
+                  << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
+                  << "%] \r";
+
+    log_file << time_stepping.get_step_number() << ","
+             << time_stepping.get_current_time() << ","
+             << navier_stokes.get_diffusion_step_rhs_norm() << ","
+             << navier_stokes.get_projection_step_rhs_norm() << ","
+             << time_stepping.get_next_step_size() << ","
+             << navier_stokes.get_cfl_number() << std::endl;
   }
 }
 
@@ -299,10 +281,10 @@ void TGV<dim>::output()
 
   this->compute_error(velocity_error,
                        velocity,
-                       velocity_exact_solution);
+                       *velocity_exact_solution);
   this->compute_error(pressure_error,
                        pressure,
-                       pressure_exact_solution);
+                       *pressure_exact_solution);
 
   std::vector<std::string> names(dim, "velocity");
   std::vector<std::string> error_name(dim, "velocity_error");
@@ -315,27 +297,27 @@ void TGV<dim>::output()
 
   data_out.add_data_vector(*(velocity->dof_handler),
                            velocity->solution,
-                           names, 
+                           names,
                            component_interpretation);
 
   data_out.add_data_vector(*(velocity->dof_handler),
                            velocity_error,
-                           error_name, 
+                           error_name,
                            component_interpretation);
 
-  data_out.add_data_vector(*(pressure->dof_handler), 
-                           pressure->solution, 
+  data_out.add_data_vector(*(pressure->dof_handler),
+                           pressure->solution,
                            "pressure");
 
-  data_out.add_data_vector(*(pressure->dof_handler), 
-                           pressure_error, 
+  data_out.add_data_vector(*(pressure->dof_handler),
+                           pressure_error,
                            "pressure_error");
 
   data_out.build_patches(velocity->fe_degree);
-  
+
   static int out_index = 0;
 
-  data_out.write_vtu_with_pvtu_record("./",
+  data_out.write_vtu_with_pvtu_record(this->prm.graphical_output_directory,
                                       "solution",
                                       out_index,
                                       this->mpi_communicator,
@@ -366,21 +348,21 @@ void TGV<dim>::solve(const unsigned int &level)
   // is not defined for this problem.
   for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
     time_stepping.advance_time();
-  
+
   // Outputs the fields at t_0, i.e. the initial conditions.
-  { 
+  {
     velocity->solution = velocity->old_old_solution;
     pressure->solution = pressure->old_old_solution;
-    velocity_exact_solution.set_time(time_stepping.get_start_time());
-    pressure_exact_solution.set_time(time_stepping.get_start_time());
+    velocity_exact_solution->set_time(time_stepping.get_start_time());
+    pressure_exact_solution->set_time(time_stepping.get_start_time());
     output();
     velocity->solution = velocity->old_solution;
     pressure->solution = pressure->old_solution;
-    velocity_exact_solution.set_time(time_stepping.get_start_time() + 
+    velocity_exact_solution->set_time(time_stepping.get_start_time() +
                                      time_stepping.get_next_step_size());
-    pressure_exact_solution.set_time(time_stepping.get_start_time() + 
+    pressure_exact_solution->set_time(time_stepping.get_start_time() +
                                      time_stepping.get_next_step_size());
-    output();   
+    output();
   }
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
@@ -390,15 +372,15 @@ void TGV<dim>::solve(const unsigned int &level)
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
       this->compute_next_time_step(
-        time_stepping, 
+        time_stepping,
         navier_stokes.get_cfl_number()));
-    
+
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
-    
+
     // Updates the functions and the constraints to t^{k}
-    velocity_exact_solution.set_time(time_stepping.get_next_time());
-    pressure_exact_solution.set_time(time_stepping.get_next_time());
+    velocity_exact_solution->set_time(time_stepping.get_next_time());
+    pressure_exact_solution->set_time(time_stepping.get_next_time());
 
     velocity->boundary_conditions.set_time(time_stepping.get_next_time());
     velocity->update_boundary_conditions();
@@ -412,80 +394,106 @@ void TGV<dim>::solve(const unsigned int &level)
 
     // Snapshot stage, all time calls should be done with get_current_time()
     postprocessing((time_stepping.get_step_number() %
-                    this->prm.terminal_output_interval == 0) ||
-                    (time_stepping.get_current_time() == 
+                    this->prm.terminal_output_frequency == 0) ||
+                    (time_stepping.get_current_time() ==
                    time_stepping.get_end_time()));
 
     if ((time_stepping.get_step_number() %
-          this->prm.graphical_output_interval == 0) ||
-        (time_stepping.get_current_time() == 
+          this->prm.graphical_output_frequency == 0) ||
+        (time_stepping.get_current_time() ==
           time_stepping.get_end_time()))
       output();
   }
-  
-  Assert(time_stepping.get_current_time() == velocity_exact_solution.get_time(),
+
+  Assert(time_stepping.get_current_time() == velocity_exact_solution->get_time(),
     ExcMessage("Time mismatch between the time stepping class and the velocity function"));
-  Assert(time_stepping.get_current_time() == pressure_exact_solution.get_time(),
+  Assert(time_stepping.get_current_time() == pressure_exact_solution->get_time(),
     ExcMessage("Time mismatch between the time stepping class and the pressure function"));
-  
+
   velocity_convergence_table.update_table(
-    level, time_stepping.get_previous_step_size(), this->prm.flag_spatial_convergence_test);
+    level,
+    time_stepping.get_previous_step_size(),
+    this->prm.convergence_test_parameters.convergence_test_type ==
+      RunTimeParameters::ConvergenceTestType::spatial);
   pressure_convergence_table.update_table(
-    level, time_stepping.get_previous_step_size(), this->prm.flag_spatial_convergence_test);
-  
+    level, time_stepping.get_previous_step_size(),
+    this->prm.convergence_test_parameters.convergence_test_type ==
+      RunTimeParameters::ConvergenceTestType::spatial);
+
   velocity->boundary_conditions.clear();
   pressure->boundary_conditions.clear();
 
-  outputFile << "\n";
+  log_file << "\n";
 
   *(this->pcout) << std::endl;
   *(this->pcout) << std::endl;
 }
 
 template <int dim>
-void TGV<dim>::run(const bool flag_convergence_test)
+void TGV<dim>::run()
 {
-  make_grid(this->prm.initial_refinement_level);
-  if (flag_convergence_test)
-    for (unsigned int level = this->prm.initial_refinement_level; 
-          level <= this->prm.final_refinement_level; ++level)
+  make_grid(this->prm.convergence_test_parameters.n_global_initial_refinements);
+
+  switch (this->prm.convergence_test_parameters.convergence_test_type)
+  {
+  case RunTimeParameters::ConvergenceTestType::spatial:
+    for (unsigned int level = this->prm.convergence_test_parameters.n_global_initial_refinements;
+         level < (this->prm.convergence_test_parameters.n_global_initial_refinements +
+                  this->prm.convergence_test_parameters.n_spatial_convergence_cycles);
+         ++level)
     {
-      std::cout.precision(1);
-      *(this->pcout)  << "Solving until t = " 
-                      << std::fixed << time_stepping.get_end_time()
-                      << " with a refinement level of " << level 
-                      << std::endl;
+      *this->pcout  << std::setprecision(1)
+                    << "Solving until t = "
+                    << std::fixed << time_stepping.get_end_time()
+                    << " with a refinement level of " << level
+                    << std::endl;
+
       time_stepping.restart();
+
       solve(level);
+
       this->triangulation.refine_global();
+
       navier_stokes.reset_phi();
     }
-  else
-  {
-    for (unsigned int cycle = 0; 
-         cycle < this->prm.temporal_convergence_cycles; ++cycle)
+    break;
+  case RunTimeParameters::ConvergenceTestType::temporal:
+    for (unsigned int cycle = 0;
+         cycle < this->prm.convergence_test_parameters.n_temporal_convergence_cycles;
+         ++cycle)
     {
       double time_step = this->prm.time_stepping_parameters.initial_time_step *
-                         pow(this->prm.time_step_scaling_factor, cycle);
-      std::cout.precision(1);
-      *(this->pcout)  << "Solving until t = " 
-                      << std::fixed << time_stepping.get_end_time()
-                      << " with a refinement level of " 
-                      << this->prm.initial_refinement_level << std::endl;
+                         pow(this->prm.convergence_test_parameters.timestep_reduction_factor,
+                             cycle);
+
+      *this->pcout  << std::setprecision(1)
+                    << "Solving until t = "
+                    << std::fixed << time_stepping.get_end_time()
+                    << " with a refinement level of "
+                    << this->prm.convergence_test_parameters.n_global_initial_refinements
+                    << std::endl;
+
       time_stepping.restart();
+
       time_stepping.set_desired_next_step_size(time_step);
-      solve(this->prm.initial_refinement_level);
+
+      solve(this->prm.convergence_test_parameters.n_global_initial_refinements);
+
       navier_stokes.reset_phi();
     }
+    break;
+  default:
+    break;
   }
-  
-  *(this->pcout) << velocity_convergence_table;
-  *(this->pcout) << pressure_convergence_table;
+
+  *this->pcout << velocity_convergence_table;
+  *this->pcout << pressure_convergence_table;
 
   std::ostringstream tablefilename;
-  tablefilename << ((this->prm.flag_spatial_convergence_test) ?
-                    "TGVSpatialTest" : "TGVTemporalTest_Level")
-                << this->prm.initial_refinement_level
+  tablefilename << ((this->prm.convergence_test_parameters.convergence_test_type ==
+                      RunTimeParameters::ConvergenceTestType::spatial)
+                     ? "TGV_SpatialTest"
+                     : ("TGV_TemporalTest_Level" + std::to_string(this->prm.convergence_test_parameters.n_global_initial_refinements)))
                 << "_Re"
                 << this->prm.Re;
 
@@ -505,16 +513,11 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ParameterSet parameter_set("TGV.prm");
-
-      deallog.depth_console(parameter_set.verbose ? 2 : 0);
+      RunTimeParameters::ProblemParameters parameter_set("TGV.prm", true);
 
       TGV<2> simulation(parameter_set);
-      
-      simulation.run(parameter_set.flag_spatial_convergence_test);
-  
-      //simulation.outputFile.close();
 
+      simulation.run();
   }
   catch (std::exception &exc)
   {
@@ -541,7 +544,5 @@ int main(int argc, char *argv[])
                 << std::endl;
       return 1;
   }
-  std::cout << "----------------------------------------------------"
-            << std::endl;
   return 0;
 }
