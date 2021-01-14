@@ -62,6 +62,8 @@ private:
 
   ConvergenceAnalysisData<dim>                  pressure_convergence_table;
 
+  double                                        cfl_number;
+
   const bool                                    flag_set_exact_pressure_constant;
 
   void make_grid(const unsigned int &n_global_refinements);
@@ -158,15 +160,19 @@ void TGV<dim>::setup_dofs()
   velocity->setup_dofs();
   pressure->setup_dofs();
 
-  *(this->pcout)  << "  Number of active cells                = "
-                  << this->triangulation.n_global_active_cells() << std::endl;
-  *(this->pcout)  << "  Number of velocity degrees of freedom = "
-                  << (velocity->dof_handler)->n_dofs()
-                  << std::endl
-                  << "  Number of pressure degrees of freedom = "
-                  << (pressure->dof_handler)->n_dofs()
-                  << std::endl;
-}
+  *this->pcout << "  Number of active cells                = "
+               << this->triangulation.n_global_active_cells()
+               << std::endl;
+  *this->pcout << "  Number of velocity degrees of freedom = "
+               << (velocity->dof_handler)->n_dofs()
+               << std::endl
+               << "  Number of pressure degrees of freedom = "
+               << (pressure->dof_handler)->n_dofs()
+               << std::endl
+               << "  Number of total degrees of freedom    = "
+               << (pressure->dof_handler->n_dofs() +
+                   velocity->dof_handler->n_dofs())
+               << std::endl;}
 
 template <int dim>
 void TGV<dim>::setup_constraints()
@@ -215,7 +221,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
         LinearAlgebra::MPI::Vector
         tmp_analytical_pressure(pressure->locally_owned_dofs);
       #endif
-      VectorTools::project(*(pressure->dof_handler),
+      VectorTools::project(*pressure->dof_handler,
                           pressure->constraints,
                           QGauss<dim>(pressure->fe_degree + 2),
                           *pressure_exact_solution,
@@ -258,7 +264,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
                   << ", "
                   << navier_stokes.get_projection_step_rhs_norm()
                   << ") CFL = "
-                  << navier_stokes.get_cfl_number()
+                  << cfl_number
                   << " ["
                   << std::setw(5)
                   << std::fixed
@@ -270,7 +276,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
              << navier_stokes.get_diffusion_step_rhs_norm() << ","
              << navier_stokes.get_projection_step_rhs_norm() << ","
              << time_stepping.get_next_step_size() << ","
-             << navier_stokes.get_cfl_number() << std::endl;
+             << cfl_number << std::endl;
   }
 }
 
@@ -369,11 +375,12 @@ void TGV<dim>::solve(const unsigned int &level)
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
+    // Compute CFL number
+    cfl_number = navier_stokes.get_cfl_number();
+
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(
-        time_stepping,
-        navier_stokes.get_cfl_number()));
+      this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -425,8 +432,8 @@ void TGV<dim>::solve(const unsigned int &level)
 
   log_file << "\n";
 
-  *(this->pcout) << std::endl;
-  *(this->pcout) << std::endl;
+  *this->pcout << std::endl;
+  *this->pcout << std::endl;
 }
 
 template <int dim>

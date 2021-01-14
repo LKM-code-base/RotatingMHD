@@ -41,7 +41,7 @@ private:
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
   NavierStokesProjection<dim>                   navier_stokes;
-  
+
   std::shared_ptr<EquationData::Step35::VelocityInflowBoundaryCondition<dim>>
                                                 inflow_boundary_condition;
 
@@ -50,6 +50,8 @@ private:
 
   std::shared_ptr<EquationData::Step35::PressureInitialCondition<dim>>
                                                 pressure_initial_condition;
+
+  double                                        cfl_number;
 
   const Point<dim>                              evaluation_point;
 
@@ -138,7 +140,7 @@ void Step35<dim>::setup_dofs()
 
   velocity->setup_dofs();
   pressure->setup_dofs();
-  
+
   *(this->pcout) << "Number of velocity degrees of freedom = "
                  << (velocity->dof_handler)->n_dofs()
                  << std::endl
@@ -160,7 +162,7 @@ void Step35<dim>::setup_constraints()
   velocity->boundary_conditions.set_dirichlet_bcs(2, inflow_boundary_condition);
   velocity->boundary_conditions.set_dirichlet_bcs(4);
   velocity->boundary_conditions.set_tangential_flux_bcs(3);
-  
+
   pressure->boundary_conditions.set_dirichlet_bcs(3);
 
   velocity->apply_boundary_conditions();
@@ -174,11 +176,11 @@ void Step35<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
-  this->set_initial_conditions(velocity, 
-                               *velocity_initial_condition, 
+  this->set_initial_conditions(velocity,
+                               *velocity_initial_condition,
                                time_stepping);
   this->set_initial_conditions(pressure,
-                               *pressure_initial_condition, 
+                               *pressure_initial_condition,
                                time_stepping);
 
   velocity->solution = velocity->old_solution;
@@ -209,13 +211,13 @@ void Step35<dim>::output()
 
   data_out.add_data_vector(*velocity->dof_handler,
                            velocity->solution,
-                           names, 
+                           names,
                            component_interpretation);
-  data_out.add_data_vector(*pressure->dof_handler, 
-                           pressure->solution, 
+  data_out.add_data_vector(*pressure->dof_handler,
+                           pressure->solution,
                            "Pressure");
   data_out.build_patches(velocity->fe_degree);
-  
+
   static int out_index = 0;
 
   data_out.write_vtu_with_pvtu_record(this->prm.graphical_output_directory,
@@ -240,11 +242,12 @@ void Step35<dim>::run()
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
+    // Compute CFL number
+    cfl_number = navier_stokes.get_cfl_number();
+
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(
-        time_stepping, 
-        navier_stokes.get_cfl_number()));
+      this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -257,18 +260,18 @@ void Step35<dim>::run()
     time_stepping.advance_time();
 
     // Snapshot stage
-    if (time_stepping.get_step_number() % 
+    if (time_stepping.get_step_number() %
          this->prm.terminal_output_frequency == 0 ||
         time_stepping.get_current_time() == time_stepping.get_end_time())
       postprocessing();
 
-    if (time_stepping.get_step_number() % 
+    if (time_stepping.get_step_number() %
         this->prm.refinement_parameters.adaptive_mesh_refinement_frequency == 0)
       this->adaptive_mesh_refinement();
 
-    if ((time_stepping.get_step_number() % 
+    if ((time_stepping.get_step_number() %
           this->prm.graphical_output_frequency == 0) ||
-        (time_stepping.get_current_time() == 
+        (time_stepping.get_current_time() ==
                    time_stepping.get_end_time()))
       output();
   }
@@ -296,10 +299,10 @@ void Step35<dim>::sample_point_data(const Point<dim> &point) const
                               point);
 
     std::cout << time_stepping
-              << " Velocity = (" 
+              << " Velocity = ("
               << std::showpos << std::scientific
               << point_value_velocity[0]
-              << ", " 
+              << ", "
               << point_value_velocity[1]
               << ") Pressure = "
               << point_value_pressure  << std::noshowpos << std::endl;

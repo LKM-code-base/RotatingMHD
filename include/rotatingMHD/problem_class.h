@@ -30,38 +30,38 @@ using namespace dealii;
  * @details In case of the case of a refining and coarsening operation,
  * the container also keeps track as to which entities are to be
  * considered by calculation of the total error estimate.
- */  
+ */
 template <int dim>
 struct SolutionTransferContainer
 {
   /*!
    * @brief A typedef for the std::pair composed of a pointer to a
    * @ref Entities::EntityBase instance and a boolean.
-   * @details The boolean indicates wheter the entity is to be 
+   * @details The boolean indicates wheter the entity is to be
    * considered by the error estimation or not.
-   */ 
+   */
   using EntityEntry = std::pair<Entities::EntityBase<dim> *, bool>;
 
   /*!
    * @brief A std::vector with all the entities to be considered in
    * a solution transfer
-   */ 
+   */
   std::vector<EntityEntry>  entities;
 
   /*!
    * @brief Default constructor.
-   */ 
+   */
   SolutionTransferContainer();
 
   /*!
    * @brief Inline returning the number of entities to be considered
    * by the error estimation.
-   */ 
+   */
   unsigned int get_error_vector_size() const;
 
   /*!
    * @brief Indicates whether @ref entities is empty or not.
-   */ 
+   */
   bool empty() const;
 
   /*!
@@ -69,7 +69,7 @@ struct SolutionTransferContainer
    * entities struct member.
    * @details If no boolean is passed, it is assumed that the entity
    * is to be considered by the error estimation.
-   */ 
+   */
   void add_entity(std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag = true);
 
 private:
@@ -97,9 +97,9 @@ inline bool SolutionTransferContainer<dim>::empty() const
  * @class Problem
  * @brief The class containts instances and methods that are common
  * and/or useful for most problems to be formulated.
- */ 
+ */
 template <int dim>
-class Problem 
+class Problem
 {
 public:
   /*!
@@ -116,7 +116,7 @@ protected:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const RunTimeParameters::ProblemParameters      &prm;
+  const RunTimeParameters::ProblemParameters  &prm;
 
   /*!
    * @brief Triangulation object of the problem.
@@ -141,7 +141,7 @@ protected:
 
   /*!
    * Struct containing all the entities to be considered during a
-   * solution transfer. 
+   * solution transfer.
    */
   SolutionTransferContainer<dim>              container;
 
@@ -169,13 +169,13 @@ protected:
    Function<dim>                              &exact_solution);
 
   /*!
-   *  @brief Computes the next time step according to the 
+   *  @brief Computes the next time step according to the
    *  Courant-Friedrichs-Lewy (CFL) condition.
    *
-   *  @details The next time step is given by 
+   *  @details The next time step is given by
    * \f[
    *    \Delta t^{n-1}_\textrm{new} = \frac{C_\max}{C} \Delta t^{n-1}
-   * \f] 
+   * \f]
    * where \f$ C_\max \f$ is the maximum CFL number and \f$ C\f$ is the
    * CFL number computed from the current velocity field.
    *  @attention The maximum Courant-Friedrichs-Lewy number is assumed
@@ -188,7 +188,7 @@ protected:
 
   /*!
    * @brief Performs an adaptive mesh refinement.
-   * @details 
+   * @details
    */
   void adaptive_mesh_refinement();
 };
