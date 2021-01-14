@@ -5,6 +5,8 @@
 #include <deal.II/fe/mapping_manifold.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <string>
+#include <sys/stat.h>
 namespace RMHD
 {
 
@@ -34,10 +36,8 @@ triangulation(mpi_communicator,
               typename Triangulation<dim>::MeshSmoothing(
               Triangulation<dim>::smoothing_on_refinement |
               Triangulation<dim>::smoothing_on_coarsening)),
-/*! @todo Include a the mapping's polynomial degree as a parameter in 
-    the parameter struct overhaul. For the time being, this will be 
-    hardcoded to linear mappings. */
-mapping(std::make_shared<MappingQ<dim>>(1, false)),
+mapping(std::make_shared<MappingQ<dim>>(prm.mapping_degree,
+                                        prm.mapping_interior_cells)),
 pcout(std::make_shared<ConditionalOStream>(std::cout,
       (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))),
 computing_timer(
@@ -45,7 +45,17 @@ computing_timer(
                                 *pcout,
                                 TimerOutput::summary,
                                 TimerOutput::wall_times))
-{}
+{  
+  if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0 &&
+      prm.graphical_output_directory != "./")
+  {
+    std::string directory_name(prm.graphical_output_directory);
+    directory_name.pop_back();
+    std::string command = "mkdir -p " + directory_name;
+    std::cout << directory_name.c_str() << std::endl;
+    system(command.c_str());
+  }
+}
 
 template <int dim>
 void Problem<dim>::set_initial_conditions
@@ -252,18 +262,18 @@ void Problem<dim>::adaptive_mesh_refinement()
     GridRefinement::refine_and_coarsen_fixed_fraction(
       triangulation,
       estimated_error_per_cell,
-      prm.cell_fraction_to_coarsen,
-      prm.cell_fraction_to_refine);
+      prm.refinement_parameters.cell_fraction_to_coarsen,
+      prm.refinement_parameters.cell_fraction_to_refine);
 
     // Clear refinement flags if refinement level exceeds maximum
-    if (triangulation.n_global_levels() > prm.n_maximum_levels)
+    if (triangulation.n_global_levels() > prm.refinement_parameters.n_maximum_levels)
       for (auto cell: triangulation.active_cell_iterators_on_level(
-                        prm.n_maximum_levels))
+                        prm.refinement_parameters.n_maximum_levels))
         cell->clear_refine_flag();
 
     // Clear coarsen flags if level decreases minimum
     for (auto cell: triangulation.active_cell_iterators_on_level(
-                      prm.n_minimum_levels))
+                      prm.refinement_parameters.n_minimum_levels))
         cell->clear_coarsen_flag();
 
     // Count number of cells to be refined and coarsened
