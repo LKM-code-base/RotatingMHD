@@ -45,14 +45,13 @@ computing_timer(
                                 *pcout,
                                 TimerOutput::summary,
                                 TimerOutput::wall_times))
-{  
+{
   if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0 &&
       prm.graphical_output_directory != "./")
   {
     std::string directory_name(prm.graphical_output_directory);
     directory_name.pop_back();
     std::string command = "mkdir -p " + directory_name;
-    std::cout << directory_name.c_str() << std::endl;
     system(command.c_str());
   }
 }
@@ -164,8 +163,8 @@ void Problem<dim>::compute_error(
   distributed_solution      = entity->solution;
 
   distributed_error_vector.add(-1.0, distributed_solution);
-  
-  for (unsigned int i = distributed_error_vector.local_range().first; 
+
+  for (unsigned int i = distributed_error_vector.local_range().first;
        i < distributed_error_vector.local_range().second; ++i)
     if (distributed_error_vector(i) < 0)
       distributed_error_vector(i) *= -1.0;
@@ -183,30 +182,30 @@ double Problem<dim>::compute_next_time_step
       time_stepping.get_step_number() == 0)
     return time_stepping.get_next_step_size();
 
-  return max_cfl_number / cfl_number * 
+  return max_cfl_number / cfl_number *
          time_stepping.get_next_step_size();
 }
 
 template <int dim>
 void Problem<dim>::adaptive_mesh_refinement()
 {
-  Assert(!container.empty(), 
+  Assert(!container.empty(),
          ExcMessage("The entities container is empty."))
 
-  using SolutionTransferType = 
+  using SolutionTransferType =
   parallel::distributed::SolutionTransfer<dim, LinearAlgebra::MPI::Vector>;
 
-  using TransferVectorType = 
+  using TransferVectorType =
   std::vector<const LinearAlgebra::MPI::Vector *>;
 
   std::vector<SolutionTransferType> solution_transfers;
-  
+
   /*! Initiates the objects responsible for the solution transfer */
   for (auto const &entity: container.entities)
     solution_transfers.emplace_back(*(entity.first->dof_handler));
 
   {
-    TimerOutput::Scope t(*computing_timer, 
+    TimerOutput::Scope t(*computing_timer,
                          "Problem: Adaptive mesh refinement Pt. 1");
 
     *pcout << std::endl
@@ -220,12 +219,12 @@ void Problem<dim>::adaptive_mesh_refinement()
 
     // Initiates the estimated error per cell used in the refinement.
     // It is composed by the equally weighted sum of the estimated
-    // error per cell of each entity to be considered 
+    // error per cell of each entity to be considered
     Vector<float> estimated_error_per_cell(triangulation.n_active_cells());
 
     unsigned int j = 0;
 
-    // Computes the estimated error per cell of all the pertinent 
+    // Computes the estimated error per cell of all the pertinent
     // entities
     for (unsigned int i = 0; i < container.entities.size(); ++i)
     {
@@ -241,7 +240,7 @@ void Problem<dim>::adaptive_mesh_refinement()
           nullptr,
           0,
           triangulation.locally_owned_subdomain());
-        
+
         j += 1;
       }
       else
@@ -250,14 +249,14 @@ void Problem<dim>::adaptive_mesh_refinement()
 
     // Reset the estimated error per cell and fills it with the
     // equally weighted sum of the estimated error per cell of each
-    // entity to be considered 
+    // entity to be considered
     estimated_error_per_cell = 0.;
 
     for (auto const &error_vector: estimated_errors_per_cell)
       estimated_error_per_cell.add(1.0 / container.get_error_vector_size(),
                                    error_vector);
 
-    // Indicates which cells are to be refine/coarsen 
+    // Indicates which cells are to be refine/coarsen
     parallel::distributed::
     GridRefinement::refine_and_coarsen_fixed_fraction(
       triangulation,
@@ -313,7 +312,7 @@ void Problem<dim>::adaptive_mesh_refinement()
     triangulation.execute_coarsening_and_refinement();
   }
 
-  *pcout << "   Number of global active cells:      " 
+  *pcout << "   Number of global active cells:      "
          << triangulation.n_global_active_cells() << std::endl;
 
   std::vector<unsigned int> locally_active_cells(triangulation.n_global_levels());
@@ -324,7 +323,7 @@ void Problem<dim>::adaptive_mesh_refinement()
   *pcout << "   Number of cells on each (level):    ";
   for (unsigned int level=0; level < triangulation.n_global_levels(); ++level)
   {
-      *pcout << Utilities::MPI::sum(locally_active_cells[level], mpi_communicator) 
+      *pcout << Utilities::MPI::sum(locally_active_cells[level], mpi_communicator)
              << " (" << level << ")" << ", ";
   }
   *pcout << "\b\b \n" << std::endl;
@@ -338,7 +337,7 @@ void Problem<dim>::adaptive_mesh_refinement()
   }
 
   {
-    TimerOutput::Scope t(*computing_timer, 
+    TimerOutput::Scope t(*computing_timer,
                          "Problem: Adaptive mesh refinement Pt. 2");
 
   for (unsigned int i = 0; i < container.entities.size(); ++i)
@@ -368,8 +367,8 @@ void Problem<dim>::adaptive_mesh_refinement()
     tmp[0] = &(distributed_tmp_solution);
     tmp[1] = &(distributed_tmp_old_solution);
     tmp[2] = &(distributed_tmp_old_old_solution);
-    
-    // Interpolates and apply constraines to the temporary vectors 
+
+    // Interpolates and apply constraines to the temporary vectors
     solution_transfers[i].interpolate(tmp);
 
     (container.entities[i].first)->constraints.distribute(distributed_tmp_solution);
