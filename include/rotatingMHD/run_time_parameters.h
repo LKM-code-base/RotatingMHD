@@ -15,10 +15,13 @@
 namespace RMHD
 {
 
+
+
 namespace RunTimeParameters
+
+
+
 {
-
-
 /*!
  * @brief Enumeration for the different types of problems.
  */
@@ -390,6 +393,9 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm);
  *
  * @brief A structure containing all parameters relevant for the solution of
  * linear systems using a Krylov subspace method.
+ * 
+ * @todo Proper initiation of the solver_name string without constructor
+ * ambiguity
  */
 struct LinearSolverParameters
 {
@@ -470,6 +476,13 @@ struct LinearSolverParameters
    *
    */
   unsigned int  n_maximum_iterations;
+
+private:
+
+  /*!
+   * @brief The name of the solver.
+   */ 
+  std::string   solver_name;
 };
 
 
@@ -553,6 +566,10 @@ struct DimensionlessNumbers
    * @brief The magnetic Prandtl number
    */ 
   double  Pm;
+
+private:
+
+  ProblemType problem_type;
 };
 
 
@@ -615,12 +632,6 @@ struct NavierStokesParameters
    * convective term is to be implemented
    */ 
   ConvectiveTermTimeDiscretization  convective_term_time_discretization;
-
-  /*!
-   * @brief Polynomial degree \f$ p \f$ of the \f$Q_{p+1}-Q_p\f$ finite element
-   * of the velocity and the pressure space.
-   */
-  unsigned int                      fe_degree;
 
   /*!
    * @brief The factor multiplying the Coriolis acceleration.
@@ -743,11 +754,6 @@ struct HeatEquationParameters
    */ 
   ConvectiveTermTimeDiscretization  convective_term_time_discretization;
 
-  /*!
-   * @brief Polynomial degree of the temperature's finite element.
-   */
-  unsigned int                      fe_degree;
-
     /*!
    * @brief The factor multiplying the temperature's laplacian.
    */ 
@@ -788,7 +794,6 @@ Stream& operator<<(Stream &stream, const HeatEquationParameters &prm);
  */
 struct ProblemParameters
     : public OutputControlParameters,
-      public RefinementParameters,
       public DimensionlessNumbers
 {
   /*!
@@ -800,7 +805,8 @@ struct ProblemParameters
    * @brief Constructor which sets up the parameters as specified in the
    * parameter file with the filename @p parameter_filename.
    */
-  ProblemParameters(const std::string &parameter_filename);
+  ProblemParameters(const std::string &parameter_filename,
+                    const bool        flag = false);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -823,28 +829,72 @@ struct ProblemParameters
   /*!
    * @brief Spatial dimension of the problem.
    */
-  ProblemType             problem_type;
+  ProblemType                                 problem_type;
 
   /*!
    * @brief Spatial dimension of the problem.
    */
-  unsigned int            dim;
+  unsigned int                                dim;
+
+  /*!
+   * @brief Polynomial degree of the mapping.
+   */
+  unsigned int                                mapping_degree;
+
+  /*!
+   * @brief Boolean indicating if the mapping is to be asigned to 
+   * the interior cells too.
+   */
+  bool                                        mapping_interior_cells;
+
+  /*!
+   * @brief The polynomial degree of the pressure's finite element.
+   */
+  unsigned int                                fe_degree_pressure;
+
+  /*!
+   * @brief The polynomial degree of the velocity's finite element.
+   */
+  unsigned int                                fe_degree_velocity;
+
+  /*!
+   * @brief The polynomial degree of the temperature's finite element.
+   */
+  unsigned int                                fe_degree_temperature;
 
   /*!
    * @brief Boolean flag to enable verbose output on the terminal.
    */
-  bool                    verbose;
+  bool                                        verbose;
 
+  /*!
+   * @brief Parameters of the convergence test.
+   */
+  ConvergenceTestParameters                   convergence_test_parameters;
+
+  /*!
+   * @brief Parameters of the adaptive mesh refinement.
+   */
+  RefinementParameters                        refinement_parameters;
+
+  /*!
+   * @brief Parameters of the time stepping scheme.
+   */
   TimeDiscretization::TimeSteppingParameters  time_stepping_parameters;
+
   /*!
    * @brief Parameters of the Navier-Stokes solver.
    */
-  NavierStokesParameters  navier_stokes_parameters;
+  NavierStokesParameters                      navier_stokes_parameters;
 
   /*!
    * @brief Parameters of the heat equation solver.
    */
-  HeatEquationParameters  heat_equation_parameters;
+  HeatEquationParameters                      heat_equation_parameters;
+
+private:
+
+  bool                                        flag_convergence_test;
 };
 
 /*!
