@@ -444,7 +444,7 @@ void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
                   ExcMessage("Unexpected identified for the type of"
                              " of convergence test."));
 
-    n_global_initial_refinements = 
+    n_global_initial_refinements =
                 prm.get_integer("Number of initial global refinements");
 
     Assert(n_global_initial_refinements > 0,
@@ -522,17 +522,17 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
       break;
   }
 
-  add_line("Number of initial global refinements", 
-            prm.n_global_initial_refinements);
-
-  add_line("Number of spatial convergence cycles", 
+  add_line("Number of spatial convergence cycles",
             prm.n_spatial_convergence_cycles);
 
-  add_line("Time-step reduction factor", 
-            prm.timestep_reduction_factor);
+  add_line("Number of initial global refinements",
+            prm.n_global_initial_refinements);
 
-  add_line("Number of temporal convergence cycles", 
+  add_line("Number of temporal convergence cycles",
             prm.n_temporal_convergence_cycles);
+
+  add_line("Time-step reduction factor",
+            prm.timestep_reduction_factor);
 
   stream << header;
 
@@ -768,7 +768,7 @@ void DimensionlessNumbers::parse_parameters(ParameterHandler &prm)
     Pm = prm.get_double("magnetic Prandtl number");
   }
   prm.leave_subsection();
-  
+
   const std::string str_problem_type(prm.get("Problem type"));
 
   if (str_problem_type == std::string("hydrodynamic"))
@@ -1590,7 +1590,7 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 
   fe_degree_temperature = prm.get_integer("FE's polynomial degree - Temperature");
 
-  Assert(fe_degree_pressure > 0, 
+  Assert(fe_degree_pressure > 0,
          ExcLowerRange(fe_degree_pressure, 0));
 
   Assert(fe_degree_temperature > 0,
@@ -1613,7 +1613,7 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 
   if (str_problem_type != std::string("heat_convection_diffusion"))
     navier_stokes_parameters.parse_parameters(prm);
-  
+
   if (str_problem_type != std::string("hydrodynamic"))
     heat_equation_parameters.parse_parameters(prm);
 }
@@ -1839,12 +1839,12 @@ void ParameterSet::declare_parameters(ParameterHandler &prm)
     prm.declare_entry("p_fe_degree",
                       "1",
                       Patterns::Integer(1, 5),
-                      " The polynomial degree of the pressure finite" 
+                      " The polynomial degree of the pressure finite"
                         "element. ");
     prm.declare_entry("temperature_fe_degree",
                       "1",
                       Patterns::Integer(1, 5),
-                      " The polynomial degree of the temperature finite" 
+                      " The polynomial degree of the temperature finite"
                         "element. ");
     prm.declare_entry("refinement_and_coarsening_max_level",
                       "0",
@@ -1974,7 +1974,7 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
   else
     AssertThrow(false,
                 ExcMessage("Unexpected convection term form."));
-  
+
 
   prm.enter_subsection("Physical parameters");
   {
@@ -2003,9 +2003,9 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
     Assert(n_global_refinements > 0, ExcLowerRange(n_global_refinements, 0));
     Assert(p_fe_degree > 0, ExcLowerRange(p_fe_degree, 0));
     Assert(temperature_fe_degree > 0, ExcLowerRange(temperature_fe_degree, 0));
-    Assert(refinement_and_coarsening_max_level > 0, 
+    Assert(refinement_and_coarsening_max_level > 0,
            ExcLowerRange(refinement_and_coarsening_max_level, 0));
-    Assert(refinement_and_coarsening_min_level > 0, 
+    Assert(refinement_and_coarsening_min_level > 0,
            ExcLowerRange(refinement_and_coarsening_min_level, 0));
   }
   prm.leave_subsection();
@@ -2023,7 +2023,7 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
     solver_diag_strength  = prm.get_double("solver_diag_strength");
 
     solver_update_preconditioner  = prm.get_integer("update_frequency_preconditioner");
-  
+
     Assert(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
     Assert(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
     Assert(solver_krylov_size > 0, ExcLowerRange(solver_krylov_size, 0));
@@ -2054,16 +2054,16 @@ void ParameterSet::parse_parameters(ParameterHandler &prm)
   terminal_output_interval  = prm.get_integer("diagnostics_output_frequency");
   adaptive_meshing_interval = prm.get_integer("adaptive_meshing_frequency");
 
-  Assert(graphical_output_interval > 0, 
+  Assert(graphical_output_interval > 0,
          ExcLowerRange(graphical_output_interval, 0));
-  Assert(terminal_output_interval > 0, 
+  Assert(terminal_output_interval > 0,
          ExcLowerRange(terminal_output_interval, 0));
-  Assert(adaptive_meshing_interval > 0, 
+  Assert(adaptive_meshing_interval > 0,
          ExcLowerRange(adaptive_meshing_interval, 0));
 }
 
 } // namespace RunTimeParameters
-  
+
 } // namespace RMHD
 
 // explicit instantiations
