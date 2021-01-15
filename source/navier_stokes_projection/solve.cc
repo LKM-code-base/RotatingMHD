@@ -18,9 +18,9 @@ void NavierStokesProjection<dim>::solve()
 
     pressure_correction(true);
   }
-  else 
+  else
   {
-    diffusion_step(time_stepping.get_step_number() % 
+    diffusion_step(time_stepping.get_step_number() %
                    parameters.preconditioner_update_frequency == 0);
 
     projection_step(false);
@@ -74,7 +74,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           LinearAlgebra::MPI::Vector distributed_phi(phi->distributed_vector);
 
           distributed_old_pressure  = pressure->old_solution;
-          distributed_phi           = phi->solution; 
+          distributed_phi           = phi->solution;
 
           distributed_old_pressure  += distributed_phi;
 
@@ -95,14 +95,14 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           distributed_pressure      = pressure->solution;
           distributed_old_pressure  = pressure->old_solution;
-          distributed_phi           = phi->solution; 
+          distributed_phi           = phi->solution;
 
           // The divergence of the velocity field is projected into a
           // unconstrained pressure space through the following solve
           // operation.
           SolverControl solver_control(
             parameters.correction_step_solver_parameters.n_maximum_iterations,
-            std::max(parameters.correction_step_solver_parameters.relative_tolerance * 
+            std::max(parameters.correction_step_solver_parameters.relative_tolerance *
                        correction_step_rhs.l2_norm(),
                      parameters.correction_step_solver_parameters.absolute_tolerance));
 
@@ -151,10 +151,10 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           // The projected divergence is scaled and the old pressure
           // is added to it
-          distributed_pressure.sadd(parameters.C2, 
+          distributed_pressure.sadd(parameters.C2,
                                     1.,
                                     distributed_old_pressure);
-          
+
           // Followed by the addition of pressure correction computed
           // in the projection step
           distributed_pressure += distributed_phi;
