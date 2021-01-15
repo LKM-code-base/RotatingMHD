@@ -98,7 +98,7 @@ enum class ConvectiveTermWeakForm
 {
   /*!
    * @brief Standard form, *i. e.*, \f$\int\bs{v}\cdot
-   * (\nabla\otimes\bs{v})\cdot\bs{w}\dint{V}\f$, 
+   * (\nabla\otimes\bs{v})\cdot\bs{w}\dint{V}\f$,
    * where \f$\bs{w}\f$ denotes a test function.
    */
   standard,
@@ -145,7 +145,7 @@ enum class ConvectiveTermTimeDiscretization
 /*!
  * @struct RefinementParameters
  *
- * @brief @ref RefinementParameters contains parameters which are 
+ * @brief @ref RefinementParameters contains parameters which are
  * related to the adaptive refinement of the mesh.
  */
 struct RefinementParameters
@@ -168,7 +168,7 @@ struct RefinementParameters
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * @brief Method which parses the parameters from the ParameterHandler 
+   * @brief Method which parses the parameters from the ParameterHandler
    * object @p prm.
    */
   void parse_parameters(ParameterHandler &prm);
@@ -179,7 +179,7 @@ struct RefinementParameters
    * @details This method does not add a `std::endl` to the stream at the end.
    */
   template<typename Stream>
-  friend Stream& operator<<(Stream &stream, 
+  friend Stream& operator<<(Stream &stream,
                             const RefinementParameters &prm);
 
   /*!
@@ -193,13 +193,13 @@ struct RefinementParameters
   unsigned int  adaptive_mesh_refinement_frequency;
 
   /*!
-   * @brief The upper fraction of the total number of cells set to 
+   * @brief The upper fraction of the total number of cells set to
    * coarsen.
    */
   double        cell_fraction_to_coarsen;
 
   /*!
-   * @brief The lower fraction of the total number of cells set to 
+   * @brief The lower fraction of the total number of cells set to
    * refine.
    */
   double        cell_fraction_to_refine;
@@ -269,7 +269,7 @@ struct OutputControlParameters
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * @brief Method which parses the parameters from the ParameterHandler 
+   * @brief Method which parses the parameters from the ParameterHandler
    * object @p prm.
    */
   void parse_parameters(ParameterHandler &prm);
@@ -280,7 +280,7 @@ struct OutputControlParameters
    * @details This method does not add a `std::endl` to the stream at the end.
    */
   template<typename Stream>
-  friend Stream& operator<<(Stream &stream, 
+  friend Stream& operator<<(Stream &stream,
                             const OutputControlParameters &prm);
 
   /*!
@@ -333,7 +333,7 @@ struct ConvergenceTestParameters
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * @brief Method which parses the parameters from the ParameterHandler 
+   * @brief Method which parses the parameters from the ParameterHandler
    * object @p prm.
    */
   void parse_parameters(ParameterHandler &prm);
@@ -344,7 +344,7 @@ struct ConvergenceTestParameters
    * @details This method does not add a `std::endl` to the stream at the end.
    */
   template<typename Stream>
-  friend Stream& operator<<(Stream &stream, 
+  friend Stream& operator<<(Stream &stream,
                             const ConvergenceTestParameters &prm);
 
   /*!
@@ -367,7 +367,7 @@ struct ConvergenceTestParameters
    * subsequent levels, *i. e.*, \f$ \Delta t_{l+1} = s \Delta t_l\f$.
    *
    * @details The factor \f$ s \f$ must be positive and less than unity.
-   */ 
+   */
   double              timestep_reduction_factor;
 
   /*!
@@ -393,7 +393,7 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm);
  *
  * @brief A structure containing all parameters relevant for the solution of
  * linear systems using a Krylov subspace method.
- * 
+ *
  * @todo Proper initiation of the solver_name string without constructor
  * ambiguity
  */
@@ -481,7 +481,7 @@ private:
 
   /*!
    * @brief The name of the solver.
-   */ 
+   */
   std::string   solver_name;
 };
 
@@ -539,32 +539,32 @@ struct DimensionlessNumbers
 
   /*!
    * @brief The Reynolds number
-   */ 
+   */
   double  Re;
 
   /*!
    * @brief The Prandtl number
-   */ 
+   */
   double  Pr;
 
   /*!
    * @brief The Peclet number
-   */ 
+   */
   double  Pe;
 
   /*!
    * @brief The Rayleigh number
-   */ 
+   */
   double  Ra;
 
   /*!
    * @brief The Ekman number
-   */ 
+   */
   double  Ek;
 
   /*!
    * @brief The magnetic Prandtl number
-   */ 
+   */
   double  Pm;
 
 private:
@@ -600,7 +600,7 @@ struct NavierStokesParameters
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * @brief Method which parses the parameters from the ParameterHandler 
+   * @brief Method which parses the parameters from the ParameterHandler
    * object @p prm.
    */
   void parse_parameters(ParameterHandler &prm);
@@ -618,63 +618,63 @@ struct NavierStokesParameters
   /*!
    * @brief Enumerator controlling the incremental pressure-correction
    * scheme is to be implemented.
-   */ 
+   */
   PressureCorrectionScheme          pressure_correction_scheme;
 
   /*!
    * @brief Enumerator controlling which weak form of the convective
    * term is to be implemented
-   */ 
+   */
   ConvectiveTermWeakForm            convective_term_weak_form;
 
   /*!
-   * @brief Enumerator controlling which time discretization of the 
+   * @brief Enumerator controlling which time discretization of the
    * convective term is to be implemented
-   */ 
+   */
   ConvectiveTermTimeDiscretization  convective_term_time_discretization;
 
   /*!
    * @brief The factor multiplying the Coriolis acceleration.
-   */ 
+   */
   double                            C1;
 
     /*!
    * @brief The factor multiplying the velocity's laplacian.
-   */ 
+   */
   double                            C2;
 
     /*!
    * @brief The factor multiplying the bouyancy term.
-   */ 
+   */
   double                            C3;
 
     /*!
    * @brief The factor multiplying the electromagnetic force.
-   */ 
+   */
   double                            C5;
 
   /*!
    * @brief The parameters for the linear solver used in the
    * diffusion step.
-   */ 
+   */
   LinearSolverParameters            diffusion_step_solver_parameters;
 
   /*!
    * @brief The parameters for the linear solver used in the
    * diffusion step.
-   */ 
+   */
   LinearSolverParameters            projection_step_solver_parameters;
 
   /*!
    * @brief The parameters for the linear solver used in the
    * diffusion step.
-   */ 
+   */
   LinearSolverParameters            correction_step_solver_parameters;
 
   /*!
    * @brief The parameters for the linear solver used in the
    * poisson pre-step.
-   */ 
+   */
   LinearSolverParameters            poisson_prestep_solver_parameters;
 
   /*!
@@ -728,7 +728,7 @@ struct HeatEquationParameters
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * @brief Method which parses the parameters from the ParameterHandler 
+   * @brief Method which parses the parameters from the ParameterHandler
    * object @p prm.
    */
   void parse_parameters(ParameterHandler &prm);
@@ -745,23 +745,23 @@ struct HeatEquationParameters
   /*!
    * @brief Enumerator controlling which weak form of the convective
    * term is to be implemented
-   */ 
+   */
   ConvectiveTermWeakForm            convective_term_weak_form;
 
   /*!
-   * @brief Enumerator controlling which time discretization of the 
+   * @brief Enumerator controlling which time discretization of the
    * convective term is to be implemented
-   */ 
+   */
   ConvectiveTermTimeDiscretization  convective_term_time_discretization;
 
     /*!
    * @brief The factor multiplying the temperature's laplacian.
-   */ 
+   */
   double                            C4;
 
   /*!
    * @brief The parameters for the linear solver.
-   */ 
+   */
   LinearSolverParameters            solver_parameters;
 
   /*!
@@ -815,7 +815,7 @@ struct ProblemParameters
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * @brief Method which parses the parameters from the ParameterHandler 
+   * @brief Method which parses the parameters from the ParameterHandler
    * object @p prm.
    */
   void parse_parameters(ParameterHandler &prm);
@@ -842,7 +842,7 @@ struct ProblemParameters
   unsigned int                                mapping_degree;
 
   /*!
-   * @brief Boolean indicating if the mapping is to be asigned to 
+   * @brief Boolean indicating if the mapping is to be asigned to
    * the interior cells too.
    */
   bool                                        mapping_interior_cells;
@@ -904,86 +904,6 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
 
-
-enum class ProjectionMethod
-{
-  standard,
-  rotational
-};
-
-enum class ConvectionTermForm
-{
-  standard,
-  skewsymmetric,
-  divergence,
-  rotational
-};
-
-struct ParameterSet
-{
-  /*!
-   * @brief Constructor which sets up the parameters with default values.
-   */
-  ParameterSet();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  ParameterSet(const std::string &parameter_filename);
-
-  /*!
-   * @brief Static method which declares the associated parameter to the
-   * ParameterHandler object @p prm.
-   */
-  static void declare_parameters(ParameterHandler &prm);
-
-  /*!
-   * @brief Method which parses the parameters of the time stepping scheme from
-   * the ParameterHandler object @p prm.
-   */
-  void parse_parameters(ParameterHandler &prm);
-
-  /*!
-   * Member variable which contains all parameters related to the time
-   * discretization.
-   */
-  TimeDiscretization::TimeSteppingParameters  time_stepping_parameters;
-
-  ProjectionMethod    projection_method;
-  ConvectionTermForm  convection_term_form;
-
-  double              Re;
-  double              Pe;
-
-  unsigned int        n_global_refinements;
-
-  unsigned int        p_fe_degree;
-  unsigned int        temperature_fe_degree;
-
-  unsigned int        n_maximum_iterations;
-  unsigned int        solver_krylov_size;
-  unsigned int        solver_off_diagonals;
-  unsigned int        solver_update_preconditioner;
-  double              relative_tolerance;
-  double              solver_diag_strength;
-
-  bool                verbose;
-  bool                flag_semi_implicit_convection;
-
-  unsigned int        graphical_output_interval;
-  unsigned int        terminal_output_interval;
-  unsigned int        adaptive_meshing_interval;
-  
-  unsigned int        refinement_and_coarsening_max_level;
-  unsigned int        refinement_and_coarsening_min_level;
-
-  bool                flag_spatial_convergence_test;
-  unsigned int        initial_refinement_level;
-  unsigned int        final_refinement_level;
-  unsigned int        temporal_convergence_cycles;
-  double              time_step_scaling_factor;
-};
 
 } // namespace RunTimeParameters
 
