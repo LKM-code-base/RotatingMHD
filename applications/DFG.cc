@@ -19,6 +19,7 @@
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
+
 #include <iostream>
 #include <string>
 
@@ -26,10 +27,6 @@ namespace RMHD
 {
 
 using namespace dealii;
-
-using namespace EquationData::DFG;
-
-using namespace BenchmarkData;
 
 /*!
  * @class DFG
@@ -273,32 +270,32 @@ using namespace BenchmarkData;
  * \end{equation*}
  * \f]
  *
- */  
+ */
 template <int dim>
 class DFG : public Problem<dim>
 {
 public:
-  DFG(const RunTimeParameters::ParameterSet &parameters);
-  void run(const bool         flag_verbose_output           = false,
-           const unsigned int terminal_output_periodicity   = 10,
-           const unsigned int graphical_output_periodicity  = 10);
+  DFG(const RunTimeParameters::ProblemParameters &parameters);
+
+  void run();
 private:
-
-  std::vector<types::boundary_id>             boundary_ids;
-
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
-  TimeDiscretization::VSIMEXMethod            time_stepping;
+  TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  NavierStokesProjection<dim>                 navier_stokes;
+  NavierStokesProjection<dim>                   navier_stokes;
 
-  DFGBechmarkRequest<dim>                     benchmark_request;
+  BenchmarkData::DFGBechmarkRequest<dim>        benchmark_request;
 
-  VelocityInitialCondition<dim> velocity_initial_condition;
+  EquationData::DFG::VelocityInitialCondition<dim>
+                                                velocity_initial_condition;
 
-  PressureInitialCondition<dim> pressure_initial_condition;
+  EquationData::DFG::PressureInitialCondition<dim>
+                                                pressure_initial_condition;
+
+  double                                        cfl_number;
 
   void make_grid();
 
@@ -308,7 +305,7 @@ private:
 
   void initialize();
 
-  void postprocessing(const bool flag_point_evaluation);
+  void postprocessing();
 
   void output();
 
@@ -316,17 +313,19 @@ private:
 };
 
 template <int dim>
-DFG<dim>::DFG(const RunTimeParameters::ParameterSet &parameters)
+DFG<dim>::DFG(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 velocity(std::make_shared<Entities::VectorEntity<dim>>
-         (parameters.p_fe_degree + 1,
-          this->triangulation)),
+         (parameters.fe_degree_velocity,
+          this->triangulation,
+          "Velocity")),
 pressure(std::make_shared<Entities::ScalarEntity<dim>>
-         (parameters.p_fe_degree,
-          this->triangulation)),
+         (parameters.fe_degree_pressure,
+          this->triangulation,
+          "Pressure")),
 time_stepping(parameters.time_stepping_parameters),
-navier_stokes(parameters,
+navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
               pressure,
@@ -337,12 +336,16 @@ benchmark_request(),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
+  *this->pcout << parameters << std::endl << std::endl;
   make_grid();
   setup_dofs();
   setup_constraints();
   velocity->reinit();
   pressure->reinit();
   initialize();
+  this->container.add_entity(velocity);
+  this->container.add_entity(pressure, false);
+  this->container.add_entity(navier_stokes.phi, false);
 }
 
 template <int dim>
@@ -366,14 +369,12 @@ void DFG<dim>::make_grid()
     grid_in.read_ucd(file);
   }
 
-  boundary_ids = this->triangulation.get_boundary_ids();
-
   const PolarManifold<dim> inner_boundary;
   this->triangulation.set_all_manifold_ids_on_boundary(2, 1);
   this->triangulation.set_manifold(1, inner_boundary);
 
-  *(this->pcout)  << "Number of active cells                = "
-                  << this->triangulation.n_active_cells() << std::endl;
+  *this->pcout << "Number of active cells                = "
+               << this->triangulation.n_active_cells() << std::endl;
 }
 
 template <int dim>
@@ -383,13 +384,17 @@ void DFG<dim>::setup_dofs()
 
   velocity->setup_dofs();
   pressure->setup_dofs();
-  
-  *(this->pcout)  << "Number of velocity degrees of freedom = "
-                  << (velocity->dof_handler)->n_dofs()
-                  << std::endl
-                  << "Number of pressure degrees of freedom = "
-                  << (pressure->dof_handler)->n_dofs()
-                  << std::endl;
+
+  *this->pcout << "Number of velocity degrees of freedom = "
+               << (velocity->dof_handler)->n_dofs()
+               << std::endl
+               << "Number of pressure degrees of freedom = "
+               << (pressure->dof_handler)->n_dofs()
+               << std::endl
+               << "Number of total degrees of freedom    = "
+               << (pressure->dof_handler->n_dofs() +
+                  velocity->dof_handler->n_dofs())
+               << std::endl << std::endl;
 }
 
 template <int dim>
@@ -399,7 +404,8 @@ void DFG<dim>::setup_constraints()
 
   velocity->boundary_conditions.set_dirichlet_bcs
   (0,
-   std::make_shared<VelocityInflowBoundaryCondition<dim>>(this->prm.time_stepping_parameters.start_time));
+   std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>(
+     this->prm.time_stepping_parameters.start_time));
 
   velocity->boundary_conditions.set_dirichlet_bcs(2);
   velocity->boundary_conditions.set_dirichlet_bcs(3);
@@ -415,27 +421,24 @@ void DFG<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
-  this->set_initial_conditions(velocity, 
-                               velocity_initial_condition, 
+  this->set_initial_conditions(velocity,
+                               velocity_initial_condition,
                                time_stepping);
   this->set_initial_conditions(pressure,
-                               pressure_initial_condition, 
+                               pressure_initial_condition,
                                time_stepping);
 }
 
 template <int dim>
-void DFG<dim>::postprocessing(const bool flag_point_evaluation)
+void DFG<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  if (flag_point_evaluation)
-  {
-    benchmark_request.compute_pressure_difference(pressure);
-    benchmark_request.compute_drag_and_lift_coefficients(velocity,
-                                                         pressure);
-    benchmark_request.print_step_data(time_stepping);
-    benchmark_request.update_table(time_stepping);
-  }
+  benchmark_request.compute_pressure_difference(pressure);
+  benchmark_request.compute_drag_and_lift_coefficients(velocity,
+                                                        pressure);
+  benchmark_request.print_step_data(time_stepping);
+  benchmark_request.update_table(time_stepping);
 }
 
 template <int dim>
@@ -447,22 +450,28 @@ void DFG<dim>::output()
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
+
   DataOut<dim>        data_out;
+
   data_out.add_data_vector(*(velocity->dof_handler),
                            velocity->solution,
-                           names, 
+                           names,
                            component_interpretation);
-  data_out.add_data_vector(*(pressure->dof_handler), 
-                           pressure->solution, 
+
+  data_out.add_data_vector(*(pressure->dof_handler),
+                           pressure->solution,
                            "Pressure");
+
   data_out.build_patches(velocity->fe_degree);
-  
+
   static int out_index = 0;
-  data_out.write_vtu_with_pvtu_record("./",
+
+  data_out.write_vtu_with_pvtu_record(this->prm.graphical_output_directory,
                                       "solution",
                                       out_index,
                                       this->mpi_communicator,
                                       5);
+
   out_index++;
 }
 
@@ -474,20 +483,20 @@ void DFG<dim>::update_solution_vectors()
 }
 
 template <int dim>
-void DFG<dim>::run(const bool          /* flag_verbose_output */,
-                   const unsigned int  terminal_output_periodicity,
-                   const unsigned int  graphical_output_periodicity)
+void DFG<dim>::run()
 {
-  *(this->pcout) << "Solving until t = 350..." << std::endl;
+  *this->pcout << "Solving until t = 350..." << std::endl;
+
   while (time_stepping.get_current_time() <= 350.0)
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
-    // Updates the time step, i.e sets the value of t^{k}    time_stepping.set_desired_next_step_size(
+    // Compute CFL number
+    cfl_number = navier_stokes.get_cfl_number();
+
+    // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(
-        time_stepping, 
-        navier_stokes.get_cfl_number()));
+      this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -500,29 +509,33 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
     time_stepping.advance_time();
 
     // Snapshot stage, all time calls should be done with get_current_time()
-    postprocessing((time_stepping.get_step_number() %
-                    terminal_output_periodicity == 0) ||
-                    (time_stepping.get_current_time() == 
-                   time_stepping.get_end_time()));
+    if ((time_stepping.get_step_number() %
+          this->prm.terminal_output_frequency == 0) ||
+        (time_stepping.get_next_time() ==
+          time_stepping.get_end_time()))
+      postprocessing();
   }
 
-  *(this->pcout) << "Restarting..." << std::endl;
+  *this->pcout << "Restarting..." << std::endl;
+
   time_stepping.restart();
   velocity->old_old_solution = velocity->solution;
   navier_stokes.reset_phi();
 
-  *(this->pcout)  << "Solving until t = " << time_stepping.get_end_time()
-                  << "..." << std::endl;
+  *this->pcout << "Solving until t = "
+               << time_stepping.get_end_time()
+               << "..." << std::endl;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
-    // Updates the time step, i.e sets the value of t^{k}    time_stepping.set_desired_next_step_size(
+    // Compute CFL number
+    cfl_number = navier_stokes.get_cfl_number();
+
+    // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(
-        time_stepping, 
-        navier_stokes.get_cfl_number()));
+      this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -535,20 +548,20 @@ void DFG<dim>::run(const bool          /* flag_verbose_output */,
     time_stepping.advance_time();
 
     // Snapshot stage, all time calls should be done with get_current_time()
-    postprocessing((time_stepping.get_step_number() %
-                    terminal_output_periodicity == 0) ||
-                    (time_stepping.get_current_time() == 
-                   time_stepping.get_end_time()));
+    if ((time_stepping.get_step_number() %
+          this->prm.terminal_output_frequency == 0) ||
+        (time_stepping.get_next_time() ==
+          time_stepping.get_end_time()))
+      postprocessing();
 
     if ((time_stepping.get_step_number() %
-          graphical_output_periodicity == 0) ||
-        (time_stepping.get_next_time() == 
+          this->prm.graphical_output_frequency == 0) ||
+        (time_stepping.get_next_time() ==
           time_stepping.get_end_time()))
       output();
   }
 
   benchmark_request.write_table_to_file("dfg_benchmark.tex");
-
 }
 
 } // namespace RMHD
@@ -563,14 +576,11 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ParameterSet parameter_set("DFG.prm");
-
-      deallog.depth_console(parameter_set.verbose ? 2 : 0);
+      RunTimeParameters::ProblemParameters parameter_set("DFG.prm");
 
       DFG<2> simulation(parameter_set);
-      simulation.run(parameter_set.verbose, 
-                     parameter_set.terminal_output_interval,
-                     parameter_set.graphical_output_interval);
+
+      simulation.run();
   }
   catch (std::exception &exc)
   {
@@ -597,7 +607,5 @@ int main(int argc, char *argv[])
                 << std::endl;
       return 1;
   }
-  std::cout << "----------------------------------------------------"
-            << std::endl;
   return 0;
 }
