@@ -382,7 +382,6 @@ void Guermond<dim>::solve(const unsigned int &level)
     // Updates the functions and the constraints to t^{k}
     velocity_exact_solution->set_time(time_stepping.get_next_time());
     pressure_exact_solution->set_time(time_stepping.get_next_time());
-    body_force.set_time(time_stepping.get_next_time());
 
     velocity->boundary_conditions.set_time(time_stepping.get_next_time());
     velocity->update_boundary_conditions();
