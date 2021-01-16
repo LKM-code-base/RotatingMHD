@@ -11,7 +11,7 @@ SET(SOURCE_FILES
     TGV.cc
     Guermond.cc
     #GuermondNeumannBC.cc
-    #Couette.cc
+    Couette.cc
     ThermalTGV.cc
     MIT.cc
     )

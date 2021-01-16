@@ -30,7 +30,7 @@ namespace RMHD
  * correct implementation of the Neumann boundary conditions in the
  * @ref NavierStokesProjection solver. The problem considers stationary
  * laminar flow of fluid between two infinitely long horiozontal plates,
- * where the lower plate is fixed and the upper one is being moved. 
+ * where the lower plate is fixed and the upper one is being moved.
  * The problem is governed by the equation
  * \f[
  * \ddsqr{u_\mathrm{x}}{y} = 0, \quad \forall \bs{x} \in \Omega
@@ -38,8 +38,8 @@ namespace RMHD
  * which can be easily obtained from the momentum equation by
  * considering an isotropic and homogeneous fluid, an unidirectional and
  * stationary flow in the \f$ x\f$-direction, neglecting body forces and
- * a vanishing horizontal pressure gradient. An unique solution is 
- * obtained by considering a no-slip boundary condition at the lower 
+ * a vanishing horizontal pressure gradient. An unique solution is
+ * obtained by considering a no-slip boundary condition at the lower
  * plate and a traction vector
  * \f$ \bs{t} = t_0 \bs{e}_\textrm{x} \f$ applied to the upper plate.
  * This leads to
@@ -49,43 +49,40 @@ namespace RMHD
  * where \f$ \Reynolds \f$ and \f$ H \f$ are the Reynolds
  * number and the height of the channel. The stationary solution is
  * obtained at around \f$ t ~ H^2 \Reynolds \f$.
- * @note Periodic boundary conditions are implemented in order to 
+ * @note Periodic boundary conditions are implemented in order to
  * simulate an infinitely long channel.
- */  
+ */
 template <int dim>
 class Couette : public Problem<dim>
 {
 public:
 
-  Couette(const RunTimeParameters::ParameterSet &parameters);
+  Couette(const RunTimeParameters::ProblemParameters &parameters);
 
-  void run(const bool flag_convergence_test);
+  void run();
 
 private:
-
-  std::vector<types::boundary_id>             boundary_ids;
-
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
-  LinearAlgebra::MPI::Vector                  error;
+  LinearAlgebra::MPI::Vector                    error;
 
-  TimeDiscretization::VSIMEXMethod            time_stepping;
+  TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  std::shared_ptr<Mapping<dim>>               mapping;
+  NavierStokesProjection<dim>                   navier_stokes;
 
-  NavierStokesProjection<dim>                 navier_stokes;
-
-  const double                                t_0;
+  const double                                  t_0;
 
   std::shared_ptr<EquationData::Couette::VelocityExactSolution<dim>>
-                                              exact_solution;
+                                                exact_solution;
 
   std::shared_ptr<EquationData::Couette::TractionVector<dim>>
-                                              traction_vector;
+                                                traction_vector;
 
-  ConvergenceAnalysisData<dim>                convergence_table;
+  ConvergenceAnalysisData<dim>                  convergence_table;
+
+  double                                        cfl_number;
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -102,43 +99,40 @@ private:
   void update_entities();
 
   void solve(const unsigned int &level);
-
-  void compute_error_vector(LinearAlgebra::MPI::Vector  &error_vector,
-                            Entities::EntityBase<dim>   &entity,
-                            Function<dim>               &exact_solution);
 };
 
 template <int dim>
-Couette<dim>::Couette(const RunTimeParameters::ParameterSet &parameters)
+Couette<dim>::Couette(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.p_fe_degree + 1,
+velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
-                                                       "velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.p_fe_degree,
+                                                       "Velocity")),
+pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
-                                                       "pressure")),
+                                                       "Pressure")),
 time_stepping(parameters.time_stepping_parameters),
-mapping(std::make_shared<MappingQ<dim>>(1)),
-navier_stokes(parameters,
+navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
               pressure,
-              mapping,
+              this->mapping,
               this->pcout,
               this->computing_timer),
 t_0(1.0),
 exact_solution(
   std::make_shared<EquationData::Couette::VelocityExactSolution<dim>>(
-              t_0,
-              parameters.Re,
-              1.0)),
+    t_0,
+    parameters.Re,
+    1.0)),
 traction_vector(
   std::make_shared<EquationData::Couette::TractionVector<dim>>(t_0)),
 convergence_table(velocity, *exact_solution)
 {
   // The Couette flow is a 2-dimensional problem.
   AssertDimension(dim, 2);
+
+  *this->pcout << parameters << std::endl << std::endl;
 }
 
 template <int dim>
@@ -158,7 +152,7 @@ make_grid(const unsigned int &n_global_refinements)
                                  Point<2>(0., 0.),
                                  Point<2>(1., 1.),
                                  true);
-  
+
   // The infinite domain is implemented with periodic boundary conditions,
   // this periodicity has to be first implemented in the triangulation.
   std::vector<GridTools::PeriodicFacePair<
@@ -174,7 +168,6 @@ make_grid(const unsigned int &n_global_refinements)
   this->triangulation.add_periodicity(periodicity_vector);
 
   this->triangulation.refine_global(n_global_refinements);
-  boundary_ids = this->triangulation.get_boundary_ids();
 }
 
 template <int dim>
@@ -184,18 +177,19 @@ void Couette<dim>::setup_dofs()
 
   velocity->setup_dofs();
   pressure->setup_dofs();
-  *(this->pcout)  << "  Number of active cells                = " 
-                  << this->triangulation.n_global_active_cells() << std::endl;
-  *(this->pcout)  << "  Number of velocity degrees of freedom = " 
-                  << velocity->dof_handler->n_dofs()
-                  << std::endl
-                  << "  Number of pressure degrees of freedom = " 
-                  << pressure->dof_handler->n_dofs()
-                  << std::endl
-                  << "  Number of total degrees of freedom    = " 
-                  << (pressure->dof_handler->n_dofs() + 
-                     velocity->dof_handler->n_dofs())
-                  << std::endl;
+
+  *this->pcout  << "  Number of active cells               = "
+                << this->triangulation.n_global_active_cells() << std::endl;
+  *this->pcout  << "  Number of velocity degrees of freedom = "
+                << velocity->dof_handler->n_dofs()
+                << std::endl
+                << "  Number of pressure degrees of freedom = "
+                << pressure->dof_handler->n_dofs()
+                << std::endl
+                << "  Number of total degrees of freedom    = "
+                << (pressure->dof_handler->n_dofs() +
+                    velocity->dof_handler->n_dofs())
+                << std::endl;
 }
 
 template <int dim>
@@ -207,8 +201,8 @@ void Couette<dim>::setup_constraints()
   pressure->boundary_conditions.clear();
 
   // The domain represents an infinite channel. In order to obtain the
-  // analytical solution, periodic boundary conditions need to be 
-  // implemented. 
+  // analytical solution, periodic boundary conditions need to be
+  // implemented.
   velocity->boundary_conditions.set_periodic_bcs(0, 1, 0);
   pressure->boundary_conditions.set_periodic_bcs(0, 1, 0);
   // No-slip boundary conditions on the lower plate
@@ -216,7 +210,7 @@ void Couette<dim>::setup_constraints()
   // The upper plate is displaced by a traction vector
   velocity->boundary_conditions.set_neumann_bcs(3, traction_vector);
 
-  
+
   velocity->apply_boundary_conditions();
   pressure->apply_boundary_conditions();
 }
@@ -240,19 +234,19 @@ void Couette<dim>::postprocessing()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
   std::cout.precision(1);
-  *(this->pcout)  << time_stepping
-                  << " Norms = ("
-                  << std::noshowpos << std::scientific
-                  << navier_stokes.get_diffusion_step_rhs_norm()
-                  << ", "
-                  << navier_stokes.get_projection_step_rhs_norm()
-                  << ") CFL = "
-                  << navier_stokes.get_cfl_number()
-                  << " ["
-                  << std::setw(5) 
-                  << std::fixed
-                  << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-                  << "%] \r";
+  *this->pcout << time_stepping
+               << " Norms = ("
+               << std::noshowpos << std::scientific
+               << navier_stokes.get_diffusion_step_rhs_norm()
+               << ", "
+               << navier_stokes.get_projection_step_rhs_norm()
+               << ") CFL = "
+               << cfl_number
+               << " ["
+               << std::setw(5)
+               << std::fixed
+               << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
+               << "%] \r";
 }
 
 template <int dim>
@@ -266,29 +260,35 @@ void Couette<dim>::output()
 
   std::vector<std::string> names(dim, "velocity");
   std::vector<std::string> error_name(dim, "velocity_error");
+
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
     component_interpretation(
       dim, DataComponentInterpretation::component_is_part_of_vector);
+
   DataOut<dim>        data_out;
+
   data_out.add_data_vector(*(velocity->dof_handler),
                            velocity->solution,
-                           names, 
+                           names,
                            component_interpretation);
   data_out.add_data_vector(*(velocity->dof_handler),
                            error,
-                           error_name, 
+                           error_name,
                            component_interpretation);
-  data_out.add_data_vector(*(pressure->dof_handler), 
-                           pressure->solution, 
+  data_out.add_data_vector(*(pressure->dof_handler),
+                           pressure->solution,
                            "pressure");
+
   data_out.build_patches(velocity->fe_degree);
-  
+
   static int out_index = 0;
-  data_out.write_vtu_with_pvtu_record("./",
+
+  data_out.write_vtu_with_pvtu_record(this->prm.graphical_output_directory,
                                       "solution",
                                       out_index,
                                       this->mpi_communicator,
                                       5);
+
   out_index++;
 }
 
@@ -316,14 +316,18 @@ void Couette<dim>::solve(const unsigned int &level)
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
+    // Compute CFL number
+    cfl_number = navier_stokes.get_cfl_number();
+
     // Updates the time step, i.e sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(
-        time_stepping, 
-        navier_stokes.get_cfl_number()));
+      this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
+
+    // Updates the functions and the constraints to t^{k}
+    exact_solution->set_time(time_stepping.get_next_time());
 
     // Solves the system, i.e. computes the fields at t^{k}
     navier_stokes.solve();
@@ -333,72 +337,99 @@ void Couette<dim>::solve(const unsigned int &level)
     time_stepping.advance_time();
 
     // Post-processing
-    postprocessing();
+    if ((time_stepping.get_step_number() %
+          this->prm.terminal_output_frequency == 0) ||
+        (time_stepping.get_current_time() ==
+          time_stepping.get_end_time()))
+      postprocessing();
 
     // Graphical output
     if ((time_stepping.get_step_number() %
-          this->prm.graphical_output_interval == 0) ||
-        (time_stepping.get_current_time() == 
+          this->prm.graphical_output_frequency == 0) ||
+        (time_stepping.get_current_time() ==
           time_stepping.get_end_time()))
       output();
   }
-  
-  convergence_table.update_table(level, 
-                                 time_stepping.get_previous_step_size(), 
-                                 this->prm.flag_spatial_convergence_test);
-  
-  *(this->pcout) << std::endl;
-  *(this->pcout) << std::endl;
+
+  Assert(time_stepping.get_current_time() == exact_solution->get_time(),
+    ExcMessage("Time mismatch between the time stepping class and the pressure function"));
+
+  convergence_table.update_table(
+    level, time_stepping.get_previous_step_size(),
+    this->prm.convergence_test_parameters.convergence_test_type ==
+      RunTimeParameters::ConvergenceTestType::spatial);
+
+  *this->pcout << std::endl << std::endl;
 }
 
 template <int dim>
-void Couette<dim>::run(const bool flag_convergence_test)
+void Couette<dim>::run()
 {
   // Set ups the initial triangulation
-  make_grid(this->prm.initial_refinement_level);
+  make_grid(this->prm.convergence_test_parameters.n_global_initial_refinements);
 
   // The following if allows to perform either spatial or temporal
   // convergence tests, depending on the settings described in the
   // parameter file.
-  if (flag_convergence_test)
-    for (unsigned int level = this->prm.initial_refinement_level; 
-          level <= this->prm.final_refinement_level; ++level)
+  switch (this->prm.convergence_test_parameters.convergence_test_type)
+  {
+  case RunTimeParameters::ConvergenceTestType::spatial:
+    for (unsigned int level = this->prm.convergence_test_parameters.n_global_initial_refinements;
+         level < (this->prm.convergence_test_parameters.n_global_initial_refinements +
+                  this->prm.convergence_test_parameters.n_spatial_convergence_cycles);
+         ++level)
     {
-      std::cout.precision(1);
-      *(this->pcout)  << "Solving until t = " 
-                      << std::fixed << time_stepping.get_end_time()
-                      << " with a refinement level of " << level 
-                      << std::endl;
+      *this->pcout  << std::setprecision(1)
+                    << "Solving until t = "
+                    << std::fixed << time_stepping.get_end_time()
+                    << " with a refinement level of " << level
+                    << std::endl;
+
       time_stepping.restart();
+
       solve(level);
+
       this->triangulation.refine_global();
+
       navier_stokes.reset_phi();
     }
-  else
-  {
-    for (unsigned int cycle = 0; 
-         cycle < this->prm.temporal_convergence_cycles; ++cycle)
+    break;
+  case RunTimeParameters::ConvergenceTestType::temporal:
+    for (unsigned int cycle = 0;
+         cycle < this->prm.convergence_test_parameters.n_temporal_convergence_cycles;
+         ++cycle)
     {
       double time_step = this->prm.time_stepping_parameters.initial_time_step *
-                         pow(this->prm.time_step_scaling_factor, cycle);
-      std::cout.precision(1);
-      *(this->pcout)  << "Solving until t = " 
-                      << std::fixed << time_stepping.get_end_time()
-                      << " with a refinement level of " 
-                      << this->prm.initial_refinement_level << std::endl;
+                         pow(this->prm.convergence_test_parameters.timestep_reduction_factor,
+                             cycle);
+
+      *this->pcout  << std::setprecision(1)
+                    << "Solving until t = "
+                    << std::fixed << time_stepping.get_end_time()
+                    << " with a refinement level of "
+                    << this->prm.convergence_test_parameters.n_global_initial_refinements
+                    << std::endl;
+
       time_stepping.restart();
+
       time_stepping.set_desired_next_step_size(time_step);
-      solve(this->prm.initial_refinement_level);
+
+      solve(this->prm.convergence_test_parameters.n_global_initial_refinements);
+
       navier_stokes.reset_phi();
     }
+    break;
+  default:
+    break;
   }
-  
+
   *(this->pcout) << convergence_table;
 
   std::ostringstream tablefilename;
-  tablefilename << ((this->prm.flag_spatial_convergence_test) ?
-                    "CouetteSpatialTest" : "CouetteTemporalTest_Level")
-                << this->prm.initial_refinement_level
+  tablefilename << ((this->prm.convergence_test_parameters.convergence_test_type ==
+                      RunTimeParameters::ConvergenceTestType::spatial)
+                     ? "Couette_SpatialTest"
+                     : ("Couette_TemporalTest_Level" + std::to_string(this->prm.convergence_test_parameters.n_global_initial_refinements)))
                 << "_Re"
                 << this->prm.Re;
 
@@ -417,12 +448,13 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ParameterSet parameter_set("Couette.prm");
+      RunTimeParameters::ProblemParameters parameter_set("Couette.prm",
+                                                         true);
 
       Couette<2> simulation(parameter_set);
-      
-      simulation.run(parameter_set.flag_spatial_convergence_test);
-  
+
+      simulation.run();
+
   }
   catch (std::exception &exc)
   {
@@ -449,7 +481,5 @@ int main(int argc, char *argv[])
                 << std::endl;
       return 1;
   }
-  std::cout << "----------------------------------------------------"
-            << std::endl;
   return 0;
 }
