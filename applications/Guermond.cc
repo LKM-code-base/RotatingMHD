@@ -268,7 +268,7 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
                  << ", "
                  << navier_stokes.get_projection_step_rhs_norm()
                  << ") CFL = "
-                 << navier_stokes.get_cfl_number()
+                 << cfl_number
                  << " ["
                  << std::setw(5)
                  << std::fixed
@@ -280,7 +280,7 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
              << navier_stokes.get_diffusion_step_rhs_norm() << ","
              << navier_stokes.get_projection_step_rhs_norm() << ","
              << time_stepping.get_next_step_size() << ","
-             << navier_stokes.get_cfl_number() << std::endl;
+             << cfl_number << std::endl;
   }
 }
 
