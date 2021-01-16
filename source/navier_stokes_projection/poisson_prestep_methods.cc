@@ -9,6 +9,12 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_poisson_prestep()
 {
+  // Set external functions to their start time
+  /*if (body_force_ptr != nullptr)
+    body_force_ptr->set_time(time_stepping.get_start_time());
+  if (gravity_unit_vector_ptr != nullptr)
+    gravity_unit_vector_ptr->set_time(time_stepping.get_start_time());*/
+
   /* System matrix setup */
   // System matrix is constant and assembled in the
   // in the NavierStokesProjection::setup method.
@@ -37,7 +43,7 @@ solve_poisson_prestep()
 
   SolverControl solver_control(
     parameters.poisson_prestep_solver_parameters.n_maximum_iterations,
-    std::max(parameters.poisson_prestep_solver_parameters.relative_tolerance * 
+    std::max(parameters.poisson_prestep_solver_parameters.relative_tolerance *
              poisson_prestep_rhs.l2_norm(),
              parameters.poisson_prestep_solver_parameters.absolute_tolerance));
 
@@ -53,7 +59,7 @@ solve_poisson_prestep()
     solver.solve(pressure_laplace_matrix,
                  distributed_old_old_pressure,
                  poisson_prestep_rhs,
-                 projection_step_preconditioner);
+                 poisson_prestep_preconditioner);
   }
   catch (std::exception &exc)
   {
@@ -88,7 +94,7 @@ solve_poisson_prestep()
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of CG iterations: " 
+           << "    Number of CG iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;
