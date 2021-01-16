@@ -52,7 +52,7 @@ solve_poisson_prestep()
     solver.solve(pressure_laplace_matrix,
                  distributed_old_old_pressure,
                  poisson_prestep_rhs,
-                 projection_step_preconditioner);
+                 poisson_prestep_preconditioner);
   }
   catch (std::exception &exc)
   {
