@@ -27,31 +27,31 @@ using namespace dealii;
  * @details This version is parallelized using deal.ii's MPI facilities and
  * relies either on the Trilinos or the PETSc library. Moreover, for the time
  * discretization an implicit-explicit scheme (IMEX) with variable step size is
- * used. 
- * 
+ * used.
+ *
  * The class is coded to solve a diffusion step given by
  * \f[
  * \begin{equation}
- * \dfrac{\alpha_0^n}{\Delta t_{n-1}} \bs{u}^{n} -\dfrac{1}{\textrm{Re}} 
+ * \dfrac{\alpha_0^n}{\Delta t_{n-1}} \bs{u}^{n} -\dfrac{1}{\textrm{Re}}
  * \Delta \bs{u}^{n} + \bs{u}^{\star, n} \cdot (\nabla \otimes \bs{u}^{n})
  * + \frac{1}{2} (\nabla \cdot \bs{u}^{\star, n}) \bs{u}^{n} = -\nabla p^{\sharp, n}
- * - \sum_{j=1}^{2} \dfrac{\alpha_j^n}{\Delta t_{n-1}}\bs{u}^{n-j}, 
+ * - \sum_{j=1}^{2} \dfrac{\alpha_j^n}{\Delta t_{n-1}}\bs{u}^{n-j},
  * \qquad \forall(\bs{x},t)\in \Omega \times [0, T]
  * \end{equation}
  * \f]
  * with
- * \f[ 
+ * \f[
  * \begin{equation}
- *  p^\sharp = p^{n-1} + 
+ *  p^\sharp = p^{n-1} +
  *  \sum_{j=1}^{2} \frac{\Delta t_{n-1-j}}{\Delta t_{n-1}}
  *  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^{n-j}
  * \end{equation}
  * \f]
  * a projection step given by
- * \f[ 
+ * \f[
  * \begin{equation}
- * \Delta \phi^{n} = \dfrac{\alpha_0^n}{\Delta t_{n-1}} \nabla \cdot 
- * \bs{u}^{n},  \qquad \forall (\bs{x}, t) 
+ * \Delta \phi^{n} = \dfrac{\alpha_0^n}{\Delta t_{n-1}} \nabla \cdot
+ * \bs{u}^{n},  \qquad \forall (\bs{x}, t)
  * \in \Omega \times \left[0, T \right]
  * \end{equation}
  * \f]
@@ -64,7 +64,7 @@ using namespace dealii;
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
  * incremental scheme respectively.
  * @todo Implement a generalized extrapolation scheme.
- * @todo Expand the weak formulation for the case of unconventional 
+ * @todo Expand the weak formulation for the case of unconventional
  * boundary conditions.
  * @attention The code is hardcoded for a second order time discretization
  * scheme.
@@ -75,10 +75,10 @@ class NavierStokesProjection
 
 public:
   /*!
-   * @brief The constructor of the Navier-Stokes projection class where 
+   * @brief The constructor of the Navier-Stokes projection class where
    * the bouyancy term is neglected.
-   * 
-   * @details Stores local references to the input parameters and 
+   *
+   * @details Stores local references to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   NavierStokesProjection
@@ -94,10 +94,10 @@ public:
        std::shared_ptr<TimerOutput>());
 
   /*!
-   * @brief The constructor of the Navier-Stokes projection class where 
+   * @brief The constructor of the Navier-Stokes projection class where
    * the bouyancy term is considered.
-   * 
-   * @details Stores local references to the input parameters and 
+   *
+   * @details Stores local references to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   NavierStokesProjection
@@ -116,8 +116,8 @@ public:
   /*!
    * @brief The entity for the scalar field \f$ \phi \f$, which is
    * the field computed during the projection step and later used in
-   * the pressure-correction step. 
-   */ 
+   * the pressure-correction step.
+   */
   std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
 
   /*!
@@ -135,7 +135,7 @@ public:
   /*!
    *  @brief Sets the body force of the problem.
    *
-   *  @details Stores the memory address of the body force function in 
+   *  @details Stores the memory address of the body force function in
    *  the pointer @ref body_force.
    */
   void set_body_force(RMHD::EquationData::BodyForce<dim> &body_force);
@@ -143,11 +143,19 @@ public:
   /*!
    *  @brief Sets the gravity unit vector of the problem.
    *
-   *  @details Stores the memory address of the gravity unit vector 
+   *  @details Stores the memory address of the gravity unit vector
    *  function in the pointer @ref gravity_unit_vector_ptr.
    */
   void set_gravity_unit_vector(RMHD::EquationData::BodyForce<dim> &gravity_unit_vector);
 
+  /*!
+   *  @brief Sets the angular velocity of the rotating frame of
+   *  reference.
+   *
+   *  @details Stores the memory address of the angular velocity unit vector
+   *  function in the pointer @ref angular_velocity_unit_vector_ptr.
+   */
+  void set_angular_velocity_unit_vector(RMHD::EquationData::BodyForce<dim> &angular_velocity_unit_vector);
 
   /*!
    *  @brief Solves the problem for one single timestep.
@@ -161,19 +169,19 @@ public:
    *  @brief Resets the internal entity \f$ \phi \f$
    *  @details Sets all its solution vectors to zero and signals
    *  the solver to set up the entity on the next solve call.
-   */ 
+   */
   void reset_phi();
-  
+
   /*!
    *  @brief Computes Courant-Friedrichs-Lewy number for the current
    *  velocity field.
    *
-   *  @details It is given by 
+   *  @details It is given by
    * \f[
    *    C = \Delta t_{n-1} \min_{K \in \Omega_\textrm{h}}
    *    \left\lbrace \frac{\max_{P \in K} { \left\lVert \bs{v} \right\rVert}}{h_K} \right\rbrace
-   * \f] 
-   * where \f$ C \f$ is the Courant number, \f$ K\f$ denotes the 
+   * \f]
+   * where \f$ C \f$ is the Courant number, \f$ K\f$ denotes the
    * \f$ K\f$-th cell of the tessallation, \f$ \Omega_\textrm{h}\f$ the tessallation,
    * \f$ P \f$ a quadrature point inside the \f$ K\f$-th cell,
    * \f$ \bs{v} \f$ the velocity, \f$ h_K\f$ the largest diagonal of the \f$ K\f$-th
@@ -183,12 +191,12 @@ public:
 
   /*!
    * @brief Returns the norm of the right hand side of the diffusion step.
-   */ 
+   */
   double get_diffusion_step_rhs_norm() const;
 
   /*!
    * @brief Returns the norm of the right hand side of the projection step.
-   */ 
+   */
   double get_projection_step_rhs_norm() const;
 
 private:
@@ -241,6 +249,12 @@ private:
    * @brief A pointer to the gravity unit vector function.
    */
   RMHD::EquationData::BodyForce<dim>    *gravity_unit_vector_ptr;
+
+  /*!
+   * @brief A pointer to unit vector function of the angular velocity of
+   * the rotating frame of reference.
+   */
+  RMHD::EquationData::BodyForce<dim>    *angular_velocity_unit_vector_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
@@ -332,7 +346,7 @@ private:
 
   /*!
    * @brief Vector representing the right-hand side of the projection
-   * performed during the pressure-correction step. 
+   * performed during the pressure-correction step.
    */
   LinearAlgebra::MPI::Vector        correction_step_rhs;
 
@@ -341,7 +355,7 @@ private:
    * @attention Hardcoded for a ILU preconditioner.
    */
   LinearAlgebra::MPI::PreconditionILU     diffusion_step_preconditioner;
-  
+
   /*!
    * @brief The preconditioner of the projection step.
    * @attention Hardcoded for a ILU preconditioner.
@@ -364,33 +378,33 @@ private:
    * @brief The norm of the right hand side of the diffusion step.
    * @details Its value is that of the last computed pressure-correction
    * scheme step.
-   */ 
+   */
   double                                  norm_diffusion_rhs;
 
   /*!
    * @brief The norm of the right hand side of the projection step.
    * @details Its value is that of the last computed pressure-correction
    * scheme step.
-   */ 
+   */
   double                                  norm_projection_rhs;
-  
+
   /*!
    * @brief A flag to normalize the pressure field.
-   * @details In the case of an unconstrained formulation in the 
+   * @details In the case of an unconstrained formulation in the
    * pressure space, i.e. no Dirichlet boundary conditions, this flag
    * has to be set to true in order to constraint the pressure field.
    */
   bool                                  flag_normalize_pressure;
 
   /*!
-   * @brief A flag indicating if the scalar field  \f$ \phi\f$ is to 
+   * @brief A flag indicating if the scalar field  \f$ \phi\f$ is to
    * be initiated.
    * @details The initiation is done by the @ref setup_phi method.
    */
   bool                                  flag_setup_phi;
 
   /*!
-   * @brief A flag indicating if the velocity's mass and stiffness 
+   * @brief A flag indicating if the velocity's mass and stiffness
    * matrices are to be added.
    */
   bool                                  flag_add_mass_and_stiffness_matrices;
@@ -587,7 +601,7 @@ private:
    * This method assembles the following weak form into the vector representing
    * the right-hand side \f$\bs{b}\f$
    * \f[
-   * \bs{b}_i = -\int\limits_\Omega (\frac{\alpha_1}{\Delta t_{n-1}} 
+   * \bs{b}_i = -\int\limits_\Omega (\frac{\alpha_1}{\Delta t_{n-1}}
    * \bs{v}^{n-1} + \frac{\alpha_2}{\Delta t_{n-1}} \bs{v}^{n-2}) \cdot
    * \bs{\varphi}_i \dint{V} + \int\limits_\Omega p^\star
    * (\nabla\cdot\bs{\varphi}_i) \dint{V}\,,
@@ -675,7 +689,7 @@ private:
    */
   void copy_local_to_global_velocity_advection_matrix(
     const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy   &data);
-  
+
 };
 
 // inline functions
