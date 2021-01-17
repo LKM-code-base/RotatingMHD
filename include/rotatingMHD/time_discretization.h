@@ -48,9 +48,11 @@ enum class VSIMEXScheme
 
 /*!
  * @struct TimeSteppingParameters
- * 
+ *
  * @brief This structure manages the parameters of the time stepping scheme and
  * is used to control the behavior of VSIMEXMethod.
+ *
+ * @attention What do you think of "TimeDiscretizationParameters" instead?
  */
 struct TimeSteppingParameters
 {
@@ -246,7 +248,7 @@ public:
    * @brief Returns the flag indicating if the VSIMEX coefficients changed from
    * the last step.
    * @details The flag is set as true if @ref omega is anything other
-   * than 1.0 and is set as false if @ref is equal to 1.0. 
+   * than 1.0 and is set as false if @ref is equal to 1.0.
    */
   bool coefficients_changed() const;
 
@@ -307,8 +309,8 @@ private:
   /*!
    * @brief A vector containing the \f$ \alpha_0 \f$ of previous time steps.
    * @attention This member is only useful in the NavierStokesProjection
-   * class. 
-   */ 
+   * class.
+   */
   std::vector<double> old_alpha_zero;
 
   /*!
@@ -317,15 +319,15 @@ private:
    * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
    * is the order of the scheme.
    * @attention This member is only useful in the NavierStokesProjection
-   * class. 
-   */ 
+   * class.
+   */
   std::vector<double> old_step_size_values;
 
   /*!
    * @brief A flag indicating if the VSIMEX coefficients changed from
    * the last step.
    * @details The flag is set as true if @ref omega is anything other
-   * than 1.0 and is set as false if @ref is equal to 1.0. 
+   * than 1.0 and is set as false if @ref is equal to 1.0.
    */
   bool                flag_coefficients_changed;
 };
