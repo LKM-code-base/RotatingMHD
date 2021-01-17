@@ -155,6 +155,19 @@ enum class ProblemType
   * \f$ \bs{B} \f$ the magnetic field,
   * \f$ c_\mathrm{p} \f$ the specific heat capacity at constant pressure,
   * \f$ \kappa \f$ the thermal conductivity and
+  * \f$ \eta \f$ the magnetic diffusivity.
+  */
+  rotating_magnetohydrodynamic
+};
+
+
+
+/*!
+ * @brief Enumeration for convergence test type.
+ */
+enum class ConvergenceTestType
+{
+  /*!
    * @brief Spatial convergence test.
    * @details Test to study the spatial discretization dependence of
    * convergence for a given problem.
