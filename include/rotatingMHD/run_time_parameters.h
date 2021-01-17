@@ -724,7 +724,7 @@ struct DimensionlessNumbers
    * @brief The Reynolds number
    * @details Defined as
    * \f[
-   * \Re = \frac{u D}{\nu},
+   * \Reynolds = \frac{u D}{\nu},
    * \f]
    * where \f$ u \f$ is the characteristic velocity, \f$ D \f$ the
    * characteristic length and \f$ \nu \f$ the kinematic viscosity.
@@ -735,7 +735,7 @@ struct DimensionlessNumbers
    * @brief The Prandtl number
    * @details Defined as
    * \f[
-   * \Pr = \frac{\nu}{\kappa},
+   * \Prandtl = \frac{\nu}{\kappa},
    * \f]
    * where \f$ \nu \f$ is the kinematic viscosity and \f$ \kappa \f$ the
    * thermal diffusivity.
@@ -746,7 +746,7 @@ struct DimensionlessNumbers
    * @brief The Peclet number
    * @details Defined as
    * \f[
-   * \Pe = \frac{u D}{\kappa},
+   * \Peclet = \frac{u D}{\kappa},
    * \f]
    * where \f$ u \f$ is the characteristic velocity, \f$ D \f$ the
    * characteristic length and \f$ \kappa \f$ the thermal diffusivity.
@@ -757,7 +757,7 @@ struct DimensionlessNumbers
    * @brief The Rayleigh number
    * @details Defined as
    * \f[
-   * \Ra = \frac{\alpha g D^3}{\nu \kappa},
+   * \Rayleigh = \frac{\alpha g D^3}{\nu \kappa},
    * \f]
    * where \f$ \alpha \f$ is the thermal expansion coefficients,
    * \f$ g \f$ the reference gravity magnitude,
@@ -771,7 +771,7 @@ struct DimensionlessNumbers
    * @brief The Ekman number
    * @details Defined as
    * \f[
-   * \Ek = \frac{\nu}{\Omega D^2},
+   * \Ekman = \frac{\nu}{\Omega D^2},
    * \f]
    * where \f$ nu \f$ is the kinematic viscosity, \f$ \Omega \f$ the
    * characteristic angular velocity and \f$ D \f$ the characteristic
@@ -783,10 +783,10 @@ struct DimensionlessNumbers
    * @brief The magnetic Prandtl number
    * @details Defined as
    * \f[
-   * \Pm = \frac{\nu}{\eta},
+   * \magPrandtl = \frac{\nu}{\eta},
    * \f]
    * where \f$ nu \f$ is the kinematic viscosity and
-   * \f$ \eta \f$ the magnetic diffusivity. \f$
+   * \f$ \eta \f$ the magnetic diffusivity.
    */
   double  Pm;
 
