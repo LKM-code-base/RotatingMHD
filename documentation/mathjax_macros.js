@@ -1,18 +1,19 @@
 MathJax.Hub.Config({
     TeX: {
-        Macros: 
+        Macros:
         {
             bs: ["{\\boldsymbol #1}", 1],
             d: ["{\\mathrm{d}#1}",1],
             dint: ["{\\,\\mathrm{d}#1}", 1],
-            
+            subindex: [" #1\_\{\\mathrm \{ #2 \} \}", 2],
+
             gpi: ["\\text\{ \\\greektext p\}\}"],
             gtheta: ["\\text \{ \\\greektext j \}"],
             gmu: ["\\text \{ \\greektext m \}"],
             geta: ["\\text \{ \\greektext h \}"],
             gLambda: ["\\text \{ \\greektext L\}"],
             laplace: ["\\text \{ \\greektext D \}"],
-            
+
             ex: ["\\boldsymbol \{ e \}\_x"],
             ey: ["\\boldsymbol \{ e \}\_y"],
             ez: ["\\boldsymbol \{ e \}\_z"],
