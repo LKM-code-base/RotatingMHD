@@ -365,9 +365,9 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  velocity_laplacians;
 
-  std::vector<Tensor<1,dim>>  angular_velocity_values;
+  std::vector<CurlType>       angular_velocity_values;
 
-  std::vector<Tensor<1,dim>>  angular_velocity_face_values;
+  std::vector<CurlType>       angular_velocity_face_values;
 
   std::vector<CurlType>       angular_velocity_curls;
 
