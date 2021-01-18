@@ -138,7 +138,7 @@ public:
    *  @details Stores the memory address of the body force function in
    *  the pointer @ref body_force.
    */
-  void set_body_force(RMHD::EquationData::BodyForce<dim> &body_force);
+  void set_body_force(RMHD::EquationData::VectorFunction<dim> &body_force);
 
   /*!
    *  @brief Sets the gravity unit vector of the problem.
@@ -146,7 +146,7 @@ public:
    *  @details Stores the memory address of the gravity unit vector
    *  function in the pointer @ref gravity_unit_vector_ptr.
    */
-  void set_gravity_unit_vector(RMHD::EquationData::BodyForce<dim> &gravity_unit_vector);
+  void set_gravity_unit_vector(RMHD::EquationData::VectorFunction<dim> &gravity_unit_vector);
 
   /*!
    *  @brief Sets the angular velocity of the rotating frame of
@@ -155,7 +155,7 @@ public:
    *  @details Stores the memory address of the angular velocity unit vector
    *  function in the pointer @ref angular_velocity_unit_vector_ptr.
    */
-  void set_angular_velocity_unit_vector(RMHD::EquationData::BodyForce<dim> &angular_velocity_unit_vector);
+  void set_angular_velocity_unit_vector(RMHD::EquationData::AngularVelocity<dim> &angular_velocity_unit_vector);
 
   /*!
    *  @brief Solves the problem for one single timestep.
@@ -243,18 +243,18 @@ private:
   /*!
    * @brief A pointer to the body force function.
    */
-  RMHD::EquationData::BodyForce<dim>    *body_force_ptr;
+  RMHD::EquationData::VectorFunction<dim>    *body_force_ptr;
 
   /*!
    * @brief A pointer to the gravity unit vector function.
    */
-  RMHD::EquationData::BodyForce<dim>    *gravity_unit_vector_ptr;
+  RMHD::EquationData::VectorFunction<dim>    *gravity_unit_vector_ptr;
 
   /*!
    * @brief A pointer to unit vector function of the angular velocity of
    * the rotating frame of reference.
    */
-  RMHD::EquationData::BodyForce<dim>    *angular_velocity_unit_vector_ptr;
+  RMHD::EquationData::AngularVelocity<dim>    *angular_velocity_unit_vector_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.

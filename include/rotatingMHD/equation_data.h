@@ -12,6 +12,7 @@
 #include <deal.II/base/function.h>
 #include <deal.II/base/tensor_function.h>
 #include <deal.II/lac/vector.h>
+#include <deal.II/fe/fe_values.h>
 
 #include <cmath>
 
@@ -23,18 +24,43 @@ using namespace dealii;
 namespace EquationData
 {
 
+
 template <int dim>
-class BodyForce : public TensorFunction<1, dim>
+using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+
+
+
+template <int dim>
+class VectorFunction : public TensorFunction<1, dim>
 {
 
 public:
 
-  BodyForce(const double time = 0);
+  VectorFunction(const double time = 0);
 
-  virtual double divergence(const Point<dim>  &point) const;
+  virtual double divergence(const Point<dim> &point) const;
 
   virtual void divergence_list(const std::vector<Point<dim>> &points,
                                std::vector<double>           &values) const;
+
+  virtual CurlType<dim> curl(const Point<dim> &point) const;
+
+  virtual void curl_list(const std::vector<Point<dim>>  &points,
+                         std::vector<CurlType<dim>>     &values) const;
+};
+
+
+
+template <int dim>
+class AngularVelocity : public VectorFunction<dim>
+{
+public:
+  AngularVelocity(const double time = 0);
+
+  virtual CurlType<dim> rotation(const Point<dim> &point) const;
+
+  virtual void rotation_list(const std::vector<Point<dim>> &points,
+                             std::vector<CurlType<dim>>    &values) const;
 };
 
 namespace Step35
@@ -141,12 +167,12 @@ public:
 private:
   /*!
    * @brief The Reynolds number.
-   */ 
+   */
   const double Re;
 
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 
@@ -166,12 +192,12 @@ public:
 private:
   /*!
    * @brief The Reynolds number.
-   */ 
+   */
   const double Re;
 
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 } // namespace TGV
@@ -205,7 +231,7 @@ public:
 };
 
 template <int dim>
-class BodyForce: public RMHD::EquationData::BodyForce<dim>
+class BodyForce: public RMHD::EquationData::VectorFunction<dim>
 {
 public:
   BodyForce(const double Re,
@@ -250,7 +276,7 @@ public:
 };
 
 template <int dim>
-class BodyForce: public RMHD::EquationData::BodyForce<dim>
+class BodyForce: public RMHD::EquationData::VectorFunction<dim>
 {
 public:
   BodyForce(const double Re,
@@ -273,8 +299,8 @@ namespace Couette
  * @class VelocityExactSolution
  * @brief The velocity's exact solution for the Couette flow, where the
  * displacement of the top plate is driven by a traction vector
- * @details It is given by 
- * \f[ \bs{u} = t_0 \Reynolds \dfrac{y}{H} \bs{e}_\mathrm{x}, \f] 
+ * @details It is given by
+ * \f[ \bs{u} = t_0 \Reynolds \dfrac{y}{H} \bs{e}_\mathrm{x}, \f]
  * where \f$ t_0 \f$, \f$ \Reynolds \f$, \f$ H \f$, \f$ y \f$ and
  * \f$ \bs{e}_\mathrm{x} \f$ are the traction vector magnitude, the
  * Reynolds number, the height of the channel, the \f$ y \f$-component
@@ -300,17 +326,17 @@ public:
 private:
   /*!
    * @brief The magnitude of the applied traction vector.
-   */ 
+   */
   const double t_0;
 
   /*!
    * @brief The Reynodls number.
-   */ 
+   */
   const double Re;
 
   /*!
    * @brief The height of the channel.
-   */ 
+   */
   const double H;
 };
 
@@ -333,7 +359,7 @@ public:
 private:
   /*!
    * @brief The magnitude of the applied traction vector.
-   */ 
+   */
   const double t_0;
 };
 
@@ -351,7 +377,7 @@ public:
 private:
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 
@@ -371,12 +397,12 @@ public:
 private:
   /*!
    * @brief The Peclet number.
-   */ 
+   */
   const double Pe;
 
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 
@@ -392,7 +418,7 @@ private:
 
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 
@@ -414,12 +440,12 @@ public:
 private:
   /*!
    * @brief The exponential coefficient.
-   */ 
+   */
   const double beta = 10.;
 };
 
 template <int dim>
-class GravityUnitVector: public RMHD::EquationData::BodyForce<dim>
+class GravityUnitVector: public RMHD::EquationData::VectorFunction<dim>
 {
 public:
   GravityUnitVector(const double time = 0);
