@@ -511,6 +511,38 @@ private:
 
 
 /*!
+ * @class TemperatureBoundaryCondition
+ * @brief The boundary conditions of the temperature field of the
+ * Christensen benchmark.
+ * @details At the inner boundary the temperature is set to \f$ 1.0 \f$
+ * and at the outer boundary to \f$ 0.0 \f$.
+ */
+template <int dim>
+class TemperatureBoundaryCondition : public Function<dim>
+{
+public:
+  TemperatureBoundaryCondition(const double r_i,
+                               const double r_o,
+                               const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+private:
+  /*!
+   * @brief Inner radius of the shell.
+   */
+  const double r_i;
+
+  /*!
+   * @brief Outer radius of the shell.
+   */
+  const double r_o;
+};
+
+
+
+/*!
  * @class GravityVector
  * @brief The gravity field
  * @details Given by the linear function

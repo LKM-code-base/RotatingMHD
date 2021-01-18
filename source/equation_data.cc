@@ -786,6 +786,39 @@ double TemperatureInitialCondition<dim>::value
 
 
 
+
+template <int dim>
+TemperatureBoundaryCondition<dim>::TemperatureBoundaryCondition
+(const double r_i,
+ const double r_o,
+ const double time)
+:
+Function<dim>(1, time),
+r_i(r_i),
+r_o(r_o)
+{
+  AssertDimension(dim,3)
+}
+
+
+
+template<int dim>
+double TemperatureBoundaryCondition<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  const double x = point(0);
+  const double y = point(1);
+  const double z = point(2);
+  const double r = std::sqrt(x*x + y*y + z*z);
+
+  double value = (r > 0.5*(r_i + r_o)) ? 0.0 : 1.0;
+
+  return (value);
+}
+
+
+
 template <int dim>
 GravityVector<dim>::GravityVector
 (const double r_o,
@@ -933,6 +966,9 @@ template class RMHD::EquationData::MIT::GravityUnitVector<3>;
 
 template class RMHD::EquationData::Christensen::TemperatureInitialCondition<2>;
 template class RMHD::EquationData::Christensen::TemperatureInitialCondition<3>;
+
+template class RMHD::EquationData::Christensen::TemperatureBoundaryCondition<2>;
+template class RMHD::EquationData::Christensen::TemperatureBoundaryCondition<3>;
 
 template class RMHD::EquationData::Christensen::GravityVector<2>;
 template class RMHD::EquationData::Christensen::GravityVector<3>;
