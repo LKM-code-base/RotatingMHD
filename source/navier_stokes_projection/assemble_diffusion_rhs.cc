@@ -21,7 +21,7 @@ assemble_diffusion_step_rhs()
   const FE_Q<dim> dummy_fe(1);
 
   // Create pointer to the pertinent finite element
-  const FE_Q<dim> * const temperature_fe_ptr = 
+  const FE_Q<dim> * const temperature_fe_ptr =
           (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
 
   // Polynomial degree of the body force and the neumann function
@@ -29,11 +29,11 @@ assemble_diffusion_step_rhs()
 
   const int p_degree_neumann_function = velocity->fe_degree;
 
-  // Compute the highest polynomial degree from all the integrands 
+  // Compute the highest polynomial degree from all the integrands
   const int p_degree = std::max(3 * velocity->fe_degree - 1,
                                 velocity->fe_degree + p_degree_body_force);
 
-  // Compute the highest polynomial degree from all the boundary integrands 
+  // Compute the highest polynomial degree from all the boundary integrands
   const int face_p_degree = velocity->fe_degree + p_degree_neumann_function;
 
   // Initiate the quadrature formula for exact numerical integration
@@ -48,7 +48,7 @@ assemble_diffusion_step_rhs()
            AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
            AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data)
     {
-      this->assemble_local_diffusion_step_rhs(cell, 
+      this->assemble_local_diffusion_step_rhs(cell,
                                               scratch,
                                               data);
     };
@@ -106,7 +106,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   data.local_rhs                          = 0.;
   data.local_matrix_for_inhomogeneous_bc  = 0.;
 
-  // Velocity 
+  // Velocity
   scratch.velocity_fe_values.reinit(cell);
 
   const FEValuesExtractors::Vector  vector_extractor(0);
@@ -156,7 +156,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     pressure->old_solution,
     scratch.old_pressure_values);
 
-  // Phi 
+  // Phi
   scratch.pressure_fe_values.get_function_values(
     phi->old_solution,
     scratch.old_phi_values);
@@ -186,7 +186,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
     Assert(gravity_unit_vector_ptr != nullptr,
            ExcMessage("No unit vector for the gravity has been specified."))
-    
+
     gravity_unit_vector_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.gravity_unit_vector_values);
@@ -229,9 +229,56 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     ZeroTensorFunction<1,dim>().value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.body_force_values);
-    
+
     scratch.old_body_force_values     = scratch.body_force_values;
     scratch.old_old_body_force_values = scratch.body_force_values;
+  }
+
+  // Coreolis acceleration
+  if (angular_velocity_unit_vector_ptr != nullptr)
+  {
+    if constexpr(dim == 2)
+    {
+      const std::vector<Tensor<1,1>> z_unit_vectors(
+        scratch.old_angular_velocity_values.size(),
+        Tensor<1,1>({1.0}));
+
+      scratch.old_angular_velocity_values     = z_unit_vectors;
+      scratch.old_old_angular_velocity_values = z_unit_vectors;
+    }
+    else if constexpr(dim == 3)
+    {
+      angular_velocity_unit_vector_ptr->set_time(time_stepping.get_previous_time());
+      angular_velocity_unit_vector_ptr->value_list(
+        scratch.velocity_fe_values.get_quadrature_points(),
+        scratch.old_old_angular_velocity_values);
+
+      angular_velocity_unit_vector_ptr->set_time(time_stepping.get_current_time());
+      angular_velocity_unit_vector_ptr->value_list(
+        scratch.velocity_fe_values.get_quadrature_points(),
+        scratch.old_old_angular_velocity_values);
+    }
+  }
+  else
+  {
+    if constexpr(dim == 2)
+    {
+      const std::vector<Tensor<1,1>> zero_vectors(
+        scratch.old_angular_velocity_values.size(),
+        Tensor<1,1>());
+
+      scratch.old_angular_velocity_values     = zero_vectors;
+      scratch.old_old_angular_velocity_values = zero_vectors;
+    }
+    else if constexpr(dim == 3)
+    {
+      ZeroTensorFunction<1,dim>(dim).value_list(
+        scratch.velocity_fe_values.get_quadrature_points(),
+        scratch.old_angular_velocity_values);
+
+      scratch.old_old_angular_velocity_values =
+                                    scratch.old_angular_velocity_values;
+    }
   }
 
   // VSIMEX coefficients
@@ -258,7 +305,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       scratch.phi[i]      = scratch.velocity_fe_values[vector_extractor].value(i,q);
       scratch.grad_phi[i] = scratch.velocity_fe_values[vector_extractor].gradient(i,q);
       scratch.div_phi[i]  = scratch.velocity_fe_values[vector_extractor].divergence(i,q);
-      /*! @note Should I include an if here? */
       scratch.curl_phi[i] = scratch.velocity_fe_values[vector_extractor].curl(i,q);
     }
 
@@ -267,7 +313,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     {
       // Local right hand side (Domain integrals)
       data.local_rhs(i) +=
-                (scratch.div_phi[i] * 
+                (scratch.div_phi[i] *
                  (scratch.old_pressure_values[q]
                   -
                   old_step_size[0] / time_stepping.get_next_step_size() *
@@ -286,18 +332,14 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                  scratch.old_old_velocity_values[q])
                 -
                 beta[0] *
-                (0.0 // Coriolis acceleration
-                 +
-                 scratch.phi[i] * 
-                 scratch.gravity_unit_vector_values[q] *
-                 scratch.old_temperature_values[q])
+                scratch.phi[i] *
+                scratch.gravity_unit_vector_values[q] *
+                scratch.old_temperature_values[q]
                 -
                 beta[1] *
-                (0.0 // Coriolis acceleration
-                 +
-                 scratch.phi[i] * 
-                 scratch.gravity_unit_vector_values[q] *
-                 scratch.old_old_temperature_values[q])
+                scratch.phi[i] *
+                scratch.gravity_unit_vector_values[q] *
+                scratch.old_old_temperature_values[q]
                 +
                 gamma[0] *
                 scratch.phi[i] *
@@ -310,7 +352,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                  -
                  scratch.phi[i] *
                  scratch.old_body_force_values[q])
-                - 
+                -
                 gamma[2] *
                 (parameters.C2 *
                  scalar_product(scratch.grad_phi[i],
@@ -319,6 +361,38 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                  scratch.phi[i] *
                  scratch.old_old_body_force_values[q])) *
                 scratch.velocity_fe_values.JxW(q);
+
+      if (angular_velocity_unit_vector_ptr != nullptr)
+      {
+        if constexpr(dim == 2)
+          data.local_rhs(i) -=
+                (beta[0] *
+                 parameters.C1 *
+                 scratch.old_angular_velocity_values[q][0] *
+                 cross_product_2d(scratch.phi[i]) *
+                 scratch.old_velocity_values[q]
+                 +
+                 beta[1] *
+                 parameters.C1 *
+                 scratch.old_old_angular_velocity_values[q][0] *
+                 cross_product_2d(scratch.phi[i]) *
+                 scratch.old_old_velocity_values[q]) *
+                scratch.velocity_fe_values.JxW(q);
+        else if constexpr(dim == 3)
+          data.local_rhs(i) -=
+                (beta[0] *
+                 parameters.C1 *
+                 scratch.phi[i] *
+                 cross_product_3d(scratch.old_angular_velocity_values[q],
+                                  scratch.old_velocity_values[q])
+                 +
+                 beta[1] *
+                 parameters.C1 *
+                 scratch.phi[i] *
+                 cross_product_3d(scratch.old_old_angular_velocity_values[q],
+                                  scratch.old_old_velocity_values[q]))*
+                scratch.velocity_fe_values.JxW(q);
+      }
 
       if (parameters.convective_term_time_discretization ==
           RunTimeParameters::ConvectiveTermTimeDiscretization::fully_explicit)
@@ -329,12 +403,12 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
             data.local_rhs(i) -=
                 (beta[0] *
                  scratch.phi[i] *
-                 scratch.old_velocity_gradients[q] *  
+                 scratch.old_velocity_gradients[q] *
                  scratch.old_velocity_values[q]
                  +
                  beta[1] *
                  scratch.phi[i] *
-                 scratch.old_old_velocity_gradients[q] *  
+                 scratch.old_old_velocity_gradients[q] *
                  scratch.old_old_velocity_values[q]) *
                 scratch.velocity_fe_values.JxW(q);
             break;
@@ -359,7 +433,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                   +
                   0.5 *
                   scratch.old_old_velocity_divergences[q] *
-                  scratch.phi[i] * 
+                  scratch.phi[i] *
                   scratch.old_old_velocity_values[q])) *
                 scratch.velocity_fe_values.JxW(q);
             break;
@@ -382,7 +456,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                   scratch.old_old_velocity_values[q]
                   +
                   scratch.old_old_velocity_divergences[q] *
-                  scratch.phi[i] * 
+                  scratch.phi[i] *
                   scratch.old_old_velocity_values[q])) *
                 scratch.velocity_fe_values.JxW(q);
             break;
@@ -438,7 +512,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                  scalar_product(scratch.grad_phi[j],
                                 scratch.grad_phi[i])) *
                 scratch.velocity_fe_values.JxW(q);
-          
+
           if (parameters.convective_term_time_discretization ==
               RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit)
             switch (parameters.convective_term_weak_form)
@@ -460,7 +534,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
               {
                 data.local_matrix_for_inhomogeneous_bc(j, i) +=
                       (scratch.phi[j] *
-                       scratch.grad_phi[i] *  
+                       scratch.grad_phi[i] *
                        (eta[0] *
                         scratch.old_velocity_values[q]
                         +
@@ -473,7 +547,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                         +
                         eta[1] *
                         scratch.old_old_velocity_divergences[q]) *
-                       scratch.phi[j] * 
+                       scratch.phi[j] *
                        scratch.phi[i]) *
                       scratch.velocity_fe_values.JxW(q);
                 break;
@@ -482,7 +556,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
               {
                 data.local_matrix_for_inhomogeneous_bc(j, i) +=
                       (scratch.phi[j] *
-                       scratch.grad_phi[i] *  
+                       scratch.grad_phi[i] *
                        (eta[0] *
                         scratch.old_velocity_values[q]
                         +
@@ -494,7 +568,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                         +
                         eta[1] *
                         scratch.old_old_velocity_divergences[q]) *
-                       scratch.phi[j] * 
+                       scratch.phi[j] *
                        scratch.phi[i]) *
                       scratch.velocity_fe_values.JxW(q);
                 break;
@@ -542,7 +616,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     {
       // Neumann boundary condition
       scratch.velocity_fe_face_values.reinit(cell, face);
-      
+
       velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
         time_stepping.get_previous_time());
       velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
@@ -566,9 +640,9 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       {
         // Extract the test function's values at the face quadrature points
         for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-          scratch.face_phi[i] = 
+          scratch.face_phi[i] =
             scratch.velocity_fe_face_values[vector_extractor].value(i,q);
-        
+
         // Loop over the degrees of freedom
         for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
           data.local_rhs(i) +=

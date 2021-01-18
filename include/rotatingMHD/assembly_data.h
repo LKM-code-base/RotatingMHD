@@ -245,9 +245,9 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<CurlType>       old_old_velocity_curls;
 
-  std::vector<Tensor<1,dim>>  old_angular_velocity_values;
+  std::vector<CurlType>       old_angular_velocity_values;
 
-  std::vector<Tensor<1,dim>>  old_old_angular_velocity_values;
+  std::vector<CurlType>       old_old_angular_velocity_values;
 
   std::vector<double>         old_temperature_values;
 
