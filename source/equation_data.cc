@@ -737,6 +737,133 @@ Tensor<1, dim> GravityUnitVector<dim>::value(const Point<dim> &/*point*/) const
 
 } // namespace MIT
 
+
+
+namespace Christensen
+{
+
+
+
+template <int dim>
+TemperatureInitialCondition<dim>::TemperatureInitialCondition
+(const double r_i,
+ const double r_o,
+ const double A,
+ const double time)
+:
+Function<dim>(1, time),
+r_i(r_i),
+r_o(r_o),
+A(A)
+{
+  AssertDimension(dim, 3)
+}
+
+template<int dim>
+double TemperatureInitialCondition<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  double temperature;
+
+  const double x      = point(0);
+  const double y      = point(1);
+  const double z      = point(2);
+  const double r      = std::sqrt(x*x + y*y + z*z);
+  const double theta  = std::atan2(std::sqrt(x*x + y*y), z);
+  const double phi    = std::atan2(y, x);
+  const double x_0    = 2. * r - r_i - r_o;
+
+  temperature = r_o * r_i / r
+                - r_i
+                + 210 * A / std::sqrt(17920. * M_PI) *
+                  (1. - 3. * x_0 * x_0 + 3. * std::pow(x_0, 4) - std::pow(x_0,6)) *
+                  pow(std::sin(theta), 4) *
+                  std::cos(4. * phi);
+
+  return temperature;
+}
+
+
+
+template <int dim>
+GravityVector<dim>::GravityVector
+(const double r_o,
+ const double time)
+:
+RMHD::EquationData::VectorFunction<dim>(time),
+r_o(r_o)
+{
+  AssertDimension(dim, 3)
+}
+
+
+
+template <int dim>
+Tensor<1, dim> GravityVector<dim>::value(const Point<dim> &point) const
+{
+  Tensor<1, dim> value;
+
+  const double x      = point(0);
+  const double y      = point(1);
+  const double z      = point(2);
+
+  value[0] = x / r_o;
+  value[1] = y / r_o;
+  value[2] = z / r_o;
+
+  return value;
+}
+
+
+
+template <int dim>
+double GravityVector<dim>::divergence(const Point<dim> &/*point*/) const
+{
+  return (3. / r_o);
+}
+
+
+
+template <int dim>
+AngularVelocity<dim>::AngularVelocity
+(const double time)
+:
+RMHD::EquationData::AngularVelocity<dim>(time)
+{
+  AssertDimension(dim, 3)
+}
+
+
+
+template <int dim>
+CurlType<dim> AngularVelocity<dim>::rotation(const Point<dim> &/*point*/) const
+{
+  CurlType<dim> value;
+
+  value[0] = 0.;
+  value[1] = 0.;
+  value[2] = 1.;
+
+  return value;
+}
+
+
+
+template <int dim>
+CurlType<dim> AngularVelocity<dim>::curl(const Point<dim> &/*point*/) const
+{
+  CurlType<dim> value;
+
+  value[0] = 0.;
+  value[1] = 0.;
+  value[2] = 0.;
+
+  return value;
+}
+} // namespace Christensen
+
+
 } // namespace EquationData
 
 } // namespace RMHD
@@ -804,4 +931,12 @@ template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<3>;
 template class RMHD::EquationData::MIT::GravityUnitVector<2>;
 template class RMHD::EquationData::MIT::GravityUnitVector<3>;
 
+template class RMHD::EquationData::Christensen::TemperatureInitialCondition<2>;
+template class RMHD::EquationData::Christensen::TemperatureInitialCondition<3>;
+
+template class RMHD::EquationData::Christensen::GravityVector<2>;
+template class RMHD::EquationData::Christensen::GravityVector<3>;
+
+template class RMHD::EquationData::Christensen::AngularVelocity<2>;
+template class RMHD::EquationData::Christensen::AngularVelocity<3>;
 
