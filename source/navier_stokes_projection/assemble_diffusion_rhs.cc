@@ -237,27 +237,15 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   // Coreolis acceleration
   if (angular_velocity_unit_vector_ptr != nullptr)
   {
-    if constexpr(dim == 2)
-    {
-      const std::vector<Tensor<1,1>> z_unit_vectors(
-        scratch.old_angular_velocity_values.size(),
-        Tensor<1,1>({1.0}));
+    angular_velocity_unit_vector_ptr->set_time(time_stepping.get_previous_time());
+    angular_velocity_unit_vector_ptr->rotation_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.old_old_angular_velocity_values);
 
-      scratch.old_angular_velocity_values     = z_unit_vectors;
-      scratch.old_old_angular_velocity_values = z_unit_vectors;
-    }
-    else if constexpr(dim == 3)
-    {
-      angular_velocity_unit_vector_ptr->set_time(time_stepping.get_previous_time());
-      angular_velocity_unit_vector_ptr->value_list(
-        scratch.velocity_fe_values.get_quadrature_points(),
-        scratch.old_old_angular_velocity_values);
-
-      angular_velocity_unit_vector_ptr->set_time(time_stepping.get_current_time());
-      angular_velocity_unit_vector_ptr->value_list(
-        scratch.velocity_fe_values.get_quadrature_points(),
-        scratch.old_old_angular_velocity_values);
-    }
+    angular_velocity_unit_vector_ptr->set_time(time_stepping.get_current_time());
+    angular_velocity_unit_vector_ptr->rotation_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.old_old_angular_velocity_values);
   }
   else
   {
@@ -272,7 +260,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     }
     else if constexpr(dim == 3)
     {
-      ZeroTensorFunction<1,dim>(dim).value_list(
+      ZeroTensorFunction<1,dim>().value_list(
         scratch.velocity_fe_values.get_quadrature_points(),
         scratch.old_angular_velocity_values);
 
