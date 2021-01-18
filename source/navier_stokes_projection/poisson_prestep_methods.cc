@@ -14,8 +14,8 @@ assemble_poisson_prestep()
     body_force_ptr->set_time(time_stepping.get_start_time());
   if (gravity_unit_vector_ptr != nullptr)
     gravity_unit_vector_ptr->set_time(time_stepping.get_start_time());
-  if (angular_velocity_unit_vector_ptr != nullptr)
-    angular_velocity_unit_vector_ptr->set_time(time_stepping.get_start_time());
+  if (angular_velocity_vector_ptr != nullptr)
+    angular_velocity_vector_ptr->set_time(time_stepping.get_start_time());
 
   /* System matrix setup */
   // System matrix is constant and assembled in the

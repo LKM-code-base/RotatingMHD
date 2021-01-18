@@ -116,7 +116,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
   scratch.pressure_fe_values.reinit(cell);
 
   // Coriolis acceleration
-  if (angular_velocity_unit_vector_ptr != nullptr)
+  if (angular_velocity_vector_ptr != nullptr)
   {
     typename DoFHandler<dim>::active_cell_iterator
     velocity_cell(&velocity->get_triangulation(),
@@ -136,11 +136,11 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       velocity->old_old_solution,
       scratch.velocity_curls);
 
-    angular_velocity_unit_vector_ptr->rotation_list(
+    angular_velocity_vector_ptr->rotation_list(
       scratch.pressure_fe_values.get_quadrature_points(),
       scratch.angular_velocity_values);
 
-    angular_velocity_unit_vector_ptr->curl_list(
+    angular_velocity_vector_ptr->curl_list(
       scratch.pressure_fe_values.get_quadrature_points(),
       scratch.angular_velocity_curls);
   }
@@ -258,7 +258,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                scratch.body_force_divergences[q]) *
               scratch.pressure_fe_values.JxW(q);
 
-      if (angular_velocity_unit_vector_ptr != nullptr)
+      if (angular_velocity_vector_ptr != nullptr)
       {
         if constexpr(dim == 2)
           data.local_rhs(i) -=
@@ -382,8 +382,8 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
             scratch.body_force_values);
 
         // Coriolis acceleration
-        if (angular_velocity_unit_vector_ptr != nullptr)
-          angular_velocity_unit_vector_ptr->rotation_list(
+        if (angular_velocity_vector_ptr != nullptr)
+          angular_velocity_vector_ptr->rotation_list(
             scratch.pressure_fe_face_values.get_quadrature_points(),
             scratch.angular_velocity_face_values);
         else
@@ -432,7 +432,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                               scratch.normal_vectors[q] *
                               scratch.pressure_fe_face_values.JxW(q);
 
-              if (angular_velocity_unit_vector_ptr != nullptr)
+              if (angular_velocity_vector_ptr != nullptr)
               {
                 if constexpr(dim == 2)
                   data.local_rhs(i) -=

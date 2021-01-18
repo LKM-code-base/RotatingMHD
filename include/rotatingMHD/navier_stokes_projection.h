@@ -153,9 +153,9 @@ public:
    *  reference.
    *
    *  @details Stores the memory address of the angular velocity unit vector
-   *  function in the pointer @ref angular_velocity_unit_vector_ptr.
+   *  function in the pointer @ref angular_velocity_vector_ptr.
    */
-  void set_angular_velocity_unit_vector(RMHD::EquationData::AngularVelocity<dim> &angular_velocity_unit_vector);
+  void set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<dim> &angular_velocity_vector);
 
   /*!
    *  @brief Solves the problem for one single timestep.
@@ -254,7 +254,7 @@ private:
    * @brief A pointer to unit vector function of the angular velocity of
    * the rotating frame of reference.
    */
-  RMHD::EquationData::AngularVelocity<dim>    *angular_velocity_unit_vector_ptr;
+  RMHD::EquationData::AngularVelocity<dim>    *angular_velocity_vector_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.

@@ -235,15 +235,15 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   }
 
   // Coreolis acceleration
-  if (angular_velocity_unit_vector_ptr != nullptr)
+  if (angular_velocity_vector_ptr != nullptr)
   {
-    angular_velocity_unit_vector_ptr->set_time(time_stepping.get_previous_time());
-    angular_velocity_unit_vector_ptr->rotation_list(
+    angular_velocity_vector_ptr->set_time(time_stepping.get_previous_time());
+    angular_velocity_vector_ptr->rotation_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.old_old_angular_velocity_values);
 
-    angular_velocity_unit_vector_ptr->set_time(time_stepping.get_current_time());
-    angular_velocity_unit_vector_ptr->rotation_list(
+    angular_velocity_vector_ptr->set_time(time_stepping.get_current_time());
+    angular_velocity_vector_ptr->rotation_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.old_old_angular_velocity_values);
   }
@@ -350,7 +350,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                  scratch.old_old_body_force_values[q])) *
                 scratch.velocity_fe_values.JxW(q);
 
-      if (angular_velocity_unit_vector_ptr != nullptr)
+      if (angular_velocity_vector_ptr != nullptr)
       {
         if constexpr(dim == 2)
           data.local_rhs(i) -=

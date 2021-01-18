@@ -58,10 +58,10 @@ flag_ignore_bouyancy_term(true)
       TimerOutput::wall_times));
 
   // Explicitly set the body forces and the temperature pointer to null
-  body_force_ptr                    = nullptr;
-  gravity_unit_vector_ptr           = nullptr;
-  angular_velocity_unit_vector_ptr  = nullptr;
-  temperature                       = nullptr;
+  body_force_ptr              = nullptr;
+  gravity_unit_vector_ptr     = nullptr;
+  angular_velocity_vector_ptr = nullptr;
+  temperature                 = nullptr;
 }
 
 template <int dim>
@@ -121,9 +121,9 @@ flag_ignore_bouyancy_term(false)
       TimerOutput::wall_times));
 
   // Explicitly set the body forces pointer to null
-  body_force_ptr                    = nullptr;
-  gravity_unit_vector_ptr           = nullptr;
-  angular_velocity_unit_vector_ptr  = nullptr;
+  body_force_ptr              = nullptr;
+  gravity_unit_vector_ptr     = nullptr;
+  angular_velocity_vector_ptr = nullptr;
 }
 
 }  // namespace RMHD
