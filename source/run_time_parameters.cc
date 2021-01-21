@@ -1459,6 +1459,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = 0.0;
       heat_equation_parameters.C4 = 0.0;
       navier_stokes_parameters.C5 = 0.0;
+      navier_stokes_parameters.C6 = 1.0;
       break;
     case ProblemType::heat_convection_diffusion:
       navier_stokes_parameters.C1 = 0.0;
@@ -1466,6 +1467,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = 0.0;
       heat_equation_parameters.C4 = 1.0/Pe;
       navier_stokes_parameters.C5 = 0.0;
+      navier_stokes_parameters.C6 = 1.0;
       break;
     case ProblemType::boussinesq:
       navier_stokes_parameters.C1 = 0.0;
@@ -1473,6 +1475,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = 1.0;
       heat_equation_parameters.C4 = 1.0/std::sqrt(Ra*Pr);
       navier_stokes_parameters.C5 = 0.0;
+      navier_stokes_parameters.C6 = 1.0;
       break;
     case ProblemType::rotating_boussinesq:
       navier_stokes_parameters.C1 = 2.0/Ek;
@@ -1480,6 +1483,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = Ra/Pr;
       heat_equation_parameters.C4 = 1.0/Pr;
       navier_stokes_parameters.C5 = 0.0;
+      navier_stokes_parameters.C6 = 1.0/Ek;
       break;
     case ProblemType::rotating_magnetohydrodynamic:
       navier_stokes_parameters.C1 = 2.0/Ek;
@@ -1487,6 +1491,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = Ra/Pr;
       heat_equation_parameters.C4 = 1.0/Pr;
       navier_stokes_parameters.C5 = 1.0/Pm;
+      navier_stokes_parameters.C6 = 1.0;
       break;
     default:
       AssertThrow(false,
