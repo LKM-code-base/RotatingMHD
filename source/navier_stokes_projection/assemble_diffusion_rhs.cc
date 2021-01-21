@@ -92,8 +92,14 @@ assemble_diffusion_step_rhs()
   // Compress global data
   diffusion_step_rhs.compress(VectorOperation::add);
 
+  // Compute L2 norm
+  norm_diffusion_rhs = diffusion_step_rhs.l2_norm();
+
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
+    *pcout << " done!" << std::endl
+           << "    Right-hand side's L2-norm = "
+           << norm_diffusion_rhs
+           << std::endl;
 }
 
 template <int dim>
@@ -301,7 +307,8 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     {
       // Local right hand side (Domain integrals)
       data.local_rhs(i) +=
-                (scratch.div_phi[i] *
+                (parameters.C6 *
+                 scratch.div_phi[i] *
                  (scratch.old_pressure_values[q]
                   -
                   old_step_size[0] / time_stepping.get_next_step_size() *

@@ -17,8 +17,8 @@ assemble_projection_step_rhs()
   // Reset data
   projection_step_rhs = 0.;
   correction_step_rhs = 0.;
-  
-  // Compute the highest polynomial degree from all the integrands 
+
+  // Compute the highest polynomial degree from all the integrands
   const int p_degree = velocity->fe_degree + pressure->fe_degree - 1;
 
   // Initiate the quadrature formula for exact numerical integration
@@ -30,11 +30,11 @@ assemble_projection_step_rhs()
            AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>    &scratch,
            AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy            &data)
     {
-      this->assemble_local_projection_step_rhs(cell, 
+      this->assemble_local_projection_step_rhs(cell,
                                                scratch,
                                                data);
     };
-  
+
   // Set up the lamba function for the copy local to global operation
   auto copier =
     [this](const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy  &data)
@@ -62,13 +62,19 @@ assemble_projection_step_rhs()
       update_JxW_values |
       update_values),
     AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy(pressure->fe.dofs_per_cell));
-  
+
   // Compress global data
   projection_step_rhs.compress(VectorOperation::add);
   correction_step_rhs.compress(VectorOperation::add);
 
+  // Compute L2 norm
+  norm_projection_rhs = projection_step_rhs.l2_norm();
+
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
+    *pcout << " done!" << std::endl
+           << "    Right-hand side's L2-norm = "
+           << norm_projection_rhs
+           << std::endl;
 }
 
 template <int dim>
@@ -115,13 +121,13 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
     // Loop over local degrees of freedom
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
-      const double phi_div_v = 
-              scratch.phi[i] * 
+      const double phi_div_v =
+              scratch.phi[i] *
               scratch.velocity_divergences[q] *
               scratch.pressure_fe_values.JxW(q);
 
-      data.local_projection_step_rhs(i) -= 
-              alpha[0] / time_stepping.get_next_step_size() *
+      data.local_projection_step_rhs(i) -=
+              alpha[0] / time_stepping.get_next_step_size() / parameters.C6 *
               phi_div_v;
 
       data.local_correction_step_rhs(i) -= phi_div_v;
