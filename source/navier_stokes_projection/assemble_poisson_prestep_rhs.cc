@@ -248,13 +248,14 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       // Local right hand side (Domain integrals)
       data.local_rhs(i) +=
               scratch.phi[i] *
-              (parameters.C3 *
+              (parameters.C3 / parameters.C6 *
                (scratch.temperature_gradients[q] *
                 scratch.gravity_unit_vector_values[q]
                 +
                 scratch.temperature_values[q] *
                 scratch.gravity_unit_vector_divergences[q])
                -
+               1.0 / parameters.C6 *
                scratch.body_force_divergences[q]) *
               scratch.pressure_fe_values.JxW(q);
 
@@ -263,14 +264,14 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
         if constexpr(dim == 2)
           data.local_rhs(i) -=
               scratch.phi[i] *
-              parameters.C1 *
+              parameters.C1 / parameters.C6 *
               scratch.angular_velocity_values[q][0] *
               scratch.velocity_curls[q][0] *
               scratch.pressure_fe_values.JxW(q);
         else if constexpr(dim == 3)
           data.local_rhs(i) +=
               scratch.phi[i] *
-              parameters.C1 *
+              parameters.C1 / parameters.C6 *
               (scratch.angular_velocity_curls[q] *
                scratch.velocity_values[q]
                -
@@ -420,6 +421,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
             for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
             {
               data.local_rhs(i) +=
+                              1.0 / parameters.C6 *
                               scratch.face_phi[i] *
                               (parameters.C2 *
                               scratch.velocity_laplacians[q]
@@ -436,21 +438,23 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
               {
                 if constexpr(dim == 2)
                   data.local_rhs(i) -=
-                                scratch.face_phi[i] *
-                                parameters.C1 *
-                                scratch.angular_velocity_face_values[q][0] *
-                                cross_product_2d(-scratch.velocity_face_values[q]) *
-                                scratch.normal_vectors[q] *
-                                scratch.pressure_fe_face_values.JxW(q);
+                              1.0 / parameters.C6 *
+                              scratch.face_phi[i] *
+                              parameters.C1 *
+                              scratch.angular_velocity_face_values[q][0] *
+                              cross_product_2d(-scratch.velocity_face_values[q]) *
+                              scratch.normal_vectors[q] *
+                              scratch.pressure_fe_face_values.JxW(q);
                 else if constexpr(dim == 3)
                   data.local_rhs(i) -=
-                                scratch.face_phi[i] *
-                                parameters.C1 *
-                                cross_product_3d(
-                                  scratch.angular_velocity_face_values[q],
-                                  scratch.velocity_face_values[q]) *
-                                scratch.normal_vectors[q] *
-                                scratch.pressure_fe_face_values.JxW(q);
+                              1.0 / parameters.C6 *
+                              scratch.face_phi[i] *
+                              parameters.C1 *
+                              cross_product_3d(
+                                scratch.angular_velocity_face_values[q],
+                                scratch.velocity_face_values[q]) *
+                              scratch.normal_vectors[q] *
+                              scratch.pressure_fe_face_values.JxW(q);
               }
             } // Loop over the degrees of freedom
           } // Loop over face quadrature points
