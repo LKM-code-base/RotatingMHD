@@ -17,8 +17,6 @@ void HeatEquation<dim>::solve()
 
   assemble_linear_system();
 
-  rhs_norm = rhs.l2_norm();
-
   solve_linear_system(flag_reinit_preconditioner ||
                       time_stepping.get_step_number() %
                       parameters.preconditioner_update_frequency == 0);
@@ -54,7 +52,7 @@ void HeatEquation<dim>::assemble_linear_system()
     system_matrix.copy_from(mass_plus_stiffness_matrix);
     system_matrix.add(1.0, advection_matrix);
   }
-  
+
   // Right hand side setup
   assemble_rhs();
 }
@@ -73,11 +71,11 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
   LinearAlgebra::MPI::Vector distributed_temperature(rhs);
   distributed_temperature = temperature->solution;
 
-  /* The following pointer holds the address to the correct matrix 
+  /* The following pointer holds the address to the correct matrix
   depending on if the semi-implicit scheme is chosen or not */
   const LinearAlgebra::MPI::SparseMatrix  *system_matrix_ptr;
   if (parameters.convective_term_time_discretization ==
-        RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit && 
+        RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit &&
       !flag_ignore_advection)
     system_matrix_ptr = &system_matrix;
   else
@@ -135,7 +133,7 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of GMRES iterations: " 
+           << "    Number of GMRES iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl << std::endl;

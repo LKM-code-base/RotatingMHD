@@ -99,7 +99,10 @@ assemble_poisson_prestep_rhs()
   poisson_prestep_rhs.compress(VectorOperation::add);
 
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
+    *pcout << " done!" << std::endl
+           << "    Right-hand side's L2-norm = "
+           << poisson_prestep_rhs.l2_norm()
+           << std::endl;
 }
 
 template <int dim>
