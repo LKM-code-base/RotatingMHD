@@ -251,7 +251,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     angular_velocity_vector_ptr->set_time(time_stepping.get_current_time());
     angular_velocity_vector_ptr->rotation_list(
       scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.old_old_angular_velocity_values);
+      scratch.old_angular_velocity_values);
   }
   else
   {
@@ -327,11 +327,13 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                  scratch.old_old_velocity_values[q])
                 -
                 beta[0] *
+                parameters.C3 *
                 scratch.phi[i] *
                 scratch.gravity_unit_vector_values[q] *
                 scratch.old_temperature_values[q]
                 -
                 beta[1] *
+                parameters.C3 *
                 scratch.phi[i] *
                 scratch.gravity_unit_vector_values[q] *
                 scratch.old_old_temperature_values[q]
