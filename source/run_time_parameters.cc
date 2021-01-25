@@ -1548,7 +1548,7 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
 
   RefinementParameters::declare_parameters(prm);
 
-  TimeDiscretization::TimeSteppingParameters::declare_parameters(prm);
+  TimeDiscretization::TimeDiscretizationParameters::declare_parameters(prm);
 
   NavierStokesParameters::declare_parameters(prm);
 

@@ -1130,7 +1130,7 @@ struct ProblemParameters
   /*!
    * @brief Parameters of the time stepping scheme.
    */
-  TimeDiscretization::TimeSteppingParameters  time_stepping_parameters;
+  TimeDiscretization::TimeDiscretizationParameters  time_stepping_parameters;
 
   /*!
    * @brief Parameters of the Navier-Stokes solver.
