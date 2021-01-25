@@ -16,7 +16,7 @@ using namespace dealii;
 namespace TimeDiscretization
 {
 
-TimeSteppingParameters::TimeSteppingParameters()
+TimeDiscretizationParameters::TimeDiscretizationParameters()
 :
 vsimex_scheme(VSIMEXScheme::CNAB),
 n_maximum_steps(100),
@@ -30,9 +30,9 @@ final_time(1.0),
 verbose(false)
 {}
 
-TimeSteppingParameters::TimeSteppingParameters(const std::string &parameter_filename)
+TimeDiscretizationParameters::TimeDiscretizationParameters(const std::string &parameter_filename)
 :
-TimeSteppingParameters()
+TimeDiscretizationParameters()
 {
   ParameterHandler prm;
   declare_parameters(prm);
@@ -62,7 +62,7 @@ TimeSteppingParameters()
   parse_parameters(prm);
 }
 
-void TimeSteppingParameters::declare_parameters(ParameterHandler &prm)
+void TimeDiscretizationParameters::declare_parameters(ParameterHandler &prm)
 {
   prm.enter_subsection("Time stepping parameters");
   {
@@ -110,7 +110,7 @@ void TimeSteppingParameters::declare_parameters(ParameterHandler &prm)
   prm.leave_subsection();
 }
 
-void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
+void TimeDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 {
   prm.enter_subsection("Time stepping parameters");
   {
@@ -183,7 +183,7 @@ void TimeSteppingParameters::parse_parameters(ParameterHandler &prm)
 }
 
 template<typename Stream>
-Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm)
+Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm)
 {
   const size_t column_width[2] =
   {
@@ -413,7 +413,7 @@ std::string VSIMEXMethod::get_name() const
   return (name);
 }
 
-VSIMEXMethod::VSIMEXMethod(const TimeSteppingParameters &params)
+VSIMEXMethod::VSIMEXMethod(const TimeDiscretizationParameters &params)
 :
 DiscreteTime(params.start_time,
              params.final_time,
@@ -497,7 +497,7 @@ void VSIMEXMethod::update_coefficients()
   }
 
   // The elimination of the solenoidal velocity in the pressure
-  // correction scheme requires to store older values of 
+  // correction scheme requires to store older values of
   // \f$ \alpha_0\f$ and time steps. The following updates
   // the std::vectors storing those values
   for (unsigned int i = order-1; i > 0; --i)
@@ -522,7 +522,7 @@ void VSIMEXMethod::update_coefficients()
   else
   {
     flag_coefficients_changed = false;
-    return;  
+    return;
   }
 
   // Updates the VSIMEX coefficients. For the first time step, the
@@ -531,7 +531,7 @@ void VSIMEXMethod::update_coefficients()
   {
     // Hardcoded coefficients for a Backward Euler first order scheme
     const double a = 1.0;
-    
+
     alpha[0] = 1.0;
     alpha[1] = - 1.0;
     alpha[2] = 0.0;
@@ -587,9 +587,9 @@ void VSIMEXMethod::update_coefficients()
 
 // explicit instantiations
 template std::ostream & RMHD::TimeDiscretization::operator<<
-(std::ostream &, const RMHD::TimeDiscretization::TimeSteppingParameters &);
+(std::ostream &, const RMHD::TimeDiscretization::TimeDiscretizationParameters &);
 template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
-(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::TimeSteppingParameters &);
+(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::TimeDiscretizationParameters &);
 
 template std::ostream & RMHD::TimeDiscretization::operator<<
 (std::ostream &, const RMHD::TimeDiscretization::VSIMEXMethod &);

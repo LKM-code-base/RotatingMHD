@@ -83,7 +83,7 @@ velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velo
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
                                                        "pressure")),
-time_stepping(parameters.time_stepping_parameters),
+time_stepping(parameters.time_discretization_parameters),
 navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
@@ -93,7 +93,7 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->computing_timer),
 inflow_boundary_condition(
   std::make_shared<EquationData::Step35::VelocityInflowBoundaryCondition<dim>>(
-    parameters.time_stepping_parameters.start_time)),
+    parameters.time_discretization_parameters.start_time)),
 velocity_initial_condition(
   std::make_shared<EquationData::Step35::VelocityInitialCondition<dim>>(dim)),
 pressure_initial_condition(
@@ -101,7 +101,7 @@ pressure_initial_condition(
 evaluation_point(2.0, 3.0)
 {
   *this->pcout << parameters << std::endl << std::endl;
-  make_grid(parameters.refinement_parameters.n_initial_global_refinements);
+  make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
   velocity->reinit();
@@ -266,7 +266,7 @@ void Step35<dim>::run()
       postprocessing();
 
     if (time_stepping.get_step_number() %
-        this->prm.refinement_parameters.adaptive_mesh_refinement_frequency == 0)
+        this->prm.spatial_discretization_parameters.adaptive_mesh_refinement_frequency == 0)
       this->adaptive_mesh_refinement();
 
     if ((time_stepping.get_step_number() %

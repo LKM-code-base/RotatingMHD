@@ -27,6 +27,10 @@ flag_ignore_advection(true)
          ExcMessage("The temperature's shared pointer has not be"
                     " initialized."));
 
+  Assert(parameters.C4 > 0.0,
+         ExcLowerRangeType<double>(parameters.C4, 0.0));
+  AssertIsFinite(parameters.C4);
+
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)
     mapping = external_mapping;
@@ -81,6 +85,10 @@ flag_ignore_advection(false)
          ExcMessage("The velocity's shared pointer has not be"
                     " initialized."));
 
+  Assert(parameters.C4 > 0.0,
+         ExcLowerRangeType<double>(parameters.C4, 0.0));
+  AssertIsFinite(parameters.C4);
+
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)
     mapping = external_mapping;
@@ -133,6 +141,10 @@ flag_ignore_advection(false)
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity function's shared pointer has not be"
                     " initialized."));
+
+  Assert(parameters.C4 > 0.0,
+         ExcLowerRangeType<double>(parameters.C4, 0.0));
+  AssertIsFinite(parameters.C4);
 
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)

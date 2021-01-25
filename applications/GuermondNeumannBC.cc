@@ -96,7 +96,7 @@ velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velo
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
                                                        "Pressure")),
-time_stepping(parameters.time_stepping_parameters),
+time_stepping(parameters.time_discretization_parameters),
 navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
@@ -106,11 +106,11 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->computing_timer),
 velocity_exact_solution(
   std::make_shared<EquationData::GuermondNeumannBC::VelocityExactSolution<dim>>(
-    parameters.time_stepping_parameters.start_time)),
+    parameters.time_discretization_parameters.start_time)),
 pressure_exact_solution(
   std::make_shared<EquationData::GuermondNeumannBC::PressureExactSolution<dim>>(
-    parameters.time_stepping_parameters.start_time)),
-body_force(parameters.Re, parameters.time_stepping_parameters.start_time),
+    parameters.time_discretization_parameters.start_time)),
+body_force(parameters.Re, parameters.time_discretization_parameters.start_time),
 velocity_convergence_table(velocity, *velocity_exact_solution),
 pressure_convergence_table(pressure, *pressure_exact_solution),
 flag_set_exact_pressure_constant(false)
@@ -460,7 +460,7 @@ void Guermond<dim>::run()
          cycle < this->prm.convergence_test_parameters.n_temporal_convergence_cycles;
          ++cycle)
     {
-      double time_step = this->prm.time_stepping_parameters.initial_time_step *
+      double time_step = this->prm.time_discretization_parameters.initial_time_step *
                          pow(this->prm.convergence_test_parameters.timestep_reduction_factor,
                              cycle);
 

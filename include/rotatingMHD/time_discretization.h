@@ -47,26 +47,24 @@ enum class VSIMEXScheme
 
 
 /*!
- * @struct TimeSteppingParameters
+ * @struct TimeDiscretizationParameters
  *
  * @brief This structure manages the parameters of the time stepping scheme and
  * is used to control the behavior of VSIMEXMethod.
- *
- * @attention What do you think of "TimeDiscretizationParameters" instead?
  */
-struct TimeSteppingParameters
+struct TimeDiscretizationParameters
 {
 
   /*!
    * @brief Constructor which sets up the parameters with default values.
    */
-  TimeSteppingParameters();
+  TimeDiscretizationParameters();
 
   /*!
    * @brief Constructor which sets up the parameters as specified in the
    * parameter file with the filename @p parameter_filename.
    */
-  TimeSteppingParameters(const std::string &parameter_filename);
+  TimeDiscretizationParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -87,7 +85,7 @@ struct TimeSteppingParameters
    *
    */
   template<typename Stream>
-  friend Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm);
+  friend Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm);
 
   /*!
    * @brief Type of variable step-size IMEX scheme which is applied.
@@ -151,7 +149,7 @@ struct TimeSteppingParameters
  *
  */
 template<typename Stream>
-Stream& operator<<(Stream &stream, const TimeSteppingParameters &prm);
+Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm);
 
 
 
@@ -171,7 +169,7 @@ public:
   /*!
   * @brief The constructor of the class.
   */
-  VSIMEXMethod(const TimeSteppingParameters &parameters);
+  VSIMEXMethod(const TimeDiscretizationParameters &parameters);
 
   /*!
   * @brief A method returning the order of the VSIMEX scheme.
@@ -262,7 +260,7 @@ private:
   /*!
    * @brief Parameter controlling the behavior of this class.
    */
-  const TimeSteppingParameters &parameters;
+  const TimeDiscretizationParameters &parameters;
 
   /*!
    * @brief Order of the VSIMEX scheme.
@@ -272,7 +270,7 @@ private:
   /*!
    * @brief Parameters of the VSIMEX scheme.
    * @attention This designation is very misleading w.r.t. the
-   * TimeSteppingParameters!
+   * TimeDiscretizationParameters!
    */
   std::vector<double> vsimex_parameters;
 
