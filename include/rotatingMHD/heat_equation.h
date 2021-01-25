@@ -52,7 +52,7 @@ using namespace dealii;
  *  \nabla^2 \vartheta + r,
  *  \quad \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
  * \f]
- * where \f$ \vartheta \f$ and \f$ \mathit{Pe} \f$ are the adimensional
+ * where \f$ \vartheta \f$ and \f$ \mathit{Pe} \f$ are the dimensionless
  * temperature and the Peclet number respectively. Do note that we
  * reuse the variables names to denote their adimensional counterpart.
  * @todo Documentation
