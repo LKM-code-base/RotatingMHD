@@ -51,8 +51,6 @@ enum class VSIMEXScheme
  *
  * @brief This structure manages the parameters of the time stepping scheme and
  * is used to control the behavior of VSIMEXMethod.
- *
- * @attention What do you think of "TimeDiscretizationParameters" instead?
  */
 struct TimeDiscretizationParameters
 {

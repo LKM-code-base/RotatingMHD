@@ -20,6 +20,35 @@ namespace RunTimeParameters
 {
 /*!
  * @brief Enumeration for the different types of problems.
+ *
+ * @details The different problems derive from the stencil
+  * \f[
+  * \begin{gather*}
+    \nabla \cdot \bs{v}
+    = 0, \quad
+      \pd{\bs{v}}{t} + \bs{v} \cdot (\nabla \otimes \bs{v})
+      + C_1 \bs{\Omega} \times \bs{v}
+    = -C_6 \nabla \bar{p}
+    + C_ 2\nabla^2 \bs{v}
+    - C_3 \vartheta \bs{g}
+    + C_5 (\nabla \times \bs{B}) \times \bs{B},
+    \\
+    \pd{\vartheta}{t} + \bs{v} \cdot \nabla \vartheta
+    =
+    C_4 \nabla^2 \vartheta, \\
+    \nabla \cdot \bs{B} = 0, \quad
+    \pd{\bs{B}}{t} = \nabla \times ( \bs{v} \times \bs{B} ) + C_5 \nabla \times ( \nabla \times \bs{B} ),    \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
+    \end{gather*}
+  * \f]
+  * where \f$ \bs{v} \f$ is the velocity,
+  * \f$ \bar{p} \f$ the modified pressure,
+  * \f$ \vartheta \f$ the temperature,
+  * \f$ \bs{B} \f$ the magnetic field and
+  * \f$ {C_i} \f$ the dimensionless coefficients. These coefficients
+  * are given by a combination of dimensionless numbers depending of
+  * the problem type.
+  * @note For a definition of the pertinent dimensionless numbers see
+  * @ref DimensionlessNumbers
  */
 enum class ProblemType
 {
@@ -30,9 +59,9 @@ enum class ProblemType
   * \begin{gather*}
     \nabla \cdot \bs{v}
     = 0, \quad
-      \dd{\bs{v}}{t}
-    = -\dfrac{1}{\subindex{\rho}{0}} \nabla \bar{p}
-    + \nu \nabla^2 \bs{v}
+      \pd{\bs{v}}{t} + \bs{v} \cdot (\nabla \otimes \bs{v})
+    = - \nabla \bar{p}
+    + \frac{1}{\Reynolds} \nabla^2 \bs{v}
     + \bs{f},
     \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
     \end{gather*}
@@ -40,7 +69,7 @@ enum class ProblemType
   * where \f$ \bs{v} \f$ is the velocity,
   * \f$ \rho_0 \f$ the density of the reference state,
   * \f$ \bar{p} \f$ the modified pressure,
-  * \f$ \nu \f$ the kinematic viscosity and
+  * \f$ \Reynolds \f$ the Reynolds number and
   * \f$ \bs{f} \f$ the body force,
   */
   hydrodynamic,
@@ -50,16 +79,14 @@ enum class ProblemType
    * @details Given by
   * \f[
   * \begin{gather*}
-    \rho_0 c_{\textrm{p}} \dd{\vartheta}{t}
+    \pd{\vartheta}{t} + \bs{v} \cdot \nabla \vartheta
     =
-    \kappa \nabla^2 \vartheta + \rho_0 r, \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
+    \frac{1}{\Peclet} \nabla^2 \vartheta + r, \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
     \end{gather*}
   * \f]
   * where \f$ \bs{v} \f$ is the velocity,
-  * \f$ \rho_0 \f$ the density of the reference state,
   * \f$ \vartheta \f$ the temperature,
-  * \f$ c_\mathrm{p} \f$ the specific heat capacity at constant pressure,
-  * \f$ \kappa \f$ the thermal conductivity and
+  * \f$ \Peclet \f$ the Peclet number and
   * \f$ r \f$ the internal heat generation.
   */
   heat_convection_diffusion,
@@ -71,24 +98,21 @@ enum class ProblemType
   * \begin{gather*}
     \nabla \cdot \bs{v}
     = 0, \quad
-      \dd{\bs{v}}{t}
-    = -\dfrac{1}{\subindex{\rho}{0}} \nabla \bar{p}
-    + \nu \nabla^2 \bs{v}
-    - \alpha \vartheta \bs{g},
+      \pd{\bs{v}}{t} + \bs{v} \cdot (\nabla \otimes \bs{v})
+    = - \nabla \bar{p}
+    + \sqrt{\frac{\Prandtl}{\Rayleigh}} \nabla^2 \bs{v}
+    - \vartheta \bs{g},
     \\
-    \rho_0 c_{\textrm{p}} \dd{\vartheta}{t}
+    \pd{\vartheta}{t} + \bs{v} \cdot \nabla \vartheta
     =
-    \kappa \nabla^2 \vartheta, \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
+    \frac{1}{\sqrt{\Rayleigh \Prandtl}} \nabla^2 \vartheta, \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
     \end{gather*}
   * \f]
   * where \f$ \bs{v} \f$ is the velocity,
-  * \f$ \rho_0 \f$ the density of the reference state,
   * \f$ \bar{p} \f$ the modified pressure,
-  * \f$ \nu \f$ the kinematic viscosity,
-  * \f$ \alpha \f$ the coefficient of thermal expansion,
-  * \f$ \vartheta \f$ the temperature,
-  * \f$ c_\mathrm{p} \f$ the specific heat capacity at constant pressure,
-  * \f$ \kappa \f$ the thermal conductivity.
+  * \f$ \Prandtl \f$ the Prandtl number,
+  * \f$ \Rayleigh \f$ the Rayleigh number and
+  * \f$ \vartheta \f$ the temperature.
   * @note If specifified, body forces and internal heat generation are
   * also considered.
   */
@@ -101,25 +125,24 @@ enum class ProblemType
   * \begin{gather*}
     \nabla \cdot \bs{v}
     = 0, \quad
-      \dd{\bs{v}}{t} + 2 \bs{\Omega} \times \bs{v}
-    = -\dfrac{1}{\subindex{\rho}{0}} \nabla \bar{p}
-    + \nu \nabla^2 \bs{v}
-    - \alpha \vartheta \bs{g},
+      \pd{\bs{v}}{t} + \bs{v} \cdot (\nabla \otimes \bs{v})
+      + \frac{2}{\Ekman} \bs{\Omega} \times \bs{v}
+    = -\dfrac{1}{\Ekman} \nabla \bar{p}
+    + \nabla^2 \bs{v}
+    - \frac{\Rayleigh}{\Prandtl} \vartheta \bs{g},
     \\
-    \rho_0 c_{\textrm{p}} \dd{\vartheta}{t}
+    \pd{\vartheta}{t} + \bs{v} \cdot \nabla \vartheta
     =
-    \kappa \nabla^2 \vartheta, \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
+    \frac{1}{\Prandtl} \nabla^2 \vartheta, \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
     \end{gather*}
   * \f]
   * where \f$ \bs{v} \f$ is the velocity,
   * \f$ \bs{\Omega} \f$ the angular velocity,
-  * \f$ \rho_0 \f$ the density of the reference state,
   * \f$ \bar{p} \f$ the modified pressure,
-  * \f$ \nu \f$ the kinematic viscosity,
-  * \f$ \alpha \f$ the coefficient of thermal expansion,
-  * \f$ \vartheta \f$ the temperature,
-  * \f$ c_\mathrm{p} \f$ the specific heat capacity at constant pressure,
-  * \f$ \kappa \f$ the thermal conductivity.
+  * \f$ \Ekman \f$ the Ekman number,
+  * \f$ \Rayleigh \f$ the Rayleigh number,
+  * \f$ \Prandtl \f$ the Prandtl number,
+  * \f$ \vartheta \f$ the temperature.
   * @note If specifified, body forces and internal heat generation are
   * also considered.
   */
@@ -132,30 +155,31 @@ enum class ProblemType
   * \begin{gather*}
     \nabla \cdot \bs{v}
     = 0, \quad
-      \dd{\bs{v}}{t} + 2 \bs{\Omega} \times \bs{v}
-    = -\dfrac{1}{\subindex{\rho}{0}} \nabla \bar{p}
-    + \nu \nabla^2 \bs{v}
-    - \alpha \vartheta \bs{g}
-    + \dfrac{1}{\subindex{\rho}{0}} (\nabla \times \bs{B}) \times \bs{B},
+      \pd{\bs{v}}{t} + \bs{v} \cdot (\nabla \otimes \bs{v})
+      + \frac{2}{\Ekman} \bs{\Omega} \times \bs{v}
+    = -\dfrac{1}{\Ekman} \nabla \bar{p}
+    + \nabla^2 \bs{v}
+    - \frac{\Rayleigh}{\Prandtl} \vartheta \bs{g}
+    + \frac{1}{\magPrandtl}(\nabla \times \bs{B}) \times \bs{B},
     \\
-    \rho_0 c_{\textrm{p}} \dd{\vartheta}{t}
+    \pd{\vartheta}{t} + \bs{v} \cdot \nabla \vartheta
     =
-    \kappa \nabla^2 \vartheta, \\
+    \frac{1}{\Prandtl} \nabla^2 \vartheta, \\
     \nabla \cdot \bs{B} = 0, \quad
-    \pd{\bs{B}}{t} = \nabla \times ( \bs{v} \times \bs{B} ) + \nabla \times ( \eta \nabla \times \bs{B} ),    \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
+    \pd{\bs{B}}{t} = \nabla \times ( \bs{v} \times \bs{B} ) + \frac{1}{\magPrandtl} \nabla \times ( \nabla \times \bs{B} ),    \qquad \qquad \forall (\bs{x}, t) \in \Omega \times [0, T],
     \end{gather*}
   * \f]
   * where \f$ \bs{v} \f$ is the velocity,
   * \f$ \bs{\Omega} \f$ the angular velocity,
-  * \f$ \rho_0 \f$ the density of the reference state,
+  * \f$ \Ekman \f$ the Ekman number,
   * \f$ \bar{p} \f$ the modified pressure,
-  * \f$ \nu \f$ the kinematic viscosity,
-  * \f$ \alpha \f$ the coefficient of thermal expansion,
+  * \f$ \Rayleigh \f$ the Rayleigh number,
+  * \f$ \Prandtl \f$ the Prandtl number,
   * \f$ \vartheta \f$ the temperature,
-  * \f$ \bs{B} \f$ the magnetic field,
-  * \f$ c_\mathrm{p} \f$ the specific heat capacity at constant pressure,
-  * \f$ \kappa \f$ the thermal conductivity and
-  * \f$ \eta \f$ the magnetic diffusivity.
+  * \f$ \bs{B} \f$ the magnetic field and
+  * \f$ \magPrandtl \f$ the magnetic Prandtl number.
+  * @note If specifified, body forces and internal heat generation are
+  * also considered.
   */
   rotating_magnetohydrodynamic
 };
@@ -329,26 +353,23 @@ enum class ConvectiveTermTimeDiscretization
 
 
 /*!
- * @struct RefinementParameters
+ * @struct SpatialDiscretizationParameters
  *
- * @brief @ref RefinementParameters contains parameters which are
+ * @brief @ref SpatialDiscretizationParameters contains parameters which are
  * related to the adaptive refinement of the mesh.
- *
- * @attention What do you think of "SpatialDiscretizationParameters"
- * or something else? I am not really convince about "RefinementParameters".
  */
-struct RefinementParameters
+struct SpatialDiscretizationParameters
 {
   /*!
    * @brief Constructor which sets up the parameters with default values.
    */
-  RefinementParameters();
+  SpatialDiscretizationParameters();
 
   /*!
    * @brief Constructor which sets up the parameters as specified in the
    * parameter file with the filename @p parameter_filename.
    */
-  RefinementParameters(const std::string &parameter_filename);
+  SpatialDiscretizationParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -369,7 +390,7 @@ struct RefinementParameters
    */
   template<typename Stream>
   friend Stream& operator<<(Stream &stream,
-                            const RefinementParameters &prm);
+                            const SpatialDiscretizationParameters &prm);
 
   /*!
    * @brief Boolean flag to enable or disable adaptive mesh refinement.
@@ -431,7 +452,7 @@ struct RefinementParameters
  * @details This method does not add a `std::endl` to the stream at the end.
  */
 template<typename Stream>
-Stream& operator<<(Stream &stream, const RefinementParameters &prm);
+Stream& operator<<(Stream &stream, const SpatialDiscretizationParameters &prm);
 
 
 
@@ -1125,7 +1146,7 @@ struct ProblemParameters
   /*!
    * @brief Parameters of the adaptive mesh refinement.
    */
-  RefinementParameters                        refinement_parameters;
+  SpatialDiscretizationParameters                        refinement_parameters;
 
   /*!
    * @brief Parameters of the time stepping scheme.

@@ -20,7 +20,7 @@ namespace RunTimeParameters
 {
 
 
-RefinementParameters::RefinementParameters()
+SpatialDiscretizationParameters::SpatialDiscretizationParameters()
 :
 adaptive_mesh_refinement(false),
 adaptive_mesh_refinement_frequency(100),
@@ -35,10 +35,10 @@ n_initial_boundary_refinements(0)
 
 
 
-RefinementParameters::RefinementParameters
+SpatialDiscretizationParameters::SpatialDiscretizationParameters
 (const std::string &parameter_filename)
 :
-RefinementParameters()
+SpatialDiscretizationParameters()
 {
   ParameterHandler prm;
 
@@ -71,7 +71,7 @@ RefinementParameters()
 
 
 
-void RefinementParameters::declare_parameters(ParameterHandler &prm)
+void SpatialDiscretizationParameters::declare_parameters(ParameterHandler &prm)
 {
 
   prm.enter_subsection("Refinement control parameters");
@@ -117,7 +117,7 @@ void RefinementParameters::declare_parameters(ParameterHandler &prm)
 
 
 
-void RefinementParameters::parse_parameters(ParameterHandler &prm)
+void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 {
   prm.enter_subsection("Refinement control parameters");
   {
@@ -175,7 +175,7 @@ void RefinementParameters::parse_parameters(ParameterHandler &prm)
 
 
 template<typename Stream>
-Stream& operator<<(Stream &stream, const RefinementParameters &prm)
+Stream& operator<<(Stream &stream, const SpatialDiscretizationParameters &prm)
 {
   const size_t column_width[2] =
   {
@@ -1546,7 +1546,7 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
 
   ConvergenceTestParameters::declare_parameters(prm);
 
-  RefinementParameters::declare_parameters(prm);
+  SpatialDiscretizationParameters::declare_parameters(prm);
 
   TimeDiscretization::TimeDiscretizationParameters::declare_parameters(prm);
 
@@ -1743,9 +1743,9 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
 // explicit instantiations
 template std::ostream & RMHD::RunTimeParameters::operator<<
-(std::ostream &, const RMHD::RunTimeParameters::RefinementParameters &);
+(std::ostream &, const RMHD::RunTimeParameters::SpatialDiscretizationParameters &);
 template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
-(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::RefinementParameters &);
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::SpatialDiscretizationParameters &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::OutputControlParameters &);
