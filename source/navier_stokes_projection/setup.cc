@@ -15,8 +15,8 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::setup()
 {
-  // The set up of @ref phi happens internally only once, unless 
-  // specified by the user. See the documentation of the flag for 
+  // The set up of @ref phi happens internally only once, unless
+  // specified by the user. See the documentation of the flag for
   // more information.
   if (flag_setup_phi)
     setup_phi();
@@ -50,17 +50,17 @@ void NavierStokesProjection<dim>::setup_phi()
   // Initiate the solution vectors
   phi->reinit();
 
-  // Copy the pressure boundary conditions 
+  // Copy the pressure boundary conditions
   phi->boundary_conditions.copy(pressure->boundary_conditions);
 
-  // Inhomogeneous Dirichlet boundary conditions in the pressure space 
-  // translate into homogeneous Dirichlet boundary conditions in the 
+  // Inhomogeneous Dirichlet boundary conditions in the pressure space
+  // translate into homogeneous Dirichlet boundary conditions in the
   // phi space
   for (auto &dirichlet_bc : phi->boundary_conditions.dirichlet_bcs)
     dirichlet_bc.second = std::make_shared<Functions::ZeroFunction<dim>>();
 
   // The velocity field has to be constrained over all the boundary.
-  // If it is not, the following sets homogeneous Neumann boundary 
+  // If it is not, the following sets homogeneous Neumann boundary
   // conditions on the unconstrained boundaries.
   std::vector<types::boundary_id> unconstrained_boundary_ids =
     velocity->boundary_conditions.get_unconstrained_boundary_ids();
@@ -68,11 +68,11 @@ void NavierStokesProjection<dim>::setup_phi()
   // An expection is made if there is a Dirichlet boundary condition
   // on the pressure.
   for (const auto &unconstrained_boundary_id: unconstrained_boundary_ids)
-    if (pressure->boundary_conditions.dirichlet_bcs.find(unconstrained_boundary_id) 
+    if (pressure->boundary_conditions.dirichlet_bcs.find(unconstrained_boundary_id)
           != pressure->boundary_conditions.dirichlet_bcs.end())
       unconstrained_boundary_ids.erase(
-        std::remove(unconstrained_boundary_ids.begin(), 
-                    unconstrained_boundary_ids.end(), 
+        std::remove(unconstrained_boundary_ids.begin(),
+                    unconstrained_boundary_ids.end(),
                     unconstrained_boundary_id),
         unconstrained_boundary_ids.end());
 
@@ -102,7 +102,7 @@ void NavierStokesProjection<dim>::setup_phi()
   //Set all the solution vectors to zero
   phi->set_solution_vectors_to_zero();
 
-  // The set up happens internally only once, unless specified by the 
+  // The set up happens internally only once, unless specified by the
   // user. See the documentation of the flag for more information.
   flag_setup_phi = false;
 }
@@ -122,7 +122,7 @@ void NavierStokesProjection<dim>::setup_matrices()
   velocity_advection_matrix.clear();
   velocity_system_matrix.clear();
 
-  // Set ups the sparsity patterns and initiates all the matrices 
+  // Set ups the sparsity patterns and initiates all the matrices
   // related to the diffusion step.
   {
     #ifdef USE_PETSC_LA
@@ -195,7 +195,7 @@ void NavierStokesProjection<dim>::setup_matrices()
   phi_laplace_matrix.clear();       // Used in the projection step
   projection_mass_matrix.clear();   // Used in the correction step
 
-  // Set ups the sparsity patterns and initiates all the matrices 
+  // Set ups the sparsity patterns and initiates all the matrices
   // related to the pressure.
   {
     #ifdef USE_PETSC_LA

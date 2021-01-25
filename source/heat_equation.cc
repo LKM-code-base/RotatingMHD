@@ -9,12 +9,12 @@ namespace RMHD
 
 template <int dim>
 HeatEquation<dim>::HeatEquation
-(const RunTimeParameters::ParameterSet        &parameters,
- TimeDiscretization::VSIMEXMethod             &time_stepping,
- std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
- const std::shared_ptr<Mapping<dim>>          external_mapping,
- const std::shared_ptr<ConditionalOStream>    external_pcout,
- const std::shared_ptr<TimerOutput>           external_timer)
+(const RunTimeParameters::HeatEquationParameters  &parameters,
+ TimeDiscretization::VSIMEXMethod                 &time_stepping,
+ std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+ const std::shared_ptr<Mapping<dim>>              external_mapping,
+ const std::shared_ptr<ConditionalOStream>        external_pcout,
+ const std::shared_ptr<TimerOutput>               external_timer)
 :
 parameters(parameters),
 mpi_communicator(temperature->mpi_communicator),
@@ -27,6 +27,10 @@ flag_ignore_advection(true)
   Assert(temperature.get() != nullptr,
          ExcMessage("The temperature's shared pointer has not be"
                     " initialized."));
+
+  Assert(parameters.C4 > 0.0,
+         ExcLowerRangeType<double>(parameters.C4, 0.0));
+  AssertIsFinite(parameters.C4);
 
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)
@@ -59,13 +63,13 @@ flag_ignore_advection(true)
 
 template <int dim>
 HeatEquation<dim>::HeatEquation
-(const RunTimeParameters::ParameterSet        &parameters,
- TimeDiscretization::VSIMEXMethod             &time_stepping,
- std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
- std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
- const std::shared_ptr<Mapping<dim>>          external_mapping,
- const std::shared_ptr<ConditionalOStream>    external_pcout,
- const std::shared_ptr<TimerOutput>           external_timer)
+(const RunTimeParameters::HeatEquationParameters  &parameters,
+ TimeDiscretization::VSIMEXMethod                 &time_stepping,
+ std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+ std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+ const std::shared_ptr<Mapping<dim>>              external_mapping,
+ const std::shared_ptr<ConditionalOStream>        external_pcout,
+ const std::shared_ptr<TimerOutput>               external_timer)
 :
 parameters(parameters),
 mpi_communicator(temperature->mpi_communicator),
@@ -82,6 +86,10 @@ flag_ignore_advection(false)
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
                     " initialized."));
+
+  Assert(parameters.C4 > 0.0,
+         ExcLowerRangeType<double>(parameters.C4, 0.0));
+  AssertIsFinite(parameters.C4);
 
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)
@@ -106,20 +114,20 @@ flag_ignore_advection(false)
       TimerOutput::summary,
       TimerOutput::wall_times));
 
-  // Explicitly set the shared_ptr's to zero.  
+  // Explicitly set the shared_ptr's to zero.
   source_term_ptr       = nullptr;
   velocity_function_ptr = nullptr;
 }
 
 template <int dim>
 HeatEquation<dim>::HeatEquation
-(const RunTimeParameters::ParameterSet        &parameters,
- TimeDiscretization::VSIMEXMethod             &time_stepping,
- std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
- std::shared_ptr<TensorFunction<1, dim>>      &velocity,
- const std::shared_ptr<Mapping<dim>>          external_mapping,
- const std::shared_ptr<ConditionalOStream>    external_pcout,
- const std::shared_ptr<TimerOutput>           external_timer)
+(const RunTimeParameters::HeatEquationParameters  &parameters,
+ TimeDiscretization::VSIMEXMethod                 &time_stepping,
+ std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+ std::shared_ptr<TensorFunction<1, dim>>          &velocity,
+ const std::shared_ptr<Mapping<dim>>              external_mapping,
+ const std::shared_ptr<ConditionalOStream>        external_pcout,
+ const std::shared_ptr<TimerOutput>               external_timer)
 :
 parameters(parameters),
 mpi_communicator(temperature->mpi_communicator),
@@ -136,6 +144,10 @@ flag_ignore_advection(false)
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity function's shared pointer has not be"
                     " initialized."));
+
+  Assert(parameters.C4 > 0.0,
+         ExcLowerRangeType<double>(parameters.C4, 0.0));
+  AssertIsFinite(parameters.C4);
 
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)

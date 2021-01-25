@@ -22,7 +22,7 @@ assemble_diffusion_step()
      velocity_mass_matrix);
 
     velocity_mass_plus_laplace_matrix.add
-    (time_stepping.get_gamma()[0] / parameters.Re,
+    (time_stepping.get_gamma()[0] * parameters.C2,
      velocity_laplace_matrix);
     
     flag_add_mass_and_stiffness_matrices = false;
@@ -30,7 +30,8 @@ assemble_diffusion_step()
 
   /* In case of a semi-implicit scheme, the advection matrix has to be
   assembled and added to the system matrix */
-  if (parameters.flag_semi_implicit_convection)
+  if (parameters.convective_term_time_discretization ==
+      RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit)
   {
     assemble_velocity_advection_matrix();
     velocity_system_matrix.copy_from(velocity_mass_plus_laplace_matrix);
@@ -58,7 +59,8 @@ solve_diffusion_step(const bool reinit_prec)
   /* The following pointer holds the address to the correct matrix 
   depending on if the semi-implicit scheme is chosen or not */
   const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
-  if (parameters.flag_semi_implicit_convection)
+  if (parameters.convective_term_time_discretization ==
+      RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit)
     system_matrix = &velocity_system_matrix;
   else
     system_matrix = &velocity_mass_plus_laplace_matrix;
@@ -66,9 +68,10 @@ solve_diffusion_step(const bool reinit_prec)
   if (reinit_prec)
     diffusion_step_preconditioner.initialize(*system_matrix);
 
-  SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * diffusion_step_rhs.l2_norm(),
-                                        absolute_tolerance));
+  SolverControl solver_control(
+    parameters.diffusion_step_solver_parameters.n_maximum_iterations,
+    std::max(parameters.diffusion_step_solver_parameters.relative_tolerance * diffusion_step_rhs.l2_norm(),
+             parameters.diffusion_step_solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverGMRES solver(solver_control,

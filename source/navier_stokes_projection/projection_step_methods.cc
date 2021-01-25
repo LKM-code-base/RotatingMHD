@@ -35,10 +35,11 @@ void NavierStokesProjection<dim>::solve_projection_step
   if (reinit_prec)
     projection_step_preconditioner.initialize(phi_laplace_matrix);
 
-  SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * 
-                                        projection_step_rhs.l2_norm(),
-                                        absolute_tolerance));
+  SolverControl solver_control(
+    parameters.projection_step_solver_parameters.n_maximum_iterations,
+    std::max(parameters.projection_step_solver_parameters.relative_tolerance * 
+               projection_step_rhs.l2_norm(),
+            parameters.projection_step_solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverCG solver(solver_control,
@@ -86,10 +87,8 @@ void NavierStokesProjection<dim>::solve_projection_step
   phi->solution = distributed_phi;
 
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
-
-  if (parameters.verbose)
-    *pcout << "    Number of GMRES iterations: " 
+    *pcout << " done!" << std::endl
+           << "    Number of CG iterations: " 
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;

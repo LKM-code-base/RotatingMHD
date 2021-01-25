@@ -8,13 +8,13 @@ namespace RMHD
 
 template <int dim>
 NavierStokesProjection<dim>::NavierStokesProjection
-(const RunTimeParameters::ParameterSet        &parameters,
- TimeDiscretization::VSIMEXMethod             &time_stepping,
- std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
- std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
- const std::shared_ptr<Mapping<dim>>          external_mapping,
- const std::shared_ptr<ConditionalOStream>    external_pcout,
- const std::shared_ptr<TimerOutput>           external_timer)
+(const RunTimeParameters::NavierStokesParameters  &parameters,
+ TimeDiscretization::VSIMEXMethod                 &time_stepping,
+ std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+ std::shared_ptr<Entities::ScalarEntity<dim>>     &pressure,
+ const std::shared_ptr<Mapping<dim>>              external_mapping,
+ const std::shared_ptr<ConditionalOStream>        external_pcout,
+ const std::shared_ptr<TimerOutput>               external_timer)
 :
 phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure)),
 parameters(parameters),
@@ -33,6 +33,10 @@ flag_ignore_bouyancy_term(true)
   Assert(pressure.get() != nullptr,
          ExcMessage("The pressure's shared pointer has not be"
                     " initialized."));
+
+  Assert(parameters.C2 > 0.0,
+         ExcLowerRangeType<double>(parameters.C2, 0.0));
+  AssertIsFinite(parameters.C2);
 
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)
@@ -56,7 +60,7 @@ flag_ignore_bouyancy_term(true)
       *pcout,
       TimerOutput::summary,
       TimerOutput::wall_times));
-  
+
   // Explicitly set the body forces and the temperature pointer to null
   body_force_ptr          = nullptr;
   gravity_unit_vector_ptr = nullptr;
@@ -65,14 +69,14 @@ flag_ignore_bouyancy_term(true)
 
 template <int dim>
 NavierStokesProjection<dim>::NavierStokesProjection
-(const RunTimeParameters::ParameterSet        &parameters,
- TimeDiscretization::VSIMEXMethod             &time_stepping,
- std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
- std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
- std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
- const std::shared_ptr<Mapping<dim>>          external_mapping,
- const std::shared_ptr<ConditionalOStream>    external_pcout,
- const std::shared_ptr<TimerOutput>           external_timer)
+(const RunTimeParameters::NavierStokesParameters  &parameters,
+ TimeDiscretization::VSIMEXMethod                 &time_stepping,
+ std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+ std::shared_ptr<Entities::ScalarEntity<dim>>     &pressure,
+ std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+ const std::shared_ptr<Mapping<dim>>              external_mapping,
+ const std::shared_ptr<ConditionalOStream>        external_pcout,
+ const std::shared_ptr<TimerOutput>               external_timer)
 :
 phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure)),
 parameters(parameters),
@@ -96,6 +100,10 @@ flag_ignore_bouyancy_term(false)
          ExcMessage("The temperature's shared pointer has not be"
                     " initialized."));
 
+  Assert(parameters.C2 > 0.0,
+         ExcLowerRangeType<double>(parameters.C2, 0.0));
+  AssertIsFinite(parameters.C2);
+
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)
     mapping = external_mapping;
@@ -118,7 +126,7 @@ flag_ignore_bouyancy_term(false)
       *pcout,
       TimerOutput::summary,
       TimerOutput::wall_times));
-  
+
   // Explicitly set the body forces pointer to null
   body_force_ptr          = nullptr;
   gravity_unit_vector_ptr = nullptr;

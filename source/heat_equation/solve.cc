@@ -21,7 +21,7 @@ void HeatEquation<dim>::solve()
 
   solve_linear_system(flag_reinit_preconditioner ||
                       time_stepping.get_step_number() %
-                      parameters.solver_update_preconditioner == 0);
+                      parameters.preconditioner_update_frequency == 0);
 }
 
 template <int dim>
@@ -40,13 +40,14 @@ void HeatEquation<dim>::assemble_linear_system()
       mass_matrix);
 
     mass_plus_stiffness_matrix.add(
-      time_stepping.get_gamma()[0] / parameters.Pe,
+      time_stepping.get_gamma()[0] * parameters.C4,
       stiffness_matrix);
 
       flag_add_mass_and_stiffness_matrices = false;
   }
 
-  if (parameters.flag_semi_implicit_convection &&
+  if (parameters.convective_term_time_discretization ==
+        RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit &&
       !flag_ignore_advection)
   {
     assemble_advection_matrix();
@@ -75,7 +76,8 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
   /* The following pointer holds the address to the correct matrix 
   depending on if the semi-implicit scheme is chosen or not */
   const LinearAlgebra::MPI::SparseMatrix  *system_matrix_ptr;
-  if (parameters.flag_semi_implicit_convection && 
+  if (parameters.convective_term_time_discretization ==
+        RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit && 
       !flag_ignore_advection)
     system_matrix_ptr = &system_matrix;
   else
@@ -84,9 +86,10 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
   if (reinit_preconditioner)
     preconditioner.initialize(*system_matrix_ptr);
 
-  SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * rhs_norm,
-                                        absolute_tolerance));
+  SolverControl solver_control(
+    parameters.solver_parameters.n_maximum_iterations,
+    std::max(parameters.solver_parameters.relative_tolerance * rhs_norm,
+             parameters.solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverGMRES solver(solver_control,

@@ -16,7 +16,7 @@
 
 #include <vector>
 #include <map>
-#include <memory.h>
+#include <memory>
 #include <set>
 namespace RMHD
 {

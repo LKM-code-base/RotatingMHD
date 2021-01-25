@@ -1,18 +1,19 @@
 MathJax.Hub.Config({
     TeX: {
-        Macros: 
+        Macros:
         {
             bs: ["{\\boldsymbol #1}", 1],
             d: ["{\\mathrm{d}#1}",1],
             dint: ["{\\,\\mathrm{d}#1}", 1],
-            
+            subindex: [" #1\_\{\\mathrm \{ #2 \} \}", 2],
+
             gpi: ["\\text\{ \\\greektext p\}\}"],
             gtheta: ["\\text \{ \\\greektext j \}"],
             gmu: ["\\text \{ \\greektext m \}"],
             geta: ["\\text \{ \\greektext h \}"],
             gLambda: ["\\text \{ \\greektext L\}"],
             laplace: ["\\text \{ \\greektext D \}"],
-            
+
             ex: ["\\boldsymbol \{ e \}\_x"],
             ey: ["\\boldsymbol \{ e \}\_y"],
             ez: ["\\boldsymbol \{ e \}\_z"],
@@ -30,8 +31,9 @@ MathJax.Hub.Config({
             Elsasser: ["\\mathit \{ \\text \{ \\greektext L\} \}"],
             Euler: ["\\mathit \{ Eu\}"],
             Froude: ["\\mathit \{ Fr\}"],
-            Ekman: ["\\mathit \{ Ro\}"],
+            Ekman: ["\\mathit \{ Ek\}"],
             Strouhal: ["\\mathit \{ St\}"],
+            Peclet: ["\\mathit \{ Pe\}"],
 
             p: ["\\partial"],
             dd: ["\\frac{\\mathrm{d} #1 \} \{ \\mathrm{d} #2 \}", 2],
