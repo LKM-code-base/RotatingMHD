@@ -1094,7 +1094,7 @@ struct ProblemParameters
   friend Stream& operator<<(Stream &stream, const ProblemParameters &prm);
 
   /*!
-   * @brief Spatial dimension of the problem.
+   * @brief Problem type.
    */
   ProblemType                                 problem_type;
 
@@ -1135,10 +1135,6 @@ struct ProblemParameters
   bool                                        verbose;
 
   /*!
-   * @attention What do you think of dropping the "_parameters"?
-   */
-
-  /*!
    * @brief Parameters of the convergence test.
    */
   ConvergenceTestParameters                   convergence_test_parameters;
@@ -1146,12 +1142,12 @@ struct ProblemParameters
   /*!
    * @brief Parameters of the adaptive mesh refinement.
    */
-  SpatialDiscretizationParameters                        refinement_parameters;
+  SpatialDiscretizationParameters             spatial_discretization_parameters;
 
   /*!
    * @brief Parameters of the time stepping scheme.
    */
-  TimeDiscretization::TimeDiscretizationParameters  time_stepping_parameters;
+  TimeDiscretization::TimeDiscretizationParameters  time_discretization_parameters;
 
   /*!
    * @brief Parameters of the Navier-Stokes solver.

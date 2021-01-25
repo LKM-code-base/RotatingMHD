@@ -324,7 +324,7 @@ pressure(std::make_shared<Entities::ScalarEntity<dim>>
          (parameters.fe_degree_pressure,
           this->triangulation,
           "Pressure")),
-time_stepping(parameters.time_stepping_parameters),
+time_stepping(parameters.time_discretization_parameters),
 navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
@@ -405,7 +405,7 @@ void DFG<dim>::setup_constraints()
   velocity->boundary_conditions.set_dirichlet_bcs
   (0,
    std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>(
-     this->prm.time_stepping_parameters.start_time));
+     this->prm.time_discretization_parameters.start_time));
 
   velocity->boundary_conditions.set_dirichlet_bcs(2);
   velocity->boundary_conditions.set_dirichlet_bcs(3);

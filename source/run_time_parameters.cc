@@ -441,7 +441,7 @@ void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
       convergence_test_type = ConvergenceTestType::temporal;
     else
       AssertThrow(false,
-                  ExcMessage("Unexpected identified for the type of"
+                  ExcMessage("Unexpected identifier for the type of"
                              " of convergence test."));
 
     n_global_initial_refinements =
@@ -517,7 +517,7 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
       add_line("Convergence test type", "temporal");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected identified for the type of"
+      Assert(false, ExcMessage("Unexpected identifier for the type of"
                                " of convergence test."));
       break;
   }
@@ -875,7 +875,7 @@ Stream& operator<<(Stream &stream, const DimensionlessNumbers &prm)
       add_line("Reynolds number", prm.Re);
       break;
     case ProblemType::heat_convection_diffusion:
-    add_line("Peclet number", prm.Pe);
+      add_line("Peclet number", prm.Pe);
       break;
     case ProblemType::boussinesq:
       add_line("Prandtl number", prm.Pr);
@@ -1406,8 +1406,8 @@ fe_degree_velocity(2),
 fe_degree_temperature(2),
 verbose(false),
 convergence_test_parameters(),
-refinement_parameters(),
-time_stepping_parameters(),
+spatial_discretization_parameters(),
+time_discretization_parameters(),
 navier_stokes_parameters(),
 heat_equation_parameters(),
 flag_convergence_test(false)
@@ -1607,9 +1607,9 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
   if (flag_convergence_test)
     convergence_test_parameters.parse_parameters(prm);
   else
-    refinement_parameters.parse_parameters(prm);
+    spatial_discretization_parameters.parse_parameters(prm);
 
-  time_stepping_parameters.parse_parameters(prm);
+  time_discretization_parameters.parse_parameters(prm);
 
   if (str_problem_type != std::string("heat_convection_diffusion"))
     navier_stokes_parameters.parse_parameters(prm);
@@ -1710,11 +1710,11 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
   if (prm.flag_convergence_test)
     stream << prm.convergence_test_parameters;
   else
-    stream << prm.refinement_parameters;
+    stream << prm.spatial_discretization_parameters;
 
   stream << "\r";
 
-  stream << prm.time_stepping_parameters;
+  stream << prm.time_discretization_parameters;
 
   stream << "\r";
 
