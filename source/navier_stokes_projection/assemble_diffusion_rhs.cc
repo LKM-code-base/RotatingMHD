@@ -184,16 +184,16 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       temperature->old_old_solution,
       scratch.old_old_temperature_values);
 
-    Assert(gravity_unit_vector_ptr != nullptr,
+    Assert(gravity_vector_ptr != nullptr,
            ExcMessage("No unit vector for the gravity has been specified."))
 
-    gravity_unit_vector_ptr->set_time(time_stepping.get_previous_time());
-    gravity_unit_vector_ptr->value_list(
+    gravity_vector_ptr->set_time(time_stepping.get_previous_time());
+    gravity_vector_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.old_old_gravity_vector_values);
 
-    gravity_unit_vector_ptr->set_time(time_stepping.get_current_time());
-    gravity_unit_vector_ptr->value_list(
+    gravity_vector_ptr->set_time(time_stepping.get_current_time());
+    gravity_vector_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.old_gravity_vector_values);
   }

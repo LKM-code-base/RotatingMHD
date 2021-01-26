@@ -154,14 +154,14 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       temperature->old_old_solution,
       scratch.temperature_gradients);
 
-    Assert(gravity_unit_vector_ptr != nullptr,
+    Assert(gravity_vector_ptr != nullptr,
            ExcMessage("No unit vector for the gravity has been specified."))
 
-    gravity_unit_vector_ptr->value_list(
+    gravity_vector_ptr->value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
       scratch.gravity_vector_values);
 
-    gravity_unit_vector_ptr->divergence_list(
+    gravity_vector_ptr->divergence_list(
       scratch.pressure_fe_values.get_quadrature_points(),
       scratch.gravity_vector_divergences);
   }
@@ -311,10 +311,10 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
             temperature->old_old_solution,
             scratch.temperature_face_values);
 
-          Assert(gravity_unit_vector_ptr != nullptr,
+          Assert(gravity_vector_ptr != nullptr,
                 ExcMessage("No unit vector for the gravity has been specified."))
 
-          gravity_unit_vector_ptr->value_list(
+          gravity_vector_ptr->value_list(
             scratch.pressure_fe_face_values.get_quadrature_points(),
             scratch.gravity_vector_face_values);
         }
