@@ -81,14 +81,14 @@ log_file("ThermalTGV_Log.csv"),
 temperature(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_temperature,
                                                           this->triangulation,
                                                           "Temperature")),
-time_stepping(parameters.time_stepping_parameters),
+time_stepping(parameters.time_discretization_parameters),
 temperature_exact_solution(
   std::make_shared<EquationData::ThermalTGV::TemperatureExactSolution<dim>>(
     parameters.Pe,
-    parameters.time_stepping_parameters.start_time)),
+    parameters.time_discretization_parameters.start_time)),
 velocity_exact_solution(
   std::make_shared<EquationData::ThermalTGV::VelocityExactSolution<dim>>(
-    parameters.time_stepping_parameters.start_time)),
+    parameters.time_discretization_parameters.start_time)),
 heat_equation(parameters.heat_equation_parameters,
               time_stepping,
               temperature,
@@ -336,7 +336,7 @@ void ThermalTGV<dim>::run()
          cycle < this->prm.convergence_test_parameters.n_temporal_convergence_cycles;
          ++cycle)
     {
-      double time_step = this->prm.time_stepping_parameters.initial_time_step *
+      double time_step = this->prm.time_discretization_parameters.initial_time_step *
                          pow(this->prm.convergence_test_parameters.timestep_reduction_factor,
                              cycle);
 

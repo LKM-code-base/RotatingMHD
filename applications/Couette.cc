@@ -111,7 +111,7 @@ velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velo
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
                                                        "Pressure")),
-time_stepping(parameters.time_stepping_parameters),
+time_stepping(parameters.time_discretization_parameters),
 navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
@@ -399,7 +399,7 @@ void Couette<dim>::run()
          cycle < this->prm.convergence_test_parameters.n_temporal_convergence_cycles;
          ++cycle)
     {
-      double time_step = this->prm.time_stepping_parameters.initial_time_step *
+      double time_step = this->prm.time_discretization_parameters.initial_time_step *
                          pow(this->prm.convergence_test_parameters.timestep_reduction_factor,
                              cycle);
 

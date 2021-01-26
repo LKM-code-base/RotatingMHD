@@ -178,7 +178,7 @@ double Problem<dim>::compute_next_time_step
  const double                           cfl_number,
  const double                           max_cfl_number) const
 {
-  if (!prm.time_stepping_parameters.adaptive_time_stepping ||
+  if (!prm.time_discretization_parameters.adaptive_time_stepping ||
       time_stepping.get_step_number() == 0)
     return time_stepping.get_next_step_size();
 
@@ -261,18 +261,18 @@ void Problem<dim>::adaptive_mesh_refinement()
     GridRefinement::refine_and_coarsen_fixed_fraction(
       triangulation,
       estimated_error_per_cell,
-      prm.refinement_parameters.cell_fraction_to_coarsen,
-      prm.refinement_parameters.cell_fraction_to_refine);
+      prm.spatial_discretization_parameters.cell_fraction_to_coarsen,
+      prm.spatial_discretization_parameters.cell_fraction_to_refine);
 
     // Clear refinement flags if refinement level exceeds maximum
-    if (triangulation.n_global_levels() > prm.refinement_parameters.n_maximum_levels)
+    if (triangulation.n_global_levels() > prm.spatial_discretization_parameters.n_maximum_levels)
       for (auto cell: triangulation.active_cell_iterators_on_level(
-                        prm.refinement_parameters.n_maximum_levels))
+                        prm.spatial_discretization_parameters.n_maximum_levels))
         cell->clear_refine_flag();
 
     // Clear coarsen flags if level decreases minimum
     for (auto cell: triangulation.active_cell_iterators_on_level(
-                      prm.refinement_parameters.n_minimum_levels))
+                      prm.spatial_discretization_parameters.n_minimum_levels))
         cell->clear_coarsen_flag();
 
     // Count number of cells to be refined and coarsened
