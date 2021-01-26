@@ -194,16 +194,16 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       temperature->old_old_solution,
       scratch.temperature_gradients);
 
-    Assert(gravity_unit_vector_ptr != nullptr,
+    Assert(gravity_vector_ptr != nullptr,
            ExcMessage("No unit vector for the gravity has been specified."))
 
-    gravity_unit_vector_ptr->value_list(
+    gravity_vector_ptr->value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.gravity_unit_vector_values);
+      scratch.gravity_vector_values);
 
-    gravity_unit_vector_ptr->divergence_list(
+    gravity_vector_ptr->divergence_list(
       scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.gravity_unit_vector_divergences);
+      scratch.gravity_vector_divergences);
   }
   else
   {
@@ -217,11 +217,11 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
     ZeroTensorFunction<1,dim>().value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.gravity_unit_vector_values);
+      scratch.gravity_vector_values);
 
     ZeroFunction<dim>().value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.gravity_unit_vector_divergences);
+      scratch.gravity_vector_divergences);
   }
 
   // Body force
@@ -233,7 +233,6 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
     ZeroFunction<dim>().value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
       scratch.body_force_divergences);
-
 
   // Local to global indices mapping
   cell->get_dof_indices(data.local_dof_indices);
@@ -253,10 +252,10 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
               scratch.phi[i] *
               (parameters.C3 / parameters.C6 *
                (scratch.temperature_gradients[q] *
-                scratch.gravity_unit_vector_values[q]
+                scratch.gravity_vector_values[q]
                 +
                 scratch.temperature_values[q] *
-                scratch.gravity_unit_vector_divergences[q])
+                scratch.gravity_vector_divergences[q])
                -
                1.0 / parameters.C6 *
                scratch.body_force_divergences[q]) *
@@ -357,12 +356,12 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
             temperature->old_old_solution,
             scratch.temperature_face_values);
 
-          Assert(gravity_unit_vector_ptr != nullptr,
+          Assert(gravity_vector_ptr != nullptr,
                 ExcMessage("No unit vector for the gravity has been specified."))
 
-          gravity_unit_vector_ptr->value_list(
+          gravity_vector_ptr->value_list(
             scratch.pressure_fe_face_values.get_quadrature_points(),
-            scratch.gravity_unit_vector_face_values);
+            scratch.gravity_vector_face_values);
         }
         else
         {
@@ -372,7 +371,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
           ZeroTensorFunction<1, dim>().value_list(
             scratch.pressure_fe_face_values.get_quadrature_points(),
-            scratch.gravity_unit_vector_face_values);
+            scratch.gravity_vector_face_values);
         }
 
         // Body force
@@ -431,7 +430,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                               -
                               parameters.C3 *
                               scratch.temperature_face_values[q] *
-                              scratch.gravity_unit_vector_face_values[q]
+                              scratch.gravity_vector_face_values[q]
                               +
                               scratch.body_force_values[q])*
                               scratch.normal_vectors[q] *

@@ -190,12 +190,18 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       temperature->old_old_solution,
       scratch.old_old_temperature_values);
 
-    Assert(gravity_unit_vector_ptr != nullptr,
+    Assert(gravity_vector_ptr != nullptr,
            ExcMessage("No unit vector for the gravity has been specified."))
 
-    gravity_unit_vector_ptr->value_list(
+    gravity_vector_ptr->set_time(time_stepping.get_previous_time());
+    gravity_vector_ptr->value_list(
       scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.gravity_unit_vector_values);
+      scratch.old_old_gravity_vector_values);
+
+    gravity_vector_ptr->set_time(time_stepping.get_current_time());
+    gravity_vector_ptr->value_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.old_gravity_vector_values);
   }
   else
   {
@@ -205,8 +211,11 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
     scratch.old_old_temperature_values = scratch.old_temperature_values;
 
-    for (auto &gravity_unit_vector : scratch.gravity_unit_vector_values)
-      gravity_unit_vector = Tensor<1, dim>();
+    ZeroTensorFunction<1, dim>().value_list(
+      scratch.velocity_fe_values.get_quadrature_points(),
+      scratch.old_gravity_vector_values);
+
+    scratch.old_old_gravity_vector_values = scratch.old_gravity_vector_values;
   }
 
   // Body force
@@ -329,13 +338,13 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                 beta[0] *
                 parameters.C3 *
                 scratch.phi[i] *
-                scratch.gravity_unit_vector_values[q] *
+                scratch.old_gravity_vector_values[q] *
                 scratch.old_temperature_values[q]
                 -
                 beta[1] *
                 parameters.C3 *
                 scratch.phi[i] *
-                scratch.gravity_unit_vector_values[q] *
+                scratch.old_old_gravity_vector_values[q] *
                 scratch.old_old_temperature_values[q]
                 +
                 gamma[0] *

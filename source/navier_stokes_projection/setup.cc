@@ -350,10 +350,10 @@ void NavierStokesProjection<dim>::set_body_force(
 }
 
 template <int dim>
-void NavierStokesProjection<dim>::set_gravity_unit_vector(
-  RMHD::EquationData::VectorFunction<dim> &gravity_unit_vector)
+void NavierStokesProjection<dim>::set_gravity_vector(
+  RMHD::EquationData::VectorFunction<dim> &gravity_vector)
 {
-  gravity_unit_vector_ptr = &gravity_unit_vector;
+  gravity_vector_ptr = &gravity_vector;
 }
 
 template <int dim>
@@ -401,8 +401,8 @@ template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<2>::set_body_force(RMHD::EquationData::VectorFunction<2> &);
 template void RMHD::NavierStokesProjection<3>::set_body_force(RMHD::EquationData::VectorFunction<3> &);
 
-template void RMHD::NavierStokesProjection<2>::set_gravity_unit_vector(RMHD::EquationData::VectorFunction<2> &);
-template void RMHD::NavierStokesProjection<3>::set_gravity_unit_vector(RMHD::EquationData::VectorFunction<3> &);
+template void RMHD::NavierStokesProjection<2>::set_gravity_vector(RMHD::EquationData::VectorFunction<2> &);
+template void RMHD::NavierStokesProjection<3>::set_gravity_vector(RMHD::EquationData::VectorFunction<3> &);
 
 template void RMHD::NavierStokesProjection<2>::set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<2> &);
 template void RMHD::NavierStokesProjection<3>::set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<3> &);

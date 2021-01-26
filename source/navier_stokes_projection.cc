@@ -63,7 +63,7 @@ flag_ignore_bouyancy_term(true)
 
   // Explicitly set the body forces and the temperature pointer to null
   body_force_ptr              = nullptr;
-  gravity_unit_vector_ptr     = nullptr;
+  gravity_vector_ptr          = nullptr;
   angular_velocity_vector_ptr = nullptr;
   temperature                 = nullptr;
 }
@@ -120,7 +120,7 @@ flag_ignore_bouyancy_term(false)
       Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
 
   // Initiating the internal TimerOutput instance.
-  if (external_timer.get() != nullptr)
+  if (external_timer.get() != nullptr)gravity_unit_vector_ptr
     computing_timer  = external_timer;
   else
     computing_timer.reset(new TimerOutput(
@@ -130,7 +130,7 @@ flag_ignore_bouyancy_term(false)
 
   // Explicitly set the body forces pointer to null
   body_force_ptr              = nullptr;
-  gravity_unit_vector_ptr     = nullptr;
+  gravity_vector_ptr          = nullptr;
   angular_velocity_vector_ptr = nullptr;
 }
 

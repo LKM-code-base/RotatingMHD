@@ -108,7 +108,7 @@ private:
 
   BenchmarkData::MIT<dim>                       mit_benchmark;
 
-  EquationData::MIT::GravityUnitVector<dim>     gravity_unit_vector;
+  EquationData::MIT::GravityUnitVector<dim>     gravity_vector;
 
   double                                        cfl_number;
 
@@ -173,14 +173,14 @@ mit_benchmark(velocity,
               this->mapping,
               this->pcout,
               this->computing_timer),
-gravity_unit_vector(parameters.time_discretization_parameters.start_time),
+gravity_vector(parameters.time_discretization_parameters.start_time),
 cfl_output_file("MIT_cfl_number.csv"),
 flag_local_refinement(true)
 {
   *this->pcout << parameters << std::endl << std::endl;
 
   AssertDimension(dim, 2);
-  navier_stokes.set_gravity_unit_vector(gravity_unit_vector);
+  navier_stokes.set_gravity_vector(gravity_vector);
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();

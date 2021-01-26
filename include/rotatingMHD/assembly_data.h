@@ -253,7 +253,9 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<double>         old_old_temperature_values;
 
-  std::vector<Tensor<1,dim>>  gravity_unit_vector_values;
+  std::vector<Tensor<1,dim>>  old_gravity_vector_values;
+
+  std::vector<Tensor<1,dim>>  old_old_gravity_vector_values;
 
   std::vector<Tensor<1,dim>>  body_force_values;
 
@@ -377,11 +379,11 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  temperature_gradients;
 
-  std::vector<Tensor<1,dim>>  gravity_unit_vector_values;
+  std::vector<Tensor<1,dim>>  gravity_vector_values;
 
-  std::vector<Tensor<1,dim>>  gravity_unit_vector_face_values;
+  std::vector<Tensor<1,dim>>  gravity_vector_face_values;
 
-  std::vector<double>         gravity_unit_vector_divergences;
+  std::vector<double>         gravity_vector_divergences;
 
   std::vector<Tensor<1,dim>>  body_force_values;
 
