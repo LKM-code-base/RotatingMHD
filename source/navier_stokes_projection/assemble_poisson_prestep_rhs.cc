@@ -21,20 +21,20 @@ assemble_poisson_prestep_rhs()
   const FE_Q<dim> dummy_fe(1);
 
   // Create pointer to the pertinent finite element
-  const FE_Q<dim> * const temperature_fe_ptr = 
+  const FE_Q<dim> * const temperature_fe_ptr =
           (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
 
   // Set polynomial degree of the body force function.
   // Hardcoded to match that of the velocity.
   const int p_degree_body_force = velocity->fe_degree;
 
-  // Compute the highest polynomial degree from all the integrands 
+  // Compute the highest polynomial degree from all the integrands
   const int p_degree = pressure->fe_degree + p_degree_body_force - 1;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
-  // Compute the highest polynomial degree from all the boundary integrands 
+  // Compute the highest polynomial degree from all the boundary integrands
   const int face_p_degree = std::max(pressure->fe_degree + p_degree_body_force,
                                      pressure->fe_degree + velocity->fe_degree -2);
 
@@ -48,7 +48,7 @@ assemble_poisson_prestep_rhs()
            AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>   &scratch,
            AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy           &data)
     {
-      this->assemble_local_poisson_prestep_rhs(cell, 
+      this->assemble_local_poisson_prestep_rhs(cell,
                                                scratch,
                                                data);
     };
@@ -94,7 +94,7 @@ assemble_poisson_prestep_rhs()
       update_gradients,
       update_values),
     AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy(pressure->fe.dofs_per_cell));
-  
+
   // Compress global data
   poisson_prestep_rhs.compress(VectorOperation::add);
 
@@ -134,7 +134,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
     velocity->old_old_solution,
     scratch.velocity_curls);*/
 
-  // Temperature 
+  // Temperature
   if (!flag_ignore_bouyancy_term)
   {
     typename DoFHandler<dim>::active_cell_iterator
@@ -145,7 +145,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
     scratch.temperature_fe_values.reinit(temperature_cell);
 
-    
+
     scratch.temperature_fe_values.get_function_values(
       temperature->old_old_solution,
       scratch.temperature_values);
@@ -156,14 +156,14 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
     Assert(gravity_unit_vector_ptr != nullptr,
            ExcMessage("No unit vector for the gravity has been specified."))
-    
+
     gravity_unit_vector_ptr->value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.gravity_unit_vector_values);
+      scratch.gravity_vector_values);
 
     gravity_unit_vector_ptr->divergence_list(
       scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.gravity_unit_vector_divergences);
+      scratch.gravity_vector_divergences);
   }
   else
   {
@@ -177,11 +177,11 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
     ZeroTensorFunction<1,dim>().value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.gravity_unit_vector_values);
+      scratch.gravity_vector_values);
 
     ZeroFunction<dim>().value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.gravity_unit_vector_divergences);
+      scratch.gravity_vector_divergences);
   }
 
   // Body force
@@ -201,12 +201,12 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
   }
   else
   {
-    
+
   }*/
 
   // Local to global indices mapping
   cell->get_dof_indices(data.local_dof_indices);
-  
+
   // Loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
   {
@@ -218,17 +218,17 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
       // Local right hand side (Domain integrals)
-      data.local_rhs(i) -= 
+      data.local_rhs(i) -=
               scratch.phi[i] *
               (scratch.body_force_divergences[q]
                -
-               parameters.C3 * 
+               parameters.C3 *
                (scratch.phi[i] *
                 scratch.temperature_gradients[q] *
-                scratch.gravity_unit_vector_values[q]
+                scratch.gravity_vector_values[q]
                 +
                 scratch.temperature_values[q] *
-                scratch.gravity_unit_vector_divergences[q])
+                scratch.gravity_vector_divergences[q])
                /*+
                -
                - parameters.C3
@@ -313,20 +313,20 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
           Assert(gravity_unit_vector_ptr != nullptr,
                 ExcMessage("No unit vector for the gravity has been specified."))
-          
+
           gravity_unit_vector_ptr->value_list(
             scratch.pressure_fe_face_values.get_quadrature_points(),
-            scratch.gravity_unit_vector_face_values);
+            scratch.gravity_vector_face_values);
         }
         else
         {
           ZeroFunction<dim>().value_list(
             scratch.pressure_fe_face_values.get_quadrature_points(),
             scratch.temperature_face_values);
-        
+
           ZeroTensorFunction<1, dim>().value_list(
             scratch.pressure_fe_face_values.get_quadrature_points(),
-            scratch.gravity_unit_vector_face_values);
+            scratch.gravity_vector_face_values);
         }
 
         // Body force
@@ -348,9 +348,9 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
           ZeroTensorFunction<1,dim>().value_list(
             scratch.pressure_fe_face_values.get_quadrature_points(),
             scratch.rotation_face_values);*/
-        
+
         // Normal vector
-        scratch.normal_vectors = 
+        scratch.normal_vectors =
                       scratch.pressure_fe_face_values.get_normal_vectors();
 
         // Loop over face quadrature points
@@ -358,14 +358,14 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
           {
             // Extract the test function's values at the face quadrature points
             for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-              scratch.face_phi[i] = 
+              scratch.face_phi[i] =
                           scratch.pressure_fe_face_values.shape_value(i, q);
 
             // Loop over the degrees of freedom
             for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
             {
-              data.local_rhs(i) += 
-                              scratch.face_phi[i] * 
+              data.local_rhs(i) +=
+                              scratch.face_phi[i] *
                               (parameters.C2 *
                               scratch.velocity_laplacians[q]
                               +
@@ -373,12 +373,12 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                               -
                               parameters.C3 *
                               scratch.temperature_face_values[q] *
-                              scratch.gravity_unit_vector_face_values[q])*
+                              scratch.gravity_vector_face_values[q])*
                               scratch.normal_vectors[q] *
-                              scratch.pressure_fe_face_values.JxW(q);  
+                              scratch.pressure_fe_face_values.JxW(q);
               if constexpr(dim == 2)
                 data.local_rhs(i) -=
-                              0.0 * /* parameters.C5 * 
+                              0.0 * /* parameters.C5 *
                               scratch.face_phi[i] **/
                               scratch.pressure_fe_face_values.JxW(q);
               else if constexpr(dim == 3)
