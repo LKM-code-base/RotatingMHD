@@ -146,7 +146,7 @@ public:
    *  @details Stores the memory address of the gravity unit vector
    *  function in the pointer @ref gravity_vector_ptr.
    */
-  void set_gravity_vector(RMHD::EquationData::BodyForce<dim> &gravity_vector);
+  void set_gravity_vector(RMHD::EquationData::VectorFunction<dim> &gravity_vector);
 
   /*!
    *  @brief Sets the angular velocity of the rotating frame of

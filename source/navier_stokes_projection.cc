@@ -120,7 +120,7 @@ flag_ignore_bouyancy_term(false)
       Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
 
   // Initiating the internal TimerOutput instance.
-  if (external_timer.get() != nullptr)gravity_unit_vector_ptr
+  if (external_timer.get() != nullptr)
     computing_timer  = external_timer;
   else
     computing_timer.reset(new TimerOutput(

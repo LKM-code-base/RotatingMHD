@@ -224,7 +224,7 @@ christensen_benchmark(velocity,
                << parameters.navier_stokes_parameters.C6
                << std::endl << std::endl;
 
-  navier_stokes.set_gravity_unit_vector(gravity_vector);
+  navier_stokes.set_gravity_vector(gravity_vector);
   navier_stokes.set_angular_velocity_vector(angular_velocity);
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
