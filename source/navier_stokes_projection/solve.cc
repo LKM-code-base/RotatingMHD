@@ -17,6 +17,8 @@ void NavierStokesProjection<dim>::solve()
     projection_step(true);
 
     pressure_correction(true);
+
+    flag_matrices_were_updated = false;
   }
   else
   {
@@ -83,6 +85,10 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           pressure->solution = distributed_old_pressure;
         }
+
+        if (parameters.verbose)
+          *pcout << " done!" << std::endl << std::endl;
+
         break;
       case RunTimeParameters::PressureCorrectionScheme::rotational:
         // In the following scope we create temporal non ghosted copies
@@ -107,7 +113,18 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
                      parameters.correction_step_solver_parameters.absolute_tolerance));
 
           if (reinit_prec)
-            correction_step_preconditioner.initialize(projection_mass_matrix);
+          {
+            #ifdef USE_PETSC_LA
+              correction_step_preconditioner.initialize(projection_mass_matrix,
+                                                        correction_step_preconditioner_data);
+            #else
+              if (flag_matrices_were_updated)
+                correction_step_preconditioner.initialize(projection_mass_matrix,
+                                                          correction_step_preconditioner_data);
+              else
+                correction_step_preconditioner.reinit();
+            #endif
+          }
 
           #ifdef USE_PETSC_LA
             LinearAlgebra::SolverCG solver(solver_control,
@@ -171,15 +188,19 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           // Pass the distributed vector to its ghost counterpart.
           pressure->solution = distributed_pressure;
+
+          if (parameters.verbose)
+            *pcout << " done!" << std::endl
+                  << "    Number of CG iterations: "
+                  << solver_control.last_step()
+                  << ", Final residual: " << solver_control.last_value() << "."
+                  << std::endl << std::endl;
         }
 
         break;
       default:
         Assert(false, ExcNotImplemented());
     };
-
-  if (parameters.verbose)
-    *pcout << " done!" << std::endl << std::endl;
 }
 
 

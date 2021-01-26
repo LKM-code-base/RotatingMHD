@@ -39,7 +39,8 @@ solve_poisson_prestep()
   LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure->distributed_vector);
   distributed_old_old_pressure = pressure->old_old_solution;
 
-  poisson_prestep_preconditioner.initialize(pressure_laplace_matrix);
+  poisson_prestep_preconditioner.initialize(pressure_laplace_matrix,
+                                            poisson_prestep_preconditioner_data);
 
   SolverControl solver_control(
     parameters.poisson_prestep_solver_parameters.n_maximum_iterations,

@@ -27,6 +27,8 @@ void NavierStokesProjection<dim>::setup()
 
   assemble_constant_matrices();
 
+  set_preconditioner_data();
+
   // If the pressure correction variable @ref phi only has Neumann
   // boundary conditions, its solution is defined only up to a constant.
   if (phi->boundary_conditions.dirichlet_bcs.empty())
@@ -34,11 +36,13 @@ void NavierStokesProjection<dim>::setup()
 
   // If the matrices and vector are assembled, the sum of the mass and
   // stiffness matrices has to be updated.
-  flag_add_mass_and_stiffness_matrices = true;
+  flag_matrices_were_updated = true;
 
   if (time_stepping.get_step_number() == 0)
     poisson_prestep();
 }
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::setup_phi()
@@ -106,6 +110,8 @@ void NavierStokesProjection<dim>::setup_phi()
   // user. See the documentation of the flag for more information.
   flag_setup_phi = false;
 }
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::setup_matrices()
@@ -313,6 +319,8 @@ void NavierStokesProjection<dim>::setup_matrices()
     *pcout << " done!" << std::endl;
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::
 setup_vectors()
@@ -333,6 +341,8 @@ setup_vectors()
     *pcout << " done!" << std::endl;
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_constant_matrices()
@@ -342,12 +352,16 @@ assemble_constant_matrices()
   assemble_pressure_matrices();
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::set_body_force(
   RMHD::EquationData::BodyForce<dim> &body_force)
 {
   body_force_ptr = &body_force;
 }
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::set_gravity_unit_vector(
@@ -356,12 +370,16 @@ void NavierStokesProjection<dim>::set_gravity_unit_vector(
   gravity_unit_vector_ptr = &gravity_unit_vector;
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::reset_phi()
 {
   phi->set_solution_vectors_to_zero();
   flag_setup_phi = true;
 }
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::
@@ -375,6 +393,126 @@ poisson_prestep()
   velocity->old_solution = velocity->old_old_solution;
   pressure->old_solution = pressure->old_old_solution;
 }
+
+
+
+template <int dim>
+void NavierStokesProjection<dim>::set_preconditioner_data()
+{
+  #ifdef USE_PETSC_LA
+    if (parameters.convective_term_time_discretization ==
+        RunTimeParameters::ConvectiveTermTimeDiscretization::fully_explicit)
+      diffusion_step_preconditioner_data.symmetric_operator               = true;
+    if (dim == 2)
+      diffusion_step_preconditioner_data.strong_threshold                 = 0.25;
+    else if (dim == 3)
+      diffusion_step_preconditioner_data.strong_threshold                 = 0.50;
+    diffusion_step_preconditioner_data.max_row_sum                        = 0.9;
+    diffusion_step_preconditioner_data.aggressive_coarsening_num_levels   = 0;
+    diffusion_step_preconditioner_data.output_details                     = false;
+
+    projection_step_preconditioner_data.symmetric_operator                = true;
+    if (dim == 2)
+      projection_step_preconditioner_data.strong_threshold                = 0.25;
+    else if (dim == 3)
+      projection_step_preconditioner_data.strong_threshold                = 0.50;
+    projection_step_preconditioner_data.max_row_sum                       = 0.9;
+    projection_step_preconditioner_data.aggressive_coarsening_num_levels  = 0;
+    projection_step_preconditioner_data.output_details                    = false;
+
+    correction_step_preconditioner_data.symmetric_operator                = true;
+    if (dim == 2)
+      correction_step_preconditioner_data.strong_threshold                = 0.25;
+    else if (dim == 3)
+      correction_step_preconditioner_data.strong_threshold                = 0.50;
+    correction_step_preconditioner_data.max_row_sum                       = 0.9;
+    correction_step_preconditioner_data.aggressive_coarsening_num_levels  = 0;
+    correction_step_preconditioner_data.output_details                    = false;
+
+    poisson_prestep_preconditioner_data.symmetric_operator                = true;
+    if (dim == 2)
+      poisson_prestep_preconditioner_data.strong_threshold                = 0.25;
+    else if (dim == 3)
+      poisson_prestep_preconditioner_data.strong_threshold                = 0.50;
+    poisson_prestep_preconditioner_data.max_row_sum                       = 0.9;
+    poisson_prestep_preconditioner_data.aggressive_coarsening_num_levels  = 0;
+    poisson_prestep_preconditioner_data.output_details                    = false;
+
+  #else
+    FEValuesExtractors::Vector                vector_extractor(0);
+    FEValuesExtractors::Scalar                scalar_extractor(0);
+
+    DoFTools::extract_constant_modes(
+      *velocity->dof_handler,
+      (*velocity->dof_handler).get_fe_collection().component_mask(vector_extractor),
+      diffusion_step_preconditioner_data.constant_modes );
+
+    diffusion_step_preconditioner_data.elliptic                = false;
+    if (velocity->fe_degree > 1)
+      diffusion_step_preconditioner_data.higher_order_elements = true;
+    diffusion_step_preconditioner_data.n_cycles                = 1;
+    diffusion_step_preconditioner_data.w_cycle                 = false;
+    diffusion_step_preconditioner_data.aggregation_threshold   = 1e-4;
+    diffusion_step_preconditioner_data.smoother_sweeps         = 2;
+    diffusion_step_preconditioner_data.smoother_overlap        = 0;
+    diffusion_step_preconditioner_data.output_details          = false;
+    diffusion_step_preconditioner_data.smoother_type           = "Chebyshev";
+    diffusion_step_preconditioner_data.coarse_type             = "Amesos-KLU";
+
+    DoFTools::extract_constant_modes(
+      *phi->dof_handler,
+      (*phi->dof_handler).get_fe_collection().component_mask(scalar_extractor),
+      projection_step_preconditioner_data.constant_modes );
+
+    projection_step_preconditioner_data.elliptic                = true;
+    if (phi->fe_degree > 1)
+      projection_step_preconditioner_data.higher_order_elements = true;
+    projection_step_preconditioner_data.n_cycles                = 1;
+    projection_step_preconditioner_data.w_cycle                 = false;
+    projection_step_preconditioner_data.aggregation_threshold   = 1e-4;
+    projection_step_preconditioner_data.smoother_sweeps         = 2;
+    projection_step_preconditioner_data.smoother_overlap        = 0;
+    projection_step_preconditioner_data.output_details          = false;
+    projection_step_preconditioner_data.smoother_type           = "Chebyshev";
+    projection_step_preconditioner_data.coarse_type             = "Amesos-KLU";
+
+    DoFTools::extract_constant_modes(
+      *pressure->dof_handler,
+      (*pressure->dof_handler).get_fe_collection().component_mask(scalar_extractor),
+      correction_step_preconditioner_data.constant_modes );
+
+    correction_step_preconditioner_data.elliptic                = true;
+    if (pressure->fe_degree > 1)
+      correction_step_preconditioner_data.higher_order_elements = true;
+    correction_step_preconditioner_data.n_cycles                = 1;
+    correction_step_preconditioner_data.w_cycle                 = false;
+    correction_step_preconditioner_data.aggregation_threshold   = 1e-4;
+    correction_step_preconditioner_data.smoother_sweeps         = 2;
+    correction_step_preconditioner_data.smoother_overlap        = 0;
+    correction_step_preconditioner_data.output_details          = false;
+    correction_step_preconditioner_data.smoother_type           = "Chebyshev";
+    correction_step_preconditioner_data.coarse_type             = "Amesos-KLU";
+
+    DoFTools::extract_constant_modes(
+      *pressure->dof_handler,
+      (*pressure->dof_handler).get_fe_collection().component_mask(scalar_extractor),
+      poisson_prestep_preconditioner_data.constant_modes );
+
+    poisson_prestep_preconditioner_data.elliptic                = false;
+    if (pressure->fe_degree > 1)
+      poisson_prestep_preconditioner_data.higher_order_elements = true;
+    poisson_prestep_preconditioner_data.n_cycles                = 1;
+    poisson_prestep_preconditioner_data.w_cycle                 = false;
+    poisson_prestep_preconditioner_data.aggregation_threshold   = 1e-4;
+    poisson_prestep_preconditioner_data.smoother_sweeps         = 2;
+    poisson_prestep_preconditioner_data.smoother_overlap        = 0;
+    poisson_prestep_preconditioner_data.output_details          = false;
+    poisson_prestep_preconditioner_data.smoother_type           = "Chebyshev";
+    poisson_prestep_preconditioner_data.coarse_type             = "Amesos-KLU";
+  #endif
+}
+
+
 
 }
 
@@ -402,3 +540,6 @@ template void RMHD::NavierStokesProjection<3>::reset_phi();
 
 template void RMHD::NavierStokesProjection<2>::poisson_prestep();
 template void RMHD::NavierStokesProjection<3>::poisson_prestep();
+
+template void RMHD::NavierStokesProjection<2>::set_preconditioner_data();
+template void RMHD::NavierStokesProjection<3>::set_preconditioner_data();

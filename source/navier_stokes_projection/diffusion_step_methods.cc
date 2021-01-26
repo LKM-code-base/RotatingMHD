@@ -12,7 +12,7 @@ assemble_diffusion_step()
   /* This if scope makes sure that if the time step did not change
      between solve calls, the following matrix summation is only done once */
   if (time_stepping.coefficients_changed() == true ||
-      flag_add_mass_and_stiffness_matrices)
+      flag_matrices_were_updated)
   {
     TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Mass and stiffness matrix addition");
     velocity_mass_plus_laplace_matrix = 0.;
@@ -24,8 +24,6 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix.add
     (time_stepping.get_gamma()[0] * parameters.C2,
      velocity_laplace_matrix);
-    
-    flag_add_mass_and_stiffness_matrices = false;
   }
 
   /* In case of a semi-implicit scheme, the advection matrix has to be
@@ -56,7 +54,7 @@ solve_diffusion_step(const bool reinit_prec)
   LinearAlgebra::MPI::Vector distributed_velocity(velocity->distributed_vector);
   distributed_velocity = velocity->solution;
 
-  /* The following pointer holds the address to the correct matrix 
+  /* The following pointer holds the address to the correct matrix
   depending on if the semi-implicit scheme is chosen or not */
   const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
   if (parameters.convective_term_time_discretization ==
@@ -66,7 +64,18 @@ solve_diffusion_step(const bool reinit_prec)
     system_matrix = &velocity_mass_plus_laplace_matrix;
 
   if (reinit_prec)
-    diffusion_step_preconditioner.initialize(*system_matrix);
+  {
+    #ifdef USE_PETSC_LA
+      diffusion_step_preconditioner.initialize(*system_matrix,
+                                               diffusion_step_preconditioner_data);
+    #else
+      if (flag_matrices_were_updated)
+        diffusion_step_preconditioner.initialize(*system_matrix,
+                                                 diffusion_step_preconditioner_data);
+      else
+        diffusion_step_preconditioner.reinit();
+    #endif
+  }
 
   SolverControl solver_control(
     parameters.diffusion_step_solver_parameters.n_maximum_iterations,
@@ -117,7 +126,7 @@ solve_diffusion_step(const bool reinit_prec)
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of GMRES iterations: " 
+           << "    Number of GMRES iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;

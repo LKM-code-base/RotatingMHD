@@ -24,7 +24,7 @@ pressure(pressure),
 time_stepping(time_stepping),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_add_mass_and_stiffness_matrices(true),
+flag_matrices_were_updated(true),
 flag_ignore_bouyancy_term(true)
 {
   Assert(velocity.get() != nullptr,
@@ -87,7 +87,7 @@ temperature(temperature),
 time_stepping(time_stepping),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_add_mass_and_stiffness_matrices(true),
+flag_matrices_were_updated(true),
 flag_ignore_bouyancy_term(false)
 {
   Assert(velocity.get() != nullptr,
