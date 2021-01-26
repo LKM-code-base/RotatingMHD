@@ -268,11 +268,6 @@ private:
   LinearAlgebra::MPI::PreconditionAMG::AdditionalData amg_data;
 
   /*!
-   * @brief Absolute tolerance of the Krylov solver.
-   */
-  const double                                  absolute_tolerance = 1.0e-9;
-
-  /*!
    * @brief A flag indicating if the matrices were updated.
    */
   bool                                          flag_matrices_were_updated;
