@@ -170,16 +170,16 @@ temperature_initial_conditions(
     r_i,
     r_o,
     A,
-    parameters.time_stepping_parameters.start_time)),
+    parameters.time_discretization_parameters.start_time)),
 temperature_boundary_conditions(
   std::make_shared<EquationData::Christensen::TemperatureBoundaryCondition<dim>>(
     r_i,
     r_o,
-    parameters.time_stepping_parameters.start_time)),
+    parameters.time_discretization_parameters.start_time)),
 gravity_vector(r_o,
-               parameters.time_stepping_parameters.start_time),
-angular_velocity(parameters.time_stepping_parameters.start_time),
-time_stepping(parameters.time_stepping_parameters),
+               parameters.time_discretization_parameters.start_time),
+angular_velocity(parameters.time_discretization_parameters.start_time),
+time_stepping(parameters.time_discretization_parameters),
 navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
               velocity,
@@ -226,7 +226,7 @@ christensen_benchmark(velocity,
 
   navier_stokes.set_gravity_unit_vector(gravity_vector);
   navier_stokes.set_angular_velocity_vector(angular_velocity);
-  make_grid(parameters.refinement_parameters.n_initial_global_refinements);
+  make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
   velocity->reinit();
@@ -430,7 +430,7 @@ void Christensen<dim>::update_solution_vectors()
 template <int dim>
 void Christensen<dim>::run()
 {
-  time_stepping.advance_time();
+  //time_stepping.advance_time();
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
@@ -459,7 +459,7 @@ void Christensen<dim>::run()
     /*
     // Performs coarsening and refining of the triangulation
     if (time_stepping.get_step_number() %
-        this->prm.refinement_parameters.adaptive_mesh_refinement_frequency == 0)
+        this->prm.spatial_discretization_parameters.adaptive_mesh_refinement_frequency == 0)
       this->adaptive_mesh_refinement();*/
 
     // Graphical output of the solution vectors
