@@ -146,7 +146,7 @@ public:
    *  @details Stores the memory address of the gravity unit vector
    *  function in the pointer @ref gravity_unit_vector_ptr.
    */
-  void set_gravity_unit_vector(RMHD::EquationData::BodyForce<dim> &gravity_unit_vector);
+  void set_gravity_vector(RMHD::EquationData::BodyForce<dim> &gravity_vector);
 
 
   /*!
@@ -240,7 +240,7 @@ private:
   /*!
    * @brief A pointer to the gravity unit vector function.
    */
-  RMHD::EquationData::BodyForce<dim>    *gravity_unit_vector_ptr;
+  RMHD::EquationData::BodyForce<dim>    *gravity_vector_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.

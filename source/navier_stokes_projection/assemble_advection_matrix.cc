@@ -7,12 +7,15 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 {
+  if (parameters.verbose)
+    *pcout << "  Navier Stokes: Assembling advection matrix...";
+
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Advection matrix assembly");
 
   // Reset data
   velocity_advection_matrix = 0.;
 
-  // Compute the highest polynomial degree from all the integrands 
+  // Compute the highest polynomial degree from all the integrands
   const int p_degree = 3 * velocity->fe_degree - 1;
 
   // Initiate the quadrature formula for exact numerical integration
@@ -24,7 +27,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
            AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>  &scratch,
            AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy          &data)
     {
-      this->assemble_local_velocity_advection_matrix(cell, 
+      this->assemble_local_velocity_advection_matrix(cell,
                                                      scratch,
                                                      data);
     };
@@ -59,6 +62,8 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
   // Compress global data
   velocity_advection_matrix.compress(VectorOperation::add);
 
+  if (parameters.verbose)
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
@@ -118,7 +123,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
       scratch.phi[i]        = scratch.fe_values[vector_extractor].value(i, q);
       scratch.grad_phi[i]   = scratch.fe_values[vector_extractor].gradient(i, q);
       /*! @note As above, should I leave this if in? */
-      if (parameters.convective_term_weak_form == 
+      if (parameters.convective_term_weak_form ==
         RunTimeParameters::ConvectiveTermWeakForm::rotational)
         scratch.curl_phi[i] = scratch.fe_values[vector_extractor].curl(i,q);
     }
@@ -142,7 +147,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
           }
           case RunTimeParameters::ConvectiveTermWeakForm::skewsymmetric:
           {
-            data.local_matrix(i, j) += ( 
+            data.local_matrix(i, j) += (
                           scratch.phi[i] *
                           scratch.grad_phi[j] *
                           (eta[0] *
@@ -157,14 +162,14 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
                            +
                            eta[1] *
                            scratch.old_old_velocity_divergences[q]) *
-                          scratch.phi[i] * 
+                          scratch.phi[i] *
                           scratch.phi[j]) *
                           scratch.fe_values.JxW(q);
             break;
           }
           case RunTimeParameters::ConvectiveTermWeakForm::divergence:
           {
-            data.local_matrix(i, j) += ( 
+            data.local_matrix(i, j) += (
                           scratch.phi[i] *
                           scratch.grad_phi[j] *
                           (eta[0] *
@@ -178,7 +183,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
                            +
                            eta[1] *
                            scratch.old_old_velocity_divergences[q]) *
-                          scratch.phi[i] * 
+                          scratch.phi[i] *
                           scratch.phi[j]) *
                           scratch.fe_values.JxW(q);
             break;
@@ -188,7 +193,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
             // The minus sign in the argument of cross_product_2d
             // method is due to how the method is defined.
             if constexpr(dim == 2)
-              data.local_matrix(i, j) += 
+              data.local_matrix(i, j) +=
                           scratch.phi[i] *
                           scratch.curl_phi[j][0] *
                           cross_product_2d(
@@ -196,7 +201,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
                                scratch.old_velocity_values[q]
                                +
                                eta[1] *
-                               scratch.old_old_velocity_values[q])) * 
+                               scratch.old_old_velocity_values[q])) *
                           scratch.fe_values.JxW(q);
             else if constexpr(dim == 3)
               data.local_matrix(i, j) +=
