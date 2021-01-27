@@ -44,8 +44,14 @@ triangulation(entity.get_triangulation())
 template <int dim>
 void EntityBase<dim>::reinit()
 {
-  solution.reinit(locally_relevant_dofs,
-                  mpi_communicator);
+  #ifdef USE_PETSC_LA
+    solution.reinit(locally_owned_dofs,
+                    locally_relevant_dofs,
+                    mpi_communicator);
+  #else
+    solution.reinit(locally_relevant_dofs,
+                    mpi_communicator);
+  #endif
   old_solution.reinit(solution);
   old_old_solution.reinit(solution);
 
@@ -116,7 +122,7 @@ void VectorEntity<dim>::setup_dofs()
 template <int dim>
 void VectorEntity<dim>::apply_boundary_conditions()
 {
-  using FunctionMap = std::map<types::boundary_id, 
+  using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
   this->constraints.reinit(this->locally_relevant_dofs);
@@ -142,7 +148,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
         periodicity_vector,
         periodic_bc.offset,
         periodic_bc.rotation_matrix);
-    
+
     DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
       periodicity_vector,
       this->constraints,
@@ -156,7 +162,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
 
     for (auto const &[boundary_id, function] : boundary_conditions.dirichlet_bcs)
       function_map[boundary_id] = function.get();
-    
+
     VectorTools::interpolate_boundary_values(
       *(this->dof_handler),
       function_map,
@@ -212,7 +218,7 @@ void VectorEntity<dim>::update_boundary_conditions()
   if (boundary_conditions.time_dependent_bcs_map.empty())
     return;
 
-  using FunctionMap = std::map<types::boundary_id, 
+  using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
 
   AffineConstraints<double>   tmp_constraints;
@@ -227,21 +233,21 @@ void VectorEntity<dim>::update_boundary_conditions()
     FunctionMap   function_map;
 
     /*!
-     * Extract an std::pair containing the upper and 
-     * lower limit of the iteration range of all the boundary ids on 
-     * which a time dependent given BCType boundary condition was set. 
-     */ 
-  
-    auto iterator_range = 
+     * Extract an std::pair containing the upper and
+     * lower limit of the iteration range of all the boundary ids on
+     * which a time dependent given BCType boundary condition was set.
+     */
+
+    auto iterator_range =
       boundary_conditions.time_dependent_bcs_map.equal_range(
         BCType::dirichlet);
 
     /*!
-     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>,
      * from which the the boundary_id is extracted to populate the
-     * std::map<boundary_id, const Function<dim> *> needed to 
+     * std::map<boundary_id, const Function<dim> *> needed to
      * constraint the AffineConstraints instance.
-     */ 
+     */
 
     for (auto multimap_pair = iterator_range.first;
          multimap_pair != iterator_range.second;
@@ -263,20 +269,20 @@ void VectorEntity<dim>::update_boundary_conditions()
     std::set<types::boundary_id>  boundary_id_set;
 
     /*!
-     * Extract an std::pair containing the upper and 
-     * lower limit of the iteration range of all the boundary ids on 
-     * which a time dependent given BCType boundary condition was set. 
-     */ 
+     * Extract an std::pair containing the upper and
+     * lower limit of the iteration range of all the boundary ids on
+     * which a time dependent given BCType boundary condition was set.
+     */
 
-    auto iterator_range = 
+    auto iterator_range =
       boundary_conditions.time_dependent_bcs_map.equal_range(
         BCType::normal_flux);
-    
+
     /*!
-     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>,
      * from which the the boundary_id is extracted to populate the
-     * std::map<boundary_id, const Function<dim> *> and 
-     * std::set<boundary_id> instances needed to 
+     * std::map<boundary_id, const Function<dim> *> and
+     * std::set<boundary_id> instances needed to
      * constraint the AffineConstraints instance.
      */
 
@@ -288,7 +294,7 @@ void VectorEntity<dim>::update_boundary_conditions()
         boundary_conditions.normal_flux_bcs[multimap_pair->second].get();
       boundary_id_set.insert(multimap_pair->second);
     }
-    
+
     VectorTools::compute_nonzero_normal_flux_constraints(
       *(this->dof_handler),
       0,
@@ -305,20 +311,20 @@ void VectorEntity<dim>::update_boundary_conditions()
     std::set<types::boundary_id>  boundary_id_set;
 
     /*!
-     * Extract an std::pair containing the upper and 
-     * lower limit of the iteration range of all the boundary ids on 
-     * which a time dependent given BCType boundary condition was set. 
-     */ 
+     * Extract an std::pair containing the upper and
+     * lower limit of the iteration range of all the boundary ids on
+     * which a time dependent given BCType boundary condition was set.
+     */
 
-    auto iterator_range = 
+    auto iterator_range =
       boundary_conditions.time_dependent_bcs_map.equal_range(
         BCType::tangential_flux);
 
     /*!
-     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>,
      * from which the the boundary_id is extracted to populate the
-     * std::map<boundary_id, const Function<dim> *> and 
-     * std::set<boundary_id> instances needed to 
+     * std::map<boundary_id, const Function<dim> *> and
+     * std::set<boundary_id> instances needed to
      * constraint the AffineConstraints instance.
      */
 
@@ -330,7 +336,7 @@ void VectorEntity<dim>::update_boundary_conditions()
         boundary_conditions.tangential_flux_bcs[multimap_pair->second].get();
       boundary_id_set.insert(multimap_pair->second);
     }
-    
+
     VectorTools::compute_nonzero_tangential_flux_constraints(
       *(this->dof_handler),
       0,
@@ -432,7 +438,7 @@ void ScalarEntity<dim>::setup_dofs()
 
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
-  
+
   this->hanging_nodes.clear();
   this->hanging_nodes.reinit(this->locally_relevant_dofs);
   DoFTools::make_hanging_node_constraints(*(this->dof_handler),
@@ -443,7 +449,7 @@ void ScalarEntity<dim>::setup_dofs()
 template <int dim>
 void ScalarEntity<dim>::apply_boundary_conditions()
 {
-  using FunctionMap = std::map<types::boundary_id, 
+  using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
   this->constraints.reinit(this->locally_relevant_dofs);
@@ -465,7 +471,7 @@ void ScalarEntity<dim>::apply_boundary_conditions()
         periodic_bc.direction,
         periodicity_vector,
         periodic_bc.offset);
-    
+
     DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
       periodicity_vector,
       this->constraints);
@@ -476,7 +482,7 @@ void ScalarEntity<dim>::apply_boundary_conditions()
 
     for (auto const &[boundary_id, function] : boundary_conditions.dirichlet_bcs)
       function_map[boundary_id] = function.get();
-    
+
     VectorTools::interpolate_boundary_values(
       *(this->dof_handler),
       function_map,
@@ -491,7 +497,7 @@ void ScalarEntity<dim>::update_boundary_conditions()
   if (boundary_conditions.time_dependent_bcs_map.empty())
     return;
 
-  using FunctionMap = std::map<types::boundary_id, 
+  using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
 
   AffineConstraints<double>   tmp_constraints;
@@ -506,19 +512,19 @@ void ScalarEntity<dim>::update_boundary_conditions()
     FunctionMap   function_map;
 
     /*!
-     * Extract an std::pair containing the upper and 
-     * lower limit of the iteration range of all the boundary ids on 
-     * which a time dependent given BCType boundary condition was set. 
-     */ 
+     * Extract an std::pair containing the upper and
+     * lower limit of the iteration range of all the boundary ids on
+     * which a time dependent given BCType boundary condition was set.
+     */
 
-    auto iterator_range = 
+    auto iterator_range =
       boundary_conditions.time_dependent_bcs_map.equal_range(
         BCType::dirichlet);
 
     /*!
-     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>,
      * from which the the boundary_id is extracted to populate the
-     * std::map<boundary_id, const Function<dim> *> instance needed to 
+     * std::map<boundary_id, const Function<dim> *> instance needed to
      * constraint the AffineConstraints instance.
      */
 

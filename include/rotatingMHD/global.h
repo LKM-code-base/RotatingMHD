@@ -13,7 +13,7 @@
 /*
  * Uncomment the following line for forcing the usage of the Trilinos library
  */
-#define FORCE_USE_OF_TRILINOS
+//#define FORCE_USE_OF_TRILINOS
 
 namespace RMHD
 {
