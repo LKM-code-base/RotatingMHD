@@ -8,12 +8,7 @@ set Verbose                                         = false
 
 
 subsection Dimensionless numbers
-  set Ekman number            = 1.0
-  set Peclet number           = 1.0
-  set Prandtl number          = 1.0
-  set Rayleigh number         = 1.0
   set Reynolds number         = 100.0
-  set magnetic Prandtl number = 1.0
 end
 
 subsection Navier-Stokes solver parameters
@@ -26,35 +21,35 @@ subsection Navier-Stokes solver parameters
 
   subsection Linear solver parameters - Correction step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Maximum number of iterations = 50
+    set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Diffusion step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Maximum number of iterations = 50
+    set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Projection step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Maximum number of iterations = 150
+    set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Poisson pre-step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Maximum number of iterations = 150
+    set Relative tolerance           = 1e-6
   end
 
 end
 
 
 subsection Output control parameters
-  set Graphical output directory = vtu_step-35/
-  set Graphical output frequency = 1
-  set Terminal output frequency  = 1
+  set Graphical output directory = output-step-35/
+  set Graphical output frequency = 100
+  set Terminal output frequency  = 10
 end
 
 
@@ -63,7 +58,7 @@ subsection Refinement control parameters
   set Adaptive mesh refinement frequency     = 20
   set Fraction of cells set to coarsen       = 0.3
   set Fraction of cells set to refine        = 0.1
-  set Maximum number of levels               = 10
+  set Maximum number of levels               = 8
   set Minimum number of levels               = 1
   set Number of initial adaptive refinements = 0
   set Number of initial boundary refinements = 0
