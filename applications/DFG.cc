@@ -562,6 +562,9 @@ void DFG<dim>::run()
   }
 
   benchmark_request.write_table_to_file("dfg_benchmark.tex");
+
+  *(this->pcout) << std::fixed;
+
 }
 
 } // namespace RMHD
