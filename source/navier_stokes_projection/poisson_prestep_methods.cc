@@ -41,7 +41,7 @@ solve_poisson_prestep()
 
   LinearAlgebra::MPI::PreconditionILU::AdditionalData preconditioner_data;
   #ifdef USE_PETSC_LA
-    preconditioner_data.level = 1;
+    preconditioner_data.levels = 2;
   #else
     preconditioner_data.ilu_fill = 2;
     preconditioner_data.overlap = 1;
