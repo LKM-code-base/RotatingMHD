@@ -44,7 +44,7 @@ solve_poisson_prestep()
     preconditioner_data.levels = 2;
   #else
     preconditioner_data.ilu_fill = 2;
-    preconditioner_data.overlap = 1;
+    preconditioner_data.overlap = 2;
     preconditioner_data.ilu_rtol = 1.01;
     preconditioner_data.ilu_atol = 1e-5;
   #endif
