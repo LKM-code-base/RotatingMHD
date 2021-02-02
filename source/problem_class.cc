@@ -5,10 +5,8 @@
 #include <deal.II/fe/mapping_manifold.h>
 #include <deal.II/numerics/vector_tools.h>
 
-#include <exception>
-#include <filesystem>
 #include <string>
-
+#include <sys/stat.h>
 namespace RMHD
 {
 
@@ -48,38 +46,13 @@ computing_timer(
                                 TimerOutput::summary,
                                 TimerOutput::wall_times))
 {
-  if (!std::filesystem::exists(prm.graphical_output_directory) &&
-      Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+  if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0 &&
+      prm.graphical_output_directory != "./")
   {
-    try
-    {
-      std::filesystem::create_directories(prm.graphical_output_directory);
-    }
-    catch (std::exception &exc)
-    {
-      std::cerr << std::endl << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Exception in the creation of the output directory: "
-                << std::endl
-                << exc.what() << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-    }
-    catch (...)
-    {
-      std::cerr << std::endl << std::endl
-                << "----------------------------------------------------"
-                  << std::endl;
-      std::cerr << "Unknown exception in the creation of the output directory!"
-                << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-    }
+    std::string directory_name(prm.graphical_output_directory);
+    directory_name.pop_back();
+    std::string command = "mkdir -p " + directory_name;
+    system(command.c_str());
   }
 }
 

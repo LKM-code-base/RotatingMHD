@@ -49,7 +49,7 @@ end
 
 
 subsection Output control parameters
-  set Graphical output directory = DFGResults/
+  set Graphical output directory = vtu_DFG/
   set Graphical output frequency = 100
   set Terminal output frequency  = 1
 end
