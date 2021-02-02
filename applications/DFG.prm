@@ -23,25 +23,25 @@ subsection Navier-Stokes solver parameters
 
   subsection Linear solver parameters - Correction step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 60
+    set Maximum number of iterations = 50
     set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Diffusion step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 60
+    set Maximum number of iterations = 50
     set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Poisson pre-step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 60
+    set Maximum number of iterations = 50
     set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Projection step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 60
+    set Maximum number of iterations = 50
     set Relative tolerance           = 1e-6
   end
 
