@@ -105,11 +105,6 @@ void NavierStokesProjection<dim>::solve_projection_step
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;
-
-  *pcout << "    Number of CG iterations: "
-         << solver_control.last_step()
-         << ", Final residual: " << solver_control.last_value() << "."
-         << std::endl;
 }
 
 }
