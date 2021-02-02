@@ -323,8 +323,6 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ProblemParameters test("Test.prm");
-
       RunTimeParameters::ProblemParameters parameter_set("step-35.prm");
 
       Step35<2> simulation(parameter_set);

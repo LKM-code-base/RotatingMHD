@@ -1,6 +1,16 @@
 # Prerequisites
 *.d
 
+# Applications
+applications/Couette
+applications/DFG
+applications/Guermond
+applications/GuermondNeumannBC
+applications/MIT
+applications/TGV
+applications/ThermalTGV
+applications/step-35
+
 # Compiled Object files
 *.slo
 *.lo
@@ -73,6 +83,7 @@ _deps
 
 # Eclipse
 .cproject
+.metadata
 .project
 .settings
 
@@ -102,5 +113,5 @@ _deps
 *.zip
 
 # Doxygen
-documentation/html/
-documentation/latex/
+documentation/html/*
+documentation/latex/*
