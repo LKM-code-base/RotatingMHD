@@ -78,6 +78,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             VectorTools::subtract_mean_value(distributed_old_pressure);
 
           pressure->solution = distributed_old_pressure;
+
+          if (parameters.verbose)
+            *pcout << " done!" << std::endl << std::endl;
         }
         break;
       case RunTimeParameters::PressureCorrectionScheme::rotational:
@@ -167,15 +170,19 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           // Pass the distributed vector to its ghost counterpart.
           pressure->solution = distributed_pressure;
+
+          if (parameters.verbose)
+                *pcout << " done!" << std::endl
+                       << "    Number of CG iterations: "
+                       << solver_control.last_step()
+                       << ", Final residual: " << solver_control.last_value() << "."
+                       << std::endl << std::endl;
         }
 
         break;
       default:
         Assert(false, ExcNotImplemented());
     };
-
-  if (parameters.verbose)
-    *pcout << " done!" << std::endl << std::endl;
 }
 
 

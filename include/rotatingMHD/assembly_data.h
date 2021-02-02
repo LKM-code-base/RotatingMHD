@@ -338,8 +338,7 @@ struct Scratch : ScratchBase<dim>
           const UpdateFlags         pressure_update_flags,
           const UpdateFlags         pressure_face_update_flags,
           const FiniteElement<dim>  &temperature_fe,
-          const UpdateFlags         temperature_update_flags,
-          const UpdateFlags         temperature_face_update_flags);
+          const UpdateFlags         temperature_update_flags);
 
   Scratch(const Scratch<dim>    &data);
 
@@ -355,43 +354,21 @@ struct Scratch : ScratchBase<dim>
 
   FEValues<dim>               temperature_fe_values;
 
-  FEFaceValues<dim>           temperature_fe_face_values;
-
   const unsigned int          n_face_q_points;
 
   std::vector<Tensor<1,dim>>  velocity_values;
-
-  std::vector<Tensor<1,dim>>  velocity_face_values;
-
-  std::vector<CurlType>       velocity_curls;
 
   std::vector<Tensor<1,dim>>  velocity_laplacians;
 
   std::vector<CurlType>       angular_velocity_values;
 
-  std::vector<CurlType>       angular_velocity_face_values;
-
-  std::vector<CurlType>       angular_velocity_curls;
-
   std::vector<double>         temperature_values;
-
-  std::vector<double>         temperature_face_values;
-
-  std::vector<Tensor<1,dim>>  temperature_gradients;
 
   std::vector<Tensor<1,dim>>  gravity_vector_values;
 
-  std::vector<Tensor<1,dim>>  gravity_vector_face_values;
-
-  std::vector<double>         gravity_vector_divergences;
-
   std::vector<Tensor<1,dim>>  body_force_values;
 
-  std::vector<double>         body_force_divergences;
-
   std::vector<Tensor<1,dim>>  normal_vectors;
-
-  std::vector<double>         phi;
 
   std::vector<Tensor<1,dim>>  grad_phi;
 

@@ -275,6 +275,9 @@ void Step35<dim>::run()
                    time_stepping.get_end_time()))
       output();
   }
+
+  *(this->pcout) << std::fixed;
+
 }
 
 template <int dim>

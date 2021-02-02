@@ -41,7 +41,18 @@ solve_poisson_prestep()
   LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure->distributed_vector);
   distributed_old_old_pressure = pressure->old_old_solution;
 
-  poisson_prestep_preconditioner.initialize(pressure_laplace_matrix);
+  LinearAlgebra::MPI::PreconditionILU::AdditionalData preconditioner_data;
+  #ifdef USE_PETSC_LA
+    preconditioner_data.levels = 2;
+  #else
+    preconditioner_data.ilu_fill = 2;
+    preconditioner_data.overlap = 1;
+    preconditioner_data.ilu_rtol = 1.01;
+    preconditioner_data.ilu_atol = 1e-5;
+  #endif
+
+  poisson_prestep_preconditioner.initialize(pressure_laplace_matrix,
+                                            preconditioner_data);
 
   SolverControl solver_control(
     parameters.poisson_prestep_solver_parameters.n_maximum_iterations,
