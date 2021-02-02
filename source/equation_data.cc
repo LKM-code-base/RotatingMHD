@@ -841,9 +841,9 @@ Tensor<1, dim> GravityVector<dim>::value(const Point<dim> &point) const
   const double y      = point(1);
   const double z      = point(2);
 
-  value[0] = x / r_o;
-  value[1] = y / r_o;
-  value[2] = z / r_o;
+  value[0] = - x / r_o;
+  value[1] = - y / r_o;
+  value[2] = - z / r_o;
 
   return value;
 }
@@ -853,7 +853,7 @@ Tensor<1, dim> GravityVector<dim>::value(const Point<dim> &point) const
 template <int dim>
 double GravityVector<dim>::divergence(const Point<dim> &/*point*/) const
 {
-  return (3. / r_o);
+  return (-3. / r_o);
 }
 
 
