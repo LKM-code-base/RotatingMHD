@@ -39,7 +39,7 @@ void NavierStokesProjection<dim>::solve_projection_step
       preconditioner_data.levels = 2;
     #else
       preconditioner_data.ilu_fill = 2;
-      preconditioner_data.overlap = 1;
+      preconditioner_data.overlap = 2;
       preconditioner_data.ilu_rtol = 1.01;
       preconditioner_data.ilu_atol = 1e-3;
     #endif
