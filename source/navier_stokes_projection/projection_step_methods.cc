@@ -33,7 +33,20 @@ void NavierStokesProjection<dim>::solve_projection_step
   distributed_phi = phi->solution;
 
   if (reinit_prec)
-    projection_step_preconditioner.initialize(phi_laplace_matrix);
+  {
+    LinearAlgebra::MPI::PreconditionILU::AdditionalData preconditioner_data;
+    #ifdef USE_PETSC_LA
+      preconditioner_data.levels = 2;
+    #else
+      preconditioner_data.ilu_fill = 2;
+      preconditioner_data.overlap = 1;
+      preconditioner_data.ilu_rtol = 1.01;
+      preconditioner_data.ilu_atol = 1e-3;
+    #endif
+
+    projection_step_preconditioner.initialize(phi_laplace_matrix,
+                                              preconditioner_data);
+  }
 
   SolverControl solver_control(
     parameters.projection_step_solver_parameters.n_maximum_iterations,

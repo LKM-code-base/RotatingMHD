@@ -10,14 +10,14 @@ void NavierStokesProjection<dim>::
 assemble_poisson_prestep_rhs()
 {
   if (parameters.verbose)
-    *pcout << "  Navier Stokes: Assembling poisson pre-step's right hand side...";
+    *pcout << "  Navier Stokes: Assembling Poisson pre-step's right hand side...";
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Poisson pre-step - RHS assembly");
 
   // Reset data
   poisson_prestep_rhs = 0.;
 
-  // Dummy finite element for when there is no bouyancy
+  // Dummy finite element for when there is no buoyancy
   const FE_Q<dim> dummy_fe(1);
 
   // Create pointer to the pertinent finite element
