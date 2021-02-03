@@ -18,7 +18,7 @@ subsection Navier-Stokes solver parameters
   set Convective term weak form              = skew-symmetric
   set Incremental pressure-correction scheme = rotational
   set Preconditioner update frequency        = 15
-  set Verbose                                = false
+  set Verbose                                = true
 
 
   subsection Linear solver parameters - Correction step
@@ -35,13 +35,13 @@ subsection Navier-Stokes solver parameters
 
   subsection Linear solver parameters - Poisson pre-step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 50
+    set Maximum number of iterations = 70
     set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Projection step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 50
+    set Maximum number of iterations = 70
     set Relative tolerance           = 1e-6
   end
 
