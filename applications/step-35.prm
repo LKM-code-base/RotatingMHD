@@ -47,7 +47,7 @@ end
 
 
 subsection Output control parameters
-  set Graphical output directory = output-step-35/
+  set Graphical output directory = step-35Results/
   set Graphical output frequency = 100
   set Terminal output frequency  = 10
 end
