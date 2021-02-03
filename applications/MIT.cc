@@ -404,7 +404,7 @@ void MITBenchmark<dim>::output()
 
   // Writes the DataOut instance to the file.
   static int out_index = 0;
-  data_out.write_vtu_with_pvtu_record("./",
+  data_out.write_vtu_with_pvtu_record(this->prm.graphical_output_directory,
                                       "solution",
                                       out_index,
                                       this->mpi_communicator,
