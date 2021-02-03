@@ -22,10 +22,10 @@ DFGBechmarkRequest<dim>::DFGBechmarkRequest
  const double reference_length)
 :
 Re(reynolds_number),
-front_evaluation_point(0.15 / reference_length,
-                       0.20 / reference_length),
-rear_evaluation_point(0.25 / reference_length,
-                      0.20 / reference_length),
+front_evaluation_point(1.5 / reference_length,
+                       2.0 / reference_length),
+rear_evaluation_point(2.5 / reference_length,
+                      2.0 / reference_length),
 pressure_difference(0),
 drag_coefficient(0),
 lift_coefficient(0)
