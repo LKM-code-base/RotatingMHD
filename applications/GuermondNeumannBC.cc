@@ -350,6 +350,8 @@ void Guermond<dim>::solve(const unsigned int &level)
   pressure_error.reinit(pressure->solution);
   initialize();
 
+  time_stepping.advance_time();
+
   // Outputs the fields at t_0, i.e. the initial conditions.
   {
     velocity->solution = velocity->old_old_solution;
