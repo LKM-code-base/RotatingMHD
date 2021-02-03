@@ -16,7 +16,6 @@
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/grid_out.h>
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
@@ -602,6 +601,12 @@ void DFG<2>::make_grid()
                << this->triangulation.n_active_cells() << std::endl;
 }
 
+template <>
+void DFG<3>::make_grid()
+{
+  Assert(false, ExcNotImplemented());
+}
+
 template <int dim>
 void DFG<dim>::setup_dofs()
 {
@@ -620,12 +625,6 @@ void DFG<dim>::setup_dofs()
                << (pressure->dof_handler->n_dofs() +
                   velocity->dof_handler->n_dofs())
                << std::endl << std::endl;
-}
-
-template <>
-void DFG<3>::make_grid()
-{
-  Assert(false, ExcNotImplemented());
 }
 
 template <int dim>
