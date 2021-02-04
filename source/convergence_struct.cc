@@ -101,7 +101,7 @@ void ConvergenceAnalysisData<dim>::update_table
                                           VectorTools::H1_norm);
       convergence_table.add_value("H1", H1_error);
     }
-  
+
     /*
      * For the infinity norm, the quadrature rule is designed such that the
      * quadrature points coincide with the support points. For a polynomial degree
@@ -117,7 +117,7 @@ void ConvergenceAnalysisData<dim>::update_table
       const QTrapez<1>     trapezoidal_rule;
       const QIterated<dim> linfty_quadrature_rule(trapezoidal_rule,
                                                   entity->fe_degree);
-  
+
       // Compute the error in the Linfty-norm.
       VectorTools::integrate_difference
       (*entity->dof_handler,
@@ -126,7 +126,7 @@ void ConvergenceAnalysisData<dim>::update_table
        cellwise_difference,
        linfty_quadrature_rule,
        VectorTools::Linfty_norm);
-  
+
       const double Linfty_error =
         VectorTools::compute_global_error(entity->get_triangulation(),
                                           cellwise_difference,

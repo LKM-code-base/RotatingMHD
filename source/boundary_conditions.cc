@@ -125,7 +125,7 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
     AssertThrow(
       function->n_components == 1,
       ExcMessage("Function of a Neumann boundary condition needs to have a single component."));
-    
+
     this->neumann_bcs[boundary_id] = function;
   }
 
@@ -175,11 +175,11 @@ void ScalarBoundaryConditions<dim>::check_boundary_id
     this->flag_extract_boundary_ids = false;
   }
 
-  AssertThrow(std::find(this->boundary_ids.begin(), 
-                        this->boundary_ids.end(), 
+  AssertThrow(std::find(this->boundary_ids.begin(),
+                        this->boundary_ids.end(),
                         boundary_id) != this->boundary_ids.end(),
               ExcMessage("The triangulation does not have a boundary"
-                         " marked with the indicator " + 
+                         " marked with the indicator " +
                          std::to_string(boundary_id) + "."));
 
   AssertThrow(this->dirichlet_bcs.find(boundary_id) == this->dirichlet_bcs.end(),
@@ -191,7 +191,7 @@ void ScalarBoundaryConditions<dim>::check_boundary_id
               ExcMessage("A Neumann boundary condition was already set on "
                          "the boundary marked with the indicator " +
                          std::to_string(boundary_id) + "."));
-  
+
   for (const auto &periodic_bc : this->periodic_bcs)
   {
     AssertThrow(boundary_id != periodic_bc.boundary_pair.first &&
@@ -276,10 +276,10 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
     std::stringstream message;
     message << "Function of a Neumann boundary condition needs to have "
             << dim << " components.";
-    
+
     this->neumann_bcs[boundary_id] = function;
   }
-  
+
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
 }
@@ -304,7 +304,7 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
 
     AssertThrow(function->n_components == dim,
                 ExcMessage(message.str()));
-    
+
     normal_flux_bcs[boundary_id] = function;
   }
 
@@ -332,7 +332,7 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
 
     AssertThrow(function->n_components == dim,
                 ExcMessage(message.str()));
-    
+
     tangential_flux_bcs[boundary_id] = function;
   }
 
@@ -389,11 +389,11 @@ void VectorBoundaryConditions<dim>::check_boundary_id(
     this->flag_extract_boundary_ids = false;
   }
 
-  AssertThrow(std::find(this->boundary_ids.begin(), 
-                        this->boundary_ids.end(), 
+  AssertThrow(std::find(this->boundary_ids.begin(),
+                        this->boundary_ids.end(),
                         boundary_id) != this->boundary_ids.end(),
               ExcMessage("The triangulation does not have a boundary"
-                         " marked with the indicator " + 
+                         " marked with the indicator " +
                          std::to_string(boundary_id) + "."));
 
   AssertThrow(this->dirichlet_bcs.find(boundary_id) == this->dirichlet_bcs.end(),
@@ -405,7 +405,7 @@ void VectorBoundaryConditions<dim>::check_boundary_id(
               ExcMessage("A Neumann boundary condition was already set on "
                            "the boundary marked with the indicator " +
                            std::to_string(boundary_id) + "."));
-                           
+
   AssertThrow(normal_flux_bcs.find(boundary_id) == normal_flux_bcs.end(),
               ExcMessage("A normal flux boundary condition was already set on "
                            "the boundary marked with the indicator " +

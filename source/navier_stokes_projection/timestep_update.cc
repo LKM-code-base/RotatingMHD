@@ -21,7 +21,7 @@ get_cfl_number()
   double max_cfl_number             = std::numeric_limits<double>::lowest();
 
   const FEValuesExtractors::Vector  velocities(0);
-  
+
   for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
     if (cell->is_locally_owned())
       {
@@ -32,13 +32,13 @@ get_cfl_number()
         for (unsigned int q = 0; q < n_q_points; ++q)
           max_local_velocity =
             std::max(max_local_velocity, velocity_values[q].norm());
-        max_cfl_number = std::max(max_cfl_number, 
+        max_cfl_number = std::max(max_cfl_number,
                                   time_stepping.get_next_step_size() *
                                   max_local_velocity /
                                   cell->diameter());
       }
 
-  max_cfl_number = 
+  max_cfl_number =
                 Utilities::MPI::max(max_cfl_number, MPI_COMM_WORLD);
 
   return max_cfl_number;
