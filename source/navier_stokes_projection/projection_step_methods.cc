@@ -36,12 +36,12 @@ void NavierStokesProjection<dim>::solve_projection_step
   {
     LinearAlgebra::MPI::PreconditionILU::AdditionalData preconditioner_data;
     #ifdef USE_PETSC_LA
-      preconditioner_data.levels = 2;
+      preconditioner_data.levels = parameters.pressure_preconditioner_parameters.fill;
     #else
-      preconditioner_data.ilu_fill = 2;
-      preconditioner_data.overlap = 2;
-      preconditioner_data.ilu_rtol = 1.01;
-      preconditioner_data.ilu_atol = 1e-3;
+      preconditioner_data.ilu_fill = parameters.pressure_preconditioner_parameters.fill;
+      preconditioner_data.overlap = parameters.pressure_preconditioner_parameters.overlap;
+      preconditioner_data.ilu_rtol = parameters.pressure_preconditioner_parameters.relative_tolerance;
+      preconditioner_data.ilu_atol = parameters.pressure_preconditioner_parameters.absolute_tolerance;;
     #endif
 
     projection_step_preconditioner.initialize(phi_laplace_matrix,

@@ -210,7 +210,26 @@ enum class ConvergenceTestType
   temporal
 };
 
+/*!
+ * @brief Enumeration for the type of the preconditioner to be used.
+ */
+enum class PreconditonerType
+{
+  /*!
+   * @brief Incomplete LU decomposition preconditioning
+   */
+  ilu,
 
+  /*!
+   * @brief Geometirc multigrid preconditioning
+   */
+  gmg,
+
+  /*!
+   * @brief Algebraic multigrid preconditioning
+   */
+  amg
+};
 
 /*!
  * @brief Enumeration for incremental pressure-correction scheme types.
@@ -239,8 +258,6 @@ enum class PressureCorrectionScheme
    */
   rotational
 };
-
-
 
 /*!
  * @brief Enumeration for the weak form of the non-linear convective term.
@@ -349,8 +366,6 @@ enum class ConvectiveTermTimeDiscretization
    */
   fully_explicit
 };
-
-
 
 /*!
  * @struct SpatialDiscretizationParameters
@@ -524,8 +539,10 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm);
 
 /*!
  * @struct ConvergenceTestParameters
+ *
  * @brief @ref ConvergenceTestParameters contains parameters which are
  * related to convergence tests.
+ *
  */
 struct ConvergenceTestParameters
 {
@@ -590,8 +607,6 @@ struct ConvergenceTestParameters
   unsigned int        n_temporal_convergence_cycles;
 };
 
-
-
 /*!
  * @brief Method forwarding parameters to a stream object.
  *
@@ -599,8 +614,6 @@ struct ConvergenceTestParameters
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm);
-
-
 
 /*!
  * @struct LinearSolverParameters
@@ -701,7 +714,86 @@ private:
   std::string   solver_name;
 };
 
+/*!
+ * @struct PreconditionILUParameters
+ *
+ * @brief A structure containing all parameters relevant for the computation of
+ * an incomplete LU preconditioner.
+ *
+ */
+struct PreconditionILUParameters
+{
+  /*!
+   * Constructor which sets up the parameters with default values.
+   */
+  PreconditionILUParameters();
 
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  PreconditionILUParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the time stepping scheme from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(const ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm);
+
+  /*!
+   * @brief Relative tolerance used for the perturbation of the diagonal entries
+   * of the diagonal matrix which meet yield a better preconditioning. For the
+   * relative tolerance \f$\beta\f$ the condition \f$\beta\geq 1\f$ must hold.
+   * The suggested value is \f$\beta\approx 1.01\f$.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package.
+   *
+   */
+  double        relative_tolerance;
+
+  /*!
+   * @brief Absolute tolerance used for the perturbation of the diagonal entries
+   * of the diagonal matrix which meet yield a better preconditioning. For the
+   * relative tolerance \f$\alpha\f$ the condition \f$\alpha>0\f$ must hold. The
+   * suggested value is \f$10^{-5}\alpha\leq 10^{-2}\f$.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package.
+   */
+  double        absolute_tolerance;
+
+  /*!
+   * @brief Fill-in level of the ILU. The ILU uses only the entries of the
+   * sparsity pattern of the matrix \f$ A^k\f$ where \f$ k\f$ is the fill-in
+   * level.
+   */
+  unsigned int  fill;
+
+  /*!
+   * @brief Overlap between the different MPI processes used for computing
+   * the ILU.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package.
+   */
+  unsigned int  overlap;
+};
 
 /*!
  * @brief Method forwarding parameters to a stream object.
@@ -710,9 +802,7 @@ private:
  *
  */
 template<typename Stream>
-Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
-
-
+Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm);
 
 /*!
  * @struct DimensionlessNumbers
@@ -938,6 +1028,18 @@ struct NavierStokesParameters
    * poisson pre-step.
    */
   LinearSolverParameters            poisson_prestep_solver_parameters;
+
+  /*!
+   * @brief Parameters of the ILU preconditioner used for pressure systems, i.e.,
+   * the projection and the Poisson pre-step.
+   */
+  PreconditionILUParameters         pressure_preconditioner_parameters;
+
+  /*!
+   * @brief Parameters of the ILU preconditioner used for velocity systems, i.e.,
+   * the diffusion step.
+   */
+  PreconditionILUParameters         velocity_preconditioner_parameters;
 
   /*!
    * @brief Specifies the frequency of the update of the diffusion
