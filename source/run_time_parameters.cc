@@ -1736,6 +1736,28 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
   stream << "\r";
   }
 
+  stream << std::endl << std::endl;
+
+  stream << "+----------+----------+----------+----------+----------+----------+\n"
+         << "|    C1    |    C2    |    C3    |    C4    |    C5    |    C6    |\n"
+         << "+----------+----------+----------+----------+----------+----------+\n";
+
+  stream << "| ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C1;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C2;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C3;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.heat_equation_parameters.C4;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C5;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C6;
+  stream << " |";
+
+  stream << "\n+----------+----------+----------+----------+----------+----------+\n";
+
   return (stream);
 }
 
