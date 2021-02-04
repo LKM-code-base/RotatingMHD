@@ -122,7 +122,7 @@ public:
 
 protected:
   /*!
-   * @brief A vector containing all boundary indicators assigned to 
+   * @brief A vector containing all boundary indicators assigned to
    * boundary faces of active cells of the @ref triangulation.
    */
   std::vector<types::boundary_id>                 boundary_ids;
@@ -141,7 +141,7 @@ protected:
   /*!
    * @brief A flag indicating wether the boundary indicators are to be
    * extracted.
-   */ 
+   */
   bool                                            flag_extract_boundary_ids;
 };
 
@@ -182,7 +182,7 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
   void set_periodic_bcs(const types::boundary_id  first_boundary,
                         const types::boundary_id  second_boundary,
                         const unsigned int        direction,
-                        const FullMatrix<double>  rotation_matrix = 
+                        const FullMatrix<double>  rotation_matrix =
                                 FullMatrix<double>(IdentityMatrix(dim)),
                         const Tensor<1,dim>       offset = Tensor<1,dim>());
 
@@ -210,7 +210,7 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
    * It calls the @ref check_boundary_id method before adding the entry and marks
    * the boundary as time dependent according to the boolean passed.
    *
-   * @attention The passed function has to match \f$ g(x,t) = \nabla u 
+   * @attention The passed function has to match \f$ g(x,t) = \nabla u
    * \cdot \bs{n} \f$, i.e., a scalar function.
    */
   void set_neumann_bcs(const types::boundary_id             boundary_id,
@@ -336,7 +336,7 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
    * It calls the @ref check_boundary_id method before adding the entry and marks
    * the boundary as time-dependent according to the boolean passed.
    *
-   * @attention The passed function has to match \f$ \bs{g}(x,t) = \bs{T} 
+   * @attention The passed function has to match \f$ \bs{g}(x,t) = \bs{T}
    * \cdot \bs{n} \f$, i.e., a vector function.
    */
   void set_neumann_bcs(const types::boundary_id                       boundary_id,
@@ -349,8 +349,8 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
    * @brief This method sets a normal flux boundary condition by adding a
    * boundary id and function pair to @ref normal_flux_bcs.
    *
-   * @details If no function is explicitly passed, it assumes that the 
-   * degrees of freedom are homogenously constrained. It calls the 
+   * @details If no function is explicitly passed, it assumes that the
+   * degrees of freedom are homogenously constrained. It calls the
    * @ref check_boundary_id method before adding the entry and marks
    * the boundary as time dependent according to the boolean passed.
    */
@@ -405,7 +405,7 @@ private:
    * @brief A scalar zero tensor function used for homogeneous boundary
    * conditions.
    */
-  std::shared_ptr<TensorFunction<1, dim>>  zero_vector = 
+  std::shared_ptr<TensorFunction<1, dim>>  zero_vector =
                       std::make_shared<ZeroTensorFunction<1,dim>>();
 
 
