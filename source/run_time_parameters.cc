@@ -613,8 +613,7 @@ void LinearSolverParameters::parse_parameters(const ParameterHandler &prm)
   Assert(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
 
   absolute_tolerance = prm.get_double("Absolute tolerance");
-  /*! @note commented out for testing with older values */
-  //Assert(relative_tolerance > absolute_tolerance, ExcLowerRange(relative_tolerance , absolute_tolerance));
+  Assert(relative_tolerance > absolute_tolerance, ExcLowerRange(relative_tolerance , absolute_tolerance));
 }
 
 
