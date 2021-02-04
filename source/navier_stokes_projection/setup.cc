@@ -37,7 +37,13 @@ void NavierStokesProjection<dim>::setup()
   flag_add_mass_and_stiffness_matrices = true;
 
   if (time_stepping.get_step_number() == 0)
+  {
     poisson_prestep();
+
+    if (temperature != nullptr)
+      temperature->old_solution = temperature->old_old_solution;
+  }
+
 }
 
 template <int dim>
