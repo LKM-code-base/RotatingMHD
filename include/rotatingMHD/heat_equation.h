@@ -23,9 +23,9 @@ using namespace dealii;
 
 /*!
  * @class HeatEquation
- * 
+ *
  * @brief Solves the heat equation.
- * 
+ *
  * @details This version is parallelized using deal.ii's MPI facilities and
  * relies either on the Trilinos or the PETSc library. Moreover, for the time
  * discretization an implicit-explicit scheme (IMEX) with variable step size is
@@ -33,8 +33,8 @@ using namespace dealii;
  * The heat equation solved is derived from the balance of internal
  * energy
  * \f[
- *  \rho \dfrac{\d u}{\d t} = - \nabla \cdot \bs{q} + \rho r + 
- *  \bs{T} \cdott (\nabla \otimes \bs{v}), 
+ *  \rho \dfrac{\d u}{\d t} = - \nabla \cdot \bs{q} + \rho r +
+ *  \bs{T} \cdott (\nabla \otimes \bs{v}),
  *  \quad \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
  * \f]
  * where \f$ u \f$, \f$ \, \bs{q} \f$, \f$ \, r \f$, \f$ \, \bs{T} \f$,
@@ -43,16 +43,16 @@ using namespace dealii;
  * specific internal energy, heat flux vector, specific heat source,
  * stress tensor, velocity, position vector, time, domain and final
  * time respectively. Considering an isotropic and incompressible fluid,
- * whose heat flux vector is given by the Fourier law; whose 
- * specific heat capacity and thermal conductivity coefficient do not 
+ * whose heat flux vector is given by the Fourier law; whose
+ * specific heat capacity and thermal conductivity coefficient do not
  * depend on the temperature; and neglecting the internal dissipation,
  * the adimensional heat equation reduces to
  * \f[
  *  \pd{\vartheta}{t} + \bs{v} \cdot \nabla \vartheta = \dfrac{1}{\mathit{Pe}}
- *  \nabla^2 \vartheta + r, 
+ *  \nabla^2 \vartheta + r,
  *  \quad \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
  * \f]
- * where \f$ \vartheta \f$ and \f$ \mathit{Pe} \f$ are the adimensional 
+ * where \f$ \vartheta \f$ and \f$ \mathit{Pe} \f$ are the adimensional
  * temperature and the Peclet number respectively. Do note that we
  * reuse the variables names to denote their adimensional counterpart.
  * @todo Documentation
@@ -66,10 +66,10 @@ class HeatEquation
 
 public:
   /*!
-   * @brief The constructor of the HeatEquation class for the case 
+   * @brief The constructor of the HeatEquation class for the case
    * where there is no advection.
-   * 
-   * @details Stores a local reference to the input parameters and 
+   *
+   * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   HeatEquation
@@ -86,8 +86,8 @@ public:
   /*!
    * @brief The constructor of the HeatEquation class for the case
    * where the velocity field is given by a VectorEntity instance.
-   * 
-   * @details Stores a local reference to the input parameters and 
+   *
+   * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   HeatEquation
@@ -105,8 +105,8 @@ public:
   /*!
    * @brief The constructor of the HeatEquation class for the case
    *  where the velocity is given by a TensorFunction.
-   * 
-   * @details Stores a local reference to the input parameters and 
+   *
+   * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   HeatEquation
@@ -133,13 +133,13 @@ public:
   /*!
    *  @brief Sets the source term of the problem.
    *
-   *  @details Stores the memory address of the source term function in 
+   *  @details Stores the memory address of the source term function in
    *  the pointer @ref suppler_term_ptr.
    */
   void set_source_term(Function<dim> &source_term);
 
   /*!
-   * @brief Computes the temperature field at \f$ t = t_1 \f$ using a 
+   * @brief Computes the temperature field at \f$ t = t_1 \f$ using a
    * first order time discretization scheme.
    */
   void initialize();
@@ -194,7 +194,7 @@ private:
   /*!
    * @brief A shared pointer to the entity of velocity field.
    */
-  std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   /*!
    * @brief A shared pointer to the TensorFunction of the velocity field.
@@ -208,7 +208,7 @@ private:
 
   /*!
    * @brief System matrix for the heat equation.
-   * @details For 
+   * @details For
    */
   LinearAlgebra::MPI::SparseMatrix              system_matrix;
 
@@ -232,7 +232,7 @@ private:
 
   /*!
    * @brief Sum of the mass and stiffness matrix of the temperature.
-   * @details If the time step size is constant, this matrix does not 
+   * @details If the time step size is constant, this matrix does not
    * change each step.
    * @todo Add formulas
    */
@@ -263,11 +263,11 @@ private:
    * @details For example: A BDF2 scheme with a constant time step
    * expands the time derivative in three terms
    * \f[
-   * \frac{\partial u}{\partial t} \approx 
+   * \frac{\partial u}{\partial t} \approx
    * \frac{1.5}{\Delta t} u^{n} - \frac{2}{\Delta t} u^{n-1}
    * + \frac{0.5}{\Delta t} u^{n-2},
-   * \f] 
-   * the last two terms are known quantities so they belong to the 
+   * \f]
+   * the last two terms are known quantities so they belong to the
    * right hand side of the equation. Therefore, we define
    * \f[
    * u_\textrm{tmp} = - \frac{2}{\Delta t} u^{n-1}
@@ -290,7 +290,7 @@ private:
    * In the case of a variable time step the approximation is given by
    * \f[
    * u^{n} \approx (1 + \omega) u^{n-1} - \omega u^{n-2}
-   * \f] 
+   * \f]
    * where  \f$ \omega = \frac{\Delta t_{n-1}}{\Delta t_{n-2}}.\f$
    * @attention The extrapolation is hardcoded to the second order described
    * above. First and higher order are pending.
@@ -310,18 +310,18 @@ private:
   /*!
    * @brief A flag indicating if the preconditioner is to be
    * initiated.
-   */ 
+   */
   bool                                          flag_reinit_preconditioner;
 
   /*!
    * @brief A flag indicating if the sum of the mass and stiffness matrix
    * is to be performed.
-   */ 
+   */
   bool                                          flag_add_mass_and_stiffness_matrices;
 
   /*!
    * @brief A flag indicating if the advection term is to be ignored.
-   */ 
+   */
   bool                                          flag_ignore_advection;
 
   /*!
@@ -390,7 +390,7 @@ private:
     AssemblyData::HeatEquation::AdvectionMatrix::Copy           &data);
 
   /*!
-   * @brief This method copies the local advection matrix into their 
+   * @brief This method copies the local advection matrix into their
    * global conterparts.
    */
   void copy_local_to_global_advection_matrix(
