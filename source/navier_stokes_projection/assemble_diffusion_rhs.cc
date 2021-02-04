@@ -371,18 +371,20 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       if (angular_velocity_vector_ptr != nullptr)
       {
         if constexpr(dim == 2)
+          // The minus sign in the argument of cross_product_2d
+          // method is due to how the method is defined.
           data.local_rhs(i) -=
                 (beta[0] *
                  parameters.C1 *
                  scratch.old_angular_velocity_values[q][0] *
-                 cross_product_2d(scratch.phi[i]) *
-                 scratch.old_velocity_values[q]
+                 scratch.phi[i] *
+                 cross_product_2d(-scratch.old_velocity_values[q])
                  +
                  beta[1] *
                  parameters.C1 *
                  scratch.old_old_angular_velocity_values[q][0] *
-                 cross_product_2d(scratch.phi[i]) *
-                 scratch.old_old_velocity_values[q]) *
+                 scratch.phi[i] *
+                 cross_product_2d(-scratch.old_old_velocity_values[q])) *
                 scratch.velocity_fe_values.JxW(q);
         else if constexpr(dim == 3)
           data.local_rhs(i) -=

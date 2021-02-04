@@ -573,7 +573,7 @@ ChristensenBenchmark<dim>::ChristensenBenchmark(
   const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
   const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
   const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_flux,
-  TimeDiscretization::VSIMEXMethod                    &time_stepping,
+  const TimeDiscretization::VSIMEXMethod              &time_stepping,
   const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
   const double                                        inner_radius,
   const double                                        outer_radius,

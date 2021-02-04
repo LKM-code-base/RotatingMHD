@@ -103,7 +103,7 @@ private:
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  magnetic_flux;
+  std::shared_ptr<Entities::VectorEntity<dim>>  magnetic_field;
 
   std::shared_ptr<EquationData::Christensen::TemperatureInitialCondition<dim>>
                                                 temperature_initial_conditions;
@@ -161,8 +161,8 @@ temperature(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.fe_degree_temperature,
               this->triangulation,
               "Temperature")),
-magnetic_flux(std::make_shared<Entities::VectorEntity<dim>>(
-              1/*parameters.fe_degree_magnetic_flux*/,
+magnetic_field(std::make_shared<Entities::VectorEntity<dim>>(
+              1/*parameters.fe_degree_magnetic_field*/,
               this->triangulation,
               "Magnetic flux")),
 temperature_initial_conditions(
@@ -197,7 +197,7 @@ heat_equation(parameters.heat_equation_parameters,
               this->computing_timer),
 christensen_benchmark(velocity,
                       temperature,
-                      magnetic_flux,
+                      magnetic_field,
                       time_stepping,
                       parameters,
                       r_i,
@@ -207,7 +207,7 @@ christensen_benchmark(velocity,
                       this->pcout,
                       this->computing_timer)
 {
-  AssertDimension(dim, 3);
+  Assert(r_o > r_i, ExcMessage("The outer radius has to be greater then the inner radius"))
 
   *this->pcout << parameters << std::endl << std::endl;
   *this->pcout << "C1 = "
@@ -250,7 +250,8 @@ void Christensen<dim>::make_grid(const unsigned int n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
-  // Generates the shell
+  // Generates the shell with the inner and outer boundary indicators
+  // 0 and 1 respectively
   GridGenerator::hyper_shell(this->triangulation,
                              Point<dim>(),
                              r_i,

@@ -476,7 +476,7 @@ public:
     const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
     const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
     const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_flux,
-    TimeDiscretization::VSIMEXMethod                    &time_stepping,
+    const TimeDiscretization::VSIMEXMethod              &time_stepping,
     const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
     const double                                        outer_radius,
     const double                                        inner_radius,
@@ -570,13 +570,13 @@ private:
   const double  sample_point_radius;
 
   /*!
-   * @brief The colatitude of the sampel point. Set as the equatiorial
+   * @brief The colatitude of the sampling point. Set as the equatiorial
    * plane, *i. e.*, \f$ \theta = 90 \f$.
    */
   const double  sample_point_colatitude;
 
   /*!
-   * @brief The longitude of the sampel point. Set by the conditions
+   * @brief The longitude of the sampling point. Set by the conditions
    * \f$ u_{\textrm{r}} = 0 \f$ and \f$ \pd{ u_{\textrm{r}}}{\phi} > 0\f$.
    */
   double        sample_point_longitude;

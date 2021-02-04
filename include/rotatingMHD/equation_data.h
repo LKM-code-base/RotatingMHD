@@ -57,6 +57,9 @@ class AngularVelocity : public VectorFunction<dim>
 public:
   AngularVelocity(const double time = 0);
 
+  /*! @attention I am not really a fan of the methods' names. Do you have
+      a better naming option perhaps? value and value_list are already
+      being used by TensorFunction */
   virtual CurlType<dim> rotation(const Point<dim> &point) const;
 
   virtual void rotation_list(const std::vector<Point<dim>> &points,
@@ -476,8 +479,8 @@ namespace Christensen
  * \f$ r_o \f$ the outer radius,
  * \f$ A \f$ the amplitude of the harmonic perturbation,
  * \f$ x \f$ a quantitiy defined as \f$ x = 2r - r_i - r_0\f$,
- * \f$ \theta \f$ the colatitude and
- * \f$ \phi \f$ the longitude.
+ * \f$ \theta \f$ the colatitude (polar angle) and
+ * \f$ \phi \f$ the longitude (azimuthal angle).
  */
 template <int dim>
 class TemperatureInitialCondition : public Function<dim>
@@ -547,7 +550,7 @@ private:
  * @brief The gravity field
  * @details Given by the linear function
  * \f[
- * \ \bs{g} = \frac{1}{r_o} \bs{r}
+ * \ \bs{g} = \frac{1}{r_o} r\bs{e}_\textrm{r}
  * \f]
  * where \f$ \bs{g} \f$ is the gravity field,
  * \f$ r_o \f$ the outer radius of the shell and
@@ -561,8 +564,6 @@ public:
                 const double time = 0);
 
   virtual Tensor<1, dim> value(const Point<dim> &point) const override;
-
-  virtual double divergence(const Point<dim> &point) const override;
 
 private:
 
@@ -591,8 +592,6 @@ public:
   AngularVelocity(const double time = 0);
 
   virtual CurlType<dim> rotation(const Point<dim> &point) const override;
-
-  virtual CurlType<dim> curl(const Point<dim> &point) const override;
 };
 
 
