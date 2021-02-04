@@ -209,20 +209,7 @@ christensen_benchmark(velocity,
 {
   Assert(r_o > r_i, ExcMessage("The outer radius has to be greater then the inner radius"))
 
-  *this->pcout << parameters << std::endl << std::endl;
-  *this->pcout << "C1 = "
-               << parameters.navier_stokes_parameters.C1
-               << ", C2 = "
-               << parameters.navier_stokes_parameters.C2
-               << ", C3 = "
-               << parameters.navier_stokes_parameters.C3
-               << ", C4 = "
-               << parameters.heat_equation_parameters.C4
-               << ", C5 = "
-               << parameters.navier_stokes_parameters.C5
-               << ", C6 = "
-               << parameters.navier_stokes_parameters.C6
-               << std::endl << std::endl;
+  *this->pcout << parameters << std::endl;
 
   navier_stokes.set_gravity_vector(gravity_vector);
   navier_stokes.set_angular_velocity_vector(angular_velocity);
@@ -234,7 +221,7 @@ christensen_benchmark(velocity,
   temperature->reinit();
   initialize();
 
-  // Stores all the fields to the SolutionTransfor container
+  // Stores all the fields to the SolutionTransfer container
   this->container.add_entity(velocity);
   this->container.add_entity(pressure, false);
   this->container.add_entity(navier_stokes.phi, false);
@@ -407,7 +394,11 @@ void Christensen<dim>::output()
   // elements. In other words, the triangulation visualized in the
   // *.pvtu file is one globl refinement finer than the actual
   // triangulation.
-  data_out.build_patches(velocity->fe_degree);
+
+  data_out.build_patches(*this->mapping,
+                         velocity->fe_degree,
+                         DataOut<dim>::curved_inner_cells);
+
 
   // Writes the DataOut instance to the file.
   static int out_index = 0;
@@ -431,7 +422,6 @@ void Christensen<dim>::update_solution_vectors()
 template <int dim>
 void Christensen<dim>::run()
 {
-  //time_stepping.advance_time();
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
