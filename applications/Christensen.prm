@@ -2,7 +2,7 @@
 # ---------------------
 set FE's polynomial degree - Pressure (Taylor-Hood) = 1
 set FE's polynomial degree - Temperature            = 2
-set Mapping - Apply to interior cells               = false
+set Mapping - Apply to interior cells               = true
 set Mapping - Polynomial degree                     = 2
 set Problem type                                    = rotating_boussinesq
 set Spatial dimension                               = 3
