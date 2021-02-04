@@ -9,7 +9,7 @@ set Verbose                                         = false
 
 
 subsection Convergence test parameters
-  set Convergence test type                 = spatial
+  set Convergence test type                 = temporal
   set Number of initial global refinements  = 5
   set Number of spatial convergence cycles  = 2
   set Number of temporal convergence cycles = 2
@@ -33,25 +33,25 @@ subsection Navier-Stokes solver parameters
   subsection Linear solver parameters - Correction step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Diffusion step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Poisson pre-step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Projection step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-6
   end
 
 end
