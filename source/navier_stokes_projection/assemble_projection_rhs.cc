@@ -73,6 +73,7 @@ assemble_projection_step_rhs()
   if (parameters.verbose)
     *pcout << " done!" << std::endl
            << "    Right-hand side's L2-norm = "
+           << std::scientific << std::setprecision(6)
            << norm_projection_rhs
            << std::endl;
 }

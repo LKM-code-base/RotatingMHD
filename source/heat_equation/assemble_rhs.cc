@@ -107,6 +107,7 @@ void HeatEquation<dim>::assemble_rhs()
   if (parameters.verbose)
     *pcout << " done!" << std::endl
            << "    Right-hand side's L2-norm = "
+           << std::scientific << std::setprecision(6)
            << rhs_norm
            << std::endl;
 }

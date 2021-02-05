@@ -101,6 +101,7 @@ assemble_poisson_prestep_rhs()
   if (parameters.verbose)
     *pcout << " done!" << std::endl
            << "    Right-hand side's L2-norm = "
+           << std::scientific << std::setprecision(6)
            << poisson_prestep_rhs.l2_norm()
            << std::endl;
 }

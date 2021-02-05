@@ -98,6 +98,7 @@ assemble_diffusion_step_rhs()
   if (parameters.verbose)
     *pcout << " done!" << std::endl
            << "    Right-hand side's L2-norm = "
+           << std::scientific << std::setprecision(6)
            << norm_diffusion_rhs
            << std::endl;
 }
