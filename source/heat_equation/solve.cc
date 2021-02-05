@@ -17,8 +17,6 @@ void HeatEquation<dim>::solve()
 
   assemble_linear_system();
 
-  rhs_norm = rhs.l2_norm();
-
   solve_linear_system(flag_reinit_preconditioner ||
                       time_stepping.get_step_number() %
                       parameters.preconditioner_update_frequency == 0);

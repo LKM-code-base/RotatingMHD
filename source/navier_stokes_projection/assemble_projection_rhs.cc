@@ -67,8 +67,15 @@ assemble_projection_step_rhs()
   projection_step_rhs.compress(VectorOperation::add);
   correction_step_rhs.compress(VectorOperation::add);
 
+  // Compute the L2 norm of the right hand side
+  norm_projection_rhs = projection_step_rhs.l2_norm();
+
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
+    *pcout << " done!" << std::endl
+           << "    Right-hand side's L2-norm = "
+           << std::scientific << std::setprecision(6)
+           << norm_projection_rhs
+           << std::endl;
 }
 
 template <int dim>
