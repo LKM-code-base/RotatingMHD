@@ -211,27 +211,6 @@ enum class ConvergenceTestType
 };
 
 /*!
- * @brief Enumeration for the type of the preconditioner to be used.
- */
-enum class PreconditonerType
-{
-  /*!
-   * @brief Incomplete LU decomposition preconditioning
-   */
-  ilu,
-
-  /*!
-   * @brief Geometirc multigrid preconditioning
-   */
-  gmg,
-
-  /*!
-   * @brief Algebraic multigrid preconditioning
-   */
-  amg
-};
-
-/*!
  * @brief Enumeration for incremental pressure-correction scheme types.
  */
 enum class PressureCorrectionScheme
