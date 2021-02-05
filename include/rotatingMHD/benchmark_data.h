@@ -29,7 +29,7 @@ namespace BenchmarkData
 
 /*!
  * @struct DFGBechmarkRequest
- * 
+ *
  * @brief A structure containing the data requested by the DFG benchmark
  * and methods to compute them. The structure computes all request data in
  * dimensionless form.
@@ -139,7 +139,7 @@ struct DFGBechmarkRequest
 
   /*!
    * @brief A table containing the step number, current dimensionless
-   * time, the @ref pressure_difference, the @ref drag_coefficient and 
+   * time, the @ref pressure_difference, the @ref drag_coefficient and
    * the @ref lift_coefficient.
    */
   TableHandler  data_table;
@@ -199,7 +199,7 @@ struct DFGBechmarkRequest
 
 template<int dim> class MIT;
 
-template<typename Stream, int dim> 
+template<typename Stream, int dim>
 Stream& operator<<(Stream &, const MIT<dim> &);
 
 /*!
@@ -208,9 +208,9 @@ Stream& operator<<(Stream &, const MIT<dim> &);
  * @details Furthermore the probed data at the first sample point can
  * be printed to the terminal through the overloaded stream operator
  * and the entire data can be printed to a text file.
- * @todo Compute the stream function and the vorticity at the 
+ * @todo Compute the stream function and the vorticity at the
  * first sample point.
- */ 
+ */
 template <int dim>
 class MIT
 {
@@ -228,19 +228,19 @@ public:
                                 = std::shared_ptr<Mapping<dim>>(),
       const std::shared_ptr<ConditionalOStream>           external_pcout
                                 = std::shared_ptr<ConditionalOStream>(),
-      const std::shared_ptr<TimerOutput>                  external_timer 
+      const std::shared_ptr<TimerOutput>                  external_timer
                                 = std::shared_ptr<TimerOutput>());
 
   /*!
    * @brief A method that computes all the benchmark data with the
-   * last computed field variables. 
+   * last computed field variables.
    */
   void compute_benchmark_data();
 
   /*!
    * @brief Outputs the computed benchmark data to a text file in
    * org mode format.
-   */ 
+   */
   void print_data_to_file(std::string file_name);
 
 
@@ -304,7 +304,7 @@ private:
    * P_3 = (0.1810,\, 0.6300), \quad
    * P_4 = (0.8190,\, 7.3700), \quad \textrm{and} \quad
    * P_5 = (0.1810,\, 4.0000).
-   * \f] 
+   * \f]
    */
   std::vector<Point<dim>>                       sample_points;
 
@@ -313,9 +313,9 @@ private:
    * @details Defined as
    * \f[
    * \Delta p_{ij} = p_i - p_j
-   * \f] 
-   * where the subindices indicate the sample point. The computed 
-   * differences are \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and 
+   * \f]
+   * where the subindices indicate the sample point. The computed
+   * differences are \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and
    * \f$ \Delta p_{35} \f$.
    */
   std::vector<double>                           pressure_differences;
@@ -344,10 +344,10 @@ private:
    * @brief The Nusselt number at the left and right walls.
    * @details They are given by
    * \f[
-   * \mathit{Nu}_{1,2} = \dfrac{1}{H} \int_{\Gamma_{1,2}} \nabla \vartheta 
+   * \mathit{Nu}_{1,2} = \dfrac{1}{H} \int_{\Gamma_{1,2}} \nabla \vartheta
    * \cdot \bs{n} \dint a
-   * \f]   
-   * where the subindices 0 and 1 indicate the left and right walls 
+   * \f]
+   * where the subindices 0 and 1 indicate the left and right walls
    * respectively.
    */
   std::pair<double, double>                     nusselt_numbers;
@@ -374,51 +374,51 @@ private:
    * @brief The average vorticity metric.
    * @details Given by
    * \f[
-   * \hat{\omega} = \sqrt{ \dfrac{1}{2HW} \int_\Omega 
+   * \hat{\omega} = \sqrt{ \dfrac{1}{2HW} \int_\Omega
    * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}   * \f]   */
   double                                        average_vorticity_metric;
 
   /*!
    * @brief The table which stores all the benchmark data.
-   */ 
+   */
   TableHandler                                  data;
 
   /*!
    * @brief The width of the cavity.
    * @details Given by  \f$ W = 1.0 \f$.
-   */ 
+   */
   const double                                  width;
 
   /*!
    * @brief The height of the cavity.
    * @details Given by  \f$ H = 8.0 \f$.
-   */ 
+   */
   const double                                  height;
 
   /*!
    * @brief The areaa of the cavity.
    * @details Given by  \f$ A = WH \f$
-   */ 
+   */
   const double                                  area;
 
   /*!
    * @brief The boundary id of the cavity's left wall.
-   */ 
+   */
   const unsigned int                            left_wall_boundary_id;
 
   /*!
    * @brief The boundary id of the cavity's right wall.
-   */ 
+   */
   const unsigned int                            right_wall_boundary_id;
 
   /*!
    * @brief A method that samples all the point data and computes the
-   * pressure differences and skew-symmetrie of the temperature field. 
+   * pressure differences and skew-symmetrie of the temperature field.
    * @brief More specifically, the method updates the values of
-   * \f$ \bs{u} \f$, \f$ \vartheta \f$, \f$ \psi \f$ and \f$ \omega \f$ 
-   * at the sample point \f$ P_1 \f$; the skewness metric 
-   * \f$ \varepsilon_{12} \f$; the pressure differences 
-   * \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and 
+   * \f$ \bs{u} \f$, \f$ \vartheta \f$, \f$ \psi \f$ and \f$ \omega \f$
+   * at the sample point \f$ P_1 \f$; the skewness metric
+   * \f$ \varepsilon_{12} \f$; the pressure differences
+   * \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and
    * \f$ \Delta p_{35} \f$.
    */
   void compute_point_data();
@@ -428,22 +428,22 @@ private:
    * walls with Dirichlet boundary conditions on the temperature field.
    * @details They are given by
    * \f[
-   * \mathit{Nu}_{1,2} = \dfrac{1}{H} \int_{\Gamma_{1,2}} \nabla \vartheta 
+   * \mathit{Nu}_{1,2} = \dfrac{1}{H} \int_{\Gamma_{1,2}} \nabla \vartheta
    * \cdot \bs{n} \dint a
-   * \f]   
-   * where the subindices 0 and 1 indicate the left and right walls 
+   * \f]
+   * where the subindices 0 and 1 indicate the left and right walls
    * respectively.
    * */
   void compute_wall_data();
 
   /*!
-   * @brief A method that computes the average velocity and vorticity 
+   * @brief A method that computes the average velocity and vorticity
    * metrics.
    * @details They are given by
    * \f[
    * \hat{u} = \sqrt{ \dfrac{1}{2HW} \int_\Omega \bs{u} \cdot \bs{u} \dint v}
    * \quad \textrm{and} \quad
-   * \hat{\omega} = \sqrt{ \dfrac{1}{2HW} \int_\Omega 
+   * \hat{\omega} = \sqrt{ \dfrac{1}{2HW} \int_\Omega
    * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}
    * \f]
    */

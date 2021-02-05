@@ -17,7 +17,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   velocity_mass_matrix    = 0.;
   velocity_laplace_matrix = 0.;
 
-  // Compute the highest polynomial degree from all the integrands 
+  // Compute the highest polynomial degree from all the integrands
   const int p_degree = 2 * velocity->fe_degree;
 
   // Initiate the quadrature formula for exact numerical integration
@@ -29,7 +29,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
            AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim> &scratch,
            AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy         &data)
     {
-      this->assemble_local_velocity_matrices(cell, 
+      this->assemble_local_velocity_matrices(cell,
                                              scratch,
                                              data);
     };
@@ -149,7 +149,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   pressure_laplace_matrix = 0.;
   phi_laplace_matrix      = 0.;
 
-  // Compute the highest polynomial degree from all the integrands 
+  // Compute the highest polynomial degree from all the integrands
   const int p_degree = 2 * pressure->fe_degree;
 
   // Initiate the quadrature formula for exact numerical integration
@@ -161,11 +161,11 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
            AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim> &scratch,
            AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy         &data)
     {
-      this->assemble_local_pressure_matrices(cell, 
+      this->assemble_local_pressure_matrices(cell,
                                              scratch,
                                              data);
     };
-  
+
   // Set up the lamba function for the copy local to global operation
   auto copier =
     [this](const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy &data)

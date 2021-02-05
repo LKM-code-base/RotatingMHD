@@ -19,7 +19,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
   mass_matrix       = 0.;
   stiffness_matrix  = 0.;
 
-  // Compute the highest polynomial degree from all the integrands 
+  // Compute the highest polynomial degree from all the integrands
   const int p_degree = 2 * temperature->fe_degree;
 
   // Initiate the quadrature formula for exact numerical integration
@@ -31,7 +31,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
            AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>   &scratch,
            AssemblyData::HeatEquation::ConstantMatrices::Copy           &data)
     {
-      this->assemble_local_constant_matrices(cell, 
+      this->assemble_local_constant_matrices(cell,
                                              scratch,
                                              data);
     };
@@ -66,7 +66,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
   // Compress global data
   mass_matrix.compress(VectorOperation::add);
   stiffness_matrix.compress(VectorOperation::add);
-  
+
   if (parameters.verbose)
     *pcout << " done!" << std::endl;
 }
@@ -103,7 +103,7 @@ void HeatEquation<dim>::assemble_local_constant_matrices
       for (unsigned int j = 0; j <= i; ++j)
       {
         // Local matrices
-        data.local_mass_matrix(i, j) += 
+        data.local_mass_matrix(i, j) +=
                                     scratch.phi[i] *
                                     scratch.phi[j] *
                                     scratch.fe_values.JxW(q);
@@ -118,9 +118,9 @@ void HeatEquation<dim>::assemble_local_constant_matrices
   for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     for (unsigned int j = i + 1; j < scratch.dofs_per_cell; ++j)
     {
-      data.local_mass_matrix(i, j) = 
+      data.local_mass_matrix(i, j) =
                                     data.local_mass_matrix(j, i);
-      data.local_stiffness_matrix(i, j) = 
+      data.local_stiffness_matrix(i, j) =
                                     data.local_stiffness_matrix(j, i);
     }
 }

@@ -24,7 +24,7 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix.add
     (time_stepping.get_gamma()[0] * parameters.C2,
      velocity_laplace_matrix);
-    
+
     flag_add_mass_and_stiffness_matrices = false;
   }
 
@@ -56,7 +56,7 @@ solve_diffusion_step(const bool reinit_prec)
   LinearAlgebra::MPI::Vector distributed_velocity(velocity->distributed_vector);
   distributed_velocity = velocity->solution;
 
-  /* The following pointer holds the address to the correct matrix 
+  /* The following pointer holds the address to the correct matrix
   depending on if the semi-implicit scheme is chosen or not */
   const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
   if (parameters.convective_term_time_discretization ==
@@ -117,7 +117,7 @@ solve_diffusion_step(const bool reinit_prec)
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of GMRES iterations: " 
+           << "    Number of GMRES iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;
