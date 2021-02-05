@@ -15,17 +15,7 @@ void HeatEquation<dim>::solve()
     flag_add_mass_and_stiffness_matrices  = true;
   }
 
-  if (time_stepping.get_step_number() == 0)
-  {
-    temperature->old_solution = temperature->old_old_solution;
-
-    if (velocity != nullptr)
-      velocity->old_solution = velocity->old_old_solution;
-  }
-
   assemble_linear_system();
-
-  rhs_norm = rhs.l2_norm();
 
   solve_linear_system(flag_reinit_preconditioner ||
                       time_stepping.get_step_number() %

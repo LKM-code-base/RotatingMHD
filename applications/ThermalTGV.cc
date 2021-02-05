@@ -171,9 +171,9 @@ void ThermalTGV<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
-  this->set_initial_conditions(temperature,
-                               *temperature_exact_solution,
-                               time_stepping);
+  this->load_initial_conditions(temperature,
+                                *temperature_exact_solution,
+                                time_stepping);
 }
 
 template <int dim>
