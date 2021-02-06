@@ -404,11 +404,6 @@ private:
   void setup_phi();
 
   /*!
-   * @brief Sets the parameters of the @ref amg_data.
-   */
-  void set_preconditioner_data();
-
-  /*!
    * @brief Setup of the sparsity spatterns of the matrices of the diffusion and
    * projection steps.
    */

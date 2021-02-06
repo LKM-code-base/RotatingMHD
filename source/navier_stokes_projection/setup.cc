@@ -27,8 +27,6 @@ void NavierStokesProjection<dim>::setup()
 
   assemble_constant_matrices();
 
-  set_preconditioner_data();
-
   // If the pressure correction variable @ref phi only has Neumann
   // boundary conditions, its solution is defined only up to a constant.
   if (phi->boundary_conditions.dirichlet_bcs.empty())
