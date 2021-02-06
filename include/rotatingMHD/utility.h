@@ -16,9 +16,6 @@
 namespace RMHD
 {
 
-namespace Utility
-{
-
 /*!
  * @brief This method sets up the #preconditioner of the System #matrix based
  * on the type and parameters specified in the #parameters.
@@ -35,8 +32,6 @@ void build_preconditioner
  const RunTimeParameters::PreconditionBaseParameters    *parameters,
  const bool higher_order_elements = false,
  const bool symmetric = true);
-
-}  // namespace Utility
 
 }  // namespace RMHD
 

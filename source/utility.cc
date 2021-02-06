@@ -3,9 +3,6 @@
 namespace RMHD
 {
 
-namespace Utility
-{
-
 using namespace RunTimeParameters;
 
 template <typename MatrixType>
@@ -108,12 +105,10 @@ void build_preconditioner
   }
 }
 
-}  // namespace Utility
-
 }  // namespace RMD
 
 // explicit instantiations
-template void RMHD::Utility::build_preconditioner
+template void RMHD::build_preconditioner
 (std::shared_ptr<LinearAlgebra::PreconditionBase> &,
  const RMHD::LinearAlgebra::MPI::SparseMatrix &matrix,
  const RunTimeParameters::PreconditionBaseParameters  *,

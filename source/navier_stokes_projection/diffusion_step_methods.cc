@@ -69,10 +69,10 @@ solve_diffusion_step(const bool reinit_prec)
     = parameters.diffusion_step_solver_parameters;
   if (reinit_prec)
   {
-    Utility::build_preconditioner(diffusion_step_preconditioner,
-                                  *system_matrix,
-                                  solver_parameters.preconditioner_parameters_ptr,
-                                  velocity->fe_degree);
+    build_preconditioner(diffusion_step_preconditioner,
+                         *system_matrix,
+                         solver_parameters.preconditioner_parameters_ptr,
+                         velocity->fe_degree);
   }
 
   SolverControl solver_control(

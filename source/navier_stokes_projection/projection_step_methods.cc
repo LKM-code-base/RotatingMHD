@@ -37,10 +37,10 @@ void NavierStokesProjection<dim>::solve_projection_step
     = parameters.projection_step_solver_parameters;
   if (reinit_prec)
   {
-    Utility::build_preconditioner(projection_step_preconditioner,
-                                  phi_laplace_matrix,
-                                  solver_parameters.preconditioner_parameters_ptr,
-                                  (phi->fe_degree > 1? true: false));
+    build_preconditioner(projection_step_preconditioner,
+                         phi_laplace_matrix,
+                         solver_parameters.preconditioner_parameters_ptr,
+                         (phi->fe_degree > 1? true: false));
   }
 
   SolverControl solver_control(

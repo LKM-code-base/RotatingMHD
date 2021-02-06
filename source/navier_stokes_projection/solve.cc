@@ -112,10 +112,10 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           if (reinit_prec)
           {
-            Utility::build_preconditioner(correction_step_preconditioner,
-                                          projection_mass_matrix,
-                                          solver_parameters.preconditioner_parameters_ptr,
-                                          (pressure->fe_degree > 1? true: false));
+            build_preconditioner(correction_step_preconditioner,
+                                 projection_mass_matrix,
+                                 solver_parameters.preconditioner_parameters_ptr,
+                                 (pressure->fe_degree > 1? true: false));
           }
 
           #ifdef USE_PETSC_LA

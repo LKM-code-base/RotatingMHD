@@ -44,10 +44,10 @@ solve_poisson_prestep()
   const typename RunTimeParameters::LinearSolverParameters &solver_parameters
     = parameters.poisson_prestep_solver_parameters;
 
-  Utility::build_preconditioner(poisson_prestep_preconditioner,
-                                pressure_laplace_matrix,
-                                solver_parameters.preconditioner_parameters_ptr,
-                                (pressure->fe_degree > 1? true: false));
+  build_preconditioner(poisson_prestep_preconditioner,
+                       pressure_laplace_matrix,
+                       solver_parameters.preconditioner_parameters_ptr,
+                       (pressure->fe_degree > 1? true: false));
 
   SolverControl solver_control(
     solver_parameters.n_maximum_iterations,
