@@ -7,11 +7,11 @@ using namespace RunTimeParameters;
 
 template <typename MatrixType>
 void build_preconditioner
-(std::shared_ptr<LinearAlgebra::PreconditionBase>     &preconditioner,
- const MatrixType &matrix,
- const PreconditionBaseParameters  *parameters,
- const bool higher_order_elements,
- const bool symmetric)
+(std::shared_ptr<LinearAlgebra::PreconditionBase> &preconditioner,
+ const MatrixType                                 &matrix,
+ const PreconditionBaseParameters                 *parameters,
+ const bool                                        higher_order_elements,
+ const bool                                        symmetric)
 {
   preconditioner.reset();
 
@@ -108,9 +108,9 @@ void build_preconditioner
 }  // namespace RMD
 
 // explicit instantiations
-template void RMHD::build_preconditioner
+template void RMHD::build_preconditioner<RMHD::LinearAlgebra::MPI::SparseMatrix>
 (std::shared_ptr<LinearAlgebra::PreconditionBase> &,
- const RMHD::LinearAlgebra::MPI::SparseMatrix &matrix,
- const RunTimeParameters::PreconditionBaseParameters  *,
+ const RMHD::LinearAlgebra::MPI::SparseMatrix &,
+ const RunTimeParameters::PreconditionBaseParameters *,
  const bool ,
  const bool );
