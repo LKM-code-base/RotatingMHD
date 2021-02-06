@@ -305,33 +305,19 @@ void MITBenchmark<dim>::initialize()
   // The temperature's boundary conditions and its zero scalar field as
   // initial condition allows one to avoid a projection
   // by just distributing the constraints to the zero'ed out vector.
-  // Attention: As a quick fix I perform the same operation for the
-  // old_solution too, until I write the initialize method for the
-  // heat equation.
-
   temperature->set_solution_vectors_to_zero();
 
   {
     LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
-    LinearAlgebra::MPI::Vector distributed_old_old_temperature(temperature->distributed_vector);
 
-    distributed_old_temperature     = temperature->old_solution;
-    distributed_old_old_temperature = temperature->old_old_solution;
-
-    temperature->constraints.distribute(distributed_old_old_temperature);
-
-    temperature->boundary_conditions.set_time(time_stepping.get_next_time());
-    temperature->update_boundary_conditions();
+    distributed_old_temperature = temperature->old_solution;
 
     temperature->constraints.distribute(distributed_old_temperature);
 
-    temperature->old_solution     = distributed_old_temperature;
-    temperature->old_old_solution = distributed_old_old_temperature;
+    temperature->old_solution   = distributed_old_temperature;
   }
 
   // Outputs the initial conditions
-  temperature->solution = temperature->old_old_solution;
-  output();
   temperature->solution = temperature->old_solution;
   output();
 }

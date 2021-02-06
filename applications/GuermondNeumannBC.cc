@@ -198,10 +198,12 @@ void Guermond<dim>::initialize()
 
   this->set_initial_conditions(velocity,
                                *velocity_exact_solution,
-                               time_stepping);
+                               time_stepping,
+                               true);
   this->set_initial_conditions(pressure,
                                *pressure_exact_solution,
-                               time_stepping);
+                               time_stepping,
+                               true);
 }
 
 template <int dim>

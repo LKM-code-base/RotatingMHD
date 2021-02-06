@@ -148,14 +148,6 @@ protected:
 protected:
 
   /*!
-   * @attention Purpose of the method is not clear...
-   */
-  void set_initial_conditions
-  (std::shared_ptr<Entities::EntityBase<dim>> entity,
-   Function<dim>                              &function,
-   const TimeDiscretization::VSIMEXMethod     &time_stepping);
-
-  /*!
    * @brief Loads the initial conditions to the pertinent solution
    * vector
    * @details Projects the @ref function at simulation's start time
@@ -169,7 +161,7 @@ protected:
    * @attention Would it be preferable to interpolate the functions and
    * apply the constraints instead of projection?
    */
-  void load_initial_conditions
+  void set_initial_conditions
   (std::shared_ptr<Entities::EntityBase<dim>> entity,
    Function<dim>                              &function,
    const TimeDiscretization::VSIMEXMethod     &time_stepping,
