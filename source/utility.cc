@@ -66,11 +66,22 @@ void build_preconditioner
                          preconditioner_data);
       break;
     }
-    case (PreconditionerType::SOR):
+    case (PreconditionerType::SSOR):
     {
+      Assert(symmetric, ExcMessage("The matrix must be symmetric to apply SSOR "
+                                   "preconditioner."));
       LinearAlgebra::MPI::PreconditionSSOR::AdditionalData preconditioner_data;
 
-      preconditioner_data.omega = 1.2;
+      const PreconditionSSORParameters* preconditioner_parameters
+        = static_cast<const PreconditionSSORParameters*>(parameters);
+
+      #ifdef USE_PETSC_LA
+        preconditioner_data.omega = preconditioner_parameters->omega;
+      #else
+        preconditioner_data.omega = preconditioner_parameters->omega;
+        preconditioner_data.n_sweeps = preconditioner_parameters->n_sweeps;
+        preconditioner_data.overlap = preconditioner_parameters->overlap;
+      #endif
 
       preconditioner =
           std::make_shared<LinearAlgebra::MPI::PreconditionSSOR>();
@@ -83,6 +94,13 @@ void build_preconditioner
     case PreconditionerType::Jacobi:
     {
       LinearAlgebra::MPI::PreconditionJacobi::AdditionalData preconditioner_data;
+
+      const PreconditionJacobiParameters* preconditioner_parameters
+        = static_cast<const PreconditionJacobiParameters*>(parameters);
+
+      #ifndef USE_PETSC_LA
+        preconditioner_data.omega = preconditioner_parameters->omega;
+      #endif
 
       preconditioner =
           std::make_shared<LinearAlgebra::MPI::PreconditionJacobi>();
