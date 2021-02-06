@@ -1,4 +1,5 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/utility.h>
 
 namespace RMHD
 {
@@ -63,24 +64,21 @@ solve_diffusion_step(const bool reinit_prec)
   else
     system_matrix = &velocity_mass_plus_laplace_matrix;
 
+
+  const typename RunTimeParameters::LinearSolverParameters &solver_parameters
+    = parameters.diffusion_step_solver_parameters;
   if (reinit_prec)
   {
-    #ifdef USE_PETSC_LA
-      diffusion_step_preconditioner.initialize(*system_matrix,
-                                               diffusion_step_preconditioner_data);
-    #else
-      if (flag_matrices_were_updated)
-        diffusion_step_preconditioner.initialize(*system_matrix,
-                                                 diffusion_step_preconditioner_data);
-      else
-        diffusion_step_preconditioner.reinit();
-    #endif
+    Utility::build_preconditioner(diffusion_step_preconditioner,
+                                  *system_matrix,
+                                  solver_parameters.preconditioner_parameters_ptr,
+                                  velocity->fe_degree);
   }
 
   SolverControl solver_control(
     parameters.diffusion_step_solver_parameters.n_maximum_iterations,
-    std::max(parameters.diffusion_step_solver_parameters.relative_tolerance * diffusion_step_rhs.l2_norm(),
-             parameters.diffusion_step_solver_parameters.absolute_tolerance));
+    std::max(solver_parameters.relative_tolerance * diffusion_step_rhs.l2_norm(),
+             solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverGMRES solver(solver_control,
@@ -94,7 +92,7 @@ solve_diffusion_step(const bool reinit_prec)
     solver.solve(*system_matrix,
                  distributed_velocity,
                  diffusion_step_rhs,
-                 diffusion_step_preconditioner);
+                 *diffusion_step_preconditioner);
   }
   catch (std::exception &exc)
   {

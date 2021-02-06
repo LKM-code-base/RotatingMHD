@@ -338,47 +338,23 @@ private:
 
   /*!
    * @brief The preconditioner of the diffusion step.
-   * @attention Hardcoded for a AMG preconditioner.
    */
-  LinearAlgebra::MPI::PreconditionAMG     diffusion_step_preconditioner;
-
-  /*!
-   * @brief The data of the @ref diffusion_step_preconditioner.
-   */
-  LinearAlgebra::MPI::PreconditionAMG::AdditionalData diffusion_step_preconditioner_data;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> diffusion_step_preconditioner;
 
   /*!
    * @brief The preconditioner of the projection step.
-   * @attention Hardcoded for a AMG preconditioner.
    */
-  LinearAlgebra::MPI::PreconditionAMG     projection_step_preconditioner;
-
-  /*!
-   * @brief The data of the @ref projection_step_preconditioner.
-   */
-  LinearAlgebra::MPI::PreconditionAMG::AdditionalData projection_step_preconditioner_data;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> projection_step_preconditioner;
 
   /*!
    * @brief The preconditioner of the poisson prestep.
-   * @attention Hardcoded for a AMG preconditioner.
    */
-  LinearAlgebra::MPI::PreconditionAMG     poisson_prestep_preconditioner;
-
-  /*!
-   * @brief The data of the @ref poisson_prestep_preconditioner.
-   */
-  LinearAlgebra::MPI::PreconditionAMG::AdditionalData poisson_prestep_preconditioner_data;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> poisson_prestep_preconditioner;
 
   /*!
    * @brief The preconditioner of the correction step.
-   * @attention Hardcoded for a AMG preconditioner.
    */
-  LinearAlgebra::MPI::PreconditionAMG     correction_step_preconditioner;
-
-  /*!
-   * @brief The data of the @ref correction_step_preconditioner.
-   */
-  LinearAlgebra::MPI::PreconditionAMG::AdditionalData correction_step_preconditioner_data;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> correction_step_preconditioner;
 
   /*!
    * @brief The norm of the right hand side of the diffusion step.
@@ -493,7 +469,8 @@ private:
   void assemble_diffusion_step();
 
   /*!
-   * @brief This method solves the linear system of the diffusion step.
+   * @brief This method solves the linear system of the diffusion step. Updates
+   * the Entities::VectorEntity::solution vector of the #velocity.
    */
   void solve_diffusion_step(const bool reinit_prec);
 
@@ -508,12 +485,15 @@ private:
   void assemble_projection_step();
 
   /*!
-   * @brief This method solves the linear system of the projection step.
+   * @brief This method solves the linear system of the projection step. Updates
+   * the Entities::ScalarEntity::solution vector of the pressure correction
+   * #phi.
    */
   void solve_projection_step(const bool reinit_prec);
 
   /*!
    * @brief This method performs the pressure update of the projection step.
+   * Updates the Entities::ScalarEntity::solution vector of the #pressure.
    */
   void pressure_correction(const bool reinit_prec);
 

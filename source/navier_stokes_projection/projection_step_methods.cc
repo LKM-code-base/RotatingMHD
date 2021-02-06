@@ -1,6 +1,6 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/utility.h>
 
-#include <deal.II/lac/solver_cg.h>
 #include <deal.II/numerics/vector_tools.h>
 
 namespace RMHD
@@ -17,6 +17,7 @@ void NavierStokesProjection<dim>::assemble_projection_step()
   assemble_projection_step_rhs();
 }
 
+
 template <int dim>
 void NavierStokesProjection<dim>::solve_projection_step
 (const bool reinit_prec)
@@ -32,18 +33,14 @@ void NavierStokesProjection<dim>::solve_projection_step
   LinearAlgebra::MPI::Vector distributed_phi(phi->distributed_vector);
   distributed_phi = phi->solution;
 
+  const typename RunTimeParameters::LinearSolverParameters &solver_parameters
+    = parameters.projection_step_solver_parameters;
   if (reinit_prec)
   {
-    #ifdef USE_PETSC_LA
-      projection_step_preconditioner.initialize(phi_laplace_matrix,
-                                                projection_step_preconditioner_data);
-    #else
-      if (flag_matrices_were_updated)
-        projection_step_preconditioner.initialize(phi_laplace_matrix,
-                                                  projection_step_preconditioner_data);
-      else
-        projection_step_preconditioner.reinit();
-    #endif
+    Utility::build_preconditioner(projection_step_preconditioner,
+                                  phi_laplace_matrix,
+                                  solver_parameters.preconditioner_parameters_ptr,
+                                  (phi->fe_degree > 1? true: false));
   }
 
   SolverControl solver_control(
@@ -54,7 +51,7 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverCG solver(solver_control,
-                                   MPI_COMM_WORLD);
+                                   mpi_communicator);
   #else
     LinearAlgebra::SolverCG solver(solver_control);
   #endif
@@ -64,7 +61,7 @@ void NavierStokesProjection<dim>::solve_projection_step
     solver.solve(phi_laplace_matrix,
                  distributed_phi,
                  projection_step_rhs,
-                 projection_step_preconditioner);
+                 *projection_step_preconditioner);
   }
   catch (std::exception &exc)
   {

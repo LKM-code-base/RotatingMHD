@@ -1,4 +1,5 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/utility.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -23,6 +24,7 @@ assemble_poisson_prestep()
   assemble_poisson_prestep_rhs();
 }
 
+
 template <int dim>
 void
 NavierStokesProjection<dim>::
@@ -39,18 +41,22 @@ solve_poisson_prestep()
   LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure->distributed_vector);
   distributed_old_old_pressure = pressure->old_old_solution;
 
-  poisson_prestep_preconditioner.initialize(pressure_laplace_matrix,
-                                            poisson_prestep_preconditioner_data);
+  const typename RunTimeParameters::LinearSolverParameters &solver_parameters
+    = parameters.poisson_prestep_solver_parameters;
+
+  Utility::build_preconditioner(poisson_prestep_preconditioner,
+                                pressure_laplace_matrix,
+                                solver_parameters.preconditioner_parameters_ptr,
+                                (pressure->fe_degree > 1? true: false));
 
   SolverControl solver_control(
-    parameters.poisson_prestep_solver_parameters.n_maximum_iterations,
-    std::max(parameters.poisson_prestep_solver_parameters.relative_tolerance *
-             poisson_prestep_rhs.l2_norm(),
-             parameters.poisson_prestep_solver_parameters.absolute_tolerance));
+    solver_parameters.n_maximum_iterations,
+    std::max(solver_parameters.relative_tolerance * poisson_prestep_rhs.l2_norm(),
+             solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverCG solver(solver_control,
-                                   MPI_COMM_WORLD);
+                                   mpi_communicator);
   #else
     LinearAlgebra::SolverCG solver(solver_control);
   #endif
@@ -60,7 +66,7 @@ solve_poisson_prestep()
     solver.solve(pressure_laplace_matrix,
                  distributed_old_old_pressure,
                  poisson_prestep_rhs,
-                 poisson_prestep_preconditioner);
+                 *poisson_prestep_preconditioner);
   }
   catch (std::exception &exc)
   {

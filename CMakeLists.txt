@@ -70,6 +70,7 @@ SET(TARGET_SRC
     source/problem_class.cc
     source/run_time_parameters.cc
     source/time_discretization.cc
+    source/utility.cc
     source/navier_stokes_projection.cc
     source/navier_stokes_projection/assemble_advection_matrix.cc
     source/navier_stokes_projection/assemble_diffusion_rhs.cc

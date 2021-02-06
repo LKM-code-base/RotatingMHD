@@ -540,15 +540,318 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
 }
 
 
+PreconditionBaseParameters::PreconditionBaseParameters
+(const std::string        &name,
+ const PreconditionerType  &type)
+:
+preconditioner_type(type),
+preconditioner_name(name)
+{}
+
+
+void PreconditionBaseParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.declare_entry("Preconditioner type",
+                    "ILU",
+                    Patterns::Selection("ILU|AMG|GMG|Jacobi|SOR"));
+}
+
+void PreconditionBaseParameters::parse_parameters(const ParameterHandler &prm)
+{
+  preconditioner_name = prm.get("Preconditioner type");
+
+  if (preconditioner_name == "AMG")
+    preconditioner_type = PreconditionerType::AMG;
+  else if (preconditioner_name == "GMG")
+      preconditioner_type = PreconditionerType::GMG;
+  else if (preconditioner_name == "ILU")
+      preconditioner_type = PreconditionerType::ILU;
+  else if (preconditioner_name == "Jacobi")
+      preconditioner_type = PreconditionerType::Jacobi;
+  else if (preconditioner_name == "SOR")
+      preconditioner_type = PreconditionerType::SOR;
+  else
+    Assert(false, ExcMessage("Preconditioner type is unknown."));
+}
+
+
+PreconditionILUParameters::PreconditionILUParameters()
+:
+relative_tolerance(1.0),
+absolute_tolerance(0.0),
+fill(1),
+overlap(1)
+{}
+
+
+PreconditionILUParameters::PreconditionILUParameters
+(const std::string &parameter_filename)
+:
+PreconditionILUParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+
+void PreconditionILUParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.declare_entry("Relative tolerance",
+                    "1.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Absolute tolerance",
+                    "0.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Fill-in level",
+                    "1",
+                    Patterns::Integer());
+
+  prm.declare_entry("Overlap",
+                    "1",
+                    Patterns::Integer());
+}
+
+
+void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
+{
+  relative_tolerance = prm.get_double("Relative tolerance");
+  Assert(relative_tolerance >= 1.0, ExcLowerRange(relative_tolerance, 1.0));
+
+  absolute_tolerance = prm.get_double("Absolute tolerance");
+  Assert(absolute_tolerance >= 0, ExcLowerRange(absolute_tolerance, 0.0));
+
+  fill = prm.get_integer("Fill-in level");
+
+  overlap = prm.get_integer("Overlap");
+
+  // Print a warning if PETSc is used
+  #ifdef USE_PETSC_LA
+  ConditionalOStream  pcout(std::cout,
+                             Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+   pcout << std::endl << std::endl
+         << "----------------------------------------------------"
+         << std::endl
+         << "Warning in the PreconditionILUParameters: " << std::endl
+         << "    The program runs using the linear algebra methods of the PETSc "
+                "library. Therefore the following parameter will not have an "
+                "influence on the configuration of the preconditioner." << std::endl
+         << "----------------------------------------------------"
+         << std::endl << std::endl;
+  #endif
+}
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm)
+{
+  const size_t column_width[2] =
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Precondition ILU Parameters"
+         << "|"
+         << std::endl;
+
+  stream << header << std::endl;
+
+  add_line("Fill-in level", prm.fill);
+  add_line("Overlap", prm.overlap);
+  add_line("Relative tolerance", prm.relative_tolerance);
+  add_line("Absolute tolerance", prm.absolute_tolerance);
+
+  stream << header;
+
+  return (stream);
+}
+
+
+PreconditionAMGParameters::PreconditionAMGParameters()
+:
+PreconditionBaseParameters("AMG", PreconditionerType::AMG),
+strong_threshold(0.2),
+elliptic(false),
+higher_order_elements(false),
+n_cycles(1),
+aggregation_threshold(1e-4)
+{}
+
+PreconditionAMGParameters::PreconditionAMGParameters
+(const std::string &parameter_filename)
+:
+PreconditionAMGParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+void PreconditionAMGParameters::declare_parameters(ParameterHandler &prm)
+{
+
+  PreconditionBaseParameters::declare_parameters(prm);
+
+  prm.declare_entry("Strong threshold (PETSc)",
+                    "0.2",
+                    Patterns::Double(0.0));
+
+  prm.declare_entry("Elliptic",
+                    "false",
+                    Patterns::Bool());
+
+  prm.declare_entry("Number of cycles",
+                    "1",
+                    Patterns::Integer(1));
+
+  prm.declare_entry("Aggregation threshold",
+                    "1.0e-4",
+                    Patterns::Double(0.0));
+}
+
+
+void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
+{
+  PreconditionBaseParameters::parse_parameters(prm);
+
+  Assert(preconditioner_type == PreconditionerType::AMG,
+         ExcMessage("Unexpected preconditioner type in PreconditionAMGParameters."));
+
+  strong_threshold = prm.get_double("Strong threshold (PETSc only)");
+  Assert(strong_threshold > 0.0,
+         ExcLowerRangeType<double>(strong_threshold, 0.0));
+  AssertIsFinite(strong_threshold);
+
+  elliptic = prm.get_bool("Elliptic");
+
+  n_cycles = prm.get_integer("Number of cycles");
+  Assert(strong_threshold > 1,
+         ExcLowerRange(n_cycles, 0));
+
+  aggregation_threshold = prm.get_double("Aggregation threshold");
+  Assert(aggregation_threshold > 0.0,
+         ExcLowerRangeType<double>(aggregation_threshold, 0.0));
+  AssertIsFinite(aggregation_threshold);
+}
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionAMGParameters &prm)
+{
+  const size_t column_width[2] =
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Precondition AMG Parameters"
+         << "|"
+         << std::endl;
+
+  stream << header << std::endl;
+
+  add_line("Strong threshold", prm.strong_threshold);
+  add_line("Elliptic", (prm.elliptic? "true": "false"));
+  add_line("Number of cycles", prm.n_cycles);
+  add_line("Aggregation threshold", prm.aggregation_threshold);
+
+  stream << header;
+
+  return (stream);
+}
+
 
 LinearSolverParameters::LinearSolverParameters()
 :
 relative_tolerance(1e-6),
 absolute_tolerance(1e-9),
 n_maximum_iterations(50),
+preconditioner_parameters_ptr(nullptr),
 solver_name("default")
 {}
-
 
 
 LinearSolverParameters::LinearSolverParameters
@@ -599,6 +902,9 @@ void LinearSolverParameters::declare_parameters(ParameterHandler &prm)
   prm.declare_entry("Absolute tolerance",
                     "1e-9",
                     Patterns::Double());
+
+  // Just declare the parameter for ILU preconditioning
+  PreconditionILUParameters::declare_parameters(prm);
 }
 
 
@@ -614,8 +920,36 @@ void LinearSolverParameters::parse_parameters(const ParameterHandler &prm)
   absolute_tolerance = prm.get_double("Absolute tolerance");
   /*! @note commented out for testing with older values */
   //Assert(relative_tolerance > absolute_tolerance, ExcLowerRange(relative_tolerance , absolute_tolerance));
-}
 
+  // @Jose: Let me know if there is a more elegant to implement the selection of
+  // the variable type of the preconditioner
+  PreconditionBaseParameters preconditionbase_parameters;
+  preconditionbase_parameters.parse_parameters(prm);
+
+  switch (preconditionbase_parameters.preconditioner_type)
+  {
+    case PreconditionerType::AMG:
+      preconditioner_parameters_ptr = new PreconditionAMGParameters;
+      break;
+    case PreconditionerType::ILU:
+      preconditioner_parameters_ptr = new PreconditionILUParameters;
+      break;
+    case PreconditionerType::Jacobi:
+      Assert(false, ExcNotImplemented());
+      break;
+    case PreconditionerType::SOR:
+      Assert(false, ExcNotImplemented());
+      break;
+    case PreconditionerType::GMG:
+      Assert(false, ExcNotImplemented());
+      break;
+    default:
+      Assert(false, ExcMessage("Preconditioner type is unknown."));
+      break;
+  }
+  preconditioner_parameters_ptr->parse_parameters(prm);
+
+}
 
 
 template<typename Stream>
@@ -653,6 +987,30 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
   add_line("Maximum number of iterations", prm.n_maximum_iterations);
   add_line("Relative tolerance", prm.relative_tolerance);
   add_line("Absolute tolerance", prm.absolute_tolerance);
+
+  switch (prm.preconditioner_parameters_ptr->preconditioner_type)
+  {
+    case PreconditionerType::AMG:
+      stream << *static_cast<PreconditionAMGParameters*>(prm.preconditioner_parameters_ptr);
+      break;
+    case PreconditionerType::ILU:
+      stream << *static_cast<PreconditionILUParameters*>(prm.preconditioner_parameters_ptr);
+      break;
+    case PreconditionerType::Jacobi:
+      Assert(false, ExcNotImplemented());
+      break;
+    case PreconditionerType::SOR:
+      Assert(false, ExcNotImplemented());
+      break;
+    case PreconditionerType::GMG:
+      Assert(false, ExcNotImplemented());
+      break;
+    default:
+      Assert(false, ExcMessage("Preconditioner type is unknown."));
+      break;
+  }
+
+  stream << "\r";
 
   stream << header;
 
