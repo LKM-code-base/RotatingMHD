@@ -376,10 +376,10 @@ enum class PreconditionerType
   Jacobi,
 
   /*!
-   * @brief Sucessive overrelaxation preconditioning. Depending on whether the
-   * system matrix is symmetric SSOR or SOR is used.
+   * @brief Symmetric Sucessive overrelaxation preconditioning. The system
+   * matrix must be symmetric to apply this preconditioner.
    */
-  SOR
+  SSOR
 
 };
 
@@ -476,7 +476,6 @@ struct SpatialDiscretizationParameters
 };
 
 
-
 /*!
  * @brief Method forwarding parameters to a stream object.
  *
@@ -484,7 +483,6 @@ struct SpatialDiscretizationParameters
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const SpatialDiscretizationParameters &prm);
-
 
 
 /*!
@@ -644,13 +642,19 @@ struct PreconditionBaseParameters
    * Constructor which sets up the parameters with default values.
    */
   PreconditionBaseParameters(const std::string        &name = "ILU",
-                             const PreconditionerType  &type = PreconditionerType::ILU);
+                             const PreconditionerType &type = PreconditionerType::ILU);
 
   /*!
    * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
    */
   static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the only the type parameters of
+   * ::PreconditionBaseParameters from the ParameterHandler object @p prm.
+   */
+  static PreconditionerType parse_preconditioner_type(const ParameterHandler &prm);
 
   /*!
    * @brief Method which parses the parameters of ::PreconditionBaseParameters
@@ -663,14 +667,90 @@ struct PreconditionBaseParameters
    */
   PreconditionerType preconditioner_type;
 
-private:
-
   /*!
    * @brief The name of the preconditioner.
    */
   std::string       preconditioner_name;
 };
 
+
+/*!
+ * @struct PreconditionRelaxationParameters
+ *
+ * @brief A structure containing all parameters relevant for Jacobi
+ * preconditioning.
+ */
+struct PreconditionRelaxationParameters : PreconditionBaseParameters
+{
+  /*!
+   * Constructor which sets up the parameters with default values.
+   */
+  PreconditionRelaxationParameters();
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the ILU preconditioner from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(const ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm);
+
+  /*!
+   * @brief The relaxation parameter in the preconditioner.
+   *
+   * @attention For a Jacobi preconditioner, this parameter is only meaningful if the library is
+   * compiled using the Trilinos linear algebra package.
+   *
+   */
+  double        omega;
+
+  /*!
+   * @brief A parameter specifying how large the overlap of the local matrix
+   * portions on each processor in a parallel application should be.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package and if an SOR or SSOR
+   * preconditioner is used.
+   *
+   */
+  unsigned int  overlap;
+
+
+  /*!
+   * @brief A parameter specifying how many times the given preconditioner
+   * should be applied at each call.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package.
+   *
+   */
+  unsigned int  n_sweeps;
+};
+
+using PreconditionJacobiParameters = PreconditionRelaxationParameters;
+
+using PreconditionSSORParameters = PreconditionRelaxationParameters;
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm);
 
 /*!
  * @struct PreconditionILUParameters
@@ -685,12 +765,6 @@ struct PreconditionILUParameters : PreconditionBaseParameters
    * Constructor which sets up the parameters with default values.
    */
   PreconditionILUParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  PreconditionILUParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -766,12 +840,6 @@ struct PreconditionAMGParameters : PreconditionBaseParameters
    * Constructor which sets up the parameters with default values.
    */
   PreconditionAMGParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  PreconditionAMGParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
