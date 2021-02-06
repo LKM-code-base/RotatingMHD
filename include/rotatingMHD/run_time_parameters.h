@@ -952,7 +952,7 @@ struct LinearSolverParameters
    * @brief Method which parses the parameters of the linear solver from
    * the ParameterHandler object @p prm.
    */
-  void parse_parameters(const ParameterHandler &prm);
+  void parse_parameters(ParameterHandler &prm);
 
   /*!
    * @brief Method forwarding parameters to a stream object.

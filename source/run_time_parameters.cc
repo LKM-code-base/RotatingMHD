@@ -121,21 +121,21 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 {
   prm.enter_subsection("Refinement control parameters");
   {
+    n_maximum_levels = prm.get_integer("Maximum number of levels");
+
+    n_minimum_levels = prm.get_integer("Minimum number of levels");
+
+    Assert(n_minimum_levels > 0,
+           ExcMessage("Minimum number of levels must be larger than zero."));
+    Assert(n_minimum_levels <= n_maximum_levels ,
+           ExcMessage("Maximum number of levels must be larger equal than the "
+                      "minimum number of levels."));
+
     adaptive_mesh_refinement = prm.get_bool("Adaptive mesh refinement");
 
     if (adaptive_mesh_refinement)
     {
       adaptive_mesh_refinement_frequency = prm.get_integer("Adaptive mesh refinement frequency");
-
-      n_maximum_levels = prm.get_integer("Maximum number of levels");
-
-      n_minimum_levels = prm.get_integer("Minimum number of levels");
-
-      Assert(n_minimum_levels > 0,
-             ExcMessage("Minimum number of levels must be larger than zero."));
-      Assert(n_minimum_levels <= n_maximum_levels ,
-             ExcMessage("Maximum number of levels must be larger equal than the "
-                        "minimum number of levels."));
 
       cell_fraction_to_coarsen = prm.get_double("Fraction of cells set to coarsen");
 
@@ -168,6 +168,10 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
     Assert(n_initial_refinements <= n_maximum_levels ,
             ExcMessage("Number of initial refinements must be less equal than "
                       "the maximum number of levels."));
+
+    Assert(n_minimum_levels <= n_initial_refinements,
+            ExcMessage("Number of initial refinements must be larger equal than "
+                       "the minimum number of levels."));
   }
   prm.leave_subsection();
 }
@@ -709,11 +713,12 @@ Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm)
 
   stream << std::left << header << std::endl;
 
+  std::stringstream name;
+  name << "Precondition " << prm.preconditioner_name << " Parameters";
+
   stream << "| "
          << std::setw(column_width[0] + column_width[1] + 2)
-         << "Precondition "
-         << prm.preconditioner_name
-         << " Parameters"
+         << name.str().c_str()
          << "|"
          << std::endl;
 
@@ -1003,16 +1008,21 @@ void LinearSolverParameters::declare_parameters(ParameterHandler &prm)
                     "1e-9",
                     Patterns::Double());
 
-  PreconditionRelaxationParameters::declare_parameters(prm);
+  prm.enter_subsection("Preconditioner parameters");
+  {
 
-  PreconditionAMGParameters::declare_parameters(prm);
+    PreconditionRelaxationParameters::declare_parameters(prm);
 
-  PreconditionILUParameters::declare_parameters(prm);
+    PreconditionAMGParameters::declare_parameters(prm);
+
+    PreconditionILUParameters::declare_parameters(prm);
+  }
+  prm.leave_subsection();
 }
 
 
 
-void LinearSolverParameters::parse_parameters(const ParameterHandler &prm)
+void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
 {
   n_maximum_iterations = prm.get_integer("Maximum number of iterations");
   Assert(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
@@ -1024,31 +1034,35 @@ void LinearSolverParameters::parse_parameters(const ParameterHandler &prm)
   Assert(relative_tolerance > absolute_tolerance,
          ExcLowerRangeType<double>(relative_tolerance , absolute_tolerance));
 
-  const PreconditionerType preconditioner_type =
-      PreconditionBaseParameters::parse_preconditioner_type(prm);
-
-  switch (preconditioner_type)
+  prm.enter_subsection("Preconditioner parameters");
   {
-    case PreconditionerType::AMG:
-      preconditioner_parameters_ptr = new PreconditionAMGParameters;
-      break;
-    case PreconditionerType::ILU:
-      preconditioner_parameters_ptr = new PreconditionILUParameters;
-      break;
-    case PreconditionerType::Jacobi:
-      preconditioner_parameters_ptr = new PreconditionJacobiParameters;
-      break;
-    case PreconditionerType::SSOR:
-      preconditioner_parameters_ptr = new PreconditionSSORParameters;
-      break;
-    case PreconditionerType::GMG:
-      Assert(false, ExcNotImplemented());
-      break;
-    default:
-      Assert(false, ExcMessage("Preconditioner type is unknown."));
-      break;
+    const PreconditionerType preconditioner_type =
+        PreconditionBaseParameters::parse_preconditioner_type(prm);
+
+    switch (preconditioner_type)
+    {
+      case PreconditionerType::AMG:
+        preconditioner_parameters_ptr = new PreconditionAMGParameters;
+        break;
+      case PreconditionerType::ILU:
+        preconditioner_parameters_ptr = new PreconditionILUParameters;
+        break;
+      case PreconditionerType::Jacobi:
+        preconditioner_parameters_ptr = new PreconditionJacobiParameters;
+        break;
+      case PreconditionerType::SSOR:
+        preconditioner_parameters_ptr = new PreconditionSSORParameters;
+        break;
+      case PreconditionerType::GMG:
+        Assert(false, ExcNotImplemented());
+        break;
+      default:
+        Assert(false, ExcMessage("Preconditioner type is unknown."));
+        break;
+    }
+    preconditioner_parameters_ptr->parse_parameters(prm);
   }
-  preconditioner_parameters_ptr->parse_parameters(prm);
+  prm.leave_subsection();
 }
 
 
