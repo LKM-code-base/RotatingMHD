@@ -230,7 +230,7 @@ private:
   /*!
    * @brief A reference to the entity of the temperature field.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
 
   /*!
    * @brief A pointer to the body force function.

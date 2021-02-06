@@ -131,11 +131,11 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
   const FEValuesExtractors::Vector  vector_extractor(0);
 
   /*scratch.velocity_fe_values[vector_extractor].get_function_values(
-    velocity->old_old_solution,
+    velocity->old_solution,
     scratch.velocity_values);
 
   scratch.velocity_fe_values[vector_extractor].get_function_curls(
-    velocity->old_old_solution,
+    velocity->old_solution,
     scratch.velocity_curls);*/
 
   // Temperature
@@ -151,11 +151,11 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
 
     scratch.temperature_fe_values.get_function_values(
-      temperature->old_old_solution,
+      temperature->old_solution,
       scratch.temperature_values);
 
     scratch.temperature_fe_values.get_function_gradients(
-      temperature->old_old_solution,
+      temperature->old_solution,
       scratch.temperature_gradients);
 
     Assert(gravity_vector_ptr != nullptr,
@@ -286,11 +286,11 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
         scratch.velocity_fe_face_values.reinit(velocity_cell, velocity_face);
 
         scratch.velocity_fe_face_values[vector_extractor].get_function_values(
-          velocity->old_old_solution,
+          velocity->old_solution,
           scratch.velocity_face_values);
 
         scratch.velocity_fe_face_values[vector_extractor].get_function_laplacians(
-          velocity->old_old_solution,
+          velocity->old_solution,
           scratch.velocity_laplacians);
 
         // Temperature
@@ -312,7 +312,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                                                     temperature_face);
 
           scratch.temperature_fe_face_values.get_function_values(
-            temperature->old_old_solution,
+            temperature->old_solution,
             scratch.temperature_face_values);
 
           Assert(gravity_vector_ptr != nullptr,
