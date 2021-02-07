@@ -2,7 +2,7 @@
 # ---------------------
 set FE's polynomial degree - Pressure (Taylor-Hood) = 1
 set Mapping - Apply to interior cells               = false
-set Mapping - Polynomial degree                     = 1
+set Mapping - Polynomial degree                     = 2
 set Problem type                                    = hydrodynamic
 set Spatial dimension                               = 2
 set Verbose                                         = false
@@ -23,26 +23,40 @@ subsection Navier-Stokes solver parameters
 
   subsection Linear solver parameters - Correction step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 50
+    set Maximum number of iterations = 60
     set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Diffusion step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 50
+    set Maximum number of iterations = 60
     set Relative tolerance           = 1e-6
   end
 
   subsection Linear solver parameters - Poisson pre-step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 70
+    set Maximum number of iterations = 100
     set Relative tolerance           = 1e-6
+  end
+
+  subsection Linear solver parameters - Pressure preconditioner
+    set Absolute tolerance = 1e-5
+    set Fill-in level      = 2
+    set Overlap            = 2
+    set Relative tolerance = 1.01
   end
 
   subsection Linear solver parameters - Projection step
     set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 70
+    set Maximum number of iterations = 100
     set Relative tolerance           = 1e-6
+  end
+
+  subsection Linear solver parameters - Velocity preconditioner
+    set Absolute tolerance = 1e-5
+    set Fill-in level      = 2
+    set Overlap            = 2
+    set Relative tolerance = 1.01
   end
 
 end

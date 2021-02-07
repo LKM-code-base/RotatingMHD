@@ -43,10 +43,10 @@ solve_poisson_prestep()
   #ifdef USE_PETSC_LA
     preconditioner_data.levels = 2;
   #else
-    preconditioner_data.ilu_fill = 2;
-    preconditioner_data.overlap = 1;
-    preconditioner_data.ilu_rtol = 1.01;
-    preconditioner_data.ilu_atol = 1e-5;
+    preconditioner_data.ilu_fill = parameters.pressure_preconditioner_parameters.fill;
+    preconditioner_data.overlap = parameters.pressure_preconditioner_parameters.overlap;
+    preconditioner_data.ilu_rtol = parameters.pressure_preconditioner_parameters.relative_tolerance;
+    preconditioner_data.ilu_atol = parameters.pressure_preconditioner_parameters.absolute_tolerance;;
   #endif
 
   poisson_prestep_preconditioner.initialize(pressure_laplace_matrix,

@@ -24,7 +24,7 @@ assemble_diffusion_step()
     velocity_mass_plus_laplace_matrix.add
     (time_stepping.get_gamma()[0] * parameters.C2,
      velocity_laplace_matrix);
-    
+
     flag_add_mass_and_stiffness_matrices = false;
   }
 
@@ -56,7 +56,7 @@ solve_diffusion_step(const bool reinit_prec)
   LinearAlgebra::MPI::Vector distributed_velocity(velocity->distributed_vector);
   distributed_velocity = velocity->solution;
 
-  /* The following pointer holds the address to the correct matrix 
+  /* The following pointer holds the address to the correct matrix
   depending on if the semi-implicit scheme is chosen or not */
   const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
   if (parameters.convective_term_time_discretization ==
@@ -66,7 +66,20 @@ solve_diffusion_step(const bool reinit_prec)
     system_matrix = &velocity_mass_plus_laplace_matrix;
 
   if (reinit_prec)
-    diffusion_step_preconditioner.initialize(*system_matrix);
+  {
+    LinearAlgebra::MPI::PreconditionILU::AdditionalData preconditioner_data;
+    #ifdef USE_PETSC_LA
+      preconditioner_data.levels = parameters.velocity_preconditioner_parameters.fill;
+    #else
+      preconditioner_data.ilu_fill = parameters.velocity_preconditioner_parameters.fill;
+      preconditioner_data.overlap = parameters.velocity_preconditioner_parameters.overlap;
+      preconditioner_data.ilu_rtol = parameters.velocity_preconditioner_parameters.relative_tolerance;
+      preconditioner_data.ilu_atol = parameters.velocity_preconditioner_parameters.absolute_tolerance;;
+    #endif
+
+    diffusion_step_preconditioner.initialize(*system_matrix,
+                                             preconditioner_data);
+  }
 
   SolverControl solver_control(
     parameters.diffusion_step_solver_parameters.n_maximum_iterations,
@@ -117,7 +130,7 @@ solve_diffusion_step(const bool reinit_prec)
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of GMRES iterations: " 
+           << "    Number of GMRES iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;

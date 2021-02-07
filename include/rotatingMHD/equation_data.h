@@ -141,12 +141,12 @@ public:
 private:
   /*!
    * @brief The Reynolds number.
-   */ 
+   */
   const double Re;
 
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 
@@ -166,12 +166,12 @@ public:
 private:
   /*!
    * @brief The Reynolds number.
-   */ 
+   */
   const double Re;
 
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 } // namespace TGV
@@ -273,8 +273,8 @@ namespace Couette
  * @class VelocityExactSolution
  * @brief The velocity's exact solution for the Couette flow, where the
  * displacement of the top plate is driven by a traction vector
- * @details It is given by 
- * \f[ \bs{u} = t_0 \Reynolds \dfrac{y}{H} \bs{e}_\mathrm{x}, \f] 
+ * @details It is given by
+ * \f[ \bs{u} = t_0 \Reynolds \dfrac{y}{H} \bs{e}_\mathrm{x}, \f]
  * where \f$ t_0 \f$, \f$ \Reynolds \f$, \f$ H \f$, \f$ y \f$ and
  * \f$ \bs{e}_\mathrm{x} \f$ are the traction vector magnitude, the
  * Reynolds number, the height of the channel, the \f$ y \f$-component
@@ -300,17 +300,17 @@ public:
 private:
   /*!
    * @brief The magnitude of the applied traction vector.
-   */ 
+   */
   const double t_0;
 
   /*!
    * @brief The Reynodls number.
-   */ 
+   */
   const double Re;
 
   /*!
    * @brief The height of the channel.
-   */ 
+   */
   const double H;
 };
 
@@ -333,7 +333,7 @@ public:
 private:
   /*!
    * @brief The magnitude of the applied traction vector.
-   */ 
+   */
   const double t_0;
 };
 
@@ -351,7 +351,7 @@ public:
 private:
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 
@@ -371,12 +371,12 @@ public:
 private:
   /*!
    * @brief The Peclet number.
-   */ 
+   */
   const double Pe;
 
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 
@@ -392,7 +392,7 @@ private:
 
   /*!
    * @brief The wave number.
-   */ 
+   */
   const double k = 2. * M_PI;
 };
 
@@ -414,7 +414,7 @@ public:
 private:
   /*!
    * @brief The exponential coefficient.
-   */ 
+   */
   const double beta = 10.;
 };
 
