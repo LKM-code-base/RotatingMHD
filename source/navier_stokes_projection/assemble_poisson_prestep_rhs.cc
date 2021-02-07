@@ -172,10 +172,6 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       temperature->old_solution,
       scratch.temperature_values);
 
-    scratch.temperature_fe_values.get_function_gradients(
-      temperature->old_solution,
-      scratch.temperature_gradients);
-
     Assert(gravity_vector_ptr != nullptr,
            ExcMessage("No unit vector for the gravity has been specified."))
 
@@ -319,11 +315,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       } // Loop over the faces of the cell
 }
 
-
-template <int dim>
-void NavierStokesProjection<dim>::
-copy_local_to_global_poisson_prestep_rhs(
-  const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy  &data)
+99a353cd33a310afd34a7070ec4adab0eccbfe32
 {
   pressure->constraints.distribute_local_to_global(
                                 data.local_rhs,
