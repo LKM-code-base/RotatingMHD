@@ -169,7 +169,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
     scratch.temperature_fe_values.reinit(temperature_cell);
 
     scratch.temperature_fe_values.get_function_values(
-      temperature->old_old_solution,
+      temperature->old_solution,
       scratch.temperature_values);
 
     Assert(gravity_vector_ptr != nullptr,
@@ -287,7 +287,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
         scratch.velocity_fe_face_values.reinit(velocity_cell, velocity_face);
 
         scratch.velocity_fe_face_values[vector_extractor].get_function_laplacians(
-          velocity->old_old_solution,
+          velocity->old_solution,
           scratch.velocity_laplacians);
 
         // Normal vector

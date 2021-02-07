@@ -83,73 +83,59 @@ computing_timer(
   }
 }
 
+
+
 template <int dim>
 void Problem<dim>::set_initial_conditions
 (std::shared_ptr<Entities::EntityBase<dim>> entity,
  Function<dim>                              &function,
- const TimeDiscretization::VSIMEXMethod     &time_stepping)
+ const TimeDiscretization::VSIMEXMethod     &time_stepping,
+ const bool                                 boolean)
 {
-  switch (time_stepping.get_order())
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_old_solution(entity->locally_owned_dofs);
+  #endif
+
+  function.set_time(time_stepping.get_start_time());
+
+  if (!boolean)
   {
-    case 1 :
-      {
-        #ifdef USE_PETSC_LA
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
-        #else
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs);
-        #endif
+    VectorTools::project(*entity->dof_handler,
+                          entity->constraints,
+                          QGauss<dim>(entity->fe_degree + 2),
+                          function,
+                          tmp_old_solution);
 
-        function.set_time(time_stepping.get_start_time());
+    entity->old_solution = tmp_old_solution;
+  }
+  else
+  {
+    LinearAlgebra::MPI::Vector tmp_old_old_solution(tmp_old_solution);
 
-        VectorTools::project(*entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_solution);
+    VectorTools::project(*entity->dof_handler,
+                          entity->constraints,
+                          QGauss<dim>(entity->fe_degree + 2),
+                          function,
+                          tmp_old_old_solution);
 
-        entity->old_solution = tmp_old_solution;
-        break;
-      }
-    case 2 :
+    function.advance_time(time_stepping.get_next_step_size());
 
-      {
-        #ifdef USE_PETSC_LA
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
-          LinearAlgebra::MPI::Vector
-          tmp_old_old_solution(entity->locally_owned_dofs, mpi_communicator);
-        #else
-          LinearAlgebra::MPI::Vector tmp_old_old_solution(entity->locally_owned_dofs);
-          LinearAlgebra::MPI::Vector tmp_old_solution(entity->locally_owned_dofs);
-        #endif
+    VectorTools::project(*entity->dof_handler,
+                          entity->constraints,
+                          QGauss<dim>(entity->fe_degree + 2),
+                          function,
+                          tmp_old_solution);
 
-        function.set_time(time_stepping.get_start_time());
-
-        VectorTools::project(*entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_old_solution);
-
-        function.advance_time(time_stepping.get_next_step_size());
-
-        VectorTools::project(*entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_solution);
-
-        entity->old_old_solution = tmp_old_old_solution;
-        entity->old_solution     = tmp_old_solution;
-        break;
-      }
-    default:
-      Assert(false, ExcNotImplemented());
-  };
-
+    entity->old_old_solution = tmp_old_old_solution;
+    entity->old_solution     = tmp_old_solution;
+  }
 }
+
+
 
 template <int dim>
 void Problem<dim>::compute_error(

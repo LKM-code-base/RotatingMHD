@@ -38,6 +38,7 @@ void NavierStokesProjection<dim>::setup()
 
   if (time_stepping.get_step_number() == 0)
     poisson_prestep();
+
 }
 
 template <int dim>
@@ -369,11 +370,9 @@ poisson_prestep()
 {
   /* Assemble linear system */
   assemble_poisson_prestep();
+
   /* Solve linear system */
   solve_poisson_prestep();
-
-  velocity->old_solution = velocity->old_old_solution;
-  pressure->old_solution = pressure->old_old_solution;
 }
 
 }

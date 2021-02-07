@@ -148,12 +148,24 @@ protected:
 protected:
 
   /*!
-   * @attention Purpose of the method is not clear...
+   * @brief Loads the initial conditions to the pertinent solution
+   * vector
+   * @details Projects the @ref function at simulation's start time
+   * to the old_solution vector of the @ref entity. If @ref boolean is
+   * set to true, the @ref function evaluated at start time and start time
+   * plus one time step will be projected to the old_old_solution and
+   * old_solution vectors respectively.
+   * @warning If @ref boolean is set to true, one has to manually
+   * advance the time to the first time step or else the solver will
+   * have a time offset.
+   * @attention Would it be preferable to interpolate the functions and
+   * apply the constraints instead of projection?
    */
   void set_initial_conditions
   (std::shared_ptr<Entities::EntityBase<dim>> entity,
    Function<dim>                              &function,
-   const TimeDiscretization::VSIMEXMethod     &time_stepping);
+   const TimeDiscretization::VSIMEXMethod     &time_stepping,
+   const bool                                 boolean = false);
 
   /*!
    * @brief Computes the error of the numerical solution against

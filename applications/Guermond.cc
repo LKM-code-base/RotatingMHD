@@ -201,11 +201,11 @@ void Guermond<dim>::initialize()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
   this->set_initial_conditions(velocity,
-                               *velocity_exact_solution,
-                               time_stepping);
+                                *velocity_exact_solution,
+                                time_stepping);
   this->set_initial_conditions(pressure,
-                               *pressure_exact_solution,
-                               time_stepping);
+                                *pressure_exact_solution,
+                                time_stepping);
 }
 
 template <int dim>
@@ -290,11 +290,11 @@ void Guermond<dim>::output()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
   this->compute_error(velocity_error,
-                       velocity,
-                       *velocity_exact_solution);
+                      velocity,
+                      *velocity_exact_solution);
   this->compute_error(pressure_error,
-                       pressure,
-                       *pressure_exact_solution);
+                      pressure,
+                      *pressure_exact_solution);
 
   std::vector<std::string> names(dim, "velocity");
   std::vector<std::string> error_name(dim, "velocity_error");
@@ -351,17 +351,10 @@ void Guermond<dim>::solve(const unsigned int &level)
 
   // Outputs the fields at t_0, i.e. the initial conditions.
   {
-    velocity->solution = velocity->old_old_solution;
-    pressure->solution = pressure->old_old_solution;
-    velocity_exact_solution->set_time(time_stepping.get_start_time());
-    pressure_exact_solution->set_time(time_stepping.get_start_time());
-    output();
     velocity->solution = velocity->old_solution;
     pressure->solution = pressure->old_solution;
-    velocity_exact_solution->set_time(time_stepping.get_start_time() +
-                                     time_stepping.get_next_step_size());
-    pressure_exact_solution->set_time(time_stepping.get_start_time() +
-                                     time_stepping.get_next_step_size());
+    velocity_exact_solution->set_time(time_stepping.get_start_time());
+    pressure_exact_solution->set_time(time_stepping.get_start_time());
     output();
   }
 

@@ -36,8 +36,8 @@ solve_poisson_prestep()
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure->distributed_vector);
-  distributed_old_old_pressure = pressure->old_old_solution;
+  LinearAlgebra::MPI::Vector distributed_old_pressure(pressure->distributed_vector);
+  distributed_old_pressure = pressure->old_solution;
 
   LinearAlgebra::MPI::PreconditionILU::AdditionalData preconditioner_data;
   #ifdef USE_PETSC_LA
@@ -68,7 +68,7 @@ solve_poisson_prestep()
   try
   {
     solver.solve(pressure_laplace_matrix,
-                 distributed_old_old_pressure,
+                 distributed_old_pressure,
                  poisson_prestep_rhs,
                  poisson_prestep_preconditioner);
   }
@@ -96,12 +96,12 @@ solve_poisson_prestep()
     std::abort();
   }
 
-  pressure->constraints.distribute(distributed_old_old_pressure);
+  pressure->constraints.distribute(distributed_old_pressure);
 
   if (flag_normalize_pressure)
-    VectorTools::subtract_mean_value(distributed_old_old_pressure);
+    VectorTools::subtract_mean_value(distributed_old_pressure);
 
-  pressure->old_old_solution = distributed_old_old_pressure;
+  pressure->old_solution = distributed_old_pressure;
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
