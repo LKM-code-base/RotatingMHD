@@ -38,7 +38,7 @@ subsection Navier-Stokes solver parameters
     set Maximum number of iterations = 100
     set Relative tolerance           = 1e-6
   end
- 
+
   subsection Linear solver parameters - Pressure preconditioner
     set Absolute tolerance = 1e-5
     set Fill-in level      = 2
@@ -51,7 +51,7 @@ subsection Navier-Stokes solver parameters
     set Maximum number of iterations = 100
     set Relative tolerance           = 1e-6
   end
-  
+
   subsection Linear solver parameters - Velocity preconditioner
     set Absolute tolerance = 1e-5
     set Fill-in level      = 2
