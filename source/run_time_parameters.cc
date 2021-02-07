@@ -123,18 +123,17 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
   {
     n_maximum_levels = prm.get_integer("Maximum number of levels");
 
-    n_minimum_levels = prm.get_integer("Minimum number of levels");
-
-    Assert(n_minimum_levels > 0,
-           ExcMessage("Minimum number of levels must be larger than zero."));
-    Assert(n_minimum_levels <= n_maximum_levels ,
-           ExcMessage("Maximum number of levels must be larger equal than the "
-                      "minimum number of levels."));
-
     adaptive_mesh_refinement = prm.get_bool("Adaptive mesh refinement");
 
     if (adaptive_mesh_refinement)
     {
+      n_minimum_levels = prm.get_integer("Minimum number of levels");
+      Assert(n_minimum_levels > 0,
+             ExcMessage("Minimum number of levels must be larger than zero."));
+      Assert(n_minimum_levels <= n_maximum_levels ,
+             ExcMessage("Maximum number of levels must be larger equal than the "
+                        "minimum number of levels."));
+
       adaptive_mesh_refinement_frequency = prm.get_integer("Adaptive mesh refinement frequency");
 
       cell_fraction_to_coarsen = prm.get_double("Fraction of cells set to coarsen");
@@ -169,9 +168,10 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
             ExcMessage("Number of initial refinements must be less equal than "
                       "the maximum number of levels."));
 
-    Assert(n_minimum_levels <= n_initial_refinements,
-            ExcMessage("Number of initial refinements must be larger equal than "
-                       "the minimum number of levels."));
+    if (adaptive_mesh_refinement)
+      Assert(n_minimum_levels <= n_initial_refinements,
+             ExcMessage("Number of initial refinements must be larger equal than "
+                        "the minimum number of levels."));
   }
   prm.leave_subsection();
 }
@@ -557,7 +557,7 @@ void PreconditionBaseParameters::declare_parameters(ParameterHandler &prm)
 {
   prm.declare_entry("Preconditioner type",
                     "ILU",
-                    Patterns::Selection("ILU|AMG|GMG|Jacobi|SOR"));
+                    Patterns::Selection("ILU|AMG|GMG|Jacobi|SSOR"));
 }
 
 PreconditionerType PreconditionBaseParameters::parse_preconditioner_type(const ParameterHandler &prm)
@@ -574,7 +574,7 @@ PreconditionerType PreconditionBaseParameters::parse_preconditioner_type(const P
     type = PreconditionerType::ILU;
   else if (name == "Jacobi")
     type = PreconditionerType::Jacobi;
-  else if (name == "SOR")
+  else if (name == "SSOR")
     type = PreconditionerType::SSOR;
   else
     Assert(false, ExcMessage("Preconditioner type is unknown."));
@@ -594,7 +594,7 @@ void PreconditionBaseParameters::parse_parameters(const ParameterHandler &prm)
       preconditioner_type = PreconditionerType::ILU;
   else if (preconditioner_name == "Jacobi")
       preconditioner_type = PreconditionerType::Jacobi;
-  else if (preconditioner_name == "SOR")
+  else if (preconditioner_name == "SSOR")
       preconditioner_type = PreconditionerType::SSOR;
   else
     Assert(false, ExcMessage("Preconditioner type is unknown."));
