@@ -19,6 +19,48 @@ using namespace dealii;
 namespace RunTimeParameters
 {
 
+namespace internal
+{
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
+
+  const size_t column_width[2] ={ 40, 20 };
+
+  constexpr size_t line_width = 57;
+
+  template<typename Stream, typename A>
+  void add_line(Stream  &stream,
+                const A &line)
+  {
+    stream << "| "
+           << std::setw(line_width)
+           << line
+           << " |"
+           << std::endl;
+  }
+
+  template<typename Stream, typename A, typename B>
+  void add_line(Stream  &stream,
+                const A &first_column,
+                const B &second_column)
+  {
+    stream << "| "
+           << std::setw(column_width[0]) << first_column
+           << " | "
+           << std::setw(column_width[1]) << second_column
+           << " |"
+           << std::endl;
+  }
+
+  template<typename Stream>
+  void add_header(Stream  &stream)
+  {
+    stream << std::left << header << std::endl;
+  }
+
+} // internal
+
+
 
 SpatialDiscretizationParameters::SpatialDiscretizationParameters()
 :
@@ -181,51 +223,39 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const SpatialDiscretizationParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
+  internal::add_header(stream);
+  internal::add_line(stream, "Refinement control parameters");
+  internal::add_header(stream);
 
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Refinement control parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
-
-  add_line("Adaptive mesh refinement", (prm.adaptive_mesh_refinement ?
-                                        "True": "False"));
+  internal::add_line(stream,
+                     "Adaptive mesh refinement",
+                     (prm.adaptive_mesh_refinement ? "True": "False"));
   if (prm.adaptive_mesh_refinement)
   {
-    add_line("Adapt. mesh refinement frequency", prm.adaptive_mesh_refinement_frequency);
-    add_line("Fraction of cells set to coarsen", prm.cell_fraction_to_coarsen);
-    add_line("Fraction of cells set to refine", prm.cell_fraction_to_refine);
-    add_line("Maximum number of levels", prm.n_maximum_levels);
-    add_line("Minimum number of levels", prm.n_minimum_levels);
+    internal::add_line(stream,
+                       "Adapt. mesh refinement frequency",
+                       prm.adaptive_mesh_refinement_frequency);
+    internal::add_line(stream,
+                       "Fraction of cells set to coarsen", prm.cell_fraction_to_coarsen);
+    internal::add_line(stream,
+                       "Fraction of cells set to refine",
+                       prm.cell_fraction_to_refine);
+    internal::add_line(stream,
+                       "Maximum number of levels", prm.n_maximum_levels);
+    internal::add_line(stream,
+                       "Minimum number of levels", prm.n_minimum_levels);
   }
-  add_line("Number of initial adapt. refinements", prm.n_initial_adaptive_refinements);
-  add_line("Number of initial global refinements", prm.n_initial_global_refinements);
-  add_line("Number of initial boundary refinements", prm.n_initial_boundary_refinements);
+  internal::add_line(stream,
+                     "Number of initial adapt. refinements",
+                     prm.n_initial_adaptive_refinements);
+  internal::add_line(stream,
+                     "Number of initial global refinements",
+                     prm.n_initial_global_refinements);
+  internal::add_line(stream,
+                     "Number of initial boundary refinements",
+                     prm.n_initial_boundary_refinements);
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -320,40 +350,21 @@ void OutputControlParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
+  internal::add_header(stream);
+  internal::add_line(stream, "Output control parameters");
+  internal::add_header(stream);
 
-  stream << std::left << header << std::endl;
+  internal::add_line(stream,
+                     "Graphical output frequency",
+                     prm.graphical_output_frequency);
+  internal::add_line(stream,
+                     "Terminal output frequency",
+                     prm.terminal_output_frequency);
+  internal::add_line(stream,
+                     "Graphical output directory",
+                     prm.graphical_output_directory);
 
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Output control parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
-
-  add_line("Graphical output frequency", prm.graphical_output_frequency);
-  add_line("Terminal output frequency", prm.terminal_output_frequency);
-  add_line("Graphical output directory", prm.graphical_output_directory);
-
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -483,42 +494,17 @@ void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Convergence test parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Convergence test parameters");
+  internal::add_header(stream);
 
   switch (prm.convergence_test_type)
   {
     case ConvergenceTestType::spatial:
-      add_line("Convergence test type", "spatial");
+      internal::add_line(stream, "Convergence test type", "spatial");
       break;
     case ConvergenceTestType::temporal:
-      add_line("Convergence test type", "temporal");
+      internal::add_line(stream, "Convergence test type", "temporal");
       break;
     default:
       Assert(false, ExcMessage("Unexpected identifier for the type of"
@@ -526,19 +512,23 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
       break;
   }
 
-  add_line("Number of spatial convergence cycles",
-            prm.n_spatial_convergence_cycles);
+  internal::add_line(stream,
+                     "Number of spatial convergence cycles",
+                     prm.n_spatial_convergence_cycles);
 
-  add_line("Number of initial global refinements",
-            prm.n_global_initial_refinements);
+  internal::add_line(stream,
+                     "Number of initial global refinements",
+                     prm.n_global_initial_refinements);
 
-  add_line("Number of temporal convergence cycles",
-            prm.n_temporal_convergence_cycles);
+  internal::add_line(stream,
+                     "Number of temporal convergence cycles",
+                     prm.n_temporal_convergence_cycles);
 
-  add_line("Time-step reduction factor",
-            prm.timestep_reduction_factor);
+  internal::add_line(stream,
+                     "Time-step reduction factor",
+                     prm.timestep_reduction_factor);
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -692,43 +682,20 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
 template<typename Stream>
 Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm)
 {
-  const size_t column_width[2] =
+  internal::add_header(stream);
   {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
+    std::stringstream name;
+    name << "Precondition " << prm.preconditioner_name << " Parameters";
 
-  stream << std::left << header << std::endl;
+    internal::add_line(stream, name.str().c_str());
+  }
+  internal::add_header(stream);
 
-  std::stringstream name;
-  name << "Precondition " << prm.preconditioner_name << " Parameters";
+  internal::add_line(stream, "Relaxation parameter", prm.omega);
+  internal::add_line(stream, "Overlap", prm.overlap);
+  internal::add_line(stream, "Number of sweeps", prm.n_sweeps);
 
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << name.str().c_str()
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
-
-  add_line("Relaxation parameter", prm.omega);
-  add_line("Overlap", prm.overlap);
-  add_line("Number of sweeps", prm.n_sweeps);
-
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -808,41 +775,17 @@ void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
 
-  stream << std::left << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Precondition ILU Parameters");
+  internal::add_header(stream);
 
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Precondition ILU Parameters"
-         << "|"
-         << std::endl;
+  internal::add_line(stream, "Fill-in level", prm.fill);
+  internal::add_line(stream, "Overlap", prm.overlap);
+  internal::add_line(stream, "Relative tolerance", prm.relative_tolerance);
+  internal::add_line(stream, "Absolute tolerance", prm.absolute_tolerance);
 
-  stream << header << std::endl;
-
-  add_line("Fill-in level", prm.fill);
-  add_line("Overlap", prm.overlap);
-  add_line("Relative tolerance", prm.relative_tolerance);
-  add_line("Absolute tolerance", prm.absolute_tolerance);
-
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -909,41 +852,16 @@ void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const PreconditionAMGParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
+  internal::add_header(stream);
+  internal::add_line(stream, "Precondition AMG Parameters");
+  internal::add_header(stream);
 
-  stream << std::left << header << std::endl;
+  internal::add_line(stream, "Strong threshold", prm.strong_threshold);
+  internal::add_line(stream, "Elliptic", (prm.elliptic? "true": "false"));
+  internal::add_line(stream, "Number of cycles", prm.n_cycles);
+  internal::add_line(stream, "Aggregation threshold", prm.aggregation_threshold);
 
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Precondition AMG Parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
-
-  add_line("Strong threshold", prm.strong_threshold);
-  add_line("Elliptic", (prm.elliptic? "true": "false"));
-  add_line("Number of cycles", prm.n_cycles);
-  add_line("Aggregation threshold", prm.aggregation_threshold);
-
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -1069,38 +987,19 @@ void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
+  internal::add_header(stream);
+  internal::add_line(stream, "Linear solver parameters");
+  internal::add_header(stream);
 
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Linear solver parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
-
-  add_line("Maximum number of iterations", prm.n_maximum_iterations);
-  add_line("Relative tolerance", prm.relative_tolerance);
-  add_line("Absolute tolerance", prm.absolute_tolerance);
+  internal::add_line(stream,
+                     "Maximum number of iterations",
+                     prm.n_maximum_iterations);
+  internal::add_line(stream,
+                     "Relative tolerance",
+                     prm.relative_tolerance);
+  internal::add_line(stream,
+                     "Absolute tolerance",
+                     prm.absolute_tolerance);
 
   switch (prm.preconditioner_parameters_ptr->preconditioner_type)
   {
@@ -1126,7 +1025,7 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 
   stream << "\r";
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -1312,57 +1211,32 @@ void DimensionlessNumbers::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const DimensionlessNumbers &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Dimensionless numbers"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Dimensionless numbers");
+  internal::add_header(stream);
 
   switch (prm.problem_type)
   {
     case ProblemType::hydrodynamic:
-      add_line("Reynolds number", prm.Re);
+      internal::add_line(stream, "Reynolds number", prm.Re);
       break;
     case ProblemType::heat_convection_diffusion:
-      add_line("Peclet number", prm.Pe);
+      internal::add_line(stream, "Peclet number", prm.Pe);
       break;
     case ProblemType::boussinesq:
-      add_line("Prandtl number", prm.Pr);
-      add_line("Rayleigh number", prm.Ra);
+      internal::add_line(stream, "Prandtl number", prm.Pr);
+      internal::add_line(stream, "Rayleigh number", prm.Ra);
       break;
     case ProblemType::rotating_boussinesq:
-      add_line("Prandtl number", prm.Pr);
-      add_line("Rayleigh number", prm.Ra);
-      add_line("Ekman number", prm.Ek);
+      internal::add_line(stream, "Prandtl number", prm.Pr);
+      internal::add_line(stream, "Rayleigh number", prm.Ra);
+      internal::add_line(stream, "Ekman number", prm.Ek);
       break;
     case ProblemType::rotating_magnetohydrodynamic:
-      add_line("Prandtl number", prm.Pr);
-      add_line("Rayleigh number", prm.Ra);
-      add_line("Ekman number", prm.Ek);
-      add_line("magnetic Prandtl number", prm.Pm);
+      internal::add_line(stream, "Prandtl number", prm.Pr);
+      internal::add_line(stream, "Rayleigh number", prm.Ra);
+      internal::add_line(stream, "Ekman number", prm.Ek);
+      internal::add_line(stream, "magnetic Prandtl number", prm.Pm);
       break;
     default:
       Assert(false, ExcMessage("Unexpected type identifier for the "
@@ -1370,7 +1244,7 @@ Stream& operator<<(Stream &stream, const DimensionlessNumbers &prm)
       break;
   }
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -1563,42 +1437,17 @@ void NavierStokesParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Navier-Stokes discretization parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Navier-Stokes discretization parameters");
+  internal::add_header(stream);
 
   switch (prm.pressure_correction_scheme)
   {
     case PressureCorrectionScheme::standard:
-      add_line("Incremental pressure-correction scheme", "standard");
+      internal::add_line(stream, "Incremental pressure-correction scheme", "standard");
       break;
     case PressureCorrectionScheme::rotational:
-      add_line("Incremental pressure-correction scheme", "rotational");
+      internal::add_line(stream, "Incremental pressure-correction scheme", "rotational");
       break;
     default:
       Assert(false, ExcMessage("Unexpected type identifier for the "
@@ -1608,16 +1457,16 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
 
   switch (prm.convective_term_weak_form) {
     case ConvectiveTermWeakForm::standard:
-      add_line("Convective term weak form", "standard");
+      internal::add_line(stream, "Convective term weak form", "standard");
       break;
     case ConvectiveTermWeakForm::rotational:
-      add_line("Convective term weak form", "rotational");
+      internal::add_line(stream, "Convective term weak form", "rotational");
       break;
     case ConvectiveTermWeakForm::divergence:
-      add_line("Convective term weak form", "divergence");
+      internal::add_line(stream, "Convective term weak form", "divergence");
       break;
     case ConvectiveTermWeakForm::skewsymmetric:
-      add_line("Convective term weak form", "skew-symmetric");
+      internal::add_line(stream, "Convective term weak form", "skew-symmetric");
       break;
     default:
       Assert(false, ExcMessage("Unexpected type identifier for the "
@@ -1627,10 +1476,10 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
 
   switch (prm.convective_term_time_discretization) {
     case ConvectiveTermTimeDiscretization::semi_implicit:
-      add_line("Convective temporal form", "semi-implicit");
+      internal::add_line(stream, "Convective temporal form", "semi-implicit");
       break;
     case ConvectiveTermTimeDiscretization::fully_explicit:
-      add_line("Convective temporal form", "explicit");
+      internal::add_line(stream, "Convective temporal form", "explicit");
       break;
     default:
       Assert(false, ExcMessage("Unexpected type identifier for the "
@@ -1638,7 +1487,7 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
       break;
   }
 
-  add_line("Preconditioner update frequency", prm.preconditioner_update_frequency);
+  internal::add_line(stream, "Preconditioner update frequency", prm.preconditioner_update_frequency);
 
   stream << prm.diffusion_step_solver_parameters;
 
@@ -1656,7 +1505,7 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
 
   stream << "\r";
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -1791,47 +1640,23 @@ void HeatEquationParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const HeatEquationParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
 
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Heat equation solver parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Heat equation solver parameters");
+  internal::add_header(stream);
 
   switch (prm.convective_term_weak_form) {
     case ConvectiveTermWeakForm::standard:
-      add_line("Convective term weak form", "standard");
+      internal::add_line(stream, "Convective term weak form", "standard");
       break;
     case ConvectiveTermWeakForm::rotational:
-      add_line("Convective term weak form", "rotational");
+      internal::add_line(stream, "Convective term weak form", "rotational");
       break;
     case ConvectiveTermWeakForm::divergence:
-      add_line("Convective term weak form", "divergence");
+      internal::add_line(stream, "Convective term weak form", "divergence");
       break;
     case ConvectiveTermWeakForm::skewsymmetric:
-      add_line("Convective term weak form", "skew-symmetric");
+      internal::add_line(stream, "Convective term weak form", "skew-symmetric");
       break;
     default:
       Assert(false, ExcMessage("Unexpected type identifier for the "
@@ -1841,10 +1666,10 @@ Stream& operator<<(Stream &stream, const HeatEquationParameters &prm)
 
   switch (prm.convective_term_time_discretization) {
     case ConvectiveTermTimeDiscretization::semi_implicit:
-      add_line("Convective temporal form", "semi-implicit");
+      internal::add_line(stream, "Convective temporal form", "semi-implicit");
       break;
     case ConvectiveTermTimeDiscretization::fully_explicit:
-      add_line("Convective temporal form", "explicit");
+      internal::add_line(stream, "Convective temporal form", "explicit");
       break;
     default:
       Assert(false, ExcMessage("Unexpected type identifier for the "
@@ -1852,13 +1677,15 @@ Stream& operator<<(Stream &stream, const HeatEquationParameters &prm)
       break;
   }
 
-  add_line("Preconditioner update frequency", prm.preconditioner_update_frequency);
+  internal::add_line(stream,
+                     "Preconditioner update frequency",
+                     prm.preconditioner_update_frequency);
 
   stream << prm.solver_parameters;
 
   stream << "\r";
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -2096,51 +1923,26 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Problem parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Problem parameters");
+  internal::add_header(stream);
 
   switch (prm.problem_type)
   {
     case ProblemType::hydrodynamic:
-      add_line("Problem type", "hydrodynamic");
+      internal::add_line(stream, "Problem type", "hydrodynamic");
       break;
     case ProblemType::heat_convection_diffusion:
-      add_line("Problem type", "heat_convection_diffusion");
+      internal::add_line(stream, "Problem type", "heat_convection_diffusion");
       break;
     case ProblemType::boussinesq:
-      add_line("Problem type", "boussinesq");
+      internal::add_line(stream, "Problem type", "boussinesq");
       break;
     case ProblemType::rotating_boussinesq:
-      add_line("Problem type", "rotating_boussinesq");
+      internal::add_line(stream, "Problem type", "rotating_boussinesq");
       break;
     case ProblemType::rotating_magnetohydrodynamic:
-      add_line("Problem type", "rotating_magnetohydrodynamic");
+      internal::add_line(stream, "Problem type", "rotating_magnetohydrodynamic");
       break;
     default:
       Assert(false, ExcMessage("Unexpected type identifier for the "
@@ -2148,28 +1950,37 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
       break;
   }
 
-  add_line("Spatial dimension", prm.dim);
+  internal::add_line(stream, "Spatial dimension", prm.dim);
 
-  add_line("Mapping", ("MappingQ<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.mapping_degree) + ")"));
+  {
+    std::stringstream strstream;
 
-  add_line("Mapping - Apply to interior cells", (prm.mapping_interior_cells ? "true" : "false"));
+    strstream << "MappingQ<" << std::to_string(prm.dim) << ">"
+              << "(" << std::to_string(prm.mapping_degree) << ")";
+    internal::add_line(stream, "Mapping", strstream.str().c_str());
+  }
+
+  internal::add_line(stream,
+                     "Mapping - Apply to interior cells",
+                     (prm.mapping_interior_cells ? "true" : "false"));
 
   if (prm.problem_type != ProblemType::heat_convection_diffusion)
   {
     std::string fe_velocity = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_velocity) + ")^" + std::to_string(prm.dim);
     std::string fe_pressure = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_pressure) + ")";
-    add_line("Finite Element - Velocity", fe_velocity);
-    add_line("Finite Element - Pressure", fe_pressure);
+    internal::add_line(stream, "Finite Element - Velocity", fe_velocity);
+    internal::add_line(stream, "Finite Element - Pressure", fe_pressure);
   }
 
   if (prm.problem_type != ProblemType::hydrodynamic)
   {
     std::string fe_temperature = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_temperature) + ")";
-    add_line("Finite Element - Temperature", fe_temperature);
+    internal::add_line(stream,
+                       "Finite Element - Temperature",
+                       fe_temperature);
   }
 
-  add_line("Verbose", (prm.verbose? "true": "false"));
-
+  internal::add_line(stream, "Verbose", (prm.verbose? "true": "false"));
 
   stream << static_cast<const OutputControlParameters &>(prm);
 
