@@ -6,6 +6,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <algorithm>
+
 namespace RMHD
 {
 
@@ -122,6 +123,10 @@ void VectorEntity<dim>::setup_dofs()
 template <int dim>
 void VectorEntity<dim>::apply_boundary_conditions()
 {
+
+  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+    boundary_conditions.print_summary(std::cout, this->name);
+
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
@@ -449,6 +454,9 @@ void ScalarEntity<dim>::setup_dofs()
 template <int dim>
 void ScalarEntity<dim>::apply_boundary_conditions()
 {
+  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+    boundary_conditions.print_summary(std::cout, this->name);
+
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();

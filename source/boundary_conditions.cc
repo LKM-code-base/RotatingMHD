@@ -1,5 +1,12 @@
 #include <rotatingMHD/boundary_conditions.h>
 
+#include <deal.II/base/conditional_ostream.h>
+
+#include <boost/core/demangle.hpp>
+
+#include <typeinfo>
+#include <iostream>
+
 namespace RMHD
 {
 
@@ -7,6 +14,47 @@ using namespace dealii;
 
 namespace Entities
 {
+
+namespace internal
+{
+  constexpr char header[] = "+----------------+"
+      "-------------------------------------------------------------+";
+
+  constexpr size_t column_width[2] = { 13, 60 };
+
+  constexpr size_t line_width = 76;
+
+  template<typename Stream, typename A>
+  void add_line(Stream  &stream,
+                const A &line)
+  {
+    stream << "| "
+           << std::setw(line_width)
+           << line
+           << " |"
+           << std::endl;
+  }
+
+  template<typename Stream, typename A, typename B>
+  void add_line(Stream  &stream,
+                const A &first_column,
+                const B &second_column)
+  {
+    stream << "| "
+           << std::setw(column_width[0]) << first_column
+           << " | "
+           << std::setw(column_width[1]) << second_column
+           << " |"
+           << std::endl;
+  }
+
+  template<typename Stream>
+  void add_header(Stream  &stream)
+  {
+    stream << std::left << header << std::endl;
+  }
+
+} // internal
 
 template <int dim>
 PeriodicBoundaryData<dim>::PeriodicBoundaryData
@@ -31,7 +79,8 @@ flag_extract_boundary_ids(true)
 {}
 
 template <int dim>
-std::vector<types::boundary_id> BoundaryConditionsBase<dim>::get_unconstrained_boundary_ids()
+std::vector<types::boundary_id>
+BoundaryConditionsBase<dim>::get_unconstrained_boundary_ids()
 {
   // Extracts the boundary indicators from the triangulation
   if (this->flag_extract_boundary_ids)
@@ -56,12 +105,88 @@ std::vector<types::boundary_id> BoundaryConditionsBase<dim>::get_unconstrained_b
 
 
 template <int dim>
+template <typename Stream>
+void BoundaryConditionsBase<dim>::print_summary
+(Stream &stream)
+{
+  if (dirichlet_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Dirichlet boundary conditions");
+    internal::add_line(stream, "Boundary id", "   Type name");
+
+    for(auto &[key, value]: this->dirichlet_bcs)
+      internal::add_line(stream, key, boost::core::demangle(typeid(*value).name()));
+  }
+
+  if (periodic_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Periodic boundary conditions");
+    internal::add_line(stream, "1st id", "2nd id");
+
+    for(const PeriodicBoundaryData<dim> &periodic_bc: this->periodic_bcs)
+      internal::add_line(stream,
+                         periodic_bc.boundary_pair.first,
+                         periodic_bc.boundary_pair.second);
+  }
+
+  const std::vector<types::boundary_id> unconstrained_boundary_ids
+    = get_unconstrained_boundary_ids();
+  if (unconstrained_boundary_ids.size() != 0)
+  {
+    internal::add_line(stream, "Unconstrained boundary ids");
+
+    std::stringstream strstream;
+    for(const auto &boundary_id: unconstrained_boundary_ids)
+      strstream << boundary_id << ", ";
+
+    internal::add_line(stream, strstream.str().c_str());
+  }
+}
+
+
+template <int dim>
 ScalarBoundaryConditions<dim>::ScalarBoundaryConditions(
   const parallel::distributed::Triangulation<dim> &triangulation)
 :
 BoundaryConditionsBase<dim>(triangulation)
 {}
 
+
+
+template <int dim>
+template <typename Stream>
+void ScalarBoundaryConditions<dim>::print_summary
+(Stream             &stream,
+ const std::string  &name)
+{
+  internal::add_header(stream);
+
+  {
+    std::stringstream strstream;
+    strstream << "Boundary conditions of the "
+              << name
+              << " entity";
+
+    internal::add_line(stream, strstream.str().c_str());
+  }
+
+  internal::add_header(stream);
+
+  BoundaryConditionsBase<dim>::print_summary(stream);
+
+  if (neumann_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Neumann boundary conditions");
+
+    internal::add_line(stream, "Boundary id", "   Type name");
+    for(const auto &[key, value]: neumann_bcs)
+      internal::add_line(stream,
+                         key,
+                         boost::core::demangle(typeid(*value).name()));
+  }
+
+  internal::add_header(stream);
+}
 
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_periodic_bcs(
@@ -108,6 +233,7 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
     this->time_dependent_bcs_map.emplace(BCType::dirichlet, boundary_id);
 }
 
+
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_neumann_bcs(
   const types::boundary_id             boundary_id,
@@ -132,6 +258,7 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
 }
+
 
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_time(const double time)
@@ -211,6 +338,61 @@ BoundaryConditionsBase<dim>(triangulation)
 {}
 
 template <int dim>
+template <typename Stream>
+void VectorBoundaryConditions<dim>::print_summary
+(Stream &stream,
+ const std::string &name)
+{
+  internal::add_header(stream);
+
+  {
+    std::stringstream strstream;
+    strstream << "Boundary conditions of the "
+              << name
+              << " entity";
+
+    internal::add_line(stream, strstream.str().c_str());
+  }
+
+  internal::add_header(stream);
+
+  BoundaryConditionsBase<dim>::print_summary(stream);
+
+  if (neumann_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Neumann boundary conditions");
+    internal::add_line(stream, "Boundary id", "   Type name");
+    for(const auto &[key, value]: this->neumann_bcs)
+      internal::add_line(stream,
+                         key,
+                         boost::core::demangle(typeid(*value).name()));
+  }
+
+  if (normal_flux_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Normal flux boundary conditions");
+    internal::add_line(stream, "   Boundary id", "   Type name");
+    for(const auto &[key, value]: normal_flux_bcs)
+      internal::add_line(stream,
+                         key,
+                         boost::core::demangle(typeid(*value).name()));
+  }
+
+  if (tangential_flux_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Tangential flux boundary conditions");
+    internal::add_line(stream, "   Boundary id", "   Type name");
+    for(const auto &[key, value]: tangential_flux_bcs)
+      internal::add_line(stream,
+                         key,
+                         boost::core::demangle(typeid(*value).name()));
+  }
+
+  internal::add_header(stream);
+}
+
+
+template <int dim>
 void VectorBoundaryConditions<dim>::set_periodic_bcs(
   const types::boundary_id  first_boundary,
   const types::boundary_id  second_boundary,
@@ -270,7 +452,7 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
   this->constrained_boundaries.push_back(boundary_id);
 
   if (function.get() == nullptr)
-    this->neumann_bcs[boundary_id] = zero_vector;
+    this->neumann_bcs[boundary_id] = zero_tensor_function_ptr;
   else
   {
     std::stringstream message;
@@ -427,6 +609,41 @@ void VectorBoundaryConditions<dim>::check_boundary_id(
 } // namespace Entities
 
 } // namespace RMHD
+
+// explicit instantiations
+template void RMHD::Entities::BoundaryConditionsBase<2>::
+print_summary<std::ostream>(std::ostream  &);
+template void RMHD::Entities::BoundaryConditionsBase<3>::
+print_summary<std::ostream>(std::ostream  &);
+
+template void RMHD::Entities::ScalarBoundaryConditions<2>::
+print_summary<std::ostream>(std::ostream &, const std::string &);
+template void RMHD::Entities::ScalarBoundaryConditions<3>::
+print_summary<std::ostream>(std::ostream &, const std::string &);
+
+template void RMHD::Entities::VectorBoundaryConditions<2>::
+print_summary<std::ostream>(std::ostream &, const std::string &);
+template void RMHD::Entities::VectorBoundaryConditions<3>::
+print_summary<std::ostream>(std::ostream &, const std::string &);
+
+template void RMHD::Entities::BoundaryConditionsBase<2>::
+print_summary<dealii::ConditionalOStream>(dealii::ConditionalOStream &);
+template void RMHD::Entities::BoundaryConditionsBase<3>::
+print_summary<dealii::ConditionalOStream>(dealii::ConditionalOStream &);
+
+template void RMHD::Entities::ScalarBoundaryConditions<2>::
+print_summary<dealii::ConditionalOStream>
+(dealii::ConditionalOStream &, const std::string &);
+template void RMHD::Entities::ScalarBoundaryConditions<3>::
+print_summary<dealii::ConditionalOStream>
+(dealii::ConditionalOStream &, const std::string &);
+
+template void RMHD::Entities::VectorBoundaryConditions<2>::
+print_summary<dealii::ConditionalOStream>
+(dealii::ConditionalOStream &, const std::string &);
+template void RMHD::Entities::VectorBoundaryConditions<3>::
+print_summary<dealii::ConditionalOStream>
+(dealii::ConditionalOStream &, const std::string &);
 
 template struct RMHD::Entities::PeriodicBoundaryData<2>;
 template struct RMHD::Entities::PeriodicBoundaryData<3>;
