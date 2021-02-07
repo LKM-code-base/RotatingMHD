@@ -8,6 +8,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/mpi.h>
 
 #include <fstream>
 
@@ -659,6 +660,143 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 }
 
 
+PreconditionILUParameters::PreconditionILUParameters()
+:
+relative_tolerance(1.0),
+absolute_tolerance(0.0),
+fill(1),
+overlap(1)
+{}
+
+
+
+PreconditionILUParameters::PreconditionILUParameters
+(const std::string &parameter_filename)
+:
+PreconditionILUParameters()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+
+void PreconditionILUParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.declare_entry("Relative tolerance",
+                    "1.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Absolute tolerance",
+                    "0.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Fill-in level",
+                    "1",
+                    Patterns::Integer());
+
+  prm.declare_entry("Overlap",
+                    "1",
+                    Patterns::Integer());
+}
+
+
+void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
+{
+  relative_tolerance = prm.get_double("Relative tolerance");
+  Assert(relative_tolerance >= 1.0, ExcLowerRange(relative_tolerance, 1.0));
+
+  absolute_tolerance = prm.get_double("Absolute tolerance");
+  Assert(absolute_tolerance >= 0, ExcLowerRange(absolute_tolerance, 0.0));
+
+  fill = prm.get_integer("Fill-in level");
+
+  overlap = prm.get_integer("Overlap");
+
+  // Print a warning if PETSc is used
+  #ifdef USE_PETSC_LA
+  ConditionalOStream  pcout(std::cout,
+                             Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+   pcout << std::endl << std::endl
+         << "----------------------------------------------------"
+         << std::endl
+         << "Warning in the PreconditionILUParameters: " << std::endl
+         << "    The program runs using the linear algebra methods of the PETSc "
+                "library. Therefore the following parameter will not have an "
+                "influence on the configuration of the preconditioner." << std::endl
+         << "----------------------------------------------------"
+         << std::endl << std::endl;
+  #endif
+}
+
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm)
+{
+  const size_t column_width[2] =
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Precondition ILU Parameters"
+         << "|"
+         << std::endl;
+
+  stream << header << std::endl;
+
+  add_line("Fill-in level", prm.fill);
+  add_line("Overlap", prm.overlap);
+  add_line("Relative tolerance", prm.relative_tolerance);
+  add_line("Absolute tolerance", prm.absolute_tolerance);
+
+  stream << header;
+
+  return (stream);
+}
+
+
 
 DimensionlessNumbers::DimensionlessNumbers()
 :
@@ -1005,6 +1143,18 @@ void NavierStokesParameters::declare_parameters(ParameterHandler &prm)
       LinearSolverParameters::declare_parameters(prm);
     }
     prm.leave_subsection();
+
+    prm.enter_subsection("Linear solver parameters - Pressure preconditioner");
+    {
+        PreconditionILUParameters::declare_parameters(prm);
+    }
+    prm.leave_subsection();
+
+    prm.enter_subsection("Linear solver parameters - Velocity preconditioner");
+    {
+        PreconditionILUParameters::declare_parameters(prm);
+    }
+    prm.leave_subsection();
   }
   prm.leave_subsection();
 }
@@ -1079,6 +1229,18 @@ void NavierStokesParameters::parse_parameters(ParameterHandler &prm)
     prm.enter_subsection("Linear solver parameters - Poisson pre-step");
     {
       poisson_prestep_solver_parameters.parse_parameters(prm);
+    }
+    prm.leave_subsection();
+
+    prm.enter_subsection("Linear solver parameters - Pressure preconditioner");
+    {
+        pressure_preconditioner_parameters.parse_parameters(prm);
+    }
+    prm.leave_subsection();
+
+    prm.enter_subsection("Linear solver parameters - Velocity preconditioner");
+    {
+        pressure_preconditioner_parameters.parse_parameters(prm);
     }
     prm.leave_subsection();
   }
@@ -1180,6 +1342,14 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
   stream << "\r";
 
   stream << prm.poisson_prestep_solver_parameters;
+
+  stream << "\r";
+
+  stream << prm.pressure_preconditioner_parameters;
+
+  stream << "\r";
+
+  stream << prm.velocity_preconditioner_parameters;
 
   stream << "\r";
 
