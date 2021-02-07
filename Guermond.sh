@@ -6,8 +6,6 @@ cd applications
 
 dir="GuermondResults"
  
-[ $# -eq 0 ] && { echo "Usage: $0 dir-name"; exit 1; }
- 
 if [ -d "$dir" -a ! -h "$dir" ]
 then
    cd $dir 
