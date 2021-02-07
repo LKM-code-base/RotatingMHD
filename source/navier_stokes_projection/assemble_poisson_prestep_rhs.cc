@@ -315,7 +315,11 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       } // Loop over the faces of the cell
 }
 
-99a353cd33a310afd34a7070ec4adab0eccbfe32
+
+template <int dim>
+void NavierStokesProjection<dim>::
+copy_local_to_global_poisson_prestep_rhs(
+  const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy  &data)
 {
   pressure->constraints.distribute_local_to_global(
                                 data.local_rhs,
