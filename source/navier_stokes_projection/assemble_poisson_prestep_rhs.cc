@@ -96,6 +96,7 @@ assemble_poisson_prestep_rhs()
   if (parameters.verbose)
     *pcout << " done!" << std::endl
            << "    Right-hand side's L2-norm = "
+           << std::scientific << std::setprecision(6)
            << poisson_prestep_rhs.l2_norm()
            << std::endl;
 }
@@ -168,8 +169,12 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
     scratch.temperature_fe_values.reinit(temperature_cell);
 
     scratch.temperature_fe_values.get_function_values(
-      temperature->old_old_solution,
+      temperature->old_solution,
       scratch.temperature_values);
+
+    scratch.temperature_fe_values.get_function_gradients(
+      temperature->old_solution,
+      scratch.temperature_gradients);
 
     Assert(gravity_vector_ptr != nullptr,
            ExcMessage("No unit vector for the gravity has been specified."))
@@ -285,7 +290,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
         scratch.velocity_fe_face_values.reinit(velocity_cell, velocity_face);
 
         scratch.velocity_fe_face_values[vector_extractor].get_function_laplacians(
-          velocity->old_old_solution,
+          velocity->old_solution,
           scratch.velocity_laplacians);
 
         // Normal vector

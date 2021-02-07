@@ -194,7 +194,7 @@ private:
   /*!
    * @brief A shared pointer to the entity of velocity field.
    */
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
 
   /*!
    * @brief A shared pointer to the TensorFunction of the velocity field.
