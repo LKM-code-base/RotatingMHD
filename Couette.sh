@@ -1,7 +1,19 @@
 #!/bin/bash
-cd /mnt/05DF881E2ADAFD37/Documents/Projekte/RotatingMHD
-make -j4
+nproc=${1:-4}
+
+make -j$nproc
 cd applications
-rm *.vtk *.pvtu *.vtu
-mpirun -np 4 ./Couette
-cd /mnt/05DF881E2ADAFD37/Documents/Projekte/RotatingMHD
+
+dir="CouetteResults"
+ 
+[ $# -eq 0 ] && { echo "Usage: $0 dir-name"; exit 1; }
+ 
+if [ -d "$dir" -a ! -h "$dir" ]
+then
+   cd $dir 
+   rm *.pvtu *.vtu
+   cd ..
+fi
+
+mpirun -np $nproc ./Couette
+cd ..
