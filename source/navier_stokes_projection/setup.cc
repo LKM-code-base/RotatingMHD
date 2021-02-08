@@ -331,7 +331,7 @@ setup_vectors()
   correction_step_rhs.reinit(pressure->distributed_vector);
 
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
+    *pcout << " done!" << std::endl << std::endl;
 }
 
 template <int dim>

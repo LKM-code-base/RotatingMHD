@@ -108,7 +108,7 @@ solve_poisson_prestep()
            << "    Number of CG iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
-           << std::endl;
+           << std::endl << std::endl;
 }
 
 } // namespace RMHD
