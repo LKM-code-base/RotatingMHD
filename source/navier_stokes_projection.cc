@@ -16,7 +16,7 @@ NavierStokesProjection<dim>::NavierStokesProjection
  const std::shared_ptr<ConditionalOStream>        external_pcout,
  const std::shared_ptr<TimerOutput>               external_timer)
 :
-phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure)),
+phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure, "Phi")),
 parameters(parameters),
 mpi_communicator(velocity->mpi_communicator),
 velocity(velocity),

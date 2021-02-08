@@ -1,5 +1,6 @@
 #include <rotatingMHD/entities_structs.h>
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_tools.h>
@@ -123,9 +124,11 @@ void VectorEntity<dim>::setup_dofs()
 template <int dim>
 void VectorEntity<dim>::apply_boundary_conditions()
 {
-
-  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
-    boundary_conditions.print_summary(std::cout, this->name);
+  {
+    ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+    boundary_conditions.print_summary(pcout, this->name);
+  }
 
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
@@ -454,8 +457,11 @@ void ScalarEntity<dim>::setup_dofs()
 template <int dim>
 void ScalarEntity<dim>::apply_boundary_conditions()
 {
-  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
-    boundary_conditions.print_summary(std::cout, this->name);
+  {
+    ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+    boundary_conditions.print_summary(pcout, this->name);
+  }
 
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
