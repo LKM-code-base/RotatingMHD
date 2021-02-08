@@ -1,6 +1,5 @@
 #include <rotatingMHD/heat_equation.h>
-
-#include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/utility.h>
 
 namespace RMHD
 {
@@ -82,22 +81,21 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
   else
     system_matrix_ptr = &mass_plus_stiffness_matrix;
 
+
+  const typename RunTimeParameters::LinearSolverParameters &solver_parameters
+    = parameters.solver_parameters;
+
   if (reinit_preconditioner)
   {
-    #ifdef USE_PETSC_LA
-      amg_preconditioner.initialize(*system_matrix_ptr, amg_data);
-    #else
-      if (flag_matrices_were_updated)
-        amg_preconditioner.initialize(*system_matrix_ptr, amg_data);
-      else
-        amg_preconditioner.reinit();
-    #endif
+    build_preconditioner(preconditioner,
+                         *system_matrix_ptr,
+                         solver_parameters.preconditioner_parameters_ptr,
+                         (temperature->fe_degree > 1? true: false));
   }
 
-  SolverControl solver_control(
-    parameters.solver_parameters.n_maximum_iterations,
-    std::max(parameters.solver_parameters.relative_tolerance * rhs_norm,
-             parameters.solver_parameters.absolute_tolerance));
+  SolverControl solver_control(solver_parameters.n_maximum_iterations,
+                               std::max(solver_parameters.relative_tolerance * rhs_norm,
+                                        solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverGMRES solver(solver_control,
@@ -111,7 +109,7 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
     solver.solve(*system_matrix_ptr,
                  distributed_temperature,
                  rhs,
-                 amg_preconditioner);
+                 *preconditioner);
   }
   catch (std::exception &exc)
   {
