@@ -249,6 +249,17 @@ void Christensen<dim>::make_grid(const unsigned int n_global_refinements)
   // Performs global refinements
   this->triangulation.refine_global(n_global_refinements);
 
+  for (unsigned int i = 0;
+       i < this->prm.spatial_discretization_parameters.n_initial_boundary_refinements;
+       ++i)
+  {
+    for (const auto &cell : this->triangulation.active_cell_iterators())
+      if (cell->is_locally_owned() && cell->at_boundary())
+        cell->set_refine_flag();
+
+    this->triangulation.execute_coarsening_and_refinement();
+  }
+
   *(this->pcout) << "Triangulation:"
                  << std::endl
                  << " Number of initial active cells           = "
@@ -334,10 +345,6 @@ void Christensen<dim>::initialize()
   this->set_initial_conditions(temperature,
                                *temperature_initial_conditions,
                                time_stepping);
-
-  // Outputs the initial conditions
-  temperature->solution = temperature->old_old_solution;
-  output();
 }
 
 template <int dim>
@@ -422,6 +429,13 @@ void Christensen<dim>::update_solution_vectors()
 template <int dim>
 void Christensen<dim>::run()
 {
+  // Set up the Navier-Stokes solver and perform the Poisson pre-step
+  navier_stokes.setup();
+  // Outputs the initial conditions
+  velocity->solution    = velocity->old_solution;
+  pressure->solution    = pressure->old_solution;
+  temperature->solution = temperature->old_solution;
+  output();
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
@@ -486,7 +500,7 @@ int main(int argc, char *argv[])
 
       RunTimeParameters::ProblemParameters parameter_set("Christensen.prm");
 
-      Christensen<3> simulation(parameter_set);
+      Christensen<2> simulation(parameter_set);
 
       simulation.run();
 
