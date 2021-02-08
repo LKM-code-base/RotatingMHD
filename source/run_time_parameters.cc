@@ -170,11 +170,11 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
     if (adaptive_mesh_refinement)
     {
       n_minimum_levels = prm.get_integer("Minimum number of levels");
-      Assert(n_minimum_levels > 0,
-             ExcMessage("Minimum number of levels must be larger than zero."));
-      Assert(n_minimum_levels <= n_maximum_levels ,
-             ExcMessage("Maximum number of levels must be larger equal than the "
-                        "minimum number of levels."));
+      AssertThrow(n_minimum_levels > 0,
+                  ExcMessage("Minimum number of levels must be larger than zero."));
+      AssertThrow(n_minimum_levels <= n_maximum_levels ,
+                  ExcMessage("Maximum number of levels must be larger equal "
+                             "than the minimum number of levels."));
 
       adaptive_mesh_refinement_frequency = prm.get_integer("Adaptive mesh refinement frequency");
 
@@ -185,15 +185,15 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
       const double total_cell_fraction_to_modify =
         cell_fraction_to_coarsen + cell_fraction_to_refine;
 
-      Assert(cell_fraction_to_coarsen >= 0.0,
-             ExcLowerRangeType<double>(cell_fraction_to_coarsen, 0));
+      AssertThrow(cell_fraction_to_coarsen >= 0.0,
+                  ExcLowerRangeType<double>(cell_fraction_to_coarsen, 0));
 
-      Assert(cell_fraction_to_refine >= 0.0,
-             ExcLowerRangeType<double>(cell_fraction_to_refine, 0));
+      AssertThrow(cell_fraction_to_refine >= 0.0,
+                  ExcLowerRangeType<double>(cell_fraction_to_refine, 0));
 
-      Assert(1.0 > total_cell_fraction_to_modify,
-             ExcMessage("The sum of the top and bottom fractions to "
-                        "coarsen and refine may not exceed 1.0"));
+      AssertThrow(1.0 > total_cell_fraction_to_modify,
+                  ExcMessage("The sum of the top and bottom fractions to "
+                             "coarsen and refine may not exceed 1.0"));
     }
 
     n_initial_global_refinements = prm.get_integer("Number of initial global refinements");
@@ -206,14 +206,14 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
     = n_initial_global_refinements + n_initial_adaptive_refinements
     + n_initial_boundary_refinements;
 
-    Assert(n_initial_refinements <= n_maximum_levels ,
-            ExcMessage("Number of initial refinements must be less equal than "
-                      "the maximum number of levels."));
+    AssertThrow(n_initial_refinements <= n_maximum_levels ,
+                ExcMessage("Number of initial refinements must be less equal "
+                           "than the maximum number of levels."));
 
     if (adaptive_mesh_refinement)
-      Assert(n_minimum_levels <= n_initial_refinements,
-             ExcMessage("Number of initial refinements must be larger equal than "
-                        "the minimum number of levels."));
+      AssertThrow(n_minimum_levels <= n_initial_refinements,
+                  ExcMessage("Number of initial refinements must be larger "
+                             "equal than the minimum number of levels."));
   }
   prm.leave_subsection();
 }
@@ -451,9 +451,30 @@ void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
   prm.enter_subsection("Convergence test parameters");
   {
     if (prm.get("Convergence test type") == std::string("spatial"))
+    {
       convergence_test_type = ConvergenceTestType::spatial;
+
+      n_spatial_convergence_cycles =
+                  prm.get_integer("Number of spatial convergence cycles");
+      AssertThrow(n_spatial_convergence_cycles > 0,
+                  ExcLowerRange(n_spatial_convergence_cycles, 0));
+    }
     else if (prm.get("Convergence test type") == std::string("temporal"))
+    {
       convergence_test_type = ConvergenceTestType::temporal;
+
+      timestep_reduction_factor =
+                  prm.get_double("Time-step reduction factor");
+      AssertThrow(timestep_reduction_factor > 0.0,
+                  ExcLowerRange(timestep_reduction_factor, 0.0));
+      AssertThrow(timestep_reduction_factor < 1.0,
+                  ExcLowerRange(1.0, timestep_reduction_factor));
+
+      n_temporal_convergence_cycles =
+                  prm.get_integer("Number of temporal convergence cycles");
+      AssertThrow(n_temporal_convergence_cycles > 0,
+                  ExcLowerRange(n_temporal_convergence_cycles, 0));
+    }
     else
       AssertThrow(false,
                   ExcMessage("Unexpected identifier for the type of"
@@ -461,30 +482,8 @@ void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
 
     n_global_initial_refinements =
                 prm.get_integer("Number of initial global refinements");
-
-    Assert(n_global_initial_refinements > 0,
-           ExcLowerRange(n_global_initial_refinements, 0));
-
-    n_spatial_convergence_cycles =
-                prm.get_integer("Number of spatial convergence cycles");
-
-    Assert(n_spatial_convergence_cycles > 0,
-           ExcLowerRange(n_spatial_convergence_cycles, 0));
-
-    timestep_reduction_factor =
-                prm.get_double("Time-step reduction factor");
-
-    Assert(timestep_reduction_factor > 0.0,
-           ExcLowerRange(timestep_reduction_factor, 0.0));
-
-    Assert(timestep_reduction_factor < 1.0,
-           ExcLowerRange(1.0, timestep_reduction_factor));
-
-    n_temporal_convergence_cycles =
-                prm.get_integer("Number of temporal convergence cycles");
-
-    Assert(n_temporal_convergence_cycles > 0,
-           ExcLowerRange(n_temporal_convergence_cycles, 0));
+    AssertThrow(n_global_initial_refinements > 0,
+                ExcLowerRange(n_global_initial_refinements, 0));
   }
   prm.leave_subsection();
 }
@@ -507,7 +506,7 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
       internal::add_line(stream, "Convergence test type", "temporal");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected identifier for the type of"
+      AssertThrow(false, ExcMessage("Unexpected identifier for the type of"
                                " of convergence test."));
       break;
   }
@@ -567,7 +566,7 @@ PreconditionerType PreconditionBaseParameters::parse_preconditioner_type(const P
   else if (name == "SSOR")
     type = PreconditionerType::SSOR;
   else
-    Assert(false, ExcMessage("Preconditioner type is unknown."));
+    AssertThrow(false, ExcMessage("Preconditioner type is unknown."));
 
   return (type);
 }
@@ -587,7 +586,7 @@ void PreconditionBaseParameters::parse_parameters(const ParameterHandler &prm)
   else if (preconditioner_name == "SSOR")
       preconditioner_type = PreconditionerType::SSOR;
   else
-    Assert(false, ExcMessage("Preconditioner type is unknown."));
+    AssertThrow(false, ExcMessage("Preconditioner type is unknown."));
 }
 
 PreconditionRelaxationParameters::PreconditionRelaxationParameters()
@@ -621,16 +620,17 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
 {
   PreconditionBaseParameters::parse_parameters(prm);
 
-  Assert(preconditioner_type == PreconditionerType::Jacobi,
-         ExcMessage("Unexpected preconditioner type in PreconditionRelaxationParameters."));
+  AssertThrow(preconditioner_type == PreconditionerType::Jacobi,
+              ExcMessage("Unexpected preconditioner type in "
+                         "PreconditionRelaxationParameters."));
 
   omega = prm.get_double("Relaxation parameter");
-  Assert(omega > 0.0, ExcLowerRangeType<double>(omega, 0.0));
+  AssertThrow(omega > 0.0, ExcLowerRangeType<double>(omega, 0.0));
 
   switch (preconditioner_type)
   {
     case PreconditionerType::Jacobi:
-      Assert(omega <= 1.0, ExcLowerRangeType<double>(1.0, omega));
+      AssertThrow(omega <= 1.0, ExcLowerRangeType<double>(1.0, omega));
       // Print a warning if PETSc is used
       #ifdef USE_PETSC_LA
       ConditionalOStream  pcout(std::cout,
@@ -649,7 +649,7 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
       #endif
       break;
     case PreconditionerType::SSOR:
-      Assert(omega <= 2.0, ExcLowerRangeType<double>(2.0, omega));
+      AssertThrow(omega <= 2.0, ExcLowerRangeType<double>(2.0, omega));
 
       overlap = prm.get_integer("Overlap");
       n_sweeps = prm.get_integer("Number of sweeps");
@@ -673,8 +673,9 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
       #endif
       break;
     default:
-      Assert(false,
-             ExcMessage("Unexpected preconditioner type in PreconditionRelaxationParameters."));
+      AssertThrow(false,
+                  ExcMessage("Unexpected preconditioner type in "
+                             "PreconditionRelaxationParameters."));
       break;
   }
 }
@@ -738,14 +739,16 @@ void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
 {
   PreconditionBaseParameters::parse_parameters(prm);
 
-  Assert(preconditioner_type == PreconditionerType::ILU,
+  AssertThrow(preconditioner_type == PreconditionerType::ILU,
          ExcMessage("Unexpected preconditioner type in PreconditionILUParameters."));
 
   relative_tolerance = prm.get_double("Relative tolerance");
-  Assert(relative_tolerance >= 1.0, ExcLowerRangeType<double>(relative_tolerance, 1.0));
+  AssertThrow(relative_tolerance >= 1.0,
+              ExcLowerRangeType<double>(relative_tolerance, 1.0));
 
   absolute_tolerance = prm.get_double("Absolute tolerance");
-  Assert(absolute_tolerance >= 0, ExcLowerRangeType<double>(absolute_tolerance, 0.0));
+  AssertThrow(absolute_tolerance >= 0,
+              ExcLowerRangeType<double>(absolute_tolerance, 0.0));
 
   fill = prm.get_integer("Fill-in level");
 
@@ -828,23 +831,23 @@ void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
 {
   PreconditionBaseParameters::parse_parameters(prm);
 
-  Assert(preconditioner_type == PreconditionerType::AMG,
+  AssertThrow(preconditioner_type == PreconditionerType::AMG,
          ExcMessage("Unexpected preconditioner type in PreconditionAMGParameters."));
 
   strong_threshold = prm.get_double("Strong threshold (PETSc only)");
-  Assert(strong_threshold > 0.0,
-         ExcLowerRangeType<double>(strong_threshold, 0.0));
+  AssertThrow(strong_threshold > 0.0,
+              ExcLowerRangeType<double>(strong_threshold, 0.0));
   AssertIsFinite(strong_threshold);
 
   elliptic = prm.get_bool("Elliptic");
 
   n_cycles = prm.get_integer("Number of cycles");
-  Assert(strong_threshold > 1,
+  AssertThrow(strong_threshold > 1,
          ExcLowerRange(n_cycles, 0));
 
   aggregation_threshold = prm.get_double("Aggregation threshold");
-  Assert(aggregation_threshold > 0.0,
-         ExcLowerRangeType<double>(aggregation_threshold, 0.0));
+  AssertThrow(aggregation_threshold > 0.0,
+              ExcLowerRangeType<double>(aggregation_threshold, 0.0));
   AssertIsFinite(aggregation_threshold);
 }
 
@@ -943,14 +946,14 @@ void LinearSolverParameters::declare_parameters(ParameterHandler &prm)
 void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
 {
   n_maximum_iterations = prm.get_integer("Maximum number of iterations");
-  Assert(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
+  AssertThrow(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
 
   relative_tolerance = prm.get_double("Relative tolerance");
-  Assert(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
+  AssertThrow(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
 
   absolute_tolerance = prm.get_double("Absolute tolerance");
-  Assert(relative_tolerance > absolute_tolerance,
-         ExcLowerRangeType<double>(relative_tolerance , absolute_tolerance));
+  AssertThrow(relative_tolerance > absolute_tolerance,
+              ExcLowerRangeType<double>(relative_tolerance , absolute_tolerance));
 
   prm.enter_subsection("Preconditioner parameters");
   {
@@ -972,10 +975,10 @@ void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
         preconditioner_parameters_ptr = new PreconditionSSORParameters;
         break;
       case PreconditionerType::GMG:
-        Assert(false, ExcNotImplemented());
+        AssertThrow(false, ExcNotImplemented());
         break;
       default:
-        Assert(false, ExcMessage("Preconditioner type is unknown."));
+        AssertThrow(false, ExcMessage("Preconditioner type is unknown."));
         break;
     }
     preconditioner_parameters_ptr->parse_parameters(prm);
@@ -1016,10 +1019,10 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
       stream << *static_cast<const PreconditionSSORParameters*>(prm.preconditioner_parameters_ptr);
       break;
     case PreconditionerType::GMG:
-      Assert(false, ExcNotImplemented());
+      AssertThrow(false, ExcNotImplemented());
       break;
     default:
-      Assert(false, ExcMessage("Preconditioner type is unknown."));
+      AssertThrow(false, ExcMessage("Preconditioner type is unknown."));
       break;
   }
 
@@ -1159,45 +1162,45 @@ void DimensionlessNumbers::parse_parameters(ParameterHandler &prm)
 
   if (str_problem_type == std::string("hydrodynamic"))
   {
-    Assert(Re > 0.0, ExcLowerRangeType<double>(Re, 0.0));
+    AssertThrow(Re > 0.0, ExcLowerRangeType<double>(Re, 0.0));
     AssertIsFinite(Re);
   }
   else if (str_problem_type == std::string("heat_convection_diffusion"))
   {
-    Assert(Pe > 0.0, ExcLowerRangeType<double>(Pe, 0.0));
+    AssertThrow(Pe > 0.0, ExcLowerRangeType<double>(Pe, 0.0));
     AssertIsFinite(Pe);
   }
   else if (str_problem_type == std::string("boussinesq"))
   {
-    Assert(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
+    AssertThrow(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
     AssertIsFinite(Ra);
 
-    Assert(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
+    AssertThrow(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
     AssertIsFinite(Pr);
   }
   else if (str_problem_type == std::string("rotating_boussinesq"))
   {
-    Assert(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
+    AssertThrow(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
     AssertIsFinite(Ra);
 
-    Assert(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
+    AssertThrow(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
     AssertIsFinite(Pr);
 
-    Assert(Ek > 0.0, ExcLowerRangeType<double>(Ek, 0.0));
+    AssertThrow(Ek > 0.0, ExcLowerRangeType<double>(Ek, 0.0));
     AssertIsFinite(Ek);
   }
   else if (str_problem_type == std::string("rotating_magnetohydrodynamic"))
   {
-    Assert(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
+    AssertThrow(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
     AssertIsFinite(Ra);
 
-    Assert(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
+    AssertThrow(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
     AssertIsFinite(Pr);
 
-    Assert(Ek > 0.0, ExcLowerRangeType<double>(Ek, 0.0));
+    AssertThrow(Ek > 0.0, ExcLowerRangeType<double>(Ek, 0.0));
     AssertIsFinite(Ek);
 
-    Assert(Pm > 0.0, ExcLowerRangeType<double>(Pm, 0.0));
+    AssertThrow(Pm > 0.0, ExcLowerRangeType<double>(Pm, 0.0));
     AssertIsFinite(Pm);
   }
   else
@@ -1239,8 +1242,8 @@ Stream& operator<<(Stream &stream, const DimensionlessNumbers &prm)
       internal::add_line(stream, "magnetic Prandtl number", prm.Pm);
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
-                               "problem type"));
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
+                                    "problem type"));
       break;
   }
 
@@ -1400,7 +1403,7 @@ void NavierStokesParameters::parse_parameters(ParameterHandler &prm)
                              "of the convective term."));
 
     preconditioner_update_frequency = prm.get_integer("Preconditioner update frequency");
-    Assert(preconditioner_update_frequency > 0,
+    AssertThrow(preconditioner_update_frequency > 0,
            ExcLowerRange(preconditioner_update_frequency, 0));
 
     verbose = prm.get_bool("Verbose");
@@ -1450,7 +1453,7 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
       internal::add_line(stream, "Incremental pressure-correction scheme", "rotational");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "incremental pressure-correction scheme"));
       break;
   }
@@ -1469,7 +1472,7 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
       internal::add_line(stream, "Convective term weak form", "skew-symmetric");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "weak form of the convective term."));
       break;
   }
@@ -1482,8 +1485,9 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
       internal::add_line(stream, "Convective temporal form", "explicit");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
-                               "time discretization of the convective term."));
+      AssertThrow(false,
+                  ExcMessage("Unexpected type identifier for the "
+                             "time discretization of the convective term."));
       break;
   }
 
@@ -1621,7 +1625,7 @@ void HeatEquationParameters::parse_parameters(ParameterHandler &prm)
                              "of the convective term."));
 
     preconditioner_update_frequency = prm.get_integer("Preconditioner update frequency");
-    Assert(preconditioner_update_frequency > 0,
+    AssertThrow(preconditioner_update_frequency > 0,
            ExcLowerRange(preconditioner_update_frequency, 0));
 
     verbose = prm.get_bool("Verbose");
@@ -1659,7 +1663,7 @@ Stream& operator<<(Stream &stream, const HeatEquationParameters &prm)
       internal::add_line(stream, "Convective term weak form", "skew-symmetric");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "weak form of the convective term."));
       break;
   }
@@ -1672,7 +1676,7 @@ Stream& operator<<(Stream &stream, const HeatEquationParameters &prm)
       internal::add_line(stream, "Convective temporal form", "explicit");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "time discretization of the convective term."));
       break;
   }
@@ -1877,11 +1881,11 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
                            " type."));
 
   dim = prm.get_integer("Spatial dimension");
-  Assert(dim > 0, ExcLowerRange(dim, 0) );
-  Assert(dim <= 3, ExcMessage("The spatial dimension are larger than three.") );
+  AssertThrow(dim > 0, ExcLowerRange(dim, 0) );
+  AssertThrow(dim <= 3, ExcMessage("The spatial dimension are larger than three.") );
 
   mapping_degree = prm.get_integer("Mapping - Polynomial degree");
-  Assert(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
+  AssertThrow(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
 
   mapping_interior_cells = prm.get_bool("Mapping - Apply to interior cells");
 
@@ -1889,11 +1893,11 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 
   fe_degree_temperature = prm.get_integer("FE's polynomial degree - Temperature");
 
-  Assert(fe_degree_pressure > 0,
-         ExcLowerRange(fe_degree_pressure, 0));
+  AssertThrow(fe_degree_pressure > 0,
+              ExcLowerRange(fe_degree_pressure, 0));
 
-  Assert(fe_degree_temperature > 0,
-         ExcLowerRange(fe_degree_temperature, 0));
+  AssertThrow(fe_degree_temperature > 0,
+              ExcLowerRange(fe_degree_temperature, 0));
 
   fe_degree_velocity = fe_degree_pressure + 1;
 
@@ -1945,7 +1949,7 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
       internal::add_line(stream, "Problem type", "rotating_magnetohydrodynamic");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "problem type"));
       break;
   }
