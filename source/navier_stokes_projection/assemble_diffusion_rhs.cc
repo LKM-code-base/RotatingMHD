@@ -206,10 +206,8 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   }
   else
   {
-    ZeroFunction<dim>().value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.old_temperature_values);
-
+    scratch.old_temperature_values.assign(scratch.old_temperature_values.size(),
+                                          0.0);
     scratch.old_old_temperature_values = scratch.old_temperature_values;
 
     ZeroTensorFunction<1, dim>().value_list(
@@ -254,34 +252,26 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   if (angular_velocity_vector_ptr != nullptr)
   {
     angular_velocity_vector_ptr->set_time(time_stepping.get_previous_time());
-    angular_velocity_vector_ptr->rotation_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.old_old_angular_velocity_values);
+    scratch.old_old_angular_velocity_value =
+                                angular_velocity_vector_ptr->rotation();
 
     angular_velocity_vector_ptr->set_time(time_stepping.get_current_time());
-    angular_velocity_vector_ptr->rotation_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.old_angular_velocity_values);
+    scratch.old_angular_velocity_value =
+                                angular_velocity_vector_ptr->rotation();
   }
   else
   {
     if constexpr(dim == 2)
     {
-      const std::vector<Tensor<1,1>> zero_vectors(
-        scratch.old_angular_velocity_values.size(),
-        Tensor<1,1>());
-
-      scratch.old_angular_velocity_values     = zero_vectors;
-      scratch.old_old_angular_velocity_values = zero_vectors;
+      scratch.old_angular_velocity_value      = Tensor<1,1>();
+      scratch.old_old_angular_velocity_value  =
+                                    scratch.old_angular_velocity_value;
     }
     else if constexpr(dim == 3)
     {
-      ZeroTensorFunction<1,dim>().value_list(
-        scratch.velocity_fe_values.get_quadrature_points(),
-        scratch.old_angular_velocity_values);
-
-      scratch.old_old_angular_velocity_values =
-                                    scratch.old_angular_velocity_values;
+      scratch.old_angular_velocity_value      = Tensor<1,dim>();
+      scratch.old_old_angular_velocity_value  =
+                                    scratch.old_angular_velocity_value;
     }
   }
 
@@ -377,13 +367,13 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
           data.local_rhs(i) -=
                 (beta[0] *
                  parameters.C1 *
-                 scratch.old_angular_velocity_values[q][0] *
+                 scratch.old_angular_velocity_value[0] *
                  scratch.phi[i] *
                  cross_product_2d(-scratch.old_velocity_values[q])
                  +
                  beta[1] *
                  parameters.C1 *
-                 scratch.old_old_angular_velocity_values[q][0] *
+                 scratch.old_old_angular_velocity_value[0] *
                  scratch.phi[i] *
                  cross_product_2d(-scratch.old_old_velocity_values[q])) *
                 scratch.velocity_fe_values.JxW(q);
@@ -392,13 +382,13 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                 (beta[0] *
                  parameters.C1 *
                  scratch.phi[i] *
-                 cross_product_3d(scratch.old_angular_velocity_values[q],
+                 cross_product_3d(scratch.old_angular_velocity_value,
                                   scratch.old_velocity_values[q])
                  +
                  beta[1] *
                  parameters.C1 *
                  scratch.phi[i] *
-                 cross_product_3d(scratch.old_old_angular_velocity_values[q],
+                 cross_product_3d(scratch.old_old_angular_velocity_value,
                                   scratch.old_old_velocity_values[q]))*
                 scratch.velocity_fe_values.JxW(q);
       }

@@ -57,13 +57,10 @@ class AngularVelocity : public VectorFunction<dim>
 public:
   AngularVelocity(const double time = 0);
 
-  /*! @attention I am not really a fan of the methods' names. Do you have
-      a better naming option perhaps? value and value_list are already
+  /*! @attention I am not really a fan of the method's names. Do you have
+      a better naming option perhaps? value is already
       being used by TensorFunction */
-  virtual CurlType<dim> rotation(const Point<dim> &point) const;
-
-  virtual void rotation_list(const std::vector<Point<dim>> &points,
-                             std::vector<CurlType<dim>>    &values) const;
+  virtual CurlType<dim> rotation() const;
 };
 
 namespace Step35
@@ -591,7 +588,7 @@ class AngularVelocity: public RMHD::EquationData::AngularVelocity<dim>
 public:
   AngularVelocity(const double time = 0);
 
-  virtual CurlType<dim> rotation(const Point<dim> &point) const override;
+  virtual CurlType<dim> rotation() const override;
 };
 
 

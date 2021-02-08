@@ -83,7 +83,7 @@ VectorFunction<dim>(time)
 
 
 template <int dim>
-CurlType<dim> AngularVelocity<dim>::rotation(const Point<dim>  &/* point */) const
+CurlType<dim> AngularVelocity<dim>::rotation() const
 {
   CurlType<dim> value;
 
@@ -97,17 +97,6 @@ CurlType<dim> AngularVelocity<dim>::rotation(const Point<dim>  &/* point */) con
   }
 
   return (value);
-}
-
-
-
-template <int dim>
-void AngularVelocity<dim>::rotation_list(
-  const std::vector<Point<dim>> &points,
-  std::vector<CurlType<dim>>    &values) const
-{
-  for (unsigned int i = 0; i < points.size(); ++i)
-    values[i] = rotation(points[i]);
 }
 
 
@@ -868,7 +857,7 @@ RMHD::EquationData::AngularVelocity<dim>(time)
 
 
 template <int dim>
-CurlType<dim> AngularVelocity<dim>::rotation(const Point<dim> &/*point*/) const
+CurlType<dim> AngularVelocity<dim>::rotation() const
 {
   CurlType<dim> value;
 

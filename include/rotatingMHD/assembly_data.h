@@ -245,9 +245,9 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<CurlType>       old_old_velocity_curls;
 
-  std::vector<CurlType>       old_angular_velocity_values;
+  CurlType                    old_angular_velocity_value;
 
-  std::vector<CurlType>       old_old_angular_velocity_values;
+  CurlType                    old_old_angular_velocity_value;
 
   std::vector<double>         old_temperature_values;
 
@@ -263,9 +263,6 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  old_old_body_force_values;
 
-  /*! @note For the time being I will use the more general naming
-      convention of neumann_bc_values instead of traction_vector_values.
-      I would like to discuss a couple of aspects in this line*/
   std::vector<Tensor<1,dim>>  neumann_bc_values;
 
   std::vector<Tensor<1,dim>>  old_neumann_bc_values;
@@ -360,7 +357,7 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  velocity_laplacians;
 
-  std::vector<CurlType>       angular_velocity_values;
+  CurlType                    angular_velocity_value;
 
   std::vector<double>         temperature_values;
 

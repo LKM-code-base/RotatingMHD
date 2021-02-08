@@ -131,9 +131,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       velocity->old_old_solution,
       scratch.velocity_values);
 
-    angular_velocity_vector_ptr->rotation_list(
-      scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.angular_velocity_values);
+    scratch.angular_velocity_value = angular_velocity_vector_ptr->rotation();
   }
   else
   {
@@ -142,19 +140,9 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       scratch.velocity_values);
 
     if constexpr(dim == 2)
-    {
-      const std::vector<Tensor<1,1>> zero_vectors(
-        scratch.angular_velocity_values.size(),
-        Tensor<1,1>());
-
-      scratch.angular_velocity_values = zero_vectors;
-    }
+      scratch.angular_velocity_value = Tensor<1,1>();
     else if constexpr(dim == 3)
-    {
-      ZeroTensorFunction<1,dim>().value_list(
-        scratch.pressure_fe_values.get_quadrature_points(),
-        scratch.angular_velocity_values);
-    }
+      scratch.angular_velocity_value = Tensor<1,dim>();
   }
 
   // Temperature
@@ -181,9 +169,8 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
   }
   else
   {
-    ZeroFunction<dim>().value_list(
-      scratch.pressure_fe_values.get_quadrature_points(),
-      scratch.temperature_values);
+    scratch.temperature_values.assign(scratch.temperature_values.size(),
+                                      0.0);
 
     ZeroTensorFunction<1,dim>().value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
@@ -229,14 +216,14 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
           data.local_rhs(i) -=
               parameters.C1 / parameters.C6 *
               scratch.grad_phi[i] *
-              scratch.angular_velocity_values[q][0] *
+              scratch.angular_velocity_value[0] *
               cross_product_2d(-scratch.velocity_values[q]) *
               scratch.pressure_fe_values.JxW(q);
         else if constexpr(dim == 3)
           data.local_rhs(i) -=
               parameters.C1 / parameters.C6 *
               scratch.grad_phi[i] *
-              cross_product_3d(scratch.angular_velocity_values[q],
+              cross_product_3d(scratch.angular_velocity_value,
                                scratch.velocity_values[q]) *
               scratch.pressure_fe_values.JxW(q);
       }
