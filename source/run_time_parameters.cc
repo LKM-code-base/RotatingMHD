@@ -124,6 +124,12 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
   {
     adaptive_mesh_refinement = prm.get_bool("Adaptive mesh refinement");
 
+    n_initial_global_refinements = prm.get_integer("Number of initial global refinements");
+
+    n_initial_adaptive_refinements = prm.get_integer("Number of initial adaptive refinements");
+
+    n_initial_boundary_refinements = prm.get_integer("Number of initial boundary refinements");
+
     if (adaptive_mesh_refinement)
     {
       adaptive_mesh_refinement_frequency = prm.get_integer("Adaptive mesh refinement frequency");
@@ -154,21 +160,15 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
       Assert(1.0 > total_cell_fraction_to_modify,
              ExcMessage("The sum of the top and bottom fractions to "
                         "coarsen and refine may not exceed 1.0"));
+
+      const unsigned int n_initial_refinements
+      = n_initial_global_refinements + n_initial_adaptive_refinements
+      + n_initial_boundary_refinements;
+
+      Assert(n_initial_refinements <= n_maximum_levels ,
+              ExcMessage("Number of initial refinements must be less equal than "
+                        "the maximum number of levels."));
     }
-
-    n_initial_global_refinements = prm.get_integer("Number of initial global refinements");
-
-    n_initial_adaptive_refinements = prm.get_integer("Number of initial adaptive refinements");
-
-    n_initial_boundary_refinements = prm.get_integer("Number of initial boundary refinements");
-
-    const unsigned int n_initial_refinements
-    = n_initial_global_refinements + n_initial_adaptive_refinements
-    + n_initial_boundary_refinements;
-
-    Assert(n_initial_refinements <= n_maximum_levels ,
-            ExcMessage("Number of initial refinements must be less equal than "
-                      "the maximum number of levels."));
   }
   prm.leave_subsection();
 }
