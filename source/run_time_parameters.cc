@@ -77,42 +77,6 @@ n_initial_boundary_refinements(0)
 
 
 
-SpatialDiscretizationParameters::SpatialDiscretizationParameters
-(const std::string &parameter_filename)
-:
-SpatialDiscretizationParameters()
-{
-  ParameterHandler prm;
-
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
-
-
-
 void SpatialDiscretizationParameters::declare_parameters(ParameterHandler &prm)
 {
 
@@ -270,42 +234,6 @@ graphical_output_directory("./")
 {}
 
 
-
-OutputControlParameters::OutputControlParameters
-(const std::string &parameter_filename)
-:
-OutputControlParameters()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
-
-
-
 void OutputControlParameters::declare_parameters(ParameterHandler &prm)
 {
   prm.enter_subsection("Output control parameters");
@@ -379,41 +307,6 @@ n_spatial_convergence_cycles(2),
 timestep_reduction_factor(0.5),
 n_temporal_convergence_cycles(2)
 {}
-
-
-
-ConvergenceTestParameters::ConvergenceTestParameters
-(const std::string &parameter_filename)
-:
-ConvergenceTestParameters()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
 
 
 
@@ -880,38 +773,6 @@ solver_name("default")
 {}
 
 
-LinearSolverParameters::LinearSolverParameters
-(const std::string &parameter_filename)
-:
-LinearSolverParameters()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
 
 
 
@@ -1045,41 +906,6 @@ Ek(1.0),
 Pm(1.0),
 problem_type(ProblemType::boussinesq)
 {}
-
-
-
-DimensionlessNumbers::DimensionlessNumbers
-(const std::string &parameter_filename)
-:
-DimensionlessNumbers()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
 
 
 
