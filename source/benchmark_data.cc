@@ -592,7 +592,7 @@ case_number(case_number),
 sample_point_radius(0.5*(outer_radius + inner_radius)),
 sample_point_colatitude(90)
 {
-  AssertDimension(dim, 3);
+  //AssertDimension(dim, 3);
 
   Assert(case_number < 3,
          ExcMessage("Only case 0, 1 and 2  are defined."))
