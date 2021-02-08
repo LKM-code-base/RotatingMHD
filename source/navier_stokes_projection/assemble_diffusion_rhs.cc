@@ -254,17 +254,12 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   else
   {
     if constexpr(dim == 2)
-    {
       scratch.old_angular_velocity_value      = Tensor<1,1>();
-      scratch.old_old_angular_velocity_value  =
-                                    scratch.old_angular_velocity_value;
-    }
     else if constexpr(dim == 3)
-    {
       scratch.old_angular_velocity_value      = Tensor<1,dim>();
-      scratch.old_old_angular_velocity_value  =
+
+    scratch.old_old_angular_velocity_value =
                                     scratch.old_angular_velocity_value;
-    }
   }
 
   // VSIMEX coefficients
