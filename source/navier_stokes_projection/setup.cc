@@ -331,7 +331,7 @@ setup_vectors()
   correction_step_rhs.reinit(pressure->distributed_vector);
 
   if (parameters.verbose)
-    *pcout << " done!" << std::endl << std::endl;
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>
@@ -371,6 +371,31 @@ void NavierStokesProjection<dim>::reset_phi()
   flag_setup_phi = true;
 }
 
+
+
+template <int dim>
+void NavierStokesProjection<dim>::reset()
+{
+  velocity_system_matrix.clear();
+  velocity_mass_matrix.clear();
+  velocity_laplace_matrix.clear();
+  velocity_mass_plus_laplace_matrix.clear();
+  velocity_advection_matrix.clear();
+  diffusion_step_rhs.clear();
+  projection_mass_matrix.clear();
+  pressure_laplace_matrix.clear();
+  phi_laplace_matrix.clear();
+  projection_step_rhs.clear();
+  poisson_prestep_rhs.clear();
+  correction_step_rhs.clear();
+  norm_diffusion_rhs  = 0.;
+  norm_projection_rhs = 0.;
+  flag_setup_phi                        = true;
+  flag_add_mass_and_stiffness_matrices  = true;
+}
+
+
+
 template <int dim>
 void NavierStokesProjection<dim>::
 poisson_prestep()
@@ -408,6 +433,9 @@ template void RMHD::NavierStokesProjection<3>::set_angular_velocity_vector(RMHD:
 
 template void RMHD::NavierStokesProjection<2>::reset_phi();
 template void RMHD::NavierStokesProjection<3>::reset_phi();
+
+template void RMHD::NavierStokesProjection<2>::reset();
+template void RMHD::NavierStokesProjection<3>::reset();
 
 template void RMHD::NavierStokesProjection<2>::poisson_prestep();
 template void RMHD::NavierStokesProjection<3>::poisson_prestep();

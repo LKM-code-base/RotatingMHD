@@ -434,6 +434,11 @@ void Christensen<dim>::run()
   heat_equation.setup();
   navier_stokes.setup();
   pressure->old_solution = 0.;
+  /*navier_stokes.perform_diffusion_step();
+  velocity->old_solution = velocity->solution;
+  navier_stokes.reset();
+  navier_stokes.setup();*/
+
   // Outputs the initial conditions
   velocity->solution    = velocity->old_solution;
   pressure->solution    = pressure->old_solution;

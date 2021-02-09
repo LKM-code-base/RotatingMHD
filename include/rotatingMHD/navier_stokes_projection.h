@@ -173,6 +173,18 @@ public:
   void reset_phi();
 
   /*!
+   *  @brief Resets the internal linear algebra members.
+   *  @details Calls their respective clear method.
+   */
+  void reset();
+
+  /*!
+   * @brief Performs one diffusion step
+   * @attention This is just a method for testing
+   */
+  void perform_diffusion_step();
+
+  /*!
    *  @brief Computes Courant-Friedrichs-Lewy number for the current
    *  velocity field.
    *

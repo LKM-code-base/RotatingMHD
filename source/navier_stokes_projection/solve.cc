@@ -23,12 +23,20 @@ void NavierStokesProjection<dim>::solve()
     diffusion_step(time_stepping.get_step_number() %
                    parameters.preconditioner_update_frequency == 0);
 
+    //return;
+
     projection_step(false);
 
     pressure_correction(false);
   }
 
   phi->update_solution_vectors();
+}
+
+template <int dim>
+void NavierStokesProjection<dim>::perform_diffusion_step()
+{
+  diffusion_step(true);
 }
 
 template <int dim>
@@ -191,6 +199,10 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::solve();
 template void RMHD::NavierStokesProjection<3>::solve();
+
+template void RMHD::NavierStokesProjection<2>::perform_diffusion_step();
+template void RMHD::NavierStokesProjection<3>::perform_diffusion_step();
+
 
 template void RMHD::NavierStokesProjection<2>::diffusion_step(const bool);
 template void RMHD::NavierStokesProjection<3>::diffusion_step(const bool);
