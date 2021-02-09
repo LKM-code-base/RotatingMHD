@@ -199,7 +199,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   projection_mass_matrix.compress(VectorOperation::add);
 
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
+    *pcout << " done!" << std::endl << std::endl;
 }
 
 template <int dim>
