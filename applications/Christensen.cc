@@ -429,8 +429,11 @@ void Christensen<dim>::update_solution_vectors()
 template <int dim>
 void Christensen<dim>::run()
 {
-  // Set up the Navier-Stokes solver and perform the Poisson pre-step
+  // Sets up the solvers. This does not need to be done manually but it
+  // allows to output the pressure computed by the Poisson pre-step
+  heat_equation.setup();
   navier_stokes.setup();
+  pressure->old_solution = 0.;
   // Outputs the initial conditions
   velocity->solution    = velocity->old_solution;
   pressure->solution    = pressure->old_solution;
@@ -473,6 +476,8 @@ void Christensen<dim>::run()
         (time_stepping.get_current_time() ==
                    time_stepping.get_end_time()))
       output();
+
+    //return;
   }
 
   // Computes all the benchmark's data. See documentation of the
