@@ -16,7 +16,7 @@ namespace EquationData
 
 template <int dim>
 BodyForce<dim>::BodyForce(const double time)
-: 
+:
 TensorFunction<1, dim>(time)
 {}
 
@@ -108,7 +108,7 @@ template <int dim>
 VelocityExactSolution<dim>::VelocityExactSolution
 (const double Re,
  const double time)
-: 
+:
 Function<dim>(dim, time),
 Re(Re)
 {}
@@ -203,7 +203,7 @@ namespace Guermond
 
 template <int dim>
 VelocityExactSolution<dim>::VelocityExactSolution(const double time)
-: 
+:
 Function<dim>(dim, time)
 {}
 
@@ -281,7 +281,7 @@ template <int dim>
 BodyForce<dim>::BodyForce
 (const double Re,
  const double time)
-: 
+:
 RMHD::EquationData::BodyForce<dim>(time),
 Re(Re)
 {}
@@ -297,13 +297,13 @@ Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
   double x = point(0);
   double y = point(1);
 
-  value[0] = cos(t + x - y) + sin(2.*(t + x))/2. + 
+  value[0] = cos(t + x - y) + sin(2.*(t + x))/2. +
               (2.*sin(t + x)*sin(t + y))/Re + sin(2.*t + x + y)
-              /*cos(t + x - 1.*y) + (2.*sin(t + x)*sin(t + y))/Re 
+              /*cos(t + x - 1.*y) + (2.*sin(t + x)*sin(t + y))/Re
               + sin(2.*t + x + y)*/;
-  value[1] = (cos(x - y) + cos(2.*t + x + y) - (Re*(2.*cos(t + x - y) + 
+  value[1] = (cos(x - y) + cos(2.*t + x + y) - (Re*(2.*cos(t + x - y) +
               sin(2.*(t + y)) + 2.*sin(2.*t + x + y)))/2.)/Re
-              /*(cos(x - 1.*y) + cos(2.*t + x + y) - 
+              /*(cos(x - 1.*y) + cos(2.*t + x + y) -
               1.*Re*(cos(t + x - 1.*y) + sin(2.*t + x + y)))/Re*/;
 
   return value;
@@ -316,13 +316,13 @@ double BodyForce<dim>::divergence(const Point<dim>  &point) const
   double x = point(0);
   double y = point(1);
 
-  return cos(2.*(t + x)) + cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) + 
-         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) - 
-         0.5*Re*(2.*cos(2.*(t + y)) + 2.*cos(2.*t + x + y) + 
+  return cos(2.*(t + x)) + cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) +
+         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) -
+         0.5*Re*(2.*cos(2.*(t + y)) + 2.*cos(2.*t + x + y) +
          2.*sin(t + x - 1.*y)) - 1.*sin(2.*t + x + y))/Re
-         /*cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) + 
-         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) - 
-         1.*Re*(cos(2.*t + x + y) + sin(t + x - 1.*y)) - 
+         /*cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) +
+         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) -
+         1.*Re*(cos(2.*t + x + y) + sin(t + x - 1.*y)) -
          1.*sin(2.*t + x + y))/Re*/;
 }
 
@@ -333,7 +333,7 @@ namespace GuermondNeumannBC
 
 template <int dim>
 VelocityExactSolution<dim>::VelocityExactSolution(const double time)
-: 
+:
 Function<dim>(dim, time)
 {}
 
@@ -345,7 +345,7 @@ void VelocityExactSolution<dim>::vector_value(
   const double t = this->get_time();
   const double x = point(0);
   const double y = point(1);
-  
+
   values[0] = sin(x) * sin(y + t);
   values[1] = cos(x) * cos(y + t);
 }
@@ -360,7 +360,7 @@ Tensor<1, dim> VelocityExactSolution<dim>::gradient(
   const double t = this->get_time();
   const double x = point(0);
   const double y = point(1);
-  
+
   // The gradient has to match that of dealii, i.e. from the right.
   if (component == 0)
   {
@@ -390,7 +390,7 @@ double PressureExactSolution<dim>::value
   const double t = this->get_time();
   const double x = point(0);
   const double y = point(1);
-  
+
   return (cos(x) * sin(y + t));
 }
 
@@ -414,7 +414,7 @@ template <int dim>
 BodyForce<dim>::BodyForce
 (const double Re,
  const double time)
-: 
+:
 RMHD::EquationData::BodyForce<dim>(time),
 Re(Re)
 {}
@@ -469,7 +469,7 @@ VelocityExactSolution<dim>::VelocityExactSolution
  const double Re,
  const double H,
  const double time)
-: 
+:
 Function<dim>(dim, time),
 t_0(t_0),
 Re(Re),
@@ -513,7 +513,7 @@ template <int dim>
 TractionVector<dim>::TractionVector
 (const double t_0,
  const double time)
-: 
+:
 TensorFunction<1, dim>(time),
 t_0(t_0)
 {}
@@ -535,7 +535,7 @@ namespace ThermalTGV
 template <int dim>
 VelocityExactSolution<dim>::VelocityExactSolution
 (const double time)
-: 
+:
 TensorFunction<1, dim>(time)
 {}
 
@@ -599,7 +599,7 @@ Tensor<1, dim> TemperatureExactSolution<dim>::gradient
 template <int dim>
 VelocityField<dim>::VelocityField
 (const double time)
-: 
+:
 Function<dim>(dim, time)
 {}
 
@@ -644,7 +644,7 @@ double TemperatureBoundaryCondition<dim>::value
 template <int dim>
 GravityUnitVector<dim>::GravityUnitVector
 (const double time)
-: 
+:
 RMHD::EquationData::BodyForce<dim>(time)
 {}
 

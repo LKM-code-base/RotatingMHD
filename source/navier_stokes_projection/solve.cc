@@ -40,8 +40,6 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   /* Assemble linear system */
   assemble_diffusion_step();
 
-  norm_diffusion_rhs = diffusion_step_rhs.l2_norm();
-
   /* Solve linear system */
   solve_diffusion_step(reinit_prec);
 }
@@ -51,8 +49,6 @@ void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
 {
   /* Assemble linear system */
   assemble_projection_step();
-
-  norm_projection_rhs = projection_step_rhs.l2_norm();
 
   /* Solve linear system */
   solve_projection_step(reinit_prec);

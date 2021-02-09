@@ -1066,6 +1066,7 @@ void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
 }
 
 
+
 template<typename Stream>
 Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 {

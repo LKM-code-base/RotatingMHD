@@ -476,6 +476,7 @@ struct SpatialDiscretizationParameters
 };
 
 
+
 /*!
  * @brief Method forwarding parameters to a stream object.
  *
@@ -483,6 +484,7 @@ struct SpatialDiscretizationParameters
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const SpatialDiscretizationParameters &prm);
+
 
 
 /*!
@@ -553,6 +555,7 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm);
 
 /*!
  * @struct ConvergenceTestParameters
+ *
  * @brief @ref ConvergenceTestParameters contains parameters which are
  * related to convergence tests.
  */

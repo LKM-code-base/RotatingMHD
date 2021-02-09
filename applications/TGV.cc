@@ -198,10 +198,12 @@ void TGV<dim>::initialize()
 
   this->set_initial_conditions(velocity,
                                *velocity_exact_solution,
-                               time_stepping);
+                               time_stepping,
+                               true);
   this->set_initial_conditions(pressure,
                                *pressure_exact_solution,
-                               time_stepping);
+                               time_stepping,
+                               true);
 }
 
 template <int dim>
@@ -352,8 +354,7 @@ void TGV<dim>::solve(const unsigned int &level)
   // Advances the time to t^{k-1}, either t^0 or t^1
   // This is needed since the boundary integral of the Poisson pre-step
   // is not defined for this problem.
-  for (unsigned int k = 1; k < time_stepping.get_order(); ++k)
-    time_stepping.advance_time();
+  time_stepping.advance_time();
 
   // Outputs the fields at t_0, i.e. the initial conditions.
   {
