@@ -5,8 +5,10 @@
 #include <deal.II/fe/mapping_manifold.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <exception>
+#include <filesystem>
 #include <string>
-#include <sys/stat.h>
+
 namespace RMHD
 {
 
@@ -46,83 +48,94 @@ computing_timer(
                                 TimerOutput::summary,
                                 TimerOutput::wall_times))
 {
-  if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0 &&
-      prm.graphical_output_directory != "./")
+  if (!std::filesystem::exists(prm.graphical_output_directory) &&
+      Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
   {
-    std::string directory_name(prm.graphical_output_directory);
-    directory_name.pop_back();
-    std::string command = "mkdir -p " + directory_name;
-    system(command.c_str());
+    try
+    {
+      std::filesystem::create_directories(prm.graphical_output_directory);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output directory: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output directory!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
   }
 }
+
+
 
 template <int dim>
 void Problem<dim>::set_initial_conditions
 (std::shared_ptr<Entities::EntityBase<dim>> entity,
  Function<dim>                              &function,
- const TimeDiscretization::VSIMEXMethod     &time_stepping)
+ const TimeDiscretization::VSIMEXMethod     &time_stepping,
+ const bool                                 boolean)
 {
-  switch (time_stepping.get_order())
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_old_solution(entity->locally_owned_dofs);
+  #endif
+
+  function.set_time(time_stepping.get_start_time());
+
+  if (!boolean)
   {
-    case 1 :
-      {
-        #ifdef USE_PETSC_LA
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
-        #else
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs);
-        #endif
+    VectorTools::project(*entity->dof_handler,
+                          entity->constraints,
+                          QGauss<dim>(entity->fe_degree + 2),
+                          function,
+                          tmp_old_solution);
 
-        function.set_time(time_stepping.get_start_time());
+    entity->old_solution = tmp_old_solution;
+  }
+  else
+  {
+    LinearAlgebra::MPI::Vector tmp_old_old_solution(tmp_old_solution);
 
-        VectorTools::project(*entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_solution);
+    VectorTools::project(*entity->dof_handler,
+                          entity->constraints,
+                          QGauss<dim>(entity->fe_degree + 2),
+                          function,
+                          tmp_old_old_solution);
 
-        entity->old_solution = tmp_old_solution;
-        break;
-      }
-    case 2 :
+    function.advance_time(time_stepping.get_next_step_size());
 
-      {
-        #ifdef USE_PETSC_LA
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
-          LinearAlgebra::MPI::Vector
-          tmp_old_old_solution(entity->locally_owned_dofs, mpi_communicator);
-        #else
-          LinearAlgebra::MPI::Vector tmp_old_old_solution(entity->locally_owned_dofs);
-          LinearAlgebra::MPI::Vector tmp_old_solution(entity->locally_owned_dofs);
-        #endif
+    VectorTools::project(*entity->dof_handler,
+                          entity->constraints,
+                          QGauss<dim>(entity->fe_degree + 2),
+                          function,
+                          tmp_old_solution);
 
-        function.set_time(time_stepping.get_start_time());
-
-        VectorTools::project(*entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_old_solution);
-
-        function.advance_time(time_stepping.get_next_step_size());
-
-        VectorTools::project(*entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_solution);
-
-        entity->old_old_solution = tmp_old_old_solution;
-        entity->old_solution     = tmp_old_solution;
-        break;
-      }
-    default:
-      Assert(false, ExcNotImplemented());
-  };
-
+    entity->old_old_solution = tmp_old_old_solution;
+    entity->old_solution     = tmp_old_solution;
+  }
 }
+
+
 
 template <int dim>
 void Problem<dim>::compute_error(

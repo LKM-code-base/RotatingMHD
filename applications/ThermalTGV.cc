@@ -246,12 +246,8 @@ void ThermalTGV<dim>::solve(const unsigned int &level)
 
   // Outputs the fields at t_0, i.e. the initial conditions.
   {
-    temperature->solution = temperature->old_old_solution;
-    temperature_exact_solution->set_time(time_stepping.get_start_time());
-    output();
     temperature->solution = temperature->old_solution;
-    temperature_exact_solution->set_time(time_stepping.get_start_time() +
-                            time_stepping.get_next_step_size());
+    temperature_exact_solution->set_time(time_stepping.get_start_time());
     output();
   }
 
@@ -274,7 +270,6 @@ void ThermalTGV<dim>::solve(const unsigned int &level)
     // Advances the VSIMEXMethod instance to t^{k}
     update_entities();
     time_stepping.advance_time();
-
 
     // Snapshot stage, all time calls should be done with get_next_time()
 

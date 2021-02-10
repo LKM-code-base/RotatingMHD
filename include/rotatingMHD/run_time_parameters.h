@@ -5,6 +5,8 @@
 
 #include <rotatingMHD/time_discretization.h>
 
+#include <memory>
+
 namespace RMHD
 {
 
@@ -476,6 +478,7 @@ struct SpatialDiscretizationParameters
 };
 
 
+
 /*!
  * @brief Method forwarding parameters to a stream object.
  *
@@ -483,6 +486,7 @@ struct SpatialDiscretizationParameters
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const SpatialDiscretizationParameters &prm);
+
 
 
 /*!
@@ -553,6 +557,7 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm);
 
 /*!
  * @struct ConvergenceTestParameters
+ *
  * @brief @ref ConvergenceTestParameters contains parameters which are
  * related to convergence tests.
  */
@@ -1012,7 +1017,7 @@ struct LinearSolverParameters
   /*!
    * @brief Pointer to the parameter of the preconditioners
    */
-  PreconditionBaseParameters* preconditioner_parameters_ptr;
+  std::shared_ptr<PreconditionBaseParameters> preconditioner_parameters_ptr;
 
 private:
 

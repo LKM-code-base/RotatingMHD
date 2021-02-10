@@ -258,14 +258,9 @@ private:
   double                                        rhs_norm;
 
   /*!
-   * @brief The algebraic multigrid preconditioner.
+   * @brief The preconditioner.
    */
-  LinearAlgebra::MPI::PreconditionAMG                 amg_preconditioner;
-
-  /*!
-   * @brief The data fo the @ref amg_preconditioner.
-   */
-  LinearAlgebra::MPI::PreconditionAMG::AdditionalData amg_data;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> preconditioner;
 
   /*!
    * @brief A flag indicating if the matrices were updated.
@@ -276,11 +271,6 @@ private:
    * @brief A flag indicating if the advection term is to be ignored.
    */
   bool                                          flag_ignore_advection;
-
-  /*!
-   * @brief Sets the parameters of the @ref amg_data.
-   */
-  void set_preconditioner_data();
 
   /*!
    * @brief Setup of the sparsity spatterns of the matrices.
