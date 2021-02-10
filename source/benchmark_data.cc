@@ -57,7 +57,7 @@ void DFGBechmarkRequest<dim>::compute_pressure_difference
   const double rear_point_pressure_value
   = pressure->point_value(rear_evaluation_point);
 
-  pressure_difference = front_point_pressure_value - 
+  pressure_difference = front_point_pressure_value -
                         rear_point_pressure_value;
 }
 
@@ -108,16 +108,16 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
             velocity_face_fe_values.reinit(cell, face);
 
             typename DoFHandler<dim>::active_cell_iterator pressure_cell(
-                              &velocity->get_triangulation(), 
-                              cell->level(), 
-                              cell->index(), 
+                              &velocity->get_triangulation(),
+                              cell->level(),
+                              cell->index(),
                               // pointer to the pressure's DoFHandler
                               pressure->dof_handler.get());
 
             typename DoFHandler<dim>::active_face_iterator pressure_face(
-                              &velocity->get_triangulation(), 
-                              face->level(), 
-                              face->index(), 
+                              &velocity->get_triangulation(),
+                              face->level(),
+                              face->index(),
                               // pointer to the pressure's DoFHandler
                               pressure->dof_handler.get());
 
@@ -141,7 +141,7 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
                *
                */
               forces += (- 1.0 / Re *
-                        (normal_vectors[q] * 
+                        (normal_vectors[q] *
                         velocity_gradients[q]
                         +
                         velocity_gradients[q] *
@@ -177,19 +177,19 @@ void DFGBechmarkRequest<dim>::print_step_data(DiscreteTime &time)
   ConditionalOStream  pcout(std::cout,
                             (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
 
-  pcout << "Step = " 
-        << std::setw(4) 
-        << time.get_step_number() 
-        << " Time = " 
+  pcout << "Step = "
+        << std::setw(4)
+        << time.get_step_number()
+        << " Time = "
         << std::noshowpos << std::scientific
         << time.get_current_time()
-        << " dp = " 
+        << " dp = "
         << std::showpos << std::scientific
         << pressure_difference
         << " C_d = "
         << std::showpos << std::scientific
         << drag_coefficient
-        << " C_l = " 
+        << " C_l = "
         << std::showpos << std::scientific
         << lift_coefficient << std::endl;
 }
@@ -201,7 +201,7 @@ void DFGBechmarkRequest<dim>::write_table_to_file(const std::string  &file)
   {
     std::ofstream out_file(file);
     data_table.write_text(
-      out_file, 
+      out_file,
       TableHandler::TextOutputFormat::org_mode_table);
     out_file.close();
   }
@@ -231,7 +231,7 @@ area(8.0),
 left_wall_boundary_id(left_wall_boundary_id),
 right_wall_boundary_id(right_wall_boundary_id)
 {
-  AssertDimension(dim, 2); 
+  AssertDimension(dim, 2);
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
                     " initialized."));
@@ -241,7 +241,7 @@ right_wall_boundary_id(right_wall_boundary_id)
   Assert(temperature.get() != nullptr,
          ExcMessage("The temperature's shared pointer has not be"
                     " initialized."));
-  
+
   // Initiating the sample points.
   sample_points.emplace_back(0.1810, 7.3700);
   sample_points.emplace_back(0.8190, 0.6300);
@@ -416,7 +416,7 @@ void MIT<dim>::compute_wall_data()
 
   /*! @attention What would be the polynomial degree of the normal
       vector? */
-  // Polynomial degree of the integrand    
+  // Polynomial degree of the integrand
   const int face_p_degree = temperature->fe_degree;
 
   // Quadrature formula
@@ -447,8 +447,8 @@ void MIT<dim>::compute_wall_data()
   for (const auto &cell : (temperature->dof_handler)->active_cell_iterators())
     if (cell->is_locally_owned() && cell->at_boundary())
       for (const auto &face : cell->face_iterators())
-        if (face->at_boundary() && 
-            (face->boundary_id() == left_wall_boundary_id || 
+        if (face->at_boundary() &&
+            (face->boundary_id() == left_wall_boundary_id ||
              face->boundary_id() == right_wall_boundary_id))
           {
             // Initialize the finite element values
@@ -457,7 +457,7 @@ void MIT<dim>::compute_wall_data()
             // Get the temperature gradients at the quadrature points
             face_fe_values.get_function_gradients(temperature->solution,
                                                   temperature_gradients);
-            
+
             // Get the normal vectors at the quadrature points
             normal_vectors = face_fe_values.get_normal_vectors();
 
@@ -466,11 +466,11 @@ void MIT<dim>::compute_wall_data()
 
             // Numerical integration
             for (unsigned int q = 0; q < n_face_q_points; ++q)
-              local_boundary_integral += 
-                temperature_gradients[q] *  // grad T 
+              local_boundary_integral +=
+                temperature_gradients[q] *  // grad T
                 normal_vectors[q] *         // n
                 face_fe_values.JxW(q);      // da
-          
+
             // Add the local boundary integral to the respective
             // global boundary integral
             if (face->boundary_id() == left_wall_boundary_id)
@@ -480,11 +480,11 @@ void MIT<dim>::compute_wall_data()
           }
 
   // Gather the values of each processor
-  left_boundary_integral   = Utilities::MPI::sum(left_boundary_integral, 
+  left_boundary_integral   = Utilities::MPI::sum(left_boundary_integral,
                                                    mpi_communicator);
-  right_boundary_integral  = Utilities::MPI::sum(right_boundary_integral, 
+  right_boundary_integral  = Utilities::MPI::sum(right_boundary_integral,
                                                   mpi_communicator);
-  
+
   //Compute and store the Nusselt numbers of the walls
   nusselt_numbers = std::make_pair(left_boundary_integral/height,
                                    right_boundary_integral/height);
@@ -502,7 +502,7 @@ void MIT<dim>::compute_global_data()
   average_velocity_metric   = 0.0;
   average_vorticity_metric  = 0.0;
 
-  // Polynomial degree of the integrand    
+  // Polynomial degree of the integrand
   const int p_degree = 2 * velocity->fe_degree;
 
   // Quadrature formula
@@ -544,7 +544,7 @@ void MIT<dim>::compute_global_data()
       // Numerical integration (Loop over all quadrature points)
       for (unsigned int q = 0; q < n_q_points; ++q)
       {
-        average_velocity_metric += 
+        average_velocity_metric +=
           velocity_values[q] *  // v
           velocity_values[q] *  // v
           fe_values.JxW(q);     // dv
@@ -556,9 +556,9 @@ void MIT<dim>::compute_global_data()
     }
 
   // Gather the values of each processor
-  average_velocity_metric   = Utilities::MPI::sum(average_velocity_metric, 
+  average_velocity_metric   = Utilities::MPI::sum(average_velocity_metric,
                                                   mpi_communicator);
-  average_vorticity_metric  = Utilities::MPI::sum(average_vorticity_metric, 
+  average_vorticity_metric  = Utilities::MPI::sum(average_vorticity_metric,
                                                   mpi_communicator);
 
   // Compute the global averages

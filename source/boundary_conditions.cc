@@ -6,6 +6,7 @@
 
 #include <typeinfo>
 #include <iostream>
+#include <string>
 
 namespace RMHD
 {
@@ -17,12 +18,13 @@ namespace Entities
 
 namespace internal
 {
-  constexpr char header[] = "+----------------+"
-      "-------------------------------------------------------------+";
+  constexpr char header[] = "+--------------------+"
+      "-----------------------------------------+";
 
-  constexpr size_t column_width[2] = { 13, 60 };
 
-  constexpr size_t line_width = 76;
+  constexpr size_t column_width[2] = { 17, 40 };
+
+  constexpr size_t line_width = 60;
 
   template<typename Stream, typename A>
   void add_line(Stream  &stream,
@@ -46,6 +48,30 @@ namespace internal
            << std::setw(column_width[1]) << second_column
            << " |"
            << std::endl;
+  }
+
+  template<typename A>
+  std::string get_type_string(const A &object)
+  {
+    std::string typestr = boost::core::demangle(typeid(object).name());
+    //                              123456789*123456789*
+    std::size_t pos = typestr.find("RMHD::EquationData::");
+    if (pos!=std::string::npos)
+      typestr.erase(pos, 20);
+    //                    123456789*123456789*
+    pos = typestr.find("dealii::Functions::");
+          if (pos!=std::string::npos)
+            typestr.erase(pos, 19);
+    //                    12345678
+    pos = typestr.find("dealii::");
+    if (pos!=std::string::npos)
+      typestr.erase(pos, 8);
+    //                    123456
+    pos = typestr.find("RMHD::");
+    if (pos!=std::string::npos)
+      typestr.erase(pos, 6);
+
+    return (typestr);
   }
 
   template<typename Stream>
@@ -115,7 +141,9 @@ void BoundaryConditionsBase<dim>::print_summary
     internal::add_line(stream, "Boundary id", "   Type name");
 
     for(auto &[key, value]: this->dirichlet_bcs)
-      internal::add_line(stream, key, boost::core::demangle(typeid(*value).name()));
+      internal::add_line(stream,
+                         key,
+                         internal::get_type_string(*value));
   }
 
   if (periodic_bcs.size() != 0)
@@ -179,10 +207,11 @@ void ScalarBoundaryConditions<dim>::print_summary
     internal::add_line(stream, "Neumann boundary conditions");
 
     internal::add_line(stream, "Boundary id", "   Type name");
+
     for(const auto &[key, value]: neumann_bcs)
       internal::add_line(stream,
                          key,
-                         boost::core::demangle(typeid(*value).name()));
+                         internal::get_type_string(*value));
   }
 
   internal::add_header(stream);
@@ -251,7 +280,7 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
     AssertThrow(
       function->n_components == 1,
       ExcMessage("Function of a Neumann boundary condition needs to have a single component."));
-    
+
     this->neumann_bcs[boundary_id] = function;
   }
 
@@ -302,11 +331,11 @@ void ScalarBoundaryConditions<dim>::check_boundary_id
     this->flag_extract_boundary_ids = false;
   }
 
-  AssertThrow(std::find(this->boundary_ids.begin(), 
-                        this->boundary_ids.end(), 
+  AssertThrow(std::find(this->boundary_ids.begin(),
+                        this->boundary_ids.end(),
                         boundary_id) != this->boundary_ids.end(),
               ExcMessage("The triangulation does not have a boundary"
-                         " marked with the indicator " + 
+                         " marked with the indicator " +
                          std::to_string(boundary_id) + "."));
 
   AssertThrow(this->dirichlet_bcs.find(boundary_id) == this->dirichlet_bcs.end(),
@@ -318,7 +347,7 @@ void ScalarBoundaryConditions<dim>::check_boundary_id
               ExcMessage("A Neumann boundary condition was already set on "
                          "the boundary marked with the indicator " +
                          std::to_string(boundary_id) + "."));
-  
+
   for (const auto &periodic_bc : this->periodic_bcs)
   {
     AssertThrow(boundary_id != periodic_bc.boundary_pair.first &&
@@ -365,7 +394,7 @@ void VectorBoundaryConditions<dim>::print_summary
     for(const auto &[key, value]: this->neumann_bcs)
       internal::add_line(stream,
                          key,
-                         boost::core::demangle(typeid(*value).name()));
+                         internal::get_type_string(*value));
   }
 
   if (normal_flux_bcs.size() != 0)
@@ -375,7 +404,7 @@ void VectorBoundaryConditions<dim>::print_summary
     for(const auto &[key, value]: normal_flux_bcs)
       internal::add_line(stream,
                          key,
-                         boost::core::demangle(typeid(*value).name()));
+                         internal::get_type_string(*value));
   }
 
   if (tangential_flux_bcs.size() != 0)
@@ -385,7 +414,7 @@ void VectorBoundaryConditions<dim>::print_summary
     for(const auto &[key, value]: tangential_flux_bcs)
       internal::add_line(stream,
                          key,
-                         boost::core::demangle(typeid(*value).name()));
+                         internal::get_type_string(*value)  );
   }
 
   internal::add_header(stream);
@@ -458,10 +487,10 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
     std::stringstream message;
     message << "Function of a Neumann boundary condition needs to have "
             << dim << " components.";
-    
+
     this->neumann_bcs[boundary_id] = function;
   }
-  
+
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
 }
@@ -486,7 +515,7 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
 
     AssertThrow(function->n_components == dim,
                 ExcMessage(message.str()));
-    
+
     normal_flux_bcs[boundary_id] = function;
   }
 
@@ -514,7 +543,7 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
 
     AssertThrow(function->n_components == dim,
                 ExcMessage(message.str()));
-    
+
     tangential_flux_bcs[boundary_id] = function;
   }
 
@@ -571,11 +600,11 @@ void VectorBoundaryConditions<dim>::check_boundary_id(
     this->flag_extract_boundary_ids = false;
   }
 
-  AssertThrow(std::find(this->boundary_ids.begin(), 
-                        this->boundary_ids.end(), 
+  AssertThrow(std::find(this->boundary_ids.begin(),
+                        this->boundary_ids.end(),
                         boundary_id) != this->boundary_ids.end(),
               ExcMessage("The triangulation does not have a boundary"
-                         " marked with the indicator " + 
+                         " marked with the indicator " +
                          std::to_string(boundary_id) + "."));
 
   AssertThrow(this->dirichlet_bcs.find(boundary_id) == this->dirichlet_bcs.end(),
@@ -587,7 +616,7 @@ void VectorBoundaryConditions<dim>::check_boundary_id(
               ExcMessage("A Neumann boundary condition was already set on "
                            "the boundary marked with the indicator " +
                            std::to_string(boundary_id) + "."));
-                           
+
   AssertThrow(normal_flux_bcs.find(boundary_id) == normal_flux_bcs.end(),
               ExcMessage("A normal flux boundary condition was already set on "
                            "the boundary marked with the indicator " +

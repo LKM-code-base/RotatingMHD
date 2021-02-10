@@ -198,10 +198,12 @@ void Guermond<dim>::initialize()
 
   this->set_initial_conditions(velocity,
                                *velocity_exact_solution,
-                               time_stepping);
+                               time_stepping,
+                               true);
   this->set_initial_conditions(pressure,
                                *pressure_exact_solution,
-                               time_stepping);
+                               time_stepping,
+                               true);
 }
 
 template <int dim>
@@ -349,6 +351,8 @@ void Guermond<dim>::solve(const unsigned int &level)
   velocity_error.reinit(velocity->solution);
   pressure_error.reinit(pressure->solution);
   initialize();
+
+  time_stepping.advance_time();
 
   // Outputs the fields at t_0, i.e. the initial conditions.
   {

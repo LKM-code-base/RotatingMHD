@@ -671,7 +671,6 @@ void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm)
 {
-
   internal::add_header(stream);
   internal::add_line(stream, "Precondition ILU Parameters");
   internal::add_header(stream);
@@ -824,16 +823,20 @@ void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
     switch (preconditioner_type)
     {
       case PreconditionerType::AMG:
-        preconditioner_parameters_ptr = new PreconditionAMGParameters;
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionAMGParameters>();
         break;
       case PreconditionerType::ILU:
-        preconditioner_parameters_ptr = new PreconditionILUParameters;
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionILUParameters>();
         break;
       case PreconditionerType::Jacobi:
-        preconditioner_parameters_ptr = new PreconditionJacobiParameters;
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionJacobiParameters>();
         break;
       case PreconditionerType::SSOR:
-        preconditioner_parameters_ptr = new PreconditionSSORParameters;
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionSSORParameters>();
         break;
       case PreconditionerType::GMG:
         AssertThrow(false, ExcNotImplemented());
@@ -868,16 +871,16 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
   switch (prm.preconditioner_parameters_ptr->preconditioner_type)
   {
     case PreconditionerType::AMG:
-      stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr);
+      stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr.get());
       break;
     case PreconditionerType::ILU:
-      stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr);
+      stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr.get());
       break;
     case PreconditionerType::Jacobi:
-      stream << *static_cast<const PreconditionJacobiParameters*>(prm.preconditioner_parameters_ptr);
+      stream << *static_cast<const PreconditionJacobiParameters*>(prm.preconditioner_parameters_ptr.get());
       break;
     case PreconditionerType::SSOR:
-      stream << *static_cast<const PreconditionSSORParameters*>(prm.preconditioner_parameters_ptr);
+      stream << *static_cast<const PreconditionSSORParameters*>(prm.preconditioner_parameters_ptr.get());
       break;
     case PreconditionerType::GMG:
       AssertThrow(false, ExcNotImplemented());
@@ -1470,7 +1473,6 @@ void HeatEquationParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const HeatEquationParameters &prm)
 {
-
   internal::add_header(stream);
   internal::add_line(stream, "Heat equation solver parameters");
   internal::add_header(stream);

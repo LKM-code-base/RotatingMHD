@@ -72,7 +72,7 @@ solve_diffusion_step(const bool reinit_prec)
     build_preconditioner(diffusion_step_preconditioner,
                          *system_matrix,
                          solver_parameters.preconditioner_parameters_ptr,
-                         velocity->fe_degree);
+                         (velocity->fe_degree > 1? true: false));
   }
 
   SolverControl solver_control(

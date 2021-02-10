@@ -40,8 +40,6 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   /* Assemble linear system */
   assemble_diffusion_step();
 
-  norm_diffusion_rhs = diffusion_step_rhs.l2_norm();
-
   /* Solve linear system */
   solve_diffusion_step(reinit_prec);
 }
@@ -51,8 +49,6 @@ void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
 {
   /* Assemble linear system */
   assemble_projection_step();
-
-  norm_projection_rhs = projection_step_rhs.l2_norm();
 
   /* Solve linear system */
   solve_projection_step(reinit_prec);
@@ -85,6 +81,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             VectorTools::subtract_mean_value(distributed_old_pressure);
 
           pressure->solution = distributed_old_pressure;
+
+          if (parameters.verbose)
+            *pcout << " done!" << std::endl << std::endl;
         }
         break;
       case RunTimeParameters::PressureCorrectionScheme::rotational:
@@ -180,15 +179,18 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           // Pass the distributed vector to its ghost counterpart.
           pressure->solution = distributed_pressure;
-        }
 
+          if (parameters.verbose)
+                  *pcout << " done!" << std::endl
+                         << "    Number of CG iterations: "
+                         << solver_control.last_step()
+                         << ", Final residual: " << solver_control.last_value() << "."
+                         << std::endl << std::endl;
+        }
         break;
       default:
         Assert(false, ExcNotImplemented());
     };
-
-  if (parameters.verbose)
-    *pcout << " done!" << std::endl << std::endl;
 }
 
 

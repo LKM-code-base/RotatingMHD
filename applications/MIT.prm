@@ -25,7 +25,17 @@ subsection Heat equation solver parameters
   subsection Linear solver parameters
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
   end
 
 end
@@ -42,32 +52,72 @@ subsection Navier-Stokes solver parameters
   subsection Linear solver parameters - Correction step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
   end
 
   subsection Linear solver parameters - Diffusion step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
   end
 
   subsection Linear solver parameters - Poisson pre-step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
   end
 
   subsection Linear solver parameters - Projection step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
   end
 
 end
 
 
 subsection Output control parameters
-  set Graphical output directory = vtu_MIT/
+  set Graphical output directory = MITResults/
   set Graphical output frequency = 1
   set Terminal output frequency  = 1
 end
@@ -98,3 +148,5 @@ subsection Time stepping parameters
   set Time stepping scheme          = BDF2
   set Verbose                       = false
 end
+
+
