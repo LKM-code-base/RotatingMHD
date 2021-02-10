@@ -5,6 +5,8 @@
 
 #include <rotatingMHD/time_discretization.h>
 
+#include <memory>
+
 namespace RMHD
 {
 
@@ -1015,7 +1017,7 @@ struct LinearSolverParameters
   /*!
    * @brief Pointer to the parameter of the preconditioners
    */
-  PreconditionBaseParameters* preconditioner_parameters_ptr;
+  std::shared_ptr<PreconditionBaseParameters> preconditioner_parameters_ptr;
 
 private:
 

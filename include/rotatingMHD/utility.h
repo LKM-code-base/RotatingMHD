@@ -29,8 +29,8 @@ template<typename MatrixType>
 void build_preconditioner
 (std::shared_ptr<LinearAlgebra::PreconditionBase>     &preconditioner,
  const MatrixType                                     &matrix,
- const RunTimeParameters::PreconditionBaseParameters  *parameters,
-const bool                                             higher_order_elements = false,
+ const std::shared_ptr<RunTimeParameters::PreconditionBaseParameters> &parameters,
+ const bool                                            higher_order_elements = false,
  const bool                                            symmetric = true);
 
 }  // namespace RMHD

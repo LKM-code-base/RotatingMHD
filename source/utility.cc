@@ -9,7 +9,7 @@ template <typename MatrixType>
 void build_preconditioner
 (std::shared_ptr<LinearAlgebra::PreconditionBase> &preconditioner,
  const MatrixType                                 &matrix,
- const PreconditionBaseParameters                 *parameters,
+ const std::shared_ptr<PreconditionBaseParameters>&parameters,
  const bool                                        higher_order_elements,
  const bool                                        symmetric)
 {
@@ -22,7 +22,7 @@ void build_preconditioner
       LinearAlgebra::MPI::PreconditionILU::AdditionalData preconditioner_data;
 
       const PreconditionILUParameters* preconditioner_parameters
-        = static_cast<const PreconditionILUParameters*>(parameters);
+        = static_cast<const PreconditionILUParameters*>(parameters.get());
 
       #ifdef USE_PETSC_LA
         preconditioner_data.levels = preconditioner_parameters->fill;
@@ -46,7 +46,7 @@ void build_preconditioner
       LinearAlgebra::MPI::PreconditionAMG::AdditionalData preconditioner_data;
 
       const PreconditionAMGParameters* preconditioner_parameters
-        = static_cast<const PreconditionAMGParameters*>(parameters);
+        = static_cast<const PreconditionAMGParameters*>(parameters.get());
 
       #ifdef USE_PETSC_LA
         preconditioner_data.symmetric_operator = symmetric;
@@ -59,7 +59,7 @@ void build_preconditioner
       #endif
 
         preconditioner =
-          std::make_shared<LinearAlgebra::MPI::PreconditionILU>();
+          std::make_shared<LinearAlgebra::MPI::PreconditionAMG>();
 
         static_cast<LinearAlgebra::MPI::PreconditionAMG*>(preconditioner.get())
             ->initialize(matrix,
@@ -73,7 +73,7 @@ void build_preconditioner
       LinearAlgebra::MPI::PreconditionSSOR::AdditionalData preconditioner_data;
 
       const PreconditionSSORParameters* preconditioner_parameters
-        = static_cast<const PreconditionSSORParameters*>(parameters);
+        = static_cast<const PreconditionSSORParameters*>(parameters.get());
 
       #ifdef USE_PETSC_LA
         preconditioner_data.omega = preconditioner_parameters->omega;
@@ -96,7 +96,7 @@ void build_preconditioner
       LinearAlgebra::MPI::PreconditionJacobi::AdditionalData preconditioner_data;
 
       const PreconditionJacobiParameters* preconditioner_parameters
-        = static_cast<const PreconditionJacobiParameters*>(parameters);
+        = static_cast<const PreconditionJacobiParameters*>(parameters.get());
 
       #ifndef USE_PETSC_LA
         preconditioner_data.omega = preconditioner_parameters->omega;
@@ -127,8 +127,8 @@ void build_preconditioner
 
 // explicit instantiations
 template void RMHD::build_preconditioner<RMHD::LinearAlgebra::MPI::SparseMatrix>
-(std::shared_ptr<LinearAlgebra::PreconditionBase> &,
+(std::shared_ptr<RMHD::LinearAlgebra::PreconditionBase> &,
  const RMHD::LinearAlgebra::MPI::SparseMatrix &,
- const RunTimeParameters::PreconditionBaseParameters *,
+ const std::shared_ptr<RunTimeParameters::PreconditionBaseParameters> &,
  const bool ,
  const bool );
