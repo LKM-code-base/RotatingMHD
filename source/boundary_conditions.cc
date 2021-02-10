@@ -6,6 +6,7 @@
 
 #include <typeinfo>
 #include <iostream>
+#include <string>
 
 namespace RMHD
 {
@@ -17,12 +18,13 @@ namespace Entities
 
 namespace internal
 {
-  constexpr char header[] = "+----------------+"
-      "-------------------------------------------------------------+";
+  constexpr char header[] = "+--------------------+"
+      "-----------------------------------------+";
 
-  constexpr size_t column_width[2] = { 13, 60 };
 
-  constexpr size_t line_width = 76;
+  constexpr size_t column_width[2] = { 17, 40 };
+
+  constexpr size_t line_width = 60;
 
   template<typename Stream, typename A>
   void add_line(Stream  &stream,
@@ -46,6 +48,30 @@ namespace internal
            << std::setw(column_width[1]) << second_column
            << " |"
            << std::endl;
+  }
+
+  template<typename A>
+  std::string get_type_string(const A &object)
+  {
+    std::string typestr = boost::core::demangle(typeid(object).name());
+    //                              123456789*123456789*
+    std::size_t pos = typestr.find("RMHD::EquationData::");
+    if (pos!=std::string::npos)
+      typestr.erase(pos, 20);
+    //                    123456789*123456789*
+    pos = typestr.find("dealii::Functions::");
+          if (pos!=std::string::npos)
+            typestr.erase(pos, 19);
+    //                    12345678
+    pos = typestr.find("dealii::");
+    if (pos!=std::string::npos)
+      typestr.erase(pos, 8);
+    //                    123456
+    pos = typestr.find("RMHD::");
+    if (pos!=std::string::npos)
+      typestr.erase(pos, 6);
+
+    return (typestr);
   }
 
   template<typename Stream>
@@ -115,7 +141,9 @@ void BoundaryConditionsBase<dim>::print_summary
     internal::add_line(stream, "Boundary id", "   Type name");
 
     for(auto &[key, value]: this->dirichlet_bcs)
-      internal::add_line(stream, key, boost::core::demangle(typeid(*value).name()));
+      internal::add_line(stream,
+                         key,
+                         internal::get_type_string(*value));
   }
 
   if (periodic_bcs.size() != 0)
@@ -179,10 +207,11 @@ void ScalarBoundaryConditions<dim>::print_summary
     internal::add_line(stream, "Neumann boundary conditions");
 
     internal::add_line(stream, "Boundary id", "   Type name");
+
     for(const auto &[key, value]: neumann_bcs)
       internal::add_line(stream,
                          key,
-                         boost::core::demangle(typeid(*value).name()));
+                         internal::get_type_string(*value));
   }
 
   internal::add_header(stream);
@@ -365,7 +394,7 @@ void VectorBoundaryConditions<dim>::print_summary
     for(const auto &[key, value]: this->neumann_bcs)
       internal::add_line(stream,
                          key,
-                         boost::core::demangle(typeid(*value).name()));
+                         internal::get_type_string(*value));
   }
 
   if (normal_flux_bcs.size() != 0)
@@ -375,7 +404,7 @@ void VectorBoundaryConditions<dim>::print_summary
     for(const auto &[key, value]: normal_flux_bcs)
       internal::add_line(stream,
                          key,
-                         boost::core::demangle(typeid(*value).name()));
+                         internal::get_type_string(*value));
   }
 
   if (tangential_flux_bcs.size() != 0)
@@ -385,7 +414,7 @@ void VectorBoundaryConditions<dim>::print_summary
     for(const auto &[key, value]: tangential_flux_bcs)
       internal::add_line(stream,
                          key,
-                         boost::core::demangle(typeid(*value).name()));
+                         internal::get_type_string(*value)  );
   }
 
   internal::add_header(stream);
