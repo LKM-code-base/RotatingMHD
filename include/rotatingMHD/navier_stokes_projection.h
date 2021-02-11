@@ -338,27 +338,23 @@ private:
 
   /*!
    * @brief The preconditioner of the diffusion step.
-   * @attention Hardcoded for a ILU preconditioner.
    */
-  LinearAlgebra::MPI::PreconditionILU     diffusion_step_preconditioner;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> diffusion_step_preconditioner;
 
   /*!
    * @brief The preconditioner of the projection step.
-   * @attention Hardcoded for a ILU preconditioner.
    */
-  LinearAlgebra::MPI::PreconditionILU     projection_step_preconditioner;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> projection_step_preconditioner;
 
   /*!
    * @brief The preconditioner of the poisson prestep.
-   * @attention Hardcoded for a ILU preconditioner.
    */
-  LinearAlgebra::MPI::PreconditionILU     poisson_prestep_preconditioner;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> poisson_prestep_preconditioner;
 
   /*!
    * @brief The preconditioner of the correction step.
-   * @attention Hardcoded for a Jacobi preconditioner.
    */
-  LinearAlgebra::MPI::PreconditionJacobi  correction_step_preconditioner;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> correction_step_preconditioner;
 
   /*!
    * @brief The norm of the right hand side of the diffusion step.
@@ -390,10 +386,9 @@ private:
   bool                                  flag_setup_phi;
 
   /*!
-   * @brief A flag indicating if the velocity's mass and stiffness
-   * matrices are to be added.
+   * @brief A flag indicating if the matrices were updated.
    */
-  bool                                  flag_add_mass_and_stiffness_matrices;
+  bool                                  flag_matrices_were_updated;
 
   /*!
    * @brief A flag indicating if bouyancy term is to be ignored.
@@ -469,7 +464,8 @@ private:
   void assemble_diffusion_step();
 
   /*!
-   * @brief This method solves the linear system of the diffusion step.
+   * @brief This method solves the linear system of the diffusion step. Updates
+   * the Entities::VectorEntity::solution vector of the #velocity.
    */
   void solve_diffusion_step(const bool reinit_prec);
 
@@ -484,12 +480,15 @@ private:
   void assemble_projection_step();
 
   /*!
-   * @brief This method solves the linear system of the projection step.
+   * @brief This method solves the linear system of the projection step. Updates
+   * the Entities::ScalarEntity::solution vector of the pressure correction
+   * #phi.
    */
   void solve_projection_step(const bool reinit_prec);
 
   /*!
    * @brief This method performs the pressure update of the projection step.
+   * Updates the Entities::ScalarEntity::solution vector of the #pressure.
    */
   void pressure_correction(const bool reinit_prec);
 

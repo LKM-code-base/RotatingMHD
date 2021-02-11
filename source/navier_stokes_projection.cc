@@ -16,7 +16,7 @@ NavierStokesProjection<dim>::NavierStokesProjection
  const std::shared_ptr<ConditionalOStream>        external_pcout,
  const std::shared_ptr<TimerOutput>               external_timer)
 :
-phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure)),
+phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure, "Phi")),
 parameters(parameters),
 mpi_communicator(velocity->mpi_communicator),
 velocity(velocity),
@@ -24,7 +24,7 @@ pressure(pressure),
 time_stepping(time_stepping),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_add_mass_and_stiffness_matrices(true),
+flag_matrices_were_updated(true),
 flag_ignore_bouyancy_term(true)
 {
   Assert(velocity.get() != nullptr,
@@ -87,7 +87,7 @@ temperature(temperature),
 time_stepping(time_stepping),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_add_mass_and_stiffness_matrices(true),
+flag_matrices_were_updated(true),
 flag_ignore_bouyancy_term(false)
 {
   Assert(velocity.get() != nullptr,

@@ -1,4 +1,5 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/utility.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -17,6 +18,8 @@ void NavierStokesProjection<dim>::solve()
     projection_step(true);
 
     pressure_correction(true);
+
+    flag_matrices_were_updated = false;
   }
   else
   {
@@ -37,8 +40,6 @@ void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
   /* Assemble linear system */
   assemble_diffusion_step();
 
-  norm_diffusion_rhs = diffusion_step_rhs.l2_norm();
-
   /* Solve linear system */
   solve_diffusion_step(reinit_prec);
 }
@@ -48,8 +49,6 @@ void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
 {
   /* Assemble linear system */
   assemble_projection_step();
-
-  norm_projection_rhs = projection_step_rhs.l2_norm();
 
   /* Solve linear system */
   solve_projection_step(reinit_prec);
@@ -103,18 +102,24 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           // The divergence of the velocity field is projected into a
           // unconstrained pressure space through the following solve
           // operation.
+          const typename RunTimeParameters::LinearSolverParameters
+          &solver_parameters = parameters.correction_step_solver_parameters;
           SolverControl solver_control(
-            parameters.correction_step_solver_parameters.n_maximum_iterations,
-            std::max(parameters.correction_step_solver_parameters.relative_tolerance *
-                       correction_step_rhs.l2_norm(),
-                     parameters.correction_step_solver_parameters.absolute_tolerance));
+              solver_parameters.n_maximum_iterations,
+            std::max(solver_parameters.relative_tolerance *correction_step_rhs.l2_norm(),
+                     solver_parameters.absolute_tolerance));
 
           if (reinit_prec)
-            correction_step_preconditioner.initialize(projection_mass_matrix);
+          {
+            build_preconditioner(correction_step_preconditioner,
+                                 projection_mass_matrix,
+                                 solver_parameters.preconditioner_parameters_ptr,
+                                 (pressure->fe_degree > 1? true: false));
+          }
 
           #ifdef USE_PETSC_LA
             LinearAlgebra::SolverCG solver(solver_control,
-                                           MPI_COMM_WORLD);
+                                           mpi_communicator);
           #else
             LinearAlgebra::SolverCG solver(solver_control);
           #endif
@@ -124,7 +129,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             solver.solve(projection_mass_matrix,
                          distributed_pressure,
                          correction_step_rhs,
-                         correction_step_preconditioner);
+                         *correction_step_preconditioner);
           }
           catch (std::exception &exc)
           {
@@ -176,13 +181,12 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           pressure->solution = distributed_pressure;
 
           if (parameters.verbose)
-                *pcout << " done!" << std::endl
-                       << "    Number of CG iterations: "
-                       << solver_control.last_step()
-                       << ", Final residual: " << solver_control.last_value() << "."
-                       << std::endl << std::endl;
+                  *pcout << " done!" << std::endl
+                         << "    Number of CG iterations: "
+                         << solver_control.last_step()
+                         << ", Final residual: " << solver_control.last_value() << "."
+                         << std::endl << std::endl;
         }
-
         break;
       default:
         Assert(false, ExcNotImplemented());

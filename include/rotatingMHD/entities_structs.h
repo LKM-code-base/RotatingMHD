@@ -18,6 +18,7 @@
 #include <map>
 #include <memory>
 #include <set>
+
 namespace RMHD
 {
 
@@ -74,13 +75,13 @@ public:
   const std::string                 name;
 
   /*!
-   * @brief The AffineConstraints<double> instance handling the 
+   * @brief The AffineConstraints<double> instance handling the
    * hanging nodes.
    */
   AffineConstraints<double>         hanging_nodes;
 
   /*!
-   * @brief The AffineConstraints<double> instance handling the 
+   * @brief The AffineConstraints<double> instance handling the
    * hanging nodes and the boundary conditions.
    */
   AffineConstraints<double>         constraints;
@@ -141,6 +142,7 @@ public:
    * @brief Sets all the entries of the solution vectors to zero.
    */
   void set_solution_vectors_to_zero();
+
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
    * and @ref VectorEntity in a vector and call
@@ -152,7 +154,7 @@ public:
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
    * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::apply_boundary_conditions and 
+   * @ref ScalarEntity::apply_boundary_conditions and
    * @ref VectorEntity::apply_boundary_conditions respectively.
    */
   virtual void apply_boundary_conditions() = 0;
@@ -160,7 +162,7 @@ public:
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
    * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::update_boundary_conditions and 
+   * @ref ScalarEntity::update_boundary_conditions and
    * @ref VectorEntity::update_boundary_conditions respectively.
    */
   virtual void update_boundary_conditions() = 0;
@@ -220,6 +222,7 @@ struct VectorEntity : EntityBase<dim>
 
   /*!
    * @brief Set ups the degrees of freedom of the vector field.
+   *
    * @details It distributes the degrees of freedom bases on @ref fe;
    * extracts the @ref locally_owned_dofs and the @ref locally_relevant_dofs;
    * and makes the hanging node constraints contained in @ref hanging_nodes.
@@ -227,22 +230,26 @@ struct VectorEntity : EntityBase<dim>
   virtual void setup_dofs() override;
 
   /*!
-   * @brief Applies all the boundary conditions into the @ref constraints
+   * @brief Applies all specified boundary conditions to the @ref constraints
    * of the vector field.
+   *
    * @details It loops over the elements stored in @ref boundary_conditions
    * and modifies @ref constraints accordingly.
+   *
    * @attention This method has to be called even if no boundary conditions
    * are applied as the method initiates @ref constraints, which is used
-   * througout the solver. 
+   * througout the solver.
    */
   virtual void apply_boundary_conditions() override;
 
   /*!
    * @brief Updates the time dependent boundary conditions.
-   * @details It loops over all boundary condition marked as time 
-   * dependent and reapplies the constraints into a temporary 
-   * AffineConstraints<double> instance which is then merge into @ref 
+   *
+   * @details It loops over all boundary condition marked as time
+   * dependent and reapplies the constraints into a temporary
+   * AffineConstraints<double> instance which is then merge into @ref
    * constraints.
+   *
    * @attention Make sure to advance the underlying function in time
    * using the @ref VectorBoundaryConditions::set_time method before
    * calling this method. Otherwise the method will just reapply the
@@ -251,9 +258,10 @@ struct VectorEntity : EntityBase<dim>
   virtual void update_boundary_conditions() override;
 
   /*!
-   * @brief This method evaluates the value of the continous vector 
+   * @brief This method evaluates the value of the continous vector
    * field at the given point.
-   * @details It catches the value obtained by the processor who owns 
+   *
+   * @details It catches the value obtained by the processor who owns
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
@@ -302,30 +310,35 @@ struct ScalarEntity : EntityBase<dim>
   /*!
    * @brief Applies all the boundary conditions into the @ref constraints
    * of the scalar field.
+   *
    * @details It loops over the elements stored in @ref boundary_conditions
    * and modifies @ref constraints accordingly.
+   *
    * @attention This method has to be called even if no boundary conditions
-   * are applied as the method initiates @ref constraints, which is used
-   * througout the solver. 
+   * are applied because the method initiates @ref constraints, which are used
+   * througout the solver.
    */
   virtual void apply_boundary_conditions() override;
 
   /*!
    * @brief Updates the time dependent boundary conditions.
-   * @details It loops over all boundary condition marked as time 
-   * dependent and reapplies the constraints into a temporary 
-   * AffineConstraints<double> instance which is then merge into @ref 
+   *
+   * @details It loops over all boundary condition marked as time
+   * dependent and reapplies the constraints into a temporary
+   * AffineConstraints<double> instance which is then merge into @ref
    * constraints.
+   *
    * @attention Make sure to advance the underlying function in time
    * using the @ref ScalarBoundaryConditions::set_time method before
-   * calling this method. Otherwise the method will just reapply the
+   * calling this method. Otherwise the method will just re-apply the
    * same boundary conditions.
    */
   virtual void update_boundary_conditions() override;
 
   /*!
-   * @brief This method evaluates the value of the continous scalar 
+   * @brief This method evaluates the value of the continous scalar
    * field at the given point.
+   *
    * @details It catches the value obtained by the processor who owns 
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.

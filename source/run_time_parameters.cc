@@ -19,6 +19,48 @@ using namespace dealii;
 namespace RunTimeParameters
 {
 
+namespace internal
+{
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
+
+  const size_t column_width[2] ={ 40, 20 };
+
+  constexpr size_t line_width = 57;
+
+  template<typename Stream, typename A>
+  void add_line(Stream  &stream,
+                const A &line)
+  {
+    stream << "| "
+           << std::setw(line_width)
+           << line
+           << " |"
+           << std::endl;
+  }
+
+  template<typename Stream, typename A, typename B>
+  void add_line(Stream  &stream,
+                const A &first_column,
+                const B &second_column)
+  {
+    stream << "| "
+           << std::setw(column_width[0]) << first_column
+           << " | "
+           << std::setw(column_width[1]) << second_column
+           << " |"
+           << std::endl;
+  }
+
+  template<typename Stream>
+  void add_header(Stream  &stream)
+  {
+    stream << std::left << header << std::endl;
+  }
+
+} // internal
+
+
 
 SpatialDiscretizationParameters::SpatialDiscretizationParameters()
 :
@@ -32,42 +74,6 @@ n_initial_adaptive_refinements(0),
 n_initial_global_refinements(0),
 n_initial_boundary_refinements(0)
 {}
-
-
-
-SpatialDiscretizationParameters::SpatialDiscretizationParameters
-(const std::string &parameter_filename)
-:
-SpatialDiscretizationParameters()
-{
-  ParameterHandler prm;
-
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
 
 
 
@@ -121,21 +127,20 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 {
   prm.enter_subsection("Refinement control parameters");
   {
+    n_maximum_levels = prm.get_integer("Maximum number of levels");
+
     adaptive_mesh_refinement = prm.get_bool("Adaptive mesh refinement");
 
     if (adaptive_mesh_refinement)
     {
-      adaptive_mesh_refinement_frequency = prm.get_integer("Adaptive mesh refinement frequency");
-
-      n_maximum_levels = prm.get_integer("Maximum number of levels");
-
       n_minimum_levels = prm.get_integer("Minimum number of levels");
+      AssertThrow(n_minimum_levels > 0,
+                  ExcMessage("Minimum number of levels must be larger than zero."));
+      AssertThrow(n_minimum_levels <= n_maximum_levels ,
+                  ExcMessage("Maximum number of levels must be larger equal "
+                             "than the minimum number of levels."));
 
-      Assert(n_minimum_levels > 0,
-             ExcMessage("Minimum number of levels must be larger than zero."));
-      Assert(n_minimum_levels <= n_maximum_levels ,
-             ExcMessage("Maximum number of levels must be larger equal than the "
-                        "minimum number of levels."));
+      adaptive_mesh_refinement_frequency = prm.get_integer("Adaptive mesh refinement frequency");
 
       cell_fraction_to_coarsen = prm.get_double("Fraction of cells set to coarsen");
 
@@ -144,15 +149,15 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
       const double total_cell_fraction_to_modify =
         cell_fraction_to_coarsen + cell_fraction_to_refine;
 
-      Assert(cell_fraction_to_coarsen >= 0.0,
-             ExcLowerRange(cell_fraction_to_coarsen, 0));
+      AssertThrow(cell_fraction_to_coarsen >= 0.0,
+                  ExcLowerRangeType<double>(cell_fraction_to_coarsen, 0));
 
-      Assert(cell_fraction_to_refine >= 0.0,
-             ExcLowerRange(cell_fraction_to_refine, 0));
+      AssertThrow(cell_fraction_to_refine >= 0.0,
+                  ExcLowerRangeType<double>(cell_fraction_to_refine, 0));
 
-      Assert(1.0 > total_cell_fraction_to_modify,
-             ExcMessage("The sum of the top and bottom fractions to "
-                        "coarsen and refine may not exceed 1.0"));
+      AssertThrow(1.0 > total_cell_fraction_to_modify,
+                  ExcMessage("The sum of the top and bottom fractions to "
+                             "coarsen and refine may not exceed 1.0"));
     }
 
     n_initial_global_refinements = prm.get_integer("Number of initial global refinements");
@@ -165,9 +170,14 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
     = n_initial_global_refinements + n_initial_adaptive_refinements
     + n_initial_boundary_refinements;
 
-    Assert(n_initial_refinements <= n_maximum_levels ,
-            ExcMessage("Number of initial refinements must be less equal than "
-                      "the maximum number of levels."));
+    AssertThrow(n_initial_refinements <= n_maximum_levels ,
+                ExcMessage("Number of initial refinements must be less equal "
+                           "than the maximum number of levels."));
+
+    if (adaptive_mesh_refinement)
+      AssertThrow(n_minimum_levels <= n_initial_refinements,
+                  ExcMessage("Number of initial refinements must be larger "
+                             "equal than the minimum number of levels."));
   }
   prm.leave_subsection();
 }
@@ -177,51 +187,39 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const SpatialDiscretizationParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
+  internal::add_header(stream);
+  internal::add_line(stream, "Refinement control parameters");
+  internal::add_header(stream);
 
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Refinement control parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
-
-  add_line("Adaptive mesh refinement", (prm.adaptive_mesh_refinement ?
-                                        "True": "False"));
+  internal::add_line(stream,
+                     "Adaptive mesh refinement",
+                     (prm.adaptive_mesh_refinement ? "True": "False"));
   if (prm.adaptive_mesh_refinement)
   {
-    add_line("Adapt. mesh refinement frequency", prm.adaptive_mesh_refinement_frequency);
-    add_line("Fraction of cells set to coarsen", prm.cell_fraction_to_coarsen);
-    add_line("Fraction of cells set to refine", prm.cell_fraction_to_refine);
-    add_line("Maximum number of levels", prm.n_maximum_levels);
-    add_line("Minimum number of levels", prm.n_minimum_levels);
+    internal::add_line(stream,
+                       "Adapt. mesh refinement frequency",
+                       prm.adaptive_mesh_refinement_frequency);
+    internal::add_line(stream,
+                       "Fraction of cells set to coarsen", prm.cell_fraction_to_coarsen);
+    internal::add_line(stream,
+                       "Fraction of cells set to refine",
+                       prm.cell_fraction_to_refine);
+    internal::add_line(stream,
+                       "Maximum number of levels", prm.n_maximum_levels);
+    internal::add_line(stream,
+                       "Minimum number of levels", prm.n_minimum_levels);
   }
-  add_line("Number of initial adapt. refinements", prm.n_initial_adaptive_refinements);
-  add_line("Number of initial global refinements", prm.n_initial_global_refinements);
-  add_line("Number of initial boundary refinements", prm.n_initial_boundary_refinements);
+  internal::add_line(stream,
+                     "Number of initial adapt. refinements",
+                     prm.n_initial_adaptive_refinements);
+  internal::add_line(stream,
+                     "Number of initial global refinements",
+                     prm.n_initial_global_refinements);
+  internal::add_line(stream,
+                     "Number of initial boundary refinements",
+                     prm.n_initial_boundary_refinements);
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -234,42 +232,6 @@ graphical_output_frequency(100),
 terminal_output_frequency(100),
 graphical_output_directory("./")
 {}
-
-
-
-OutputControlParameters::OutputControlParameters
-(const std::string &parameter_filename)
-:
-OutputControlParameters()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
-
 
 
 void OutputControlParameters::declare_parameters(ParameterHandler &prm)
@@ -316,40 +278,21 @@ void OutputControlParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
+  internal::add_header(stream);
+  internal::add_line(stream, "Output control parameters");
+  internal::add_header(stream);
 
-  stream << std::left << header << std::endl;
+  internal::add_line(stream,
+                     "Graphical output frequency",
+                     prm.graphical_output_frequency);
+  internal::add_line(stream,
+                     "Terminal output frequency",
+                     prm.terminal_output_frequency);
+  internal::add_line(stream,
+                     "Graphical output directory",
+                     prm.graphical_output_directory);
 
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Output control parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
-
-  add_line("Graphical output frequency", prm.graphical_output_frequency);
-  add_line("Terminal output frequency", prm.terminal_output_frequency);
-  add_line("Graphical output directory", prm.graphical_output_directory);
-
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -364,41 +307,6 @@ n_spatial_convergence_cycles(2),
 timestep_reduction_factor(0.5),
 n_temporal_convergence_cycles(2)
 {}
-
-
-
-ConvergenceTestParameters::ConvergenceTestParameters
-(const std::string &parameter_filename)
-:
-ConvergenceTestParameters()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
 
 
 
@@ -436,9 +344,30 @@ void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
   prm.enter_subsection("Convergence test parameters");
   {
     if (prm.get("Convergence test type") == std::string("spatial"))
+    {
       convergence_test_type = ConvergenceTestType::spatial;
+
+      n_spatial_convergence_cycles =
+                  prm.get_integer("Number of spatial convergence cycles");
+      AssertThrow(n_spatial_convergence_cycles > 0,
+                  ExcLowerRange(n_spatial_convergence_cycles, 0));
+    }
     else if (prm.get("Convergence test type") == std::string("temporal"))
+    {
       convergence_test_type = ConvergenceTestType::temporal;
+
+      timestep_reduction_factor =
+                  prm.get_double("Time-step reduction factor");
+      AssertThrow(timestep_reduction_factor > 0.0,
+                  ExcLowerRange(timestep_reduction_factor, 0.0));
+      AssertThrow(timestep_reduction_factor < 1.0,
+                  ExcLowerRange(1.0, timestep_reduction_factor));
+
+      n_temporal_convergence_cycles =
+                  prm.get_integer("Number of temporal convergence cycles");
+      AssertThrow(n_temporal_convergence_cycles > 0,
+                  ExcLowerRange(n_temporal_convergence_cycles, 0));
+    }
     else
       AssertThrow(false,
                   ExcMessage("Unexpected identifier for the type of"
@@ -446,30 +375,8 @@ void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
 
     n_global_initial_refinements =
                 prm.get_integer("Number of initial global refinements");
-
-    Assert(n_global_initial_refinements > 0,
-           ExcLowerRange(n_global_initial_refinements, 0));
-
-    n_spatial_convergence_cycles =
-                prm.get_integer("Number of spatial convergence cycles");
-
-    Assert(n_spatial_convergence_cycles > 0,
-           ExcLowerRange(n_spatial_convergence_cycles, 0));
-
-    timestep_reduction_factor =
-                prm.get_double("Time-step reduction factor");
-
-    Assert(timestep_reduction_factor > 0.0,
-           ExcLowerRange(timestep_reduction_factor, 0.0));
-
-    Assert(timestep_reduction_factor < 1.0,
-           ExcLowerRange(1.0, timestep_reduction_factor));
-
-    n_temporal_convergence_cycles =
-                prm.get_integer("Number of temporal convergence cycles");
-
-    Assert(n_temporal_convergence_cycles > 0,
-           ExcLowerRange(n_temporal_convergence_cycles, 0));
+    AssertThrow(n_global_initial_refinements > 0,
+                ExcLowerRange(n_global_initial_refinements, 0));
   }
   prm.leave_subsection();
 }
@@ -479,66 +386,380 @@ void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Convergence test parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Convergence test parameters");
+  internal::add_header(stream);
 
   switch (prm.convergence_test_type)
   {
     case ConvergenceTestType::spatial:
-      add_line("Convergence test type", "spatial");
+      internal::add_line(stream, "Convergence test type", "spatial");
       break;
     case ConvergenceTestType::temporal:
-      add_line("Convergence test type", "temporal");
+      internal::add_line(stream, "Convergence test type", "temporal");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected identifier for the type of"
+      AssertThrow(false, ExcMessage("Unexpected identifier for the type of"
                                " of convergence test."));
       break;
   }
 
-  add_line("Number of spatial convergence cycles",
-            prm.n_spatial_convergence_cycles);
+  internal::add_line(stream,
+                     "Number of spatial convergence cycles",
+                     prm.n_spatial_convergence_cycles);
 
-  add_line("Number of initial global refinements",
-            prm.n_global_initial_refinements);
+  internal::add_line(stream,
+                     "Number of initial global refinements",
+                     prm.n_global_initial_refinements);
 
-  add_line("Number of temporal convergence cycles",
-            prm.n_temporal_convergence_cycles);
+  internal::add_line(stream,
+                     "Number of temporal convergence cycles",
+                     prm.n_temporal_convergence_cycles);
 
-  add_line("Time-step reduction factor",
-            prm.timestep_reduction_factor);
+  internal::add_line(stream,
+                     "Time-step reduction factor",
+                     prm.timestep_reduction_factor);
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
 
+
+PreconditionBaseParameters::PreconditionBaseParameters
+(const std::string        &name,
+ const PreconditionerType &type)
+:
+preconditioner_type(type),
+preconditioner_name(name)
+{}
+
+
+void PreconditionBaseParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.declare_entry("Preconditioner type",
+                    "ILU",
+                    Patterns::Selection("ILU|AMG|GMG|Jacobi|SSOR"));
+}
+
+PreconditionerType PreconditionBaseParameters::parse_preconditioner_type(const ParameterHandler &prm)
+{
+  std::string name = prm.get("Preconditioner type");
+
+  PreconditionerType  type;
+
+  if (name == "AMG")
+    type = PreconditionerType::AMG;
+  else if (name == "GMG")
+    type = PreconditionerType::GMG;
+  else if (name == "ILU")
+    type = PreconditionerType::ILU;
+  else if (name == "Jacobi")
+    type = PreconditionerType::Jacobi;
+  else if (name == "SSOR")
+    type = PreconditionerType::SSOR;
+  else
+    AssertThrow(false, ExcMessage("Preconditioner type is unknown."));
+
+  return (type);
+}
+
+void PreconditionBaseParameters::parse_parameters(const ParameterHandler &prm)
+{
+  preconditioner_name = prm.get("Preconditioner type");
+
+  if (preconditioner_name == "AMG")
+    preconditioner_type = PreconditionerType::AMG;
+  else if (preconditioner_name == "GMG")
+      preconditioner_type = PreconditionerType::GMG;
+  else if (preconditioner_name == "ILU")
+      preconditioner_type = PreconditionerType::ILU;
+  else if (preconditioner_name == "Jacobi")
+      preconditioner_type = PreconditionerType::Jacobi;
+  else if (preconditioner_name == "SSOR")
+      preconditioner_type = PreconditionerType::SSOR;
+  else
+    AssertThrow(false, ExcMessage("Preconditioner type is unknown."));
+}
+
+PreconditionRelaxationParameters::PreconditionRelaxationParameters()
+:
+PreconditionBaseParameters("Jacobi", PreconditionerType::Jacobi),
+omega(1.0),
+overlap(0),
+n_sweeps(1)
+{}
+
+void PreconditionRelaxationParameters::declare_parameters(ParameterHandler &prm)
+{
+  PreconditionBaseParameters::declare_parameters(prm);
+
+  prm.declare_entry("Relaxation parameter",
+                    "1.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Overlap",
+                    "0",
+                    Patterns::Integer());
+
+
+  prm.declare_entry("Number of sweeps",
+                    "1",
+                    Patterns::Integer());
+}
+
+
+void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &prm)
+{
+  PreconditionBaseParameters::parse_parameters(prm);
+
+  AssertThrow(preconditioner_type == PreconditionerType::Jacobi,
+              ExcMessage("Unexpected preconditioner type in "
+                         "PreconditionRelaxationParameters."));
+
+  omega = prm.get_double("Relaxation parameter");
+  AssertThrow(omega > 0.0, ExcLowerRangeType<double>(omega, 0.0));
+
+  switch (preconditioner_type)
+  {
+    case PreconditionerType::Jacobi:
+      AssertThrow(omega <= 1.0, ExcLowerRangeType<double>(1.0, omega));
+      // Print a warning if PETSc is used
+      #ifdef USE_PETSC_LA
+      ConditionalOStream  pcout(std::cout,
+                                 Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+       pcout << std::endl << std::endl
+             << "----------------------------------------------------"
+             << std::endl
+             << "Warning in the PreconditionRelaxationParameters: " << std::endl
+             << "    The program runs using the linear algebra methods of the PETSc "
+                    "library. Therefore the following parameter will not have an "
+                    "influence on the configuration of the preconditioner:\n"
+                    "   - Relaxation parameter (omega)."
+             << std::endl
+             << "----------------------------------------------------"
+             << std::endl << std::endl;
+      #endif
+      break;
+    case PreconditionerType::SSOR:
+      AssertThrow(omega <= 2.0, ExcLowerRangeType<double>(2.0, omega));
+
+      overlap = prm.get_integer("Overlap");
+      n_sweeps = prm.get_integer("Number of sweeps");
+
+      // Print a warning if PETSc is used
+      #ifdef USE_PETSC_LA
+      ConditionalOStream  pcout(std::cout,
+                                 Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+       pcout << std::endl << std::endl
+             << "----------------------------------------------------"
+             << std::endl
+             << "Warning in the PreconditionRelaxationParameters: " << std::endl
+             << "    The program runs using the linear algebra methods of the PETSc "
+                    "library. Therefore the following parameter will not have an "
+                    "influence on the configuration of the preconditioner:\n"
+                    "   - Overlap parameter,\n"
+                    "   - Number of sweeps parameter."
+             << std::endl
+             << "----------------------------------------------------"
+             << std::endl << std::endl;
+      #endif
+      break;
+    default:
+      AssertThrow(false,
+                  ExcMessage("Unexpected preconditioner type in "
+                             "PreconditionRelaxationParameters."));
+      break;
+  }
+}
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm)
+{
+  internal::add_header(stream);
+  {
+    std::stringstream name;
+    name << "Precondition " << prm.preconditioner_name << " Parameters";
+
+    internal::add_line(stream, name.str().c_str());
+  }
+  internal::add_header(stream);
+
+  internal::add_line(stream, "Relaxation parameter", prm.omega);
+  internal::add_line(stream, "Overlap", prm.overlap);
+  internal::add_line(stream, "Number of sweeps", prm.n_sweeps);
+
+  internal::add_header(stream);
+
+  return (stream);
+}
+
+
+PreconditionILUParameters::PreconditionILUParameters()
+:
+PreconditionBaseParameters("ILU", PreconditionerType::ILU),
+relative_tolerance(1.0),
+absolute_tolerance(0.0),
+fill(1),
+overlap(1)
+{}
+
+
+
+void PreconditionILUParameters::declare_parameters(ParameterHandler &prm)
+{
+  PreconditionBaseParameters::declare_parameters(prm);
+
+  prm.declare_entry("Relative tolerance",
+                    "1.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Absolute tolerance",
+                    "0.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Fill-in level",
+                    "1",
+                    Patterns::Integer());
+
+  prm.declare_entry("Overlap",
+                    "1",
+                    Patterns::Integer());
+}
+
+
+void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
+{
+  PreconditionBaseParameters::parse_parameters(prm);
+
+  AssertThrow(preconditioner_type == PreconditionerType::ILU,
+         ExcMessage("Unexpected preconditioner type in PreconditionILUParameters."));
+
+  relative_tolerance = prm.get_double("Relative tolerance");
+  AssertThrow(relative_tolerance >= 1.0,
+              ExcLowerRangeType<double>(relative_tolerance, 1.0));
+
+  absolute_tolerance = prm.get_double("Absolute tolerance");
+  AssertThrow(absolute_tolerance >= 0,
+              ExcLowerRangeType<double>(absolute_tolerance, 0.0));
+
+  fill = prm.get_integer("Fill-in level");
+
+  overlap = prm.get_integer("Overlap");
+
+  // Print a warning if PETSc is used
+  #ifdef USE_PETSC_LA
+  ConditionalOStream  pcout(std::cout,
+                             Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+   pcout << std::endl << std::endl
+         << "----------------------------------------------------"
+         << std::endl
+         << "Warning in the PreconditionILUParameters: " << std::endl
+         << "    The program runs using the linear algebra methods of the PETSc "
+                "library. Therefore the following parameter will not have an "
+                "influence on the configuration of the preconditioner:\n"
+                "   - Overlap,\n"
+                "   - Absolute tolerance,\n"
+                "   - Relative tolerance."
+         << std::endl
+         << "----------------------------------------------------"
+         << std::endl << std::endl;
+  #endif
+}
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm)
+{
+  internal::add_header(stream);
+  internal::add_line(stream, "Precondition ILU Parameters");
+  internal::add_header(stream);
+
+  internal::add_line(stream, "Fill-in level", prm.fill);
+  internal::add_line(stream, "Overlap", prm.overlap);
+  internal::add_line(stream, "Relative tolerance", prm.relative_tolerance);
+  internal::add_line(stream, "Absolute tolerance", prm.absolute_tolerance);
+
+  internal::add_header(stream);
+
+  return (stream);
+}
+
+
+PreconditionAMGParameters::PreconditionAMGParameters()
+:
+PreconditionBaseParameters("AMG", PreconditionerType::AMG),
+strong_threshold(0.2),
+elliptic(false),
+higher_order_elements(false),
+n_cycles(1),
+aggregation_threshold(1e-4)
+{}
+
+
+void PreconditionAMGParameters::declare_parameters(ParameterHandler &prm)
+{
+  PreconditionBaseParameters::declare_parameters(prm);
+
+  prm.declare_entry("Strong threshold (PETSc)",
+                    "0.2",
+                    Patterns::Double(0.0));
+
+  prm.declare_entry("Elliptic",
+                    "false",
+                    Patterns::Bool());
+
+  prm.declare_entry("Number of cycles",
+                    "1",
+                    Patterns::Integer(1));
+
+  prm.declare_entry("Aggregation threshold",
+                    "1.0e-4",
+                    Patterns::Double(0.0));
+}
+
+
+void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
+{
+  PreconditionBaseParameters::parse_parameters(prm);
+
+  AssertThrow(preconditioner_type == PreconditionerType::AMG,
+         ExcMessage("Unexpected preconditioner type in PreconditionAMGParameters."));
+
+  strong_threshold = prm.get_double("Strong threshold (PETSc only)");
+  AssertThrow(strong_threshold > 0.0,
+              ExcLowerRangeType<double>(strong_threshold, 0.0));
+  AssertIsFinite(strong_threshold);
+
+  elliptic = prm.get_bool("Elliptic");
+
+  n_cycles = prm.get_integer("Number of cycles");
+  AssertThrow(strong_threshold > 1,
+         ExcLowerRange(n_cycles, 0));
+
+  aggregation_threshold = prm.get_double("Aggregation threshold");
+  AssertThrow(aggregation_threshold > 0.0,
+              ExcLowerRangeType<double>(aggregation_threshold, 0.0));
+  AssertIsFinite(aggregation_threshold);
+}
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionAMGParameters &prm)
+{
+  internal::add_header(stream);
+  internal::add_line(stream, "Precondition AMG Parameters");
+  internal::add_header(stream);
+
+  internal::add_line(stream, "Strong threshold", prm.strong_threshold);
+  internal::add_line(stream, "Elliptic", (prm.elliptic? "true": "false"));
+  internal::add_line(stream, "Number of cycles", prm.n_cycles);
+  internal::add_line(stream, "Aggregation threshold", prm.aggregation_threshold);
+
+  internal::add_header(stream);
+
+  return (stream);
+}
 
 
 LinearSolverParameters::LinearSolverParameters()
@@ -546,43 +767,11 @@ LinearSolverParameters::LinearSolverParameters()
 relative_tolerance(1e-6),
 absolute_tolerance(1e-9),
 n_maximum_iterations(50),
+preconditioner_parameters_ptr(nullptr),
 solver_name("default")
 {}
 
 
-
-LinearSolverParameters::LinearSolverParameters
-(const std::string &parameter_filename)
-:
-LinearSolverParameters()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
 
 
 
@@ -599,62 +788,111 @@ void LinearSolverParameters::declare_parameters(ParameterHandler &prm)
   prm.declare_entry("Absolute tolerance",
                     "1e-9",
                     Patterns::Double());
+
+  prm.enter_subsection("Preconditioner parameters");
+  {
+
+    PreconditionRelaxationParameters::declare_parameters(prm);
+
+    PreconditionAMGParameters::declare_parameters(prm);
+
+    PreconditionILUParameters::declare_parameters(prm);
+  }
+  prm.leave_subsection();
 }
 
 
 
-void LinearSolverParameters::parse_parameters(const ParameterHandler &prm)
+void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
 {
   n_maximum_iterations = prm.get_integer("Maximum number of iterations");
-  Assert(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
+  AssertThrow(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
 
   relative_tolerance = prm.get_double("Relative tolerance");
-  Assert(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
+  AssertThrow(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
 
   absolute_tolerance = prm.get_double("Absolute tolerance");
-  /*! @note commented out for testing with older values */
-  //Assert(relative_tolerance > absolute_tolerance, ExcLowerRange(relative_tolerance , absolute_tolerance));
-}
+  AssertThrow(relative_tolerance > absolute_tolerance,
+              ExcLowerRangeType<double>(relative_tolerance , absolute_tolerance));
 
+  prm.enter_subsection("Preconditioner parameters");
+  {
+    const PreconditionerType preconditioner_type =
+        PreconditionBaseParameters::parse_preconditioner_type(prm);
+
+    switch (preconditioner_type)
+    {
+      case PreconditionerType::AMG:
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionAMGParameters>();
+        break;
+      case PreconditionerType::ILU:
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionILUParameters>();
+        break;
+      case PreconditionerType::Jacobi:
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionJacobiParameters>();
+        break;
+      case PreconditionerType::SSOR:
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionSSORParameters>();
+        break;
+      case PreconditionerType::GMG:
+        AssertThrow(false, ExcNotImplemented());
+        break;
+      default:
+        AssertThrow(false, ExcMessage("Preconditioner type is unknown."));
+        break;
+    }
+    preconditioner_parameters_ptr->parse_parameters(prm);
+  }
+  prm.leave_subsection();
+}
 
 
 template<typename Stream>
 Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 {
-  const size_t column_width[2] =
+  internal::add_header(stream);
+  internal::add_line(stream, "Linear solver parameters");
+  internal::add_header(stream);
+
+  internal::add_line(stream,
+                     "Maximum number of iterations",
+                     prm.n_maximum_iterations);
+  internal::add_line(stream,
+                     "Relative tolerance",
+                     prm.relative_tolerance);
+  internal::add_line(stream,
+                     "Absolute tolerance",
+                     prm.absolute_tolerance);
+
+  switch (prm.preconditioner_parameters_ptr->preconditioner_type)
   {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
+    case PreconditionerType::AMG:
+      stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr.get());
+      break;
+    case PreconditionerType::ILU:
+      stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr.get());
+      break;
+    case PreconditionerType::Jacobi:
+      stream << *static_cast<const PreconditionJacobiParameters*>(prm.preconditioner_parameters_ptr.get());
+      break;
+    case PreconditionerType::SSOR:
+      stream << *static_cast<const PreconditionSSORParameters*>(prm.preconditioner_parameters_ptr.get());
+      break;
+    case PreconditionerType::GMG:
+      AssertThrow(false, ExcNotImplemented());
+      break;
+    default:
+      AssertThrow(false, ExcMessage("Preconditioner type is unknown."));
+      break;
+  }
 
-  stream << std::left << header << std::endl;
+  stream << "\r";
 
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Linear solver parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
-
-  add_line("Maximum number of iterations", prm.n_maximum_iterations);
-  add_line("Relative tolerance", prm.relative_tolerance);
-  add_line("Absolute tolerance", prm.absolute_tolerance);
-
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -671,41 +909,6 @@ Ek(1.0),
 Pm(1.0),
 problem_type(ProblemType::boussinesq)
 {}
-
-
-
-DimensionlessNumbers::DimensionlessNumbers
-(const std::string &parameter_filename)
-:
-DimensionlessNumbers()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
 
 
 
@@ -788,45 +991,45 @@ void DimensionlessNumbers::parse_parameters(ParameterHandler &prm)
 
   if (str_problem_type == std::string("hydrodynamic"))
   {
-    Assert(Re > 0.0, ExcLowerRangeType<double>(Re, 0.0));
+    AssertThrow(Re > 0.0, ExcLowerRangeType<double>(Re, 0.0));
     AssertIsFinite(Re);
   }
   else if (str_problem_type == std::string("heat_convection_diffusion"))
   {
-    Assert(Pe > 0.0, ExcLowerRangeType<double>(Pe, 0.0));
+    AssertThrow(Pe > 0.0, ExcLowerRangeType<double>(Pe, 0.0));
     AssertIsFinite(Pe);
   }
   else if (str_problem_type == std::string("boussinesq"))
   {
-    Assert(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
+    AssertThrow(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
     AssertIsFinite(Ra);
 
-    Assert(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
+    AssertThrow(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
     AssertIsFinite(Pr);
   }
   else if (str_problem_type == std::string("rotating_boussinesq"))
   {
-    Assert(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
+    AssertThrow(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
     AssertIsFinite(Ra);
 
-    Assert(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
+    AssertThrow(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
     AssertIsFinite(Pr);
 
-    Assert(Ek > 0.0, ExcLowerRangeType<double>(Ek, 0.0));
+    AssertThrow(Ek > 0.0, ExcLowerRangeType<double>(Ek, 0.0));
     AssertIsFinite(Ek);
   }
   else if (str_problem_type == std::string("rotating_magnetohydrodynamic"))
   {
-    Assert(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
+    AssertThrow(Ra > 0.0, ExcLowerRangeType<double>(Ra, 0.0));
     AssertIsFinite(Ra);
 
-    Assert(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
+    AssertThrow(Pr > 0.0, ExcLowerRangeType<double>(Pr, 0.0));
     AssertIsFinite(Pr);
 
-    Assert(Ek > 0.0, ExcLowerRangeType<double>(Ek, 0.0));
+    AssertThrow(Ek > 0.0, ExcLowerRangeType<double>(Ek, 0.0));
     AssertIsFinite(Ek);
 
-    Assert(Pm > 0.0, ExcLowerRangeType<double>(Pm, 0.0));
+    AssertThrow(Pm > 0.0, ExcLowerRangeType<double>(Pm, 0.0));
     AssertIsFinite(Pm);
   }
   else
@@ -840,65 +1043,40 @@ void DimensionlessNumbers::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const DimensionlessNumbers &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Dimensionless numbers"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Dimensionless numbers");
+  internal::add_header(stream);
 
   switch (prm.problem_type)
   {
     case ProblemType::hydrodynamic:
-      add_line("Reynolds number", prm.Re);
+      internal::add_line(stream, "Reynolds number", prm.Re);
       break;
     case ProblemType::heat_convection_diffusion:
-      add_line("Peclet number", prm.Pe);
+      internal::add_line(stream, "Peclet number", prm.Pe);
       break;
     case ProblemType::boussinesq:
-      add_line("Prandtl number", prm.Pr);
-      add_line("Rayleigh number", prm.Ra);
+      internal::add_line(stream, "Prandtl number", prm.Pr);
+      internal::add_line(stream, "Rayleigh number", prm.Ra);
       break;
     case ProblemType::rotating_boussinesq:
-      add_line("Prandtl number", prm.Pr);
-      add_line("Rayleigh number", prm.Ra);
-      add_line("Ekman number", prm.Ek);
+      internal::add_line(stream, "Prandtl number", prm.Pr);
+      internal::add_line(stream, "Rayleigh number", prm.Ra);
+      internal::add_line(stream, "Ekman number", prm.Ek);
       break;
     case ProblemType::rotating_magnetohydrodynamic:
-      add_line("Prandtl number", prm.Pr);
-      add_line("Rayleigh number", prm.Ra);
-      add_line("Ekman number", prm.Ek);
-      add_line("magnetic Prandtl number", prm.Pm);
+      internal::add_line(stream, "Prandtl number", prm.Pr);
+      internal::add_line(stream, "Rayleigh number", prm.Ra);
+      internal::add_line(stream, "Ekman number", prm.Ek);
+      internal::add_line(stream, "magnetic Prandtl number", prm.Pm);
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
-                               "problem type"));
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
+                                    "problem type"));
       break;
   }
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -1054,7 +1232,7 @@ void NavierStokesParameters::parse_parameters(ParameterHandler &prm)
                              "of the convective term."));
 
     preconditioner_update_frequency = prm.get_integer("Preconditioner update frequency");
-    Assert(preconditioner_update_frequency > 0,
+    AssertThrow(preconditioner_update_frequency > 0,
            ExcLowerRange(preconditioner_update_frequency, 0));
 
     verbose = prm.get_bool("Verbose");
@@ -1091,82 +1269,58 @@ void NavierStokesParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Navier-Stokes discretization parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Navier-Stokes discretization parameters");
+  internal::add_header(stream);
 
   switch (prm.pressure_correction_scheme)
   {
     case PressureCorrectionScheme::standard:
-      add_line("Incremental pressure-correction scheme", "standard");
+      internal::add_line(stream, "Incremental pressure-correction scheme", "standard");
       break;
     case PressureCorrectionScheme::rotational:
-      add_line("Incremental pressure-correction scheme", "rotational");
+      internal::add_line(stream, "Incremental pressure-correction scheme", "rotational");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "incremental pressure-correction scheme"));
       break;
   }
 
   switch (prm.convective_term_weak_form) {
     case ConvectiveTermWeakForm::standard:
-      add_line("Convective term weak form", "standard");
+      internal::add_line(stream, "Convective term weak form", "standard");
       break;
     case ConvectiveTermWeakForm::rotational:
-      add_line("Convective term weak form", "rotational");
+      internal::add_line(stream, "Convective term weak form", "rotational");
       break;
     case ConvectiveTermWeakForm::divergence:
-      add_line("Convective term weak form", "divergence");
+      internal::add_line(stream, "Convective term weak form", "divergence");
       break;
     case ConvectiveTermWeakForm::skewsymmetric:
-      add_line("Convective term weak form", "skew-symmetric");
+      internal::add_line(stream, "Convective term weak form", "skew-symmetric");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "weak form of the convective term."));
       break;
   }
 
   switch (prm.convective_term_time_discretization) {
     case ConvectiveTermTimeDiscretization::semi_implicit:
-      add_line("Convective temporal form", "semi-implicit");
+      internal::add_line(stream, "Convective temporal form", "semi-implicit");
       break;
     case ConvectiveTermTimeDiscretization::fully_explicit:
-      add_line("Convective temporal form", "explicit");
+      internal::add_line(stream, "Convective temporal form", "explicit");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
-                               "time discretization of the convective term."));
+      AssertThrow(false,
+                  ExcMessage("Unexpected type identifier for the "
+                             "time discretization of the convective term."));
       break;
   }
 
-  add_line("Preconditioner update frequency", prm.preconditioner_update_frequency);
+  internal::add_line(stream, "Preconditioner update frequency", prm.preconditioner_update_frequency);
 
   stream << prm.diffusion_step_solver_parameters;
 
@@ -1184,7 +1338,7 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
 
   stream << "\r";
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -1300,7 +1454,7 @@ void HeatEquationParameters::parse_parameters(ParameterHandler &prm)
                              "of the convective term."));
 
     preconditioner_update_frequency = prm.get_integer("Preconditioner update frequency");
-    Assert(preconditioner_update_frequency > 0,
+    AssertThrow(preconditioner_update_frequency > 0,
            ExcLowerRange(preconditioner_update_frequency, 0));
 
     verbose = prm.get_bool("Verbose");
@@ -1319,74 +1473,51 @@ void HeatEquationParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const HeatEquationParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Heat equation solver parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Heat equation solver parameters");
+  internal::add_header(stream);
 
   switch (prm.convective_term_weak_form) {
     case ConvectiveTermWeakForm::standard:
-      add_line("Convective term weak form", "standard");
+      internal::add_line(stream, "Convective term weak form", "standard");
       break;
     case ConvectiveTermWeakForm::rotational:
-      add_line("Convective term weak form", "rotational");
+      internal::add_line(stream, "Convective term weak form", "rotational");
       break;
     case ConvectiveTermWeakForm::divergence:
-      add_line("Convective term weak form", "divergence");
+      internal::add_line(stream, "Convective term weak form", "divergence");
       break;
     case ConvectiveTermWeakForm::skewsymmetric:
-      add_line("Convective term weak form", "skew-symmetric");
+      internal::add_line(stream, "Convective term weak form", "skew-symmetric");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "weak form of the convective term."));
       break;
   }
 
   switch (prm.convective_term_time_discretization) {
     case ConvectiveTermTimeDiscretization::semi_implicit:
-      add_line("Convective temporal form", "semi-implicit");
+      internal::add_line(stream, "Convective temporal form", "semi-implicit");
       break;
     case ConvectiveTermTimeDiscretization::fully_explicit:
-      add_line("Convective temporal form", "explicit");
+      internal::add_line(stream, "Convective temporal form", "explicit");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "time discretization of the convective term."));
       break;
   }
 
-  add_line("Preconditioner update frequency", prm.preconditioner_update_frequency);
+  internal::add_line(stream,
+                     "Preconditioner update frequency",
+                     prm.preconditioner_update_frequency);
 
   stream << prm.solver_parameters;
 
   stream << "\r";
 
-  stream << header;
+  internal::add_header(stream);
 
   return (stream);
 }
@@ -1578,11 +1709,11 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
                            " type."));
 
   dim = prm.get_integer("Spatial dimension");
-  Assert(dim > 0, ExcLowerRange(dim, 0) );
-  Assert(dim <= 3, ExcMessage("The spatial dimension are larger than three.") );
+  AssertThrow(dim > 0, ExcLowerRange(dim, 0) );
+  AssertThrow(dim <= 3, ExcMessage("The spatial dimension are larger than three.") );
 
   mapping_degree = prm.get_integer("Mapping - Polynomial degree");
-  Assert(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
+  AssertThrow(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
 
   mapping_interior_cells = prm.get_bool("Mapping - Apply to interior cells");
 
@@ -1590,11 +1721,11 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 
   fe_degree_temperature = prm.get_integer("FE's polynomial degree - Temperature");
 
-  Assert(fe_degree_pressure > 0,
-         ExcLowerRange(fe_degree_pressure, 0));
+  AssertThrow(fe_degree_pressure > 0,
+              ExcLowerRange(fe_degree_pressure, 0));
 
-  Assert(fe_degree_temperature > 0,
-         ExcLowerRange(fe_degree_temperature, 0));
+  AssertThrow(fe_degree_temperature > 0,
+              ExcLowerRange(fe_degree_temperature, 0));
 
   fe_degree_velocity = fe_degree_pressure + 1;
 
@@ -1624,80 +1755,64 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Problem parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Problem parameters");
+  internal::add_header(stream);
 
   switch (prm.problem_type)
   {
     case ProblemType::hydrodynamic:
-      add_line("Problem type", "hydrodynamic");
+      internal::add_line(stream, "Problem type", "hydrodynamic");
       break;
     case ProblemType::heat_convection_diffusion:
-      add_line("Problem type", "heat_convection_diffusion");
+      internal::add_line(stream, "Problem type", "heat_convection_diffusion");
       break;
     case ProblemType::boussinesq:
-      add_line("Problem type", "boussinesq");
+      internal::add_line(stream, "Problem type", "boussinesq");
       break;
     case ProblemType::rotating_boussinesq:
-      add_line("Problem type", "rotating_boussinesq");
+      internal::add_line(stream, "Problem type", "rotating_boussinesq");
       break;
     case ProblemType::rotating_magnetohydrodynamic:
-      add_line("Problem type", "rotating_magnetohydrodynamic");
+      internal::add_line(stream, "Problem type", "rotating_magnetohydrodynamic");
       break;
     default:
-      Assert(false, ExcMessage("Unexpected type identifier for the "
+      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
                                "problem type"));
       break;
   }
 
-  add_line("Spatial dimension", prm.dim);
+  internal::add_line(stream, "Spatial dimension", prm.dim);
 
-  add_line("Mapping", ("MappingQ<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.mapping_degree) + ")"));
+  {
+    std::stringstream strstream;
 
-  add_line("Mapping - Apply to interior cells", (prm.mapping_interior_cells ? "true" : "false"));
+    strstream << "MappingQ<" << std::to_string(prm.dim) << ">"
+              << "(" << std::to_string(prm.mapping_degree) << ")";
+    internal::add_line(stream, "Mapping", strstream.str().c_str());
+  }
+
+  internal::add_line(stream,
+                     "Mapping - Apply to interior cells",
+                     (prm.mapping_interior_cells ? "true" : "false"));
 
   if (prm.problem_type != ProblemType::heat_convection_diffusion)
   {
     std::string fe_velocity = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_velocity) + ")^" + std::to_string(prm.dim);
     std::string fe_pressure = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_pressure) + ")";
-    add_line("Finite Element - Velocity", fe_velocity);
-    add_line("Finite Element - Pressure", fe_pressure);
+    internal::add_line(stream, "Finite Element - Velocity", fe_velocity);
+    internal::add_line(stream, "Finite Element - Pressure", fe_pressure);
   }
 
   if (prm.problem_type != ProblemType::hydrodynamic)
   {
     std::string fe_temperature = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_temperature) + ")";
-    add_line("Finite Element - Temperature", fe_temperature);
+    internal::add_line(stream,
+                       "Finite Element - Temperature",
+                       fe_temperature);
   }
 
-  add_line("Verbose", (prm.verbose? "true": "false"));
-
+  internal::add_line(stream, "Verbose", (prm.verbose? "true": "false"));
 
   stream << static_cast<const OutputControlParameters &>(prm);
 
@@ -1720,16 +1835,16 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
   if (prm.problem_type != ProblemType::heat_convection_diffusion)
   {
-  stream << prm.navier_stokes_parameters;
+    stream << prm.navier_stokes_parameters;
 
-  stream << "\r";
+    stream << "\r";
   }
 
   if (prm.problem_type != ProblemType::hydrodynamic)
   {
-  stream << prm.heat_equation_parameters;
+    stream << prm.heat_equation_parameters;
 
-  stream << "\r";
+    stream << "\r";
   }
 
   return (stream);
@@ -1756,6 +1871,21 @@ template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::ConvergenceTestParameters &);
 template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::ConvergenceTestParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::PreconditionRelaxationParameters &);
+template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::PreconditionRelaxationParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::PreconditionILUParameters &);
+template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::PreconditionILUParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::PreconditionAMGParameters &);
+template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::PreconditionAMGParameters &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::LinearSolverParameters &);
