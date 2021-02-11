@@ -70,7 +70,8 @@ enum class BCType
   dirichlet,
   neumann,
   normal_flux,
-  tangential_flux
+  tangential_flux,
+  datum_at_boundary
 };
 
 /*!
@@ -107,6 +108,12 @@ public:
    * to be applied as boundary conditions.
    */
   std::vector<PeriodicBoundaryData<dim>>    periodic_bcs;
+
+  /*!
+   * A flag indicating that a local degree of freedom at the boundary
+   * is to be set to zero.
+   */
+  bool                                      flag_datum_at_boundary;
 
   /*!
    * @brief A multimap of boundary condition types and boundary ids
@@ -218,6 +225,12 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
                          = std::shared_ptr<Function<dim>>(),
                        const bool                           time_depedent
                          = false);
+
+  /*!
+   * @brief Sets an admissible local degree of freedom at the boundary
+   * to zero
+   */
+  void set_datum_at_boundary();
 
   /*!
    * @brief This method sets the time of the functions by calling their

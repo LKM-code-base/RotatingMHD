@@ -26,6 +26,7 @@ template <int dim>
 BoundaryConditionsBase<dim>::BoundaryConditionsBase(
   const parallel::distributed::Triangulation<dim> &triangulation)
 :
+flag_datum_at_boundary(false),
 triangulation(triangulation),
 flag_extract_boundary_ids(true)
 {}
@@ -132,6 +133,16 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
 }
+
+
+
+template <int dim>
+void ScalarBoundaryConditions<dim>::set_datum_at_boundary()
+{
+  this->flag_datum_at_boundary = true;
+}
+
+
 
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_time(const double time)
