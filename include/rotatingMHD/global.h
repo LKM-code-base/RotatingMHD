@@ -27,7 +27,7 @@ namespace LinearAlgebra
 #if defined(DEAL_II_WITH_PETSC) && !defined(DEAL_II_PETSC_WITH_COMPLEX) && \
   !(defined(DEAL_II_WITH_TRILINOS) && defined(FORCE_USE_OF_TRILINOS))
   using namespace dealii::LinearAlgebraPETSc;
-  using PreconditionBase = dealii::PETScWrappers::PreconditionBase;;
+  using PreconditionBase = dealii::PETScWrappers::PreconditionerBase;
   #define USE_PETSC_LA
 #elif defined(DEAL_II_WITH_TRILINOS)
   using namespace dealii::LinearAlgebraTrilinos;
