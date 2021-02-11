@@ -399,12 +399,6 @@ struct SpatialDiscretizationParameters
   SpatialDiscretizationParameters();
 
   /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  SpatialDiscretizationParameters(const std::string &parameter_filename);
-
-  /*!
    * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
    */
@@ -502,12 +496,6 @@ struct OutputControlParameters
   OutputControlParameters();
 
   /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  OutputControlParameters(const std::string &parameter_filename);
-
-  /*!
    * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
    */
@@ -567,12 +555,6 @@ struct ConvergenceTestParameters
    * @brief Constructor which sets up the parameters with default values.
    */
   ConvergenceTestParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  ConvergenceTestParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -832,6 +814,14 @@ struct PreconditionILUParameters : PreconditionBaseParameters
   unsigned int  overlap;
 };
 
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm);
+
 
 /*!
  * @struct PreconditionAMGParameters
@@ -922,6 +912,14 @@ struct PreconditionAMGParameters : PreconditionBaseParameters
 };
 
 
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionAMGParameters &prm);
+
 
 /*!
  * @struct LinearSolverParameters
@@ -940,12 +938,6 @@ struct LinearSolverParameters
    * Constructor which sets up the parameters with default values.
    */
   LinearSolverParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  LinearSolverParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -1054,12 +1046,6 @@ struct DimensionlessNumbers
   DimensionlessNumbers();
 
   /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  DimensionlessNumbers(const std::string &parameter_filename);
-
-  /*!
    * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
    */
@@ -1159,6 +1145,17 @@ private:
    */
   ProblemType problem_type;
 };
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const DimensionlessNumbers &prm);
 
 
 
