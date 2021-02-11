@@ -57,7 +57,7 @@ void NavierStokesProjection<dim>::setup_phi()
   phi->boundary_conditions.copy(pressure->boundary_conditions);
 
   // Inhomogeneous Dirichlet boundary conditions in the pressure space
-  // translate into homogeneous Dirichlet boundary conditions in the
+  // translate to homogeneous Dirichlet boundary conditions in the
   // phi space
   for (auto &dirichlet_bc : phi->boundary_conditions.dirichlet_bcs)
     dirichlet_bc.second = std::make_shared<Functions::ZeroFunction<dim>>();
@@ -68,7 +68,7 @@ void NavierStokesProjection<dim>::setup_phi()
   std::vector<types::boundary_id> unconstrained_boundary_ids =
     velocity->boundary_conditions.get_unconstrained_boundary_ids();
 
-  // An expection is made if there is a Dirichlet boundary condition
+  // An exception is made if there is a Dirichlet boundary condition
   // on the pressure.
   for (const auto &unconstrained_boundary_id: unconstrained_boundary_ids)
     if (pressure->boundary_conditions.dirichlet_bcs.find(unconstrained_boundary_id)
