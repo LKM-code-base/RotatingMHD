@@ -4,7 +4,7 @@
  *  Created on: Jul 19, 2020
  *      Author: sg
  */
-
+#include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/conditional_ostream.h>
@@ -523,12 +523,13 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
   switch (preconditioner_type)
   {
     case PreconditionerType::Jacobi:
+    {
       AssertThrow(omega <= 1.0, ExcLowerRangeType<double>(1.0, omega));
       // Print a warning if PETSc is used
       #ifdef USE_PETSC_LA
       ConditionalOStream  pcout(std::cout,
-                                 Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
-       pcout << std::endl << std::endl
+                                Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+     pcout << std::endl << std::endl
              << "----------------------------------------------------"
              << std::endl
              << "Warning in the PreconditionRelaxationParameters: " << std::endl
@@ -541,7 +542,9 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
              << std::endl << std::endl;
       #endif
       break;
+    }
     case PreconditionerType::SSOR:
+    {
       AssertThrow(omega <= 2.0, ExcLowerRangeType<double>(2.0, omega));
 
       overlap = prm.get_integer("Overlap");
@@ -550,7 +553,7 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
       // Print a warning if PETSc is used
       #ifdef USE_PETSC_LA
       ConditionalOStream  pcout(std::cout,
-                                 Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+                                 Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
        pcout << std::endl << std::endl
              << "----------------------------------------------------"
              << std::endl
@@ -565,6 +568,7 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
              << std::endl << std::endl;
       #endif
       break;
+    }
     default:
       AssertThrow(false,
                   ExcMessage("Unexpected preconditioner type in "
@@ -602,7 +606,14 @@ relative_tolerance(1.0),
 absolute_tolerance(0.0),
 fill(1),
 overlap(1)
-{}
+{
+  #ifdef USE_PETSC_LA
+    AssertThrow(Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD) == 1,
+                ExcMessage("PreconditionILU using the PETSc library "
+                           "only works in serial. Please choose a different "
+                           "preconditioner."));
+  #endif
+}
 
 
 
@@ -633,7 +644,8 @@ void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
   PreconditionBaseParameters::parse_parameters(prm);
 
   AssertThrow(preconditioner_type == PreconditionerType::ILU,
-         ExcMessage("Unexpected preconditioner type in PreconditionILUParameters."));
+              ExcMessage("Unexpected preconditioner type in "
+                         "PreconditionILUParameters."));
 
   relative_tolerance = prm.get_double("Relative tolerance");
   AssertThrow(relative_tolerance >= 1.0,
@@ -649,8 +661,8 @@ void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
 
   // Print a warning if PETSc is used
   #ifdef USE_PETSC_LA
-  ConditionalOStream  pcout(std::cout,
-                             Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+    ConditionalOStream pcout(std::cout,
+                             Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
    pcout << std::endl << std::endl
          << "----------------------------------------------------"
          << std::endl

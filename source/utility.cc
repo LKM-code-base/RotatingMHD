@@ -19,6 +19,13 @@ void build_preconditioner
   {
     case (PreconditionerType::ILU):
     {
+      #ifdef USE_PETSC_LA
+        AssertThrow(Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD) == 1,
+                    ExcMessage("PreconditionILU using the PETSc library "
+                                "only works in serial. Please choose a different"
+                                " preconditioner."));
+      #endif
+
       LinearAlgebra::MPI::PreconditionILU::AdditionalData preconditioner_data;
 
       const PreconditionILUParameters* preconditioner_parameters
@@ -58,12 +65,12 @@ void build_preconditioner
         preconditioner_data.aggregation_threshold = preconditioner_parameters->aggregation_threshold;
       #endif
 
-        preconditioner =
-          std::make_shared<LinearAlgebra::MPI::PreconditionAMG>();
+      preconditioner =
+        std::make_shared<LinearAlgebra::MPI::PreconditionAMG>();
 
-        static_cast<LinearAlgebra::MPI::PreconditionAMG*>(preconditioner.get())
-            ->initialize(matrix,
-                         preconditioner_data);
+      static_cast<LinearAlgebra::MPI::PreconditionAMG*>(preconditioner.get())
+          ->initialize(matrix,
+                       preconditioner_data);
       break;
     }
     case (PreconditionerType::SSOR):
