@@ -23,24 +23,64 @@ subsection Navier-Stokes solver parameters
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 50
     set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
   end
 
   subsection Linear solver parameters - Diffusion step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 50
     set Relative tolerance           = 1e-6
-  end
 
-  subsection Linear solver parameters - Projection step
-    set Absolute tolerance           = 1e-9
-    set Maximum number of iterations = 150
-    set Relative tolerance           = 1e-6
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
   end
 
   subsection Linear solver parameters - Poisson pre-step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 150
     set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
+  end
+
+  subsection Linear solver parameters - Projection step
+    set Absolute tolerance           = 1e-9
+    set Maximum number of iterations = 150
+    set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
   end
 
 end
@@ -65,6 +105,7 @@ subsection Refinement control parameters
   set Number of initial global refinements   = 3
 end
 
+
 subsection Time stepping parameters
   set Adaptive time stepping        = false
   set Adaptive timestepping barrier = 2
@@ -77,3 +118,5 @@ subsection Time stepping parameters
   set Time stepping scheme          = BDF2
   set Verbose                       = false
 end
+
+

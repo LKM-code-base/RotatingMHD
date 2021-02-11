@@ -8,7 +8,6 @@
 #include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/mpi.h>
 
 #include <fstream>
 
@@ -122,21 +121,20 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 {
   prm.enter_subsection("Refinement control parameters");
   {
+    n_maximum_levels = prm.get_integer("Maximum number of levels");
+
     adaptive_mesh_refinement = prm.get_bool("Adaptive mesh refinement");
 
     if (adaptive_mesh_refinement)
     {
-      adaptive_mesh_refinement_frequency = prm.get_integer("Adaptive mesh refinement frequency");
-
-      n_maximum_levels = prm.get_integer("Maximum number of levels");
-
       n_minimum_levels = prm.get_integer("Minimum number of levels");
-
       Assert(n_minimum_levels > 0,
              ExcMessage("Minimum number of levels must be larger than zero."));
       Assert(n_minimum_levels <= n_maximum_levels ,
              ExcMessage("Maximum number of levels must be larger equal than the "
                         "minimum number of levels."));
+
+      adaptive_mesh_refinement_frequency = prm.get_integer("Adaptive mesh refinement frequency");
 
       cell_fraction_to_coarsen = prm.get_double("Fraction of cells set to coarsen");
 
@@ -146,10 +144,10 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
         cell_fraction_to_coarsen + cell_fraction_to_refine;
 
       Assert(cell_fraction_to_coarsen >= 0.0,
-             ExcLowerRange(cell_fraction_to_coarsen, 0));
+             ExcLowerRangeType<double>(cell_fraction_to_coarsen, 0));
 
       Assert(cell_fraction_to_refine >= 0.0,
-             ExcLowerRange(cell_fraction_to_refine, 0));
+             ExcLowerRangeType<double>(cell_fraction_to_refine, 0));
 
       Assert(1.0 > total_cell_fraction_to_modify,
              ExcMessage("The sum of the top and bottom fractions to "
@@ -169,6 +167,10 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
     Assert(n_initial_refinements <= n_maximum_levels ,
             ExcMessage("Number of initial refinements must be less equal than "
                       "the maximum number of levels."));
+    if (adaptive_mesh_refinement)
+      Assert(n_minimum_levels <= n_initial_refinements,
+             ExcMessage("Number of initial refinements must be larger equal than "
+                        "the minimum number of levels."));
   }
   prm.leave_subsection();
 }
@@ -541,15 +543,419 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
 }
 
 
+PreconditionBaseParameters::PreconditionBaseParameters
+(const std::string        &name,
+ const PreconditionerType &type)
+:
+preconditioner_type(type),
+preconditioner_name(name)
+{}
+
+
+void PreconditionBaseParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.declare_entry("Preconditioner type",
+                    "ILU",
+                    Patterns::Selection("ILU|AMG|GMG|Jacobi|SSOR"));
+}
+
+PreconditionerType PreconditionBaseParameters::parse_preconditioner_type(const ParameterHandler &prm)
+{
+  std::string name = prm.get("Preconditioner type");
+
+  PreconditionerType  type;
+
+  if (name == "AMG")
+    type = PreconditionerType::AMG;
+  else if (name == "GMG")
+    type = PreconditionerType::GMG;
+  else if (name == "ILU")
+    type = PreconditionerType::ILU;
+  else if (name == "Jacobi")
+    type = PreconditionerType::Jacobi;
+  else if (name == "SSOR")
+    type = PreconditionerType::SSOR;
+  else
+    Assert(false, ExcMessage("Preconditioner type is unknown."));
+
+  return (type);
+}
+
+void PreconditionBaseParameters::parse_parameters(const ParameterHandler &prm)
+{
+  preconditioner_name = prm.get("Preconditioner type");
+
+  if (preconditioner_name == "AMG")
+    preconditioner_type = PreconditionerType::AMG;
+  else if (preconditioner_name == "GMG")
+      preconditioner_type = PreconditionerType::GMG;
+  else if (preconditioner_name == "ILU")
+      preconditioner_type = PreconditionerType::ILU;
+  else if (preconditioner_name == "Jacobi")
+      preconditioner_type = PreconditionerType::Jacobi;
+  else if (preconditioner_name == "SSOR")
+      preconditioner_type = PreconditionerType::SSOR;
+  else
+    Assert(false, ExcMessage("Preconditioner type is unknown."));
+}
+
+PreconditionRelaxationParameters::PreconditionRelaxationParameters()
+:
+PreconditionBaseParameters("Jacobi", PreconditionerType::Jacobi),
+omega(1.0),
+overlap(0),
+n_sweeps(1)
+{}
+
+void PreconditionRelaxationParameters::declare_parameters(ParameterHandler &prm)
+{
+  PreconditionBaseParameters::declare_parameters(prm);
+
+  prm.declare_entry("Relaxation parameter",
+                    "1.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Overlap",
+                    "0",
+                    Patterns::Integer());
+
+
+  prm.declare_entry("Number of sweeps",
+                    "1",
+                    Patterns::Integer());
+}
+
+
+void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &prm)
+{
+  PreconditionBaseParameters::parse_parameters(prm);
+
+  Assert(preconditioner_type == PreconditionerType::Jacobi,
+         ExcMessage("Unexpected preconditioner type in PreconditionRelaxationParameters."));
+
+  omega = prm.get_double("Relaxation parameter");
+  Assert(omega > 0.0, ExcLowerRangeType<double>(omega, 0.0));
+
+  switch (preconditioner_type)
+  {
+    case PreconditionerType::Jacobi:
+      Assert(omega <= 1.0, ExcLowerRangeType<double>(1.0, omega));
+      // Print a warning if PETSc is used
+      #ifdef USE_PETSC_LA
+      ConditionalOStream  pcout(std::cout,
+                                 Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+       pcout << std::endl << std::endl
+             << "----------------------------------------------------"
+             << std::endl
+             << "Warning in the PreconditionRelaxationParameters: " << std::endl
+             << "    The program runs using the linear algebra methods of the PETSc "
+                    "library. Therefore the following parameter will not have an "
+                    "influence on the configuration of the preconditioner:\n"
+                    "   - Relaxation parameter (omega)."
+             << std::endl
+             << "----------------------------------------------------"
+             << std::endl << std::endl;
+      #endif
+      break;
+    case PreconditionerType::SSOR:
+      Assert(omega <= 2.0, ExcLowerRangeType<double>(2.0, omega));
+
+      overlap = prm.get_integer("Overlap");
+      n_sweeps = prm.get_integer("Number of sweeps");
+
+      // Print a warning if PETSc is used
+      #ifdef USE_PETSC_LA
+      ConditionalOStream  pcout(std::cout,
+                                 Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+       pcout << std::endl << std::endl
+             << "----------------------------------------------------"
+             << std::endl
+             << "Warning in the PreconditionRelaxationParameters: " << std::endl
+             << "    The program runs using the linear algebra methods of the PETSc "
+                    "library. Therefore the following parameter will not have an "
+                    "influence on the configuration of the preconditioner:\n"
+                    "   - Overlap parameter,\n"
+                    "   - Number of sweeps parameter."
+             << std::endl
+             << "----------------------------------------------------"
+             << std::endl << std::endl;
+      #endif
+      break;
+    default:
+      Assert(false,
+             ExcMessage("Unexpected preconditioner type in PreconditionRelaxationParameters."));
+      break;
+  }
+}
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm)
+{
+  const size_t column_width[2] =
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  std::stringstream name;
+  name << "Precondition " << prm.preconditioner_name << " Parameters";
+
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << name.str().c_str()
+         << "|"
+         << std::endl;
+
+  stream << header << std::endl;
+
+  add_line("Relaxation parameter", prm.omega);
+  add_line("Overlap", prm.overlap);
+  add_line("Number of sweeps", prm.n_sweeps);
+
+  stream << header;
+
+  return (stream);
+}
+
+
+PreconditionILUParameters::PreconditionILUParameters()
+:
+PreconditionBaseParameters("ILU", PreconditionerType::ILU),
+relative_tolerance(1.0),
+absolute_tolerance(0.0),
+fill(1),
+overlap(1)
+{}
+
+
+
+void PreconditionILUParameters::declare_parameters(ParameterHandler &prm)
+{
+  PreconditionBaseParameters::declare_parameters(prm);
+
+  prm.declare_entry("Relative tolerance",
+                    "1.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Absolute tolerance",
+                    "0.0",
+                    Patterns::Double());
+
+  prm.declare_entry("Fill-in level",
+                    "1",
+                    Patterns::Integer());
+
+  prm.declare_entry("Overlap",
+                    "1",
+                    Patterns::Integer());
+}
+
+
+void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
+{
+  PreconditionBaseParameters::parse_parameters(prm);
+
+  Assert(preconditioner_type == PreconditionerType::ILU,
+         ExcMessage("Unexpected preconditioner type in PreconditionILUParameters."));
+
+  relative_tolerance = prm.get_double("Relative tolerance");
+  Assert(relative_tolerance >= 1.0, ExcLowerRangeType<double>(relative_tolerance, 1.0));
+
+  absolute_tolerance = prm.get_double("Absolute tolerance");
+  Assert(absolute_tolerance >= 0, ExcLowerRangeType<double>(absolute_tolerance, 0.0));
+
+  fill = prm.get_integer("Fill-in level");
+
+  overlap = prm.get_integer("Overlap");
+
+  // Print a warning if PETSc is used
+  #ifdef USE_PETSC_LA
+  ConditionalOStream  pcout(std::cout,
+                             Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
+   pcout << std::endl << std::endl
+         << "----------------------------------------------------"
+         << std::endl
+         << "Warning in the PreconditionILUParameters: " << std::endl
+         << "    The program runs using the linear algebra methods of the PETSc "
+                "library. Therefore the following parameter will not have an "
+                "influence on the configuration of the preconditioner:\n"
+                "   - Overlap,\n"
+                "   - Absolute tolerance,\n"
+                "   - Relative tolerance."
+         << std::endl
+         << "----------------------------------------------------"
+         << std::endl << std::endl;
+  #endif
+}
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm)
+{
+  const size_t column_width[2] =
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Precondition ILU Parameters"
+         << "|"
+         << std::endl;
+
+  stream << header << std::endl;
+
+  add_line("Fill-in level", prm.fill);
+  add_line("Overlap", prm.overlap);
+  add_line("Relative tolerance", prm.relative_tolerance);
+  add_line("Absolute tolerance", prm.absolute_tolerance);
+
+  stream << header;
+
+  return (stream);
+}
+
+
+PreconditionAMGParameters::PreconditionAMGParameters()
+:
+PreconditionBaseParameters("AMG", PreconditionerType::AMG),
+strong_threshold(0.2),
+elliptic(false),
+higher_order_elements(false),
+n_cycles(1),
+aggregation_threshold(1e-4)
+{}
+
+
+void PreconditionAMGParameters::declare_parameters(ParameterHandler &prm)
+{
+  PreconditionBaseParameters::declare_parameters(prm);
+
+  prm.declare_entry("Strong threshold (PETSc)",
+                    "0.2",
+                    Patterns::Double(0.0));
+
+  prm.declare_entry("Elliptic",
+                    "false",
+                    Patterns::Bool());
+
+  prm.declare_entry("Number of cycles",
+                    "1",
+                    Patterns::Integer(1));
+
+  prm.declare_entry("Aggregation threshold",
+                    "1.0e-4",
+                    Patterns::Double(0.0));
+}
+
+
+void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
+{
+  PreconditionBaseParameters::parse_parameters(prm);
+
+  Assert(preconditioner_type == PreconditionerType::AMG,
+         ExcMessage("Unexpected preconditioner type in PreconditionAMGParameters."));
+
+  strong_threshold = prm.get_double("Strong threshold (PETSc only)");
+  Assert(strong_threshold > 0.0,
+         ExcLowerRangeType<double>(strong_threshold, 0.0));
+  AssertIsFinite(strong_threshold);
+
+  elliptic = prm.get_bool("Elliptic");
+
+  n_cycles = prm.get_integer("Number of cycles");
+  Assert(strong_threshold > 1,
+         ExcLowerRange(n_cycles, 0));
+
+  aggregation_threshold = prm.get_double("Aggregation threshold");
+  Assert(aggregation_threshold > 0.0,
+         ExcLowerRangeType<double>(aggregation_threshold, 0.0));
+  AssertIsFinite(aggregation_threshold);
+}
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionAMGParameters &prm)
+{
+  const size_t column_width[2] =
+  {
+    std::string("----------------------------------------").size(),
+    std::string("-------------------").size()
+  };
+  const char header[] = "+-----------------------------------------+"
+                        "--------------------+";
+  auto add_line = [&]
+                  (const char first_column[],
+                   const auto second_column)->void
+    {
+      stream << "| "
+             << std::setw(column_width[0]) << first_column
+             << "| "
+             << std::setw(column_width[1]) << second_column
+             << "|"
+             << std::endl;
+    };
+
+  stream << std::left << header << std::endl;
+
+  stream << "| "
+         << std::setw(column_width[0] + column_width[1] + 2)
+         << "Precondition AMG Parameters"
+         << "|"
+         << std::endl;
+
+  stream << header << std::endl;
+
+  add_line("Strong threshold", prm.strong_threshold);
+  add_line("Elliptic", (prm.elliptic? "true": "false"));
+  add_line("Number of cycles", prm.n_cycles);
+  add_line("Aggregation threshold", prm.aggregation_threshold);
+
+  stream << header;
+
+  return (stream);
+}
+
 
 LinearSolverParameters::LinearSolverParameters()
 :
 relative_tolerance(1e-6),
 absolute_tolerance(1e-9),
 n_maximum_iterations(50),
+preconditioner_parameters_ptr(nullptr),
 solver_name("default")
 {}
-
 
 
 LinearSolverParameters::LinearSolverParameters
@@ -600,11 +1006,22 @@ void LinearSolverParameters::declare_parameters(ParameterHandler &prm)
   prm.declare_entry("Absolute tolerance",
                     "1e-9",
                     Patterns::Double());
+
+  prm.enter_subsection("Preconditioner parameters");
+  {
+
+    PreconditionRelaxationParameters::declare_parameters(prm);
+
+    PreconditionAMGParameters::declare_parameters(prm);
+
+    PreconditionILUParameters::declare_parameters(prm);
+  }
+  prm.leave_subsection();
 }
 
 
 
-void LinearSolverParameters::parse_parameters(const ParameterHandler &prm)
+void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
 {
   n_maximum_iterations = prm.get_integer("Maximum number of iterations");
   Assert(n_maximum_iterations > 0, ExcLowerRange(n_maximum_iterations, 0));
@@ -613,7 +1030,42 @@ void LinearSolverParameters::parse_parameters(const ParameterHandler &prm)
   Assert(relative_tolerance > 0, ExcLowerRange(relative_tolerance, 0));
 
   absolute_tolerance = prm.get_double("Absolute tolerance");
-  Assert(relative_tolerance > absolute_tolerance, ExcLowerRange(relative_tolerance , absolute_tolerance));
+  Assert(relative_tolerance > absolute_tolerance,
+         ExcLowerRangeType<double>(relative_tolerance , absolute_tolerance));
+
+  prm.enter_subsection("Preconditioner parameters");
+  {
+    const PreconditionerType preconditioner_type =
+        PreconditionBaseParameters::parse_preconditioner_type(prm);
+
+    switch (preconditioner_type)
+    {
+      case PreconditionerType::AMG:
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionAMGParameters>();
+        break;
+      case PreconditionerType::ILU:
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionILUParameters>();
+        break;
+      case PreconditionerType::Jacobi:
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionJacobiParameters>();
+        break;
+      case PreconditionerType::SSOR:
+        preconditioner_parameters_ptr
+          = std::make_shared<PreconditionSSORParameters>();
+        break;
+      case PreconditionerType::GMG:
+        Assert(false, ExcNotImplemented());
+        break;
+      default:
+        Assert(false, ExcMessage("Preconditioner type is unknown."));
+        break;
+    }
+    preconditioner_parameters_ptr->parse_parameters(prm);
+  }
+  prm.leave_subsection();
 }
 
 
@@ -654,142 +1106,29 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
   add_line("Relative tolerance", prm.relative_tolerance);
   add_line("Absolute tolerance", prm.absolute_tolerance);
 
-  stream << header;
-
-  return (stream);
-}
-
-
-PreconditionILUParameters::PreconditionILUParameters()
-:
-relative_tolerance(1.0),
-absolute_tolerance(0.0),
-fill(1),
-overlap(1)
-{}
-
-
-
-PreconditionILUParameters::PreconditionILUParameters
-(const std::string &parameter_filename)
-:
-PreconditionILUParameters()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
+  switch (prm.preconditioner_parameters_ptr->preconditioner_type)
   {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
+    case PreconditionerType::AMG:
+      stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr.get());
+      break;
+    case PreconditionerType::ILU:
+      stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr.get());
+      break;
+    case PreconditionerType::Jacobi:
+      stream << *static_cast<const PreconditionJacobiParameters*>(prm.preconditioner_parameters_ptr.get());
+      break;
+    case PreconditionerType::SSOR:
+      stream << *static_cast<const PreconditionSSORParameters*>(prm.preconditioner_parameters_ptr.get());
+      break;
+    case PreconditionerType::GMG:
+      Assert(false, ExcNotImplemented());
+      break;
+    default:
+      Assert(false, ExcMessage("Preconditioner type is unknown."));
+      break;
   }
 
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
-
-
-void PreconditionILUParameters::declare_parameters(ParameterHandler &prm)
-{
-  prm.declare_entry("Relative tolerance",
-                    "1.0",
-                    Patterns::Double());
-
-  prm.declare_entry("Absolute tolerance",
-                    "0.0",
-                    Patterns::Double());
-
-  prm.declare_entry("Fill-in level",
-                    "1",
-                    Patterns::Integer());
-
-  prm.declare_entry("Overlap",
-                    "1",
-                    Patterns::Integer());
-}
-
-
-void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
-{
-  relative_tolerance = prm.get_double("Relative tolerance");
-  Assert(relative_tolerance >= 1.0, ExcLowerRange(relative_tolerance, 1.0));
-
-  absolute_tolerance = prm.get_double("Absolute tolerance");
-  Assert(absolute_tolerance >= 0, ExcLowerRange(absolute_tolerance, 0.0));
-
-  fill = prm.get_integer("Fill-in level");
-
-  overlap = prm.get_integer("Overlap");
-
-  // Print a warning if PETSc is used
-  #ifdef USE_PETSC_LA
-  ConditionalOStream  pcout(std::cout,
-                             Utilities::MPI::this_mpi_process(MPI_COMM_WORLD));
-   pcout << std::endl << std::endl
-         << "----------------------------------------------------"
-         << std::endl
-         << "Warning in the PreconditionILUParameters: " << std::endl
-         << "    The program runs using the linear algebra methods of the PETSc "
-                "library. Therefore the following parameter will not have an "
-                "influence on the configuration of the preconditioner." << std::endl
-         << "----------------------------------------------------"
-         << std::endl << std::endl;
-  #endif
-}
-
-
-
-template<typename Stream>
-Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm)
-{
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << "| "
-             << std::setw(column_width[1]) << second_column
-             << "|"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
-         << "Precondition ILU Parameters"
-         << "|"
-         << std::endl;
-
-  stream << header << std::endl;
-
-  add_line("Fill-in level", prm.fill);
-  add_line("Overlap", prm.overlap);
-  add_line("Relative tolerance", prm.relative_tolerance);
-  add_line("Absolute tolerance", prm.absolute_tolerance);
+  stream << "\r";
 
   stream << header;
 
@@ -1143,18 +1482,6 @@ void NavierStokesParameters::declare_parameters(ParameterHandler &prm)
       LinearSolverParameters::declare_parameters(prm);
     }
     prm.leave_subsection();
-
-    prm.enter_subsection("Linear solver parameters - Pressure preconditioner");
-    {
-        PreconditionILUParameters::declare_parameters(prm);
-    }
-    prm.leave_subsection();
-
-    prm.enter_subsection("Linear solver parameters - Velocity preconditioner");
-    {
-        PreconditionILUParameters::declare_parameters(prm);
-    }
-    prm.leave_subsection();
   }
   prm.leave_subsection();
 }
@@ -1229,18 +1556,6 @@ void NavierStokesParameters::parse_parameters(ParameterHandler &prm)
     prm.enter_subsection("Linear solver parameters - Poisson pre-step");
     {
       poisson_prestep_solver_parameters.parse_parameters(prm);
-    }
-    prm.leave_subsection();
-
-    prm.enter_subsection("Linear solver parameters - Pressure preconditioner");
-    {
-        pressure_preconditioner_parameters.parse_parameters(prm);
-    }
-    prm.leave_subsection();
-
-    prm.enter_subsection("Linear solver parameters - Velocity preconditioner");
-    {
-        pressure_preconditioner_parameters.parse_parameters(prm);
     }
     prm.leave_subsection();
   }
@@ -1342,14 +1657,6 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
   stream << "\r";
 
   stream << prm.poisson_prestep_solver_parameters;
-
-  stream << "\r";
-
-  stream << prm.pressure_preconditioner_parameters;
-
-  stream << "\r";
-
-  stream << prm.velocity_preconditioner_parameters;
 
   stream << "\r";
 
@@ -1889,16 +2196,16 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
   if (prm.problem_type != ProblemType::heat_convection_diffusion)
   {
-  stream << prm.navier_stokes_parameters;
+    stream << prm.navier_stokes_parameters;
 
-  stream << "\r";
+    stream << "\r";
   }
 
   if (prm.problem_type != ProblemType::hydrodynamic)
   {
-  stream << prm.heat_equation_parameters;
+    stream << prm.heat_equation_parameters;
 
-  stream << "\r";
+    stream << "\r";
   }
 
   return (stream);
@@ -1925,6 +2232,21 @@ template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::ConvergenceTestParameters &);
 template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::ConvergenceTestParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::PreconditionRelaxationParameters &);
+template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::PreconditionRelaxationParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::PreconditionILUParameters &);
+template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::PreconditionILUParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::PreconditionAMGParameters &);
+template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::PreconditionAMGParameters &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::LinearSolverParameters &);

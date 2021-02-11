@@ -1,6 +1,6 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/utility.h>
 
-#include <deal.II/lac/solver_cg.h>
 #include <deal.II/numerics/vector_tools.h>
 
 namespace RMHD
@@ -17,6 +17,7 @@ void NavierStokesProjection<dim>::assemble_projection_step()
   assemble_projection_step_rhs();
 }
 
+
 template <int dim>
 void NavierStokesProjection<dim>::solve_projection_step
 (const bool reinit_prec)
@@ -32,31 +33,24 @@ void NavierStokesProjection<dim>::solve_projection_step
   LinearAlgebra::MPI::Vector distributed_phi(phi->distributed_vector);
   distributed_phi = phi->solution;
 
+  const typename RunTimeParameters::LinearSolverParameters &solver_parameters
+    = parameters.projection_step_solver_parameters;
   if (reinit_prec)
   {
-    LinearAlgebra::MPI::PreconditionILU::AdditionalData preconditioner_data;
-    #ifdef USE_PETSC_LA
-      preconditioner_data.levels = parameters.pressure_preconditioner_parameters.fill;
-    #else
-      preconditioner_data.ilu_fill = parameters.pressure_preconditioner_parameters.fill;
-      preconditioner_data.overlap = parameters.pressure_preconditioner_parameters.overlap;
-      preconditioner_data.ilu_rtol = parameters.pressure_preconditioner_parameters.relative_tolerance;
-      preconditioner_data.ilu_atol = parameters.pressure_preconditioner_parameters.absolute_tolerance;;
-    #endif
-
-    projection_step_preconditioner.initialize(phi_laplace_matrix,
-                                              preconditioner_data);
+    build_preconditioner(projection_step_preconditioner,
+                         phi_laplace_matrix,
+                         solver_parameters.preconditioner_parameters_ptr,
+                         (phi->fe_degree > 1? true: false));
   }
 
   SolverControl solver_control(
-    parameters.projection_step_solver_parameters.n_maximum_iterations,
-    std::max(parameters.projection_step_solver_parameters.relative_tolerance *
-               projection_step_rhs.l2_norm(),
-            parameters.projection_step_solver_parameters.absolute_tolerance));
+    solver_parameters.n_maximum_iterations,
+    std::max(solver_parameters.relative_tolerance * projection_step_rhs.l2_norm(),
+             solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverCG solver(solver_control,
-                                   MPI_COMM_WORLD);
+                                   mpi_communicator);
   #else
     LinearAlgebra::SolverCG solver(solver_control);
   #endif
@@ -66,7 +60,7 @@ void NavierStokesProjection<dim>::solve_projection_step
     solver.solve(phi_laplace_matrix,
                  distributed_phi,
                  projection_step_rhs,
-                 projection_step_preconditioner);
+                 *projection_step_preconditioner);
   }
   catch (std::exception &exc)
   {
@@ -101,7 +95,7 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of CG iterations: "
+           << "    Number of CG iterations: " 
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;
