@@ -94,10 +94,19 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   phi->constraints.distribute(distributed_phi);
 
-  if (flag_normalize_pressure)
-    VectorTools::subtract_mean_value(distributed_phi);
-
   phi->solution = distributed_phi;
+
+  if (flag_normalize_pressure)
+  {
+    const LinearAlgebra::MPI::Vector::value_type mean_value
+      = VectorTools::compute_mean_value(*phi->dof_handler,
+                                        QGauss<dim>(phi->fe.degree + 1),
+                                        phi->solution,
+                                        0);
+
+    distributed_phi.add(-mean_value);
+    phi->solution = distributed_phi;
+  }
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
