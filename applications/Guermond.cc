@@ -191,6 +191,8 @@ void Guermond<dim>::setup_constraints()
       velocity_exact_solution,
       true);
 
+  pressure->boundary_conditions.set_datum_at_boundary();
+
   velocity->apply_boundary_conditions();
   pressure->apply_boundary_conditions();
 }
@@ -215,47 +217,38 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 
   if (flag_set_exact_pressure_constant)
   {
-    LinearAlgebra::MPI::Vector  analytical_pressure(pressure->solution);
-    {
-      #ifdef USE_PETSC_LA
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs,
-                                this->mpi_communicator);
-      #else
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs);
-      #endif
-      VectorTools::project(*pressure->dof_handler,
-                          pressure->constraints,
-                          QGauss<dim>(pressure->fe_degree + 2),
-                          *pressure_exact_solution,
-                          tmp_analytical_pressure);
+    LinearAlgebra::MPI::Vector  analytical_pressure;
+    LinearAlgebra::MPI::Vector  distributed_analytical_pressure;
+    LinearAlgebra::MPI::Vector  distributed_numerical_pressure;
 
-      analytical_pressure = tmp_analytical_pressure;
-    }
-    {
-      LinearAlgebra::MPI::Vector distributed_analytical_pressure;
-      LinearAlgebra::MPI::Vector distributed_numerical_pressure;
-      #ifdef USE_PETSC_LA
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                        this->mpi_communicator);
-      #else
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                               pressure->locally_relevant_dofs,
-                                               this->mpi_communicator,
-                                               true);
-      #endif
-      distributed_numerical_pressure.reinit(distributed_analytical_pressure);
+    analytical_pressure.reinit(pressure->solution);
+    distributed_analytical_pressure.reinit(pressure->distributed_vector);
+    distributed_numerical_pressure.reinit(pressure->distributed_vector);
 
-      distributed_analytical_pressure = analytical_pressure;
-      distributed_numerical_pressure  = pressure->solution;
+    VectorTools::interpolate(*this->mapping,
+                            *pressure->dof_handler,
+                            *pressure_exact_solution,
+                            distributed_analytical_pressure);
+    pressure->hanging_nodes.distribute(distributed_analytical_pressure);
+    analytical_pressure = distributed_analytical_pressure;
+    distributed_numerical_pressure = pressure->solution;
 
-      distributed_numerical_pressure.add(
-        distributed_analytical_pressure.mean_value() -
-        distributed_numerical_pressure.mean_value());
+    const LinearAlgebra::MPI::Vector::value_type analytical_mean_value
+      = VectorTools::compute_mean_value(*pressure->dof_handler,
+                                        QGauss<dim>(pressure->fe.degree + 1),
+                                        analytical_pressure,
+                                        0);
 
-      pressure->solution = distributed_numerical_pressure;
-    }
+    const LinearAlgebra::MPI::Vector::value_type numerical_mean_value
+      = VectorTools::compute_mean_value(*pressure->dof_handler,
+                                        QGauss<dim>(pressure->fe.degree + 1),
+                                        pressure->solution,
+                                        0);
+
+    distributed_numerical_pressure.add(analytical_mean_value -
+                                        numerical_mean_value);
+
+    pressure->solution = distributed_numerical_pressure;
   }
 
   if (flag_point_evaluation)

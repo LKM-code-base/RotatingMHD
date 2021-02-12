@@ -285,6 +285,8 @@ void MITBenchmark<dim>::setup_constraints()
   temperature->boundary_conditions.set_dirichlet_bcs(
     2, temperature_boundary_conditions, true);
 
+  pressure->boundary_conditions.set_datum_at_boundary();
+
   velocity->apply_boundary_conditions();
 
   pressure->apply_boundary_conditions();
