@@ -2384,6 +2384,11 @@ template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::HydrodynamicProblemParameters &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::BoussinesqProblemParameters &);
+template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::BoussinesqProblemParameters &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::ProblemParameters &);
 template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::ProblemParameters &);
