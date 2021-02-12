@@ -1510,11 +1510,92 @@ struct HydrodynamicProblemParameters
   NavierStokesParameters                      navier_stokes_parameters;
 };
 
+
+
 /*!
  * @brief Method forwarding parameters to a stream object.
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm);
+
+
+
+/*!
+ * @struct BoussinesqProblemParameters
+ */
+struct BoussinesqProblemParameters
+    : public ProblemBaseParameters,
+      public DimensionlessNumbers
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  BoussinesqProblemParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  BoussinesqProblemParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream,
+                            const HydrodynamicProblemParameters &prm);
+
+  /*!
+   * @brief Problem type.
+   */
+  const ProblemType                           problem_type;
+
+  /*!
+   * @brief The polynomial degree of the pressure's finite element.
+   */
+  unsigned int                                fe_degree_pressure;
+
+  /*!
+   * @brief The polynomial degree of the velocity's finite element.
+   */
+  unsigned int                                fe_degree_velocity;
+
+  /*!
+   * @brief The polynomial degree of the temperature's finite element.
+   */
+  unsigned int                                fe_degree_temperature;
+
+  /*!
+   * @brief Parameters of the Navier-Stokes solver.
+   */
+  NavierStokesParameters                      navier_stokes_parameters;
+
+  /*!
+   * @brief Parameters of the heat equation solver.
+   */
+  HeatEquationParameters                      heat_equation_parameters;
+
+};
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const BoussinesqProblemParameters &prm);
 
 
 /*!

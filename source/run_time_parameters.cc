@@ -1772,29 +1772,9 @@ HydrodynamicProblemParameters()
 
 void HydrodynamicProblemParameters::declare_parameters(ParameterHandler &prm)
 {
-  prm.declare_entry("Spatial dimension",
-                    "2",
-                    Patterns::Integer(1));
-
-  prm.declare_entry("Mapping - Polynomial degree",
-                    "1",
-                    Patterns::Integer(1));
-
-  prm.declare_entry("Mapping - Apply to interior cells",
-                    "false",
-                    Patterns::Bool());
-
   prm.declare_entry("FE's polynomial degree - Pressure (Taylor-Hood)",
                     "1",
                     Patterns::Integer(1));
-
-  prm.declare_entry("FE's polynomial degree - Temperature",
-                    "2",
-                    Patterns::Integer(1));
-
-  prm.declare_entry("Verbose",
-                    "false",
-                    Patterns::Bool());
 
   ProblemBaseParameters::declare_parameters(prm);
 
@@ -1839,8 +1819,9 @@ Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm)
 
   {
     std::string fe_velocity = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_velocity) + ")^" + std::to_string(prm.dim);
-    std::string fe_pressure = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_pressure) + ")";
     internal::add_line(stream, "Finite Element - Velocity", fe_velocity);
+
+    std::string fe_pressure = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_pressure) + ")";
     internal::add_line(stream, "Finite Element - Pressure", fe_pressure);
   }
 
@@ -1855,6 +1836,164 @@ Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm)
   return (stream);
 }
 
+
+
+BoussinesqProblemParameters::BoussinesqProblemParameters()
+:
+ProblemBaseParameters(),
+DimensionlessNumbers(),
+problem_type(ProblemType::boussinesq),
+fe_degree_pressure(1),
+fe_degree_velocity(2),
+fe_degree_temperature(2),
+navier_stokes_parameters(),
+heat_equation_parameters()
+{}
+
+
+
+BoussinesqProblemParameters::BoussinesqProblemParameters
+(const std::string &parameter_filename)
+:
+BoussinesqProblemParameters()
+{
+  ParameterHandler prm;
+
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+
+  switch (problem_type)
+  {
+    case ProblemType::boussinesq:
+      navier_stokes_parameters.C1 = 0.0;
+      navier_stokes_parameters.C2 = std::sqrt(Pr/Ra);
+      navier_stokes_parameters.C3 = 1.0;
+      heat_equation_parameters.C4 = 1.0/std::sqrt(Ra*Pr);
+      navier_stokes_parameters.C5 = 0.0;
+      break;
+    default:
+      AssertThrow(false,
+                  ExcMessage("Unexpected identifier for the problem type."));
+      break;
+  }
+
+  AssertIsFinite(navier_stokes_parameters.C1);
+  AssertIsFinite(navier_stokes_parameters.C2);
+  AssertIsFinite(navier_stokes_parameters.C3);
+  AssertIsFinite(heat_equation_parameters.C4);
+  AssertIsFinite(navier_stokes_parameters.C5);
+}
+
+
+
+
+void BoussinesqProblemParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.declare_entry("FE's polynomial degree - Pressure (Taylor-Hood)",
+                    "1",
+                    Patterns::Integer(1));
+
+  prm.declare_entry("FE's polynomial degree - Temperature",
+                    "1",
+                    Patterns::Integer(1));
+
+  ProblemBaseParameters::declare_parameters(prm);
+
+  DimensionlessNumbers::declare_parameters(prm, ProblemType::hydrodynamic);
+
+  NavierStokesParameters::declare_parameters(prm);
+
+  HeatEquationParameters::declare_parameters(prm);
+}
+
+
+
+
+void BoussinesqProblemParameters::parse_parameters(ParameterHandler &prm)
+{
+  ProblemBaseParameters::parse_parameters(prm);
+
+  DimensionlessNumbers::parse_parameters(prm);
+
+  fe_degree_pressure = prm.get_integer("FE's polynomial degree - Pressure (Taylor-Hood)");
+  AssertThrow(fe_degree_pressure > 0,
+              ExcLowerRange(fe_degree_pressure, 0));
+
+  fe_degree_velocity = fe_degree_pressure + 1;
+
+  fe_degree_temperature = prm.get_integer("FE's polynomial degree - Temperature");
+  AssertThrow(fe_degree_temperature > 0,
+              ExcLowerRange(fe_degree_temperature, 0));
+
+  navier_stokes_parameters.parse_parameters(prm);
+
+  heat_equation_parameters.parse_parameters(prm);
+}
+
+
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const BoussinesqProblemParameters &prm)
+{
+  internal::add_header(stream);
+  internal::add_line(stream, "Problem parameters");
+  internal::add_header(stream);
+
+  stream << static_cast<const ProblemBaseParameters &>(prm);
+
+  stream << "\r";
+
+  internal::add_line(stream, "Problem type", "Boussinesq");
+
+  {
+    std::string fe_velocity = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_velocity) + ")^" + std::to_string(prm.dim);
+    internal::add_line(stream, "Finite Element - Velocity", fe_velocity);
+
+    std::string fe_pressure = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_pressure) + ")";
+    internal::add_line(stream, "Finite Element - Pressure", fe_pressure);
+
+    std::string fe_temperature = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_temperature) + ")";
+    internal::add_line(stream, "Finite Element - Temperature", fe_temperature);
+  }
+
+  stream << static_cast<const DimensionlessNumbers &>(prm);
+
+  stream << "\r";
+
+  stream << prm.navier_stokes_parameters;
+
+  stream << "\r";
+
+  stream << prm.heat_equation_parameters;
+
+  stream << "\r";
+
+  return (stream);
+}
 
 
 ProblemParameters::ProblemParameters()
@@ -2051,12 +2190,11 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
   mapping_interior_cells = prm.get_bool("Mapping - Apply to interior cells");
 
   fe_degree_pressure = prm.get_integer("FE's polynomial degree - Pressure (Taylor-Hood)");
-
-  fe_degree_temperature = prm.get_integer("FE's polynomial degree - Temperature");
-
   AssertThrow(fe_degree_pressure > 0,
               ExcLowerRange(fe_degree_pressure, 0));
 
+
+  fe_degree_temperature = prm.get_integer("FE's polynomial degree - Temperature");
   AssertThrow(fe_degree_temperature > 0,
               ExcLowerRange(fe_degree_temperature, 0));
 
