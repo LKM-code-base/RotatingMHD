@@ -75,7 +75,7 @@ struct SolutionTransferContainer
 private:
 
   /*!
-   * @brief The side of the std::vector instance containing all the
+   * @brief The size of the std::vector instance containing all the
    * Vector instances to be considered by the error estimation.
    */
   unsigned int              error_vector_size;
@@ -174,7 +174,6 @@ protected:
    * projection of the given function from the solution vector and
    * computing the absolute value of the residum.
    */
-
   void compute_error
   (LinearAlgebra::MPI::Vector                 &error_vector,
    std::shared_ptr<Entities::EntityBase<dim>> entity,
