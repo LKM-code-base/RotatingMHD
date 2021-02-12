@@ -209,6 +209,51 @@ void VectorEntity<dim>::apply_boundary_conditions()
       this->constraints);
   }
 
+  /*! @attention This is commented out as I am not sure if this would
+      constraint a component or the whole vector*/
+  /*
+  if (boundary_conditions.flag_datum_at_boundary)
+  {
+    IndexSet    boundary_dofs;
+    DoFTools::extract_boundary_dofs(*this->dof_handler,
+                                    ComponentMask(this->fe.n_components(), true),
+                                    boundary_dofs);
+
+    types::global_dof_index local_idx = numbers::invalid_dof_index;
+    IndexSet::ElementIterator idx = boundary_dofs.begin();
+    IndexSet::ElementIterator endidx = boundary_dofs.end();
+    for(; idx != endidx; ++idx)
+      if (this->constraints.can_store_line(*idx) &&
+          !this->constraints.is_constrained(*idx))
+      {
+        local_idx = *idx;
+        break;
+      }
+    // Make a reduction to find the smallest index (processors that
+    // found a larger candidate just happened to not be able to store
+    // that index with the minimum value). Note that it is possible that
+    // some processors might not be able to find a potential DoF, for
+    // example because they don't own any DoFs. On those processors we
+    // will use dof_handler.n_dofs() when building the minimum (larger
+    // than any valid DoF index).
+    const types::global_dof_index global_idx
+      = Utilities::MPI::min((local_idx != numbers::invalid_dof_index)
+                              ? local_idx
+                              : this->dof_handler->n_dofs(),
+                            this->mpi_communicator);
+
+    Assert(global_idx < this->dof_handler->n_dofs(),
+           ExcMessage("Error, couldn't find a DoF to constrain."));
+
+    // Finally set this DoF to zero (if we care about it):
+    if (this->constraints.can_store_line(global_idx))
+    {
+        Assert(!this->constraints.is_constrained(global_idx),
+               ExcInternalError());
+        this->constraints.add_line(global_idx);
+    }
+  }
+  */
   this->constraints.close();
 }
 
@@ -488,6 +533,49 @@ void ScalarEntity<dim>::apply_boundary_conditions()
       function_map,
       this->constraints);
   }
+
+  if (boundary_conditions.flag_datum_at_boundary)
+  {
+    IndexSet    boundary_dofs;
+    DoFTools::extract_boundary_dofs(*this->dof_handler,
+                                    ComponentMask(this->fe.n_components(), true),
+                                    boundary_dofs);
+
+    types::global_dof_index local_idx = numbers::invalid_dof_index;
+    IndexSet::ElementIterator idx = boundary_dofs.begin();
+    IndexSet::ElementIterator endidx = boundary_dofs.end();
+    for(; idx != endidx; ++idx)
+      if (this->constraints.can_store_line(*idx) &&
+          !this->constraints.is_constrained(*idx))
+      {
+        local_idx = *idx;
+        break;
+      }
+    // Make a reduction to find the smallest index (processors that
+    // found a larger candidate just happened to not be able to store
+    // that index with the minimum value). Note that it is possible that
+    // some processors might not be able to find a potential DoF, for
+    // example because they don't own any DoFs. On those processors we
+    // will use dof_handler.n_dofs() when building the minimum (larger
+    // than any valid DoF index).
+    const types::global_dof_index global_idx
+      = Utilities::MPI::min((local_idx != numbers::invalid_dof_index)
+                              ? local_idx
+                              : this->dof_handler->n_dofs(),
+                            this->mpi_communicator);
+
+    Assert(global_idx < this->dof_handler->n_dofs(),
+           ExcMessage("Error, couldn't find a DoF to constrain."));
+
+    // Finally set this DoF to zero (if we care about it):
+    if (this->constraints.can_store_line(global_idx))
+    {
+        Assert(!this->constraints.is_constrained(global_idx),
+               ExcInternalError());
+        this->constraints.add_line(global_idx);
+    }
+  }
+
   this->constraints.close();
 }
 
