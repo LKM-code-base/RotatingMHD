@@ -67,6 +67,7 @@ SET(TARGET_SRC
     source/entities_structs.cc
     source/equation_data.cc
     source/heat_equation.cc
+    source/hydrodynamic_problem.cc
     source/problem_class.cc
     source/run_time_parameters.cc
     source/time_discretization.cc

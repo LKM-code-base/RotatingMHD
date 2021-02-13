@@ -105,7 +105,7 @@ public:
   /*!
    * @brief Default constructor which initializes the member variables.
    */
-  Problem(const RunTimeParameters::ProblemParameters &prm);
+  Problem(const RunTimeParameters::ProblemBaseParameters &prm);
 
 protected:
   /*!
@@ -116,7 +116,7 @@ protected:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const RunTimeParameters::ProblemParameters  &prm;
+  const RunTimeParameters::ProblemBaseParameters  &prm;
 
   /*!
    * @brief Triangulation object of the problem.
@@ -148,24 +148,13 @@ protected:
 protected:
 
   /*!
-   * @brief Loads the initial conditions to the pertinent solution
-   * vector
-   * @details Projects the @ref function at simulation's start time
-   * to the old_solution vector of the @ref entity. If @ref boolean is
-   * set to true, the @ref function evaluated at start time and start time
-   * plus one time step will be projected to the old_old_solution and
-   * old_solution vectors respectively.
-   * @warning If @ref boolean is set to true, one has to manually
-   * advance the time to the first time step or else the solver will
-   * have a time offset.
-   * @attention Would it be preferable to interpolate the functions and
-   * apply the constraints instead of projection?
+   * @brief Projects the @ref function on the finite element space contained
+   * in the @ref entity and saves the result in the @ref vector.
    */
-  void set_initial_conditions
-  (std::shared_ptr<Entities::EntityBase<dim>> entity,
-   Function<dim>                              &function,
-   const TimeDiscretization::VSIMEXMethod     &time_stepping,
-   const bool                                 boolean = false);
+  void project_function
+  (const Function<dim>                             &function,
+   const std::shared_ptr<Entities::EntityBase<dim>> entity,
+   LinearAlgebra::MPI::Vector                      &vector);
 
   /*!
    * @brief Computes the error of the numerical solution against
@@ -174,10 +163,14 @@ protected:
    * projection of the given function from the solution vector and
    * computing the absolute value of the residum.
    */
+  /*
+   *
   void compute_error
   (LinearAlgebra::MPI::Vector                 &error_vector,
    std::shared_ptr<Entities::EntityBase<dim>> entity,
    Function<dim>                              &exact_solution);
+   *
+   */
 
   /*!
    *  @brief Computes the next time step according to the
@@ -203,6 +196,22 @@ protected:
    */
   void adaptive_mesh_refinement();
 };
+
+
+// inline functions
+template <int dim>
+inline double Problem<dim>::compute_next_time_step
+(const TimeDiscretization::VSIMEXMethod &time_stepping,
+ const double                           cfl_number,
+ const double                           max_cfl_number) const
+{
+  if (!prm.time_discretization_parameters.adaptive_time_stepping ||
+      time_stepping.get_step_number() == 0)
+    return time_stepping.get_next_step_size();
+
+  return (max_cfl_number / cfl_number * time_stepping.get_next_step_size());
+}
+
 
 } // namespace RMHD
 
