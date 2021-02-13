@@ -18,13 +18,12 @@ namespace Entities
 
 namespace internal
 {
-  constexpr char header[] = "+--------------------+"
-      "-----------------------------------------+";
+  constexpr char header[] = "+----------------------+"
+      "------------------------------------------+";
 
+  constexpr size_t column_width[2] = { 20, 40 };
 
-  constexpr size_t column_width[2] = { 17, 40 };
-
-  constexpr size_t line_width = 60;
+  constexpr size_t line_width = 63;
 
   template<typename Stream, typename A>
   void add_line(Stream  &stream,
