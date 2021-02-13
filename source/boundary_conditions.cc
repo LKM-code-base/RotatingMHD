@@ -26,9 +26,10 @@ template <int dim>
 BoundaryConditionsBase<dim>::BoundaryConditionsBase(
   const parallel::distributed::Triangulation<dim> &triangulation)
 :
-flag_datum_at_boundary(false),
 triangulation(triangulation),
-flag_extract_boundary_ids(true)
+flag_extract_boundary_ids(true),
+flag_datum_at_boundary(false),
+flag_regularity_guaranteed(false)
 {}
 
 template <int dim>
@@ -83,6 +84,8 @@ void ScalarBoundaryConditions<dim>::set_periodic_bcs(
                                   direction,
                                   rotation_matrix,
                                   offset);
+
+  this->flag_regularity_guaranteed = true;
 }
 
 template <int dim>
@@ -107,6 +110,8 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
 
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::dirichlet, boundary_id);
+
+  this->flag_regularity_guaranteed = true;
 }
 
 template <int dim>
@@ -132,6 +137,8 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
 
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
+
+  this->flag_regularity_guaranteed = true;
 }
 
 
@@ -139,7 +146,8 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_datum_at_boundary()
 {
-  this->flag_datum_at_boundary = true;
+  this->flag_datum_at_boundary      = true;
+  this->flag_regularity_guaranteed  = true;
 }
 
 
@@ -170,10 +178,11 @@ template <int dim>
 void ScalarBoundaryConditions<dim>::copy
 (const ScalarBoundaryConditions<dim> &other)
 {
-  this->dirichlet_bcs           = other.dirichlet_bcs;
-  this->neumann_bcs             = other.neumann_bcs;
-  this->periodic_bcs            = other.periodic_bcs;
-  this->time_dependent_bcs_map  = other.time_dependent_bcs_map;
+  this->dirichlet_bcs               = other.dirichlet_bcs;
+  this->neumann_bcs                 = other.neumann_bcs;
+  this->periodic_bcs                = other.periodic_bcs;
+  this->time_dependent_bcs_map      = other.time_dependent_bcs_map;
+  this->flag_regularity_guaranteed  = other.flag_regularity_guaranteed;
 }
 
 template <int dim>
@@ -240,6 +249,8 @@ void VectorBoundaryConditions<dim>::set_periodic_bcs(
                                   direction,
                                   rotation_matrix,
                                   offset);
+
+  this->flag_regularity_guaranteed = true;
 }
 
 template <int dim>
@@ -268,6 +279,8 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
 
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::dirichlet, boundary_id);
+
+  this->flag_regularity_guaranteed = true;
 }
 
 template <int dim>
@@ -293,6 +306,8 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
 
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
+
+  this->flag_regularity_guaranteed = true;
 }
 
 template <int dim>
@@ -321,6 +336,9 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
 
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::normal_flux, boundary_id);
+
+  /*! @attention I am not sure if this passes a fully constrained */
+  this->flag_regularity_guaranteed = true;
 }
 
 template <int dim>
@@ -349,6 +367,9 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
 
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::tangential_flux, boundary_id);
+
+  /*! @attention I am not sure if this passes a fully constrained */
+  this->flag_regularity_guaranteed = true;
 }
 
 template <int dim>
@@ -382,12 +403,13 @@ template <int dim>
 void VectorBoundaryConditions<dim>::copy(
   const VectorBoundaryConditions<dim> &other)
 {
-  this->dirichlet_bcs           = other.dirichlet_bcs;
-  this->neumann_bcs             = other.neumann_bcs;
-  this->periodic_bcs            = other.periodic_bcs;
-  this->time_dependent_bcs_map  = other.time_dependent_bcs_map;
-  normal_flux_bcs               = other.normal_flux_bcs;
-  tangential_flux_bcs           = other.tangential_flux_bcs;
+  this->dirichlet_bcs               = other.dirichlet_bcs;
+  this->neumann_bcs                 = other.neumann_bcs;
+  this->periodic_bcs                = other.periodic_bcs;
+  this->time_dependent_bcs_map      = other.time_dependent_bcs_map;
+  normal_flux_bcs                   = other.normal_flux_bcs;
+  tangential_flux_bcs               = other.tangential_flux_bcs;
+  this->flag_regularity_guaranteed  = other.flag_regularity_guaranteed;
 }
 
 template <int dim>

@@ -122,6 +122,10 @@ void VectorEntity<dim>::setup_dofs()
 template <int dim>
 void VectorEntity<dim>::apply_boundary_conditions()
 {
+  AssertThrow(boundary_conditions.is_regularity_guaranteed(),
+              ExcMessage("No boundary conditions were set for the \""
+                          + this->name + "\" entity"));
+
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
@@ -212,13 +216,14 @@ void VectorEntity<dim>::apply_boundary_conditions()
   /*! @attention This is commented out as I am not sure if this would
       constraint a component or the whole vector*/
   /*
-  if (boundary_conditions.flag_datum_at_boundary)
+  if (boundary_conditions.is_a_datum_set_at_boundary())
   {
     IndexSet    boundary_dofs;
     DoFTools::extract_boundary_dofs(*this->dof_handler,
                                     ComponentMask(this->fe.n_components(), true),
                                     boundary_dofs);
 
+    // Looks for an admissible local degree of freedom to constrain
     types::global_dof_index local_idx = numbers::invalid_dof_index;
     IndexSet::ElementIterator idx = boundary_dofs.begin();
     IndexSet::ElementIterator endidx = boundary_dofs.end();
@@ -229,23 +234,21 @@ void VectorEntity<dim>::apply_boundary_conditions()
         local_idx = *idx;
         break;
       }
-    // Make a reduction to find the smallest index (processors that
-    // found a larger candidate just happened to not be able to store
-    // that index with the minimum value). Note that it is possible that
-    // some processors might not be able to find a potential DoF, for
-    // example because they don't own any DoFs. On those processors we
-    // will use dof_handler.n_dofs() when building the minimum (larger
-    // than any valid DoF index).
+
+    // Chooses the degree of freedom with the smallest index. If no
+    // admissible degree of freedom was found in a given processor, its
+    // value is set the number of degree of freedom
     const types::global_dof_index global_idx
       = Utilities::MPI::min((local_idx != numbers::invalid_dof_index)
                               ? local_idx
                               : this->dof_handler->n_dofs(),
-                            this->mpi_communicator);
+                             this->mpi_communicator);
 
+    // Checks that an admissable degree of freedom was found
     Assert(global_idx < this->dof_handler->n_dofs(),
            ExcMessage("Error, couldn't find a DoF to constrain."));
 
-    // Finally set this DoF to zero (if we care about it):
+    // Sets the degree of freedom to zero
     if (this->constraints.can_store_line(global_idx))
     {
         Assert(!this->constraints.is_constrained(global_idx),
@@ -494,6 +497,10 @@ void ScalarEntity<dim>::setup_dofs()
 template <int dim>
 void ScalarEntity<dim>::apply_boundary_conditions()
 {
+  AssertThrow(boundary_conditions.is_regularity_guaranteed(),
+              ExcMessage("No boundary conditions were set for the \""
+                          + this->name + "\" entity"));
+
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
@@ -534,13 +541,14 @@ void ScalarEntity<dim>::apply_boundary_conditions()
       this->constraints);
   }
 
-  if (boundary_conditions.flag_datum_at_boundary)
+  if (boundary_conditions.is_a_datum_set_at_boundary())
   {
     IndexSet    boundary_dofs;
     DoFTools::extract_boundary_dofs(*this->dof_handler,
                                     ComponentMask(this->fe.n_components(), true),
                                     boundary_dofs);
 
+    // Looks for an admissible local degree of freedom to constrain
     types::global_dof_index local_idx = numbers::invalid_dof_index;
     IndexSet::ElementIterator idx = boundary_dofs.begin();
     IndexSet::ElementIterator endidx = boundary_dofs.end();
@@ -551,23 +559,21 @@ void ScalarEntity<dim>::apply_boundary_conditions()
         local_idx = *idx;
         break;
       }
-    // Make a reduction to find the smallest index (processors that
-    // found a larger candidate just happened to not be able to store
-    // that index with the minimum value). Note that it is possible that
-    // some processors might not be able to find a potential DoF, for
-    // example because they don't own any DoFs. On those processors we
-    // will use dof_handler.n_dofs() when building the minimum (larger
-    // than any valid DoF index).
+
+    // Chooses the degree of freedom with the smallest index. If no
+    // admissible degree of freedom was found in a given processor, its
+    // value is set the number of degree of freedom
     const types::global_dof_index global_idx
       = Utilities::MPI::min((local_idx != numbers::invalid_dof_index)
                               ? local_idx
                               : this->dof_handler->n_dofs(),
-                            this->mpi_communicator);
+                             this->mpi_communicator);
 
+    // Checks that an admissable degree of freedom was found
     Assert(global_idx < this->dof_handler->n_dofs(),
            ExcMessage("Error, couldn't find a DoF to constrain."));
 
-    // Finally set this DoF to zero (if we care about it):
+    // Sets the degree of freedom to zero
     if (this->constraints.can_store_line(global_idx))
     {
         Assert(!this->constraints.is_constrained(global_idx),

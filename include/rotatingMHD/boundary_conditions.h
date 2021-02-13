@@ -110,12 +110,6 @@ public:
   std::vector<PeriodicBoundaryData<dim>>    periodic_bcs;
 
   /*!
-   * A flag indicating that a local degree of freedom at the boundary
-   * is to be set to zero.
-   */
-  bool                                      flag_datum_at_boundary;
-
-  /*!
    * @brief A multimap of boundary condition types and boundary ids
    * which were mark as having a time-dependent function.
    */
@@ -126,6 +120,16 @@ public:
    * unconstrained boundaries.
    */
   std::vector<types::boundary_id> get_unconstrained_boundary_ids();
+
+  /*!
+   * A method returning the value of @ref flag_datum_at_boundary.
+   */
+  bool                            is_a_datum_set_at_boundary() const;
+
+  /*!
+   * A method returning the value of @ref flag_regularity_guaranteed.
+   */
+  bool                            is_regularity_guaranteed() const;
 
 protected:
   /*!
@@ -150,7 +154,35 @@ protected:
    * extracted.
    */
   bool                                            flag_extract_boundary_ids;
+
+  /*!
+   * A flag indicating that a local degree of freedom at the boundary
+   * is to be set to zero.
+   */
+  bool                                            flag_datum_at_boundary;
+
+  /*!
+   * A flag indicating that boundary conditions fulfill the
+   * necessary conditions for a well-posed problem.
+   */
+  bool                                            flag_regularity_guaranteed;
 };
+
+
+
+template <int dim>
+inline bool BoundaryConditionsBase<dim>::is_a_datum_set_at_boundary() const
+{
+  return (flag_datum_at_boundary);
+}
+
+
+
+template <int dim>
+inline bool BoundaryConditionsBase<dim>::is_regularity_guaranteed() const
+{
+  return (flag_regularity_guaranteed);
+}
 
 /*!
  * @struct ScalarBoundaryConditions
