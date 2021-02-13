@@ -185,13 +185,12 @@ void TimeDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm)
 {
-  const size_t column_width[2] =
-  {
-    std::string("----------------------------------------").size(),
-    std::string("-------------------").size()
-  };
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
+  const size_t column_width[2] ={ 40, 20 };
+
+  constexpr size_t line_width = 63;
+
+  const char header[] = "+------------------------------------------+"
+                        "----------------------+";
 
   auto add_line = [&]
                   (const char first_column[],
@@ -199,18 +198,18 @@ Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm)
     {
       stream << "| "
              << std::setw(column_width[0]) << first_column
-             << "| "
+             << " | "
              << std::setw(column_width[1]) << second_column
-             << "|"
+             << " |"
              << std::endl;
     };
 
   stream << std::left << header << std::endl;
 
   stream << "| "
-         << std::setw(column_width[0] + column_width[1] + 2)
+         << std::setw(line_width)
          << "Timestepping parameters"
-         << "|"
+         << " |"
          << std::endl;
 
   stream << header << std::endl;
@@ -274,7 +273,7 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
          << std::scientific
          << vsimex.get_next_step_size();
 
-  return stream;
+  return (stream);
 }
 
 template<typename Stream>

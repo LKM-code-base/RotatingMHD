@@ -21,12 +21,12 @@ namespace RunTimeParameters
 
 namespace internal
 {
-  const char header[] = "+-----------------------------------------+"
-                        "--------------------+";
+  constexpr char header[] = "+------------------------------------------+"
+                        "----------------------+";
 
-  const size_t column_width[2] ={ 40, 20 };
+  constexpr size_t column_width[2] ={ 40, 20 };
 
-  constexpr size_t line_width = 57;
+  constexpr size_t line_width = 63;
 
   template<typename Stream, typename A>
   void add_line(Stream  &stream,
@@ -587,13 +587,10 @@ Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm)
 
     internal::add_line(stream, name.str().c_str());
   }
-  internal::add_header(stream);
 
   internal::add_line(stream, "Relaxation parameter", prm.omega);
   internal::add_line(stream, "Overlap", prm.overlap);
   internal::add_line(stream, "Number of sweeps", prm.n_sweeps);
-
-  internal::add_header(stream);
 
   return (stream);
 }
@@ -685,14 +682,11 @@ Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm)
 {
   internal::add_header(stream);
   internal::add_line(stream, "Precondition ILU Parameters");
-  internal::add_header(stream);
 
   internal::add_line(stream, "Fill-in level", prm.fill);
   internal::add_line(stream, "Overlap", prm.overlap);
   internal::add_line(stream, "Relative tolerance", prm.relative_tolerance);
   internal::add_line(stream, "Absolute tolerance", prm.absolute_tolerance);
-
-  internal::add_header(stream);
 
   return (stream);
 }
@@ -736,7 +730,7 @@ void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
   PreconditionBaseParameters::parse_parameters(prm);
 
   AssertThrow(preconditioner_type == PreconditionerType::AMG,
-         ExcMessage("Unexpected preconditioner type in PreconditionAMGParameters."));
+              ExcMessage("Unexpected preconditioner type in PreconditionAMGParameters."));
 
   strong_threshold = prm.get_double("Strong threshold (PETSc only)");
   AssertThrow(strong_threshold > 0.0,
@@ -747,7 +741,8 @@ void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
 
   n_cycles = prm.get_integer("Number of cycles");
   AssertThrow(strong_threshold > 1,
-         ExcLowerRange(n_cycles, 0));
+              ExcLowerRange(n_cycles, 0));
+  AssertIsFinite(aggregation_threshold);
 
   aggregation_threshold = prm.get_double("Aggregation threshold");
   AssertThrow(aggregation_threshold > 0.0,
@@ -761,14 +756,11 @@ Stream& operator<<(Stream &stream, const PreconditionAMGParameters &prm)
 {
   internal::add_header(stream);
   internal::add_line(stream, "Precondition AMG Parameters");
-  internal::add_header(stream);
 
   internal::add_line(stream, "Strong threshold", prm.strong_threshold);
   internal::add_line(stream, "Elliptic", (prm.elliptic? "true": "false"));
   internal::add_line(stream, "Number of cycles", prm.n_cycles);
   internal::add_line(stream, "Aggregation threshold", prm.aggregation_threshold);
-
-  internal::add_header(stream);
 
   return (stream);
 }
@@ -837,18 +829,26 @@ void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
       case PreconditionerType::AMG:
         preconditioner_parameters_ptr
           = std::make_shared<PreconditionAMGParameters>();
+        static_cast<PreconditionAMGParameters*>(preconditioner_parameters_ptr.get())
+            ->parse_parameters(prm);
         break;
       case PreconditionerType::ILU:
         preconditioner_parameters_ptr
           = std::make_shared<PreconditionILUParameters>();
+        static_cast<PreconditionILUParameters*>(preconditioner_parameters_ptr.get())
+            ->parse_parameters(prm);
         break;
       case PreconditionerType::Jacobi:
         preconditioner_parameters_ptr
           = std::make_shared<PreconditionJacobiParameters>();
+        static_cast<PreconditionJacobiParameters*>(preconditioner_parameters_ptr.get())
+            ->parse_parameters(prm);
         break;
       case PreconditionerType::SSOR:
         preconditioner_parameters_ptr
           = std::make_shared<PreconditionSSORParameters>();
+        static_cast<PreconditionSSORParameters*>(preconditioner_parameters_ptr.get())
+            ->parse_parameters(prm);
         break;
       case PreconditionerType::GMG:
         AssertThrow(false, ExcNotImplemented());
@@ -857,7 +857,6 @@ void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
         AssertThrow(false, ExcMessage("Preconditioner type is unknown."));
         break;
     }
-    preconditioner_parameters_ptr->parse_parameters(prm);
   }
   prm.leave_subsection();
 }
@@ -1635,6 +1634,12 @@ void ProblemBaseParameters::declare_parameters(ParameterHandler &prm)
                     Patterns::Bool());
 
   OutputControlParameters::declare_parameters(prm);
+
+  SpatialDiscretizationParameters::declare_parameters(prm);
+
+  TimeDiscretization::
+  TimeDiscretizationParameters::declare_parameters(prm);
+
 }
 
 
