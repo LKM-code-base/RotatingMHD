@@ -44,7 +44,8 @@ public:
   /*!
    * @brief Constructor.
    */
-  EntityBase(const unsigned int                               fe_degree,
+  EntityBase(const unsigned int                               n_components,
+             const unsigned int                               fe_degree,
              const parallel::distributed::Triangulation<dim> &triangulation,
              const std::string                               &name = "entity");
 
@@ -53,6 +54,11 @@ public:
    */
   EntityBase(const EntityBase<dim>  &entity,
              const std::string      &new_name = "entity");
+
+  /*!
+   * @brief Number of vector components.
+   */
+  const unsigned int                n_components;
 
   /*!
    * @brief The degree of the finite element.
@@ -116,6 +122,7 @@ public:
 
   /*!
    * @brief The entity's distributed vector.
+   *
    * @details It is used to initiate the right hand sides of the
    * linear systems and the distributed instances of the
    * solution vectors needed to perform algebraic operations with them.
@@ -139,7 +146,7 @@ public:
   void update_solution_vectors();
 
   /*!
-   * @brief Sets all the entries of the solution vectors to zero.
+   * @brief Sets all entries of all solution vectors to zero.
    */
   void set_solution_vectors_to_zero();
 
@@ -169,12 +176,18 @@ public:
 
 protected:
   /*!
-   * @brief A flag indicating wether the entity is a child. Here is
-   * meant, that the entity was instanced with the copy constructor.
-   * @details This flag is used to avoid a double distribution of
-   * degrees of freedom.
+   * @brief A flag indicating whether the entity is a child entity. This menas
+   * that the entity was instantiated using the copy constructor.
+   *
+   * @details This flag is used to avoid a double distribution of the degrees of
+   * freedom.
    */
-  const bool                                      flag_child_entity;
+  const bool  flag_child_entity;
+
+  /*!
+   * @brief A flag indicating whether @ref setup_dofs was called.
+   */
+  bool        flag_setup_dofs;
 
 private:
   /*!
