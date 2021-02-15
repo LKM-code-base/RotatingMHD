@@ -5,6 +5,8 @@
 
 #include <rotatingMHD/time_discretization.h>
 
+#include <memory>
+
 namespace RMHD
 {
 
@@ -14,9 +16,6 @@ namespace RMHD
  * to the run time parameters.
  */
 namespace RunTimeParameters
-
-
-
 {
 /*!
  * @brief Enumeration for the different types of problems.
@@ -210,6 +209,8 @@ enum class ConvergenceTestType
   temporal
 };
 
+
+
 /*!
  * @brief Enumeration for incremental pressure-correction scheme types.
  */
@@ -237,6 +238,8 @@ enum class PressureCorrectionScheme
    */
   rotational
 };
+
+
 
 /*!
  * @brief Enumeration for the weak form of the non-linear convective term.
@@ -347,6 +350,42 @@ enum class ConvectiveTermTimeDiscretization
 };
 
 /*!
+ * @brief Enumeration for the type of the preconditioner to be used.
+ */
+enum class PreconditionerType
+{
+  /*!
+   * @brief Incomplete LU decomposition preconditioning.
+   */
+  ILU,
+
+  /*!
+   * @brief Geometric multigrid preconditioning.
+   *
+   * @attention This is not implemented yet but may be helpful once the
+   * MatrixFree framework is used.
+   */
+  GMG,
+
+  /*!
+   * @brief Algebraic multigrid preconditioning.
+   */
+  AMG,
+
+  /*!
+   * @brief Jacobi preconditioning.
+   */
+  Jacobi,
+
+  /*!
+   * @brief Symmetric Sucessive overrelaxation preconditioning. The system
+   * matrix must be symmetric to apply this preconditioner.
+   */
+  SSOR
+
+};
+
+/*!
  * @struct SpatialDiscretizationParameters
  *
  * @brief @ref SpatialDiscretizationParameters contains parameters which are
@@ -358,12 +397,6 @@ struct SpatialDiscretizationParameters
    * @brief Constructor which sets up the parameters with default values.
    */
   SpatialDiscretizationParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  SpatialDiscretizationParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -463,12 +496,6 @@ struct OutputControlParameters
   OutputControlParameters();
 
   /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  OutputControlParameters(const std::string &parameter_filename);
-
-  /*!
    * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
    */
@@ -521,7 +548,6 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm);
  *
  * @brief @ref ConvergenceTestParameters contains parameters which are
  * related to convergence tests.
- *
  */
 struct ConvergenceTestParameters
 {
@@ -529,12 +555,6 @@ struct ConvergenceTestParameters
    * @brief Constructor which sets up the parameters with default values.
    */
   ConvergenceTestParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  ConvergenceTestParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -586,6 +606,8 @@ struct ConvergenceTestParameters
   unsigned int        n_temporal_convergence_cycles;
 };
 
+
+
 /*!
  * @brief Method forwarding parameters to a stream object.
  *
@@ -594,29 +616,20 @@ struct ConvergenceTestParameters
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm);
 
+
 /*!
- * @struct LinearSolverParameters
+ * @struct PreconditionerParametersBase
  *
- * @brief A structure containing all parameters relevant for the solution of
- * linear systems using a Krylov subspace method.
- *
- * @todo Proper initiation of the solver_name string without constructor
- * ambiguity. The string is included in order for the stream to print
- * also the names of the solvers to the terminal. As of now one can not
- * tell one from the other (On the prm file they are properly differentiated)
+ * @brief A structure from which all other preconditioner parameters structures
+ * are derived.
  */
-struct LinearSolverParameters
+struct PreconditionBaseParameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
    */
-  LinearSolverParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  LinearSolverParameters(const std::string &parameter_filename);
+  PreconditionBaseParameters(const std::string        &name = "ILU",
+                             const PreconditionerType &type = PreconditionerType::ILU);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -625,7 +638,50 @@ struct LinearSolverParameters
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * @brief Method which parses the parameters of the time stepping scheme from
+   * @brief Method which parses the only the type parameters of
+   * ::PreconditionBaseParameters from the ParameterHandler object @p prm.
+   */
+  static PreconditionerType parse_preconditioner_type(const ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of ::PreconditionBaseParameters
+   * from the ParameterHandler object @p prm.
+   */
+  void parse_parameters(const ParameterHandler &prm);
+
+  /*!
+   * @brief The type of the preconditioner used for solving the linear system.
+   */
+  PreconditionerType preconditioner_type;
+
+  /*!
+   * @brief The name of the preconditioner.
+   */
+  std::string       preconditioner_name;
+};
+
+
+/*!
+ * @struct PreconditionRelaxationParameters
+ *
+ * @brief A structure containing all parameters relevant for Jacobi
+ * preconditioning.
+ */
+struct PreconditionRelaxationParameters : PreconditionBaseParameters
+{
+  /*!
+   * Constructor which sets up the parameters with default values.
+   */
+  PreconditionRelaxationParameters();
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the ILU preconditioner from
    * the ParameterHandler object @p prm.
    */
   void parse_parameters(const ParameterHandler &prm);
@@ -637,61 +693,51 @@ struct LinearSolverParameters
    *
    */
   template<typename Stream>
-  friend Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
+  friend Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm);
 
   /*!
-   * @brief Relative tolerance.
+   * @brief The relaxation parameter in the preconditioner.
    *
-   * @details This parameter specifies the desired relative reduction of the
-   * initial residual of the linear system. The initial residual is given by
-   *
-   * \f[
-   *    r_0=|\!| \mathbf{A}\cdot\mathbf{x}_0-\mathbf{b}|\!|_2\,.
-   * \f]
-   *
-   * If the relative tolerance is applied, the final solution of the linear
-   * system is such that
-   *
-   * \f[
-   *    |\!| \mathbf{A}\cdot\mathbf{x}-\mathbf{b}|\!|_2\leq\mathrm{tol}\,r_0\,.
-   * \f]
+   * @attention For a Jacobi preconditioner, this parameter is only meaningful if the library is
+   * compiled using the Trilinos linear algebra package.
    *
    */
-  double        relative_tolerance;
+  double        omega;
 
   /*!
-   * @brief Absolute tolerance.
+   * @brief A parameter specifying how large the overlap of the local matrix
+   * portions on each processor in a parallel application should be.
    *
-   * @details This parameter specifies the desired absolute value of the
-   * residual of the linear system.
-   *
-   * If the absolute tolerance is applied, the final solution of the linear
-   * system is such that
-   *
-   * \f[
-   *    |\!| \mathbf{A}\cdot\mathbf{x}-\mathbf{b}|\!|_2\leq\mathrm{tol}\,.
-   * \f]
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package and if an SOR or SSOR
+   * preconditioner is used.
    *
    */
-  double        absolute_tolerance;
+  unsigned int  overlap;
+
 
   /*!
-   * @brief Maximum number of iterations to be performed by the linear solver.
+   * @brief A parameter specifying how many times the given preconditioner
+   * should be applied at each call.
    *
-   * @details If the tolerance is fulfilled within the maximum number of
-   * iterations, an error is thrown and the simulation is aborted. In this case,
-   * the preconditioner might require some optimization.
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package.
    *
    */
-  unsigned int  n_maximum_iterations;
-
-private:
-
-  /*!
-   * @brief The name of the solver.
-   */
-  std::string   solver_name;
+  unsigned int  n_sweeps;
 };
+
+using PreconditionJacobiParameters = PreconditionRelaxationParameters;
+
+using PreconditionSSORParameters = PreconditionRelaxationParameters;
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm);
 
 /*!
  * @struct PreconditionILUParameters
@@ -700,18 +746,12 @@ private:
  * an incomplete LU preconditioner.
  *
  */
-struct PreconditionILUParameters
+struct PreconditionILUParameters : PreconditionBaseParameters
 {
   /*!
    * Constructor which sets up the parameters with default values.
    */
   PreconditionILUParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  PreconditionILUParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -720,7 +760,7 @@ struct PreconditionILUParameters
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * @brief Method which parses the parameters of the time stepping scheme from
+   * @brief Method which parses the parameters of the ILU preconditioner from
    * the ParameterHandler object @p prm.
    */
   void parse_parameters(const ParameterHandler &prm);
@@ -778,10 +818,219 @@ struct PreconditionILUParameters
  * @brief Method forwarding parameters to a stream object.
  *
  * @details This method does not add a `std::endl` to the stream at the end.
- *
  */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm);
+
+
+/*!
+ * @struct PreconditionAMGParameters
+ *
+ * @brief A structure containing the common parameters used in AMG
+ * preconditioning.
+ */
+struct PreconditionAMGParameters : PreconditionBaseParameters
+{
+  /*!
+   * Constructor which sets up the parameters with default values.
+   */
+  PreconditionAMGParameters();
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the AMG preconditioner from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(const ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const PreconditionAMGParameters &prm);
+
+  /*
+   * @brief A control parameter for AMG preconditioning using the PETSc library.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the PETSc linear algebra package.
+   *
+   */
+  double strong_threshold;
+
+  /*
+   * @brief A control parameter to control whether smoothed aggregation or
+   * non-smoothed aggregration should be applied.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package.
+   *
+   */
+  bool  elliptic;
+
+  /*
+   * @brief A control parameter to control whether higher order finite elements
+   * are used.
+   *
+   * @details The parameters cannot be specified through the parameter file but
+   * is set according to the polynomial degree of the finite element.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package.
+   *
+   */
+  bool  higher_order_elements;
+
+  /*
+   * @brief A control parameter to control how many multigrid cycles should be
+   * performed.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package.
+   *
+   */
+  unsigned int  n_cycles;
+
+  /*
+   * @brief A control parameter for AMG preconditioning using the Trilinos
+   * library to control how the coarsening should be performed.
+   *
+   * @attention This parameter is only meaningful if the library is compiled
+   * using the Trilinos linear algebra package.
+   *
+   */
+  double  aggregation_threshold;
+
+};
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const PreconditionAMGParameters &prm);
+
+
+/*!
+ * @struct LinearSolverParameters
+ *
+ * @brief A structure containing all parameters relevant for the solution of
+ * linear systems using a Krylov subspace method.
+ *
+ * @todo Proper initiation of the solver_name string without constructor
+ * ambiguity. The string is included in order for the stream to print
+ * also the names of the solvers to the terminal. As of now one can not
+ * tell one from the other (On the prm file they are properly differentiated)
+ */
+struct LinearSolverParameters
+{
+  /*!
+   * Constructor which sets up the parameters with default values.
+   */
+  LinearSolverParameters();
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters of the linear solver from
+   * the ParameterHandler object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
+
+  /*!
+   * @brief Relative tolerance.
+   *
+   * @details This parameter specifies the desired relative reduction of the
+   * initial residual of the linear system. The initial residual is given by
+   *
+   * \f[
+   *    r_0=|\!| \mathbf{A}\cdot\mathbf{x}_0-\mathbf{b}|\!|_2\,.
+   * \f]
+   *
+   * If the relative tolerance is applied, the final solution of the linear
+   * system is such that
+   *
+   * \f[
+   *    |\!| \mathbf{A}\cdot\mathbf{x}-\mathbf{b}|\!|_2\leq\mathrm{tol}\,r_0\,.
+   * \f]
+   *
+   */
+  double        relative_tolerance;
+
+  /*!
+   * @brief Absolute tolerance.
+   *
+   * @details This parameter specifies the desired absolute value of the
+   * residual of the linear system.
+   *
+   * If the absolute tolerance is applied, the final solution of the linear
+   * system is such that
+   *
+   * \f[
+   *    |\!| \mathbf{A}\cdot\mathbf{x}-\mathbf{b}|\!|_2\leq\mathrm{tol}\,.
+   * \f]
+   *
+   */
+  double        absolute_tolerance;
+
+  /*!
+   * @brief Maximum number of iterations to be performed by the linear solver.
+   *
+   * @details If the tolerance is fulfilled within the maximum number of
+   * iterations, an error is thrown and the simulation is aborted. In this case,
+   * the preconditioner might require some optimization.
+   *
+   */
+  unsigned int  n_maximum_iterations;
+
+  /*!
+   * @brief Pointer to the parameter of the preconditioners
+   */
+  std::shared_ptr<PreconditionBaseParameters> preconditioner_parameters_ptr;
+
+private:
+
+  /*!
+   * @brief The name of the solver.
+   */
+  std::string   solver_name;
+};
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const LinearSolverParameters &prm);
+
+
 
 /*!
  * @struct DimensionlessNumbers
@@ -797,19 +1046,20 @@ struct DimensionlessNumbers
   DimensionlessNumbers();
 
   /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  DimensionlessNumbers(const std::string &parameter_filename);
-
-  /*!
-   * @brief Static method which declares the associated parameter to the
+   * @brief Static method which declares the all dimensionless numbers to the
    * ParameterHandler object @p prm.
    */
   static void declare_parameters(ParameterHandler &prm);
 
   /*!
-   * @brief Method which parses the parameters of the time stepping scheme from
+   * @brief Static method which declares the dimensionless numbers associated
+   * with the ProblemType @problem_type to the ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm,
+                                 const ProblemType problem_type);
+
+  /*!
+   * @brief Method which parses the dimensionless numbers from
    * the ParameterHandler object @p prm.
    */
   void parse_parameters(ParameterHandler &prm);
@@ -902,6 +1152,17 @@ private:
    */
   ProblemType problem_type;
 };
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const DimensionlessNumbers &prm);
 
 
 
@@ -1007,18 +1268,6 @@ struct NavierStokesParameters
    * poisson pre-step.
    */
   LinearSolverParameters            poisson_prestep_solver_parameters;
-
-  /*!
-   * @brief Parameters of the ILU preconditioner used for pressure systems, i.e.,
-   * the projection and the Poisson pre-step.
-   */
-  PreconditionILUParameters         pressure_preconditioner_parameters;
-
-  /*!
-   * @brief Parameters of the ILU preconditioner used for velocity systems, i.e.,
-   * the diffusion step.
-   */
-  PreconditionILUParameters         velocity_preconditioner_parameters;
 
   /*!
    * @brief Specifies the frequency of the update of the diffusion
@@ -1132,6 +1381,221 @@ struct HeatEquationParameters
 template<typename Stream>
 Stream& operator<<(Stream &stream, const HeatEquationParameters &prm);
 
+
+
+/*!
+ * @struct HydrodynamicProblemParameters
+ */
+struct ProblemBaseParameters : public OutputControlParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  ProblemBaseParameters();
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream,
+                            const ProblemBaseParameters &prm);
+
+  /*!
+   * @brief Spatial dimension of the problem.
+   */
+  unsigned int                                dim;
+
+  /*!
+   * @brief Polynomial degree of the mapping.
+   */
+  unsigned int                                mapping_degree;
+
+  /*!
+   * @brief Boolean indicating whether the mapping should be applied for
+   * the interior cells as well.
+   */
+  bool                                        mapping_interior_cells;
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool                                        verbose;
+
+  /*!
+   * @brief Parameters of the adaptive mesh refinement.
+   */
+  SpatialDiscretizationParameters             spatial_discretization_parameters;
+
+  /*!
+   * @brief Parameters of the time stepping scheme.
+   */
+  TimeDiscretization::TimeDiscretizationParameters  time_discretization_parameters;
+};
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const ProblemBaseParameters &prm);
+
+
+
+/*!
+ * @struct HydrodynamicProblemParameters
+ */
+struct HydrodynamicProblemParameters
+    : public ProblemBaseParameters,
+      public DimensionlessNumbers
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  HydrodynamicProblemParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  HydrodynamicProblemParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream,
+                            const HydrodynamicProblemParameters &prm);
+
+  /*!
+   * @brief Problem type.
+   */
+  const ProblemType                           problem_type;
+
+  /*!
+   * @brief The polynomial degree of the pressure's finite element.
+   */
+  unsigned int                                fe_degree_pressure;
+
+  /*!
+   * @brief The polynomial degree of the velocity's finite element.
+   */
+  unsigned int                                fe_degree_velocity;
+
+  /*!
+   * @brief Parameters of the Navier-Stokes solver.
+   */
+  NavierStokesParameters                      navier_stokes_parameters;
+};
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm);
+
+
+
+/*!
+ * @struct BoussinesqProblemParameters
+ */
+struct BoussinesqProblemParameters
+    : public ProblemBaseParameters,
+      public DimensionlessNumbers
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  BoussinesqProblemParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  BoussinesqProblemParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream,
+                            const HydrodynamicProblemParameters &prm);
+
+  /*!
+   * @brief Problem type.
+   */
+  const ProblemType                           problem_type;
+
+  /*!
+   * @brief The polynomial degree of the pressure's finite element.
+   */
+  unsigned int                                fe_degree_pressure;
+
+  /*!
+   * @brief The polynomial degree of the velocity's finite element.
+   */
+  unsigned int                                fe_degree_velocity;
+
+  /*!
+   * @brief The polynomial degree of the temperature's finite element.
+   */
+  unsigned int                                fe_degree_temperature;
+
+  /*!
+   * @brief Parameters of the Navier-Stokes solver.
+   */
+  NavierStokesParameters                      navier_stokes_parameters;
+
+  /*!
+   * @brief Parameters of the heat equation solver.
+   */
+  HeatEquationParameters                      heat_equation_parameters;
+
+};
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const BoussinesqProblemParameters &prm);
 
 
 /*!

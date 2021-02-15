@@ -20,8 +20,7 @@ parameters(parameters),
 mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
 temperature(temperature),
-flag_reinit_preconditioner(true),
-flag_add_mass_and_stiffness_matrices(true),
+flag_matrices_were_updated(true),
 flag_ignore_advection(true)
 {
   Assert(temperature.get() != nullptr,
@@ -76,8 +75,7 @@ mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
 temperature(temperature),
 velocity(velocity),
-flag_reinit_preconditioner(true),
-flag_add_mass_and_stiffness_matrices(true),
+flag_matrices_were_updated(true),
 flag_ignore_advection(false)
 {
   Assert(temperature.get() != nullptr,
@@ -134,8 +132,7 @@ mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
 temperature(temperature),
 velocity_function_ptr(velocity),
-flag_reinit_preconditioner(true),
-flag_add_mass_and_stiffness_matrices(true),
+flag_matrices_were_updated(true),
 flag_ignore_advection(false)
 {
   Assert(temperature.get() != nullptr,

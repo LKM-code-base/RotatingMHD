@@ -52,7 +52,7 @@ using namespace dealii;
  *  \nabla^2 \vartheta + r,
  *  \quad \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
  * \f]
- * where \f$ \vartheta \f$ and \f$ \mathit{Pe} \f$ are the adimensional
+ * where \f$ \vartheta \f$ and \f$ \mathit{Pe} \f$ are the dimensionless
  * temperature and the Peclet number respectively. Do note that we
  * reuse the variables names to denote their adimensional counterpart.
  * @todo Documentation
@@ -258,66 +258,14 @@ private:
   double                                        rhs_norm;
 
   /*!
-   * @brief Vector representing the sum of the time discretization terms
-   * that belong to the right hand side of the equation.
-   * @details For example: A BDF2 scheme with a constant time step
-   * expands the time derivative in three terms
-   * \f[
-   * \frac{\partial u}{\partial t} \approx
-   * \frac{1.5}{\Delta t} u^{n} - \frac{2}{\Delta t} u^{n-1}
-   * + \frac{0.5}{\Delta t} u^{n-2},
-   * \f]
-   * the last two terms are known quantities so they belong to the
-   * right hand side of the equation. Therefore, we define
-   * \f[
-   * u_\textrm{tmp} = - \frac{2}{\Delta t} u^{n-1}
-   * + \frac{0.5}{\Delta t} u^{n-2},
-   * \f].
-   * which we use when assembling the right-hand side of the linear
-   * system
+   * @brief The preconditioner.
    */
-  LinearAlgebra::MPI::Vector                    temperature_tmp;
+  std::shared_ptr<LinearAlgebra::PreconditionBase> preconditioner;
 
   /*!
-   * @brief A vector representing the extrapolated velocity at the
-   * current timestep using a Taylor expansion
-   * @details The Taylor expansion is given by
-   * \f{eqnarray*}{
-   * u^{n} &\approx& u^{n-1} + \frac{\partial u^{n-1}}{\partial t} \Delta t \\
-   *         &\approx& u^{n-1} + \frac{u^{n-1} - u^{n-2}}{\Delta t} \Delta t \\
-   *         &\approx& 2 u^{n-1} - u^{n-2}.
-   * \f}
-   * In the case of a variable time step the approximation is given by
-   * \f[
-   * u^{n} \approx (1 + \omega) u^{n-1} - \omega u^{n-2}
-   * \f]
-   * where  \f$ \omega = \frac{\Delta t_{n-1}}{\Delta t_{n-2}}.\f$
-   * @attention The extrapolation is hardcoded to the second order described
-   * above. First and higher order are pending.
+   * @brief A flag indicating if the matrices were updated.
    */
-  LinearAlgebra::MPI::Vector                    extrapolated_velocity;
-
-  /*!
-   * @brief Preconditioner of the linear system.
-   */
-  LinearAlgebra::MPI::PreconditionILU           preconditioner;
-
-  /*!
-   * @brief Absolute tolerance of the Krylov solver.
-   */
-  const double                                  absolute_tolerance = 1.0e-9;
-
-  /*!
-   * @brief A flag indicating if the preconditioner is to be
-   * initiated.
-   */
-  bool                                          flag_reinit_preconditioner;
-
-  /*!
-   * @brief A flag indicating if the sum of the mass and stiffness matrix
-   * is to be performed.
-   */
-  bool                                          flag_add_mass_and_stiffness_matrices;
+  bool                                          flag_matrices_were_updated;
 
   /*!
    * @brief A flag indicating if the advection term is to be ignored.

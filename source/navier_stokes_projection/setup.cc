@@ -34,12 +34,14 @@ void NavierStokesProjection<dim>::setup()
 
   // If the matrices and vector are assembled, the sum of the mass and
   // stiffness matrices has to be updated.
-  flag_add_mass_and_stiffness_matrices = true;
+  flag_matrices_were_updated = true;
 
   if (time_stepping.get_step_number() == 0)
     poisson_prestep();
 
 }
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::setup_phi()
@@ -55,7 +57,7 @@ void NavierStokesProjection<dim>::setup_phi()
   phi->boundary_conditions.copy(pressure->boundary_conditions);
 
   // Inhomogeneous Dirichlet boundary conditions in the pressure space
-  // translate into homogeneous Dirichlet boundary conditions in the
+  // translate to homogeneous Dirichlet boundary conditions in the
   // phi space
   for (auto &dirichlet_bc : phi->boundary_conditions.dirichlet_bcs)
     dirichlet_bc.second = std::make_shared<Functions::ZeroFunction<dim>>();
@@ -66,7 +68,7 @@ void NavierStokesProjection<dim>::setup_phi()
   std::vector<types::boundary_id> unconstrained_boundary_ids =
     velocity->boundary_conditions.get_unconstrained_boundary_ids();
 
-  // An expection is made if there is a Dirichlet boundary condition
+  // An exception is made if there is a Dirichlet boundary condition
   // on the pressure.
   for (const auto &unconstrained_boundary_id: unconstrained_boundary_ids)
     if (pressure->boundary_conditions.dirichlet_bcs.find(unconstrained_boundary_id)
@@ -107,6 +109,8 @@ void NavierStokesProjection<dim>::setup_phi()
   // user. See the documentation of the flag for more information.
   flag_setup_phi = false;
 }
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::setup_matrices()
@@ -314,6 +318,8 @@ void NavierStokesProjection<dim>::setup_matrices()
     *pcout << " done!" << std::endl;
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::
 setup_vectors()
@@ -334,6 +340,8 @@ setup_vectors()
     *pcout << " done!" << std::endl;
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_constant_matrices()
@@ -343,12 +351,16 @@ assemble_constant_matrices()
   assemble_pressure_matrices();
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::set_body_force(
   RMHD::EquationData::BodyForce<dim> &body_force)
 {
   body_force_ptr = &body_force;
 }
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::set_gravity_vector(
@@ -357,12 +369,16 @@ void NavierStokesProjection<dim>::set_gravity_vector(
   gravity_vector_ptr = &gravity_vector;
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::reset_phi()
 {
   phi->set_solution_vectors_to_zero();
   flag_setup_phi = true;
 }
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::
@@ -374,6 +390,7 @@ poisson_prestep()
   /* Solve linear system */
   solve_poisson_prestep();
 }
+
 
 }
 
