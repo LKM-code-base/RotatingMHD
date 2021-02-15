@@ -1046,10 +1046,17 @@ struct DimensionlessNumbers
   DimensionlessNumbers();
 
   /*!
-   * @brief Static method which declares the associated parameter to the
+   * @brief Static method which declares the all dimensionless numbers to the
    * ParameterHandler object @p prm.
    */
   static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Static method which declares the dimensionless numbers associated
+   * with the ProblemType @problem_type to the ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm,
+                                 const ProblemType problem_type);
 
   /*!
    * @brief Method which parses the dimensionless numbers from
@@ -1374,6 +1381,221 @@ struct HeatEquationParameters
 template<typename Stream>
 Stream& operator<<(Stream &stream, const HeatEquationParameters &prm);
 
+
+
+/*!
+ * @struct HydrodynamicProblemParameters
+ */
+struct ProblemBaseParameters : public OutputControlParameters
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  ProblemBaseParameters();
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream,
+                            const ProblemBaseParameters &prm);
+
+  /*!
+   * @brief Spatial dimension of the problem.
+   */
+  unsigned int                                dim;
+
+  /*!
+   * @brief Polynomial degree of the mapping.
+   */
+  unsigned int                                mapping_degree;
+
+  /*!
+   * @brief Boolean indicating whether the mapping should be applied for
+   * the interior cells as well.
+   */
+  bool                                        mapping_interior_cells;
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool                                        verbose;
+
+  /*!
+   * @brief Parameters of the adaptive mesh refinement.
+   */
+  SpatialDiscretizationParameters             spatial_discretization_parameters;
+
+  /*!
+   * @brief Parameters of the time stepping scheme.
+   */
+  TimeDiscretization::TimeDiscretizationParameters  time_discretization_parameters;
+};
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const ProblemBaseParameters &prm);
+
+
+
+/*!
+ * @struct HydrodynamicProblemParameters
+ */
+struct HydrodynamicProblemParameters
+    : public ProblemBaseParameters,
+      public DimensionlessNumbers
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  HydrodynamicProblemParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  HydrodynamicProblemParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream,
+                            const HydrodynamicProblemParameters &prm);
+
+  /*!
+   * @brief Problem type.
+   */
+  const ProblemType                           problem_type;
+
+  /*!
+   * @brief The polynomial degree of the pressure's finite element.
+   */
+  unsigned int                                fe_degree_pressure;
+
+  /*!
+   * @brief The polynomial degree of the velocity's finite element.
+   */
+  unsigned int                                fe_degree_velocity;
+
+  /*!
+   * @brief Parameters of the Navier-Stokes solver.
+   */
+  NavierStokesParameters                      navier_stokes_parameters;
+};
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm);
+
+
+
+/*!
+ * @struct BoussinesqProblemParameters
+ */
+struct BoussinesqProblemParameters
+    : public ProblemBaseParameters,
+      public DimensionlessNumbers
+{
+  /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  BoussinesqProblemParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  BoussinesqProblemParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream,
+                            const HydrodynamicProblemParameters &prm);
+
+  /*!
+   * @brief Problem type.
+   */
+  const ProblemType                           problem_type;
+
+  /*!
+   * @brief The polynomial degree of the pressure's finite element.
+   */
+  unsigned int                                fe_degree_pressure;
+
+  /*!
+   * @brief The polynomial degree of the velocity's finite element.
+   */
+  unsigned int                                fe_degree_velocity;
+
+  /*!
+   * @brief The polynomial degree of the temperature's finite element.
+   */
+  unsigned int                                fe_degree_temperature;
+
+  /*!
+   * @brief Parameters of the Navier-Stokes solver.
+   */
+  NavierStokesParameters                      navier_stokes_parameters;
+
+  /*!
+   * @brief Parameters of the heat equation solver.
+   */
+  HeatEquationParameters                      heat_equation_parameters;
+
+};
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const BoussinesqProblemParameters &prm);
 
 
 /*!
