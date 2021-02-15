@@ -124,12 +124,12 @@ public:
   /*!
    * A method returning the value of @ref flag_datum_at_boundary.
    */
-  bool                            is_a_datum_set_at_boundary() const;
+  bool                            datum_set_at_boundary() const;
 
   /*!
    * A method returning the value of @ref flag_regularity_guaranteed.
    */
-  bool                            is_regularity_guaranteed() const;
+  bool                            regularity_guaranteed() const;
 
 protected:
   /*!
@@ -146,6 +146,8 @@ protected:
 
   /*!
    * @brief Reference to the underlying triangulation.
+   * @todo Change it to a shared_ptr if copy constructure are allowed
+   * through the change.
    */
   const parallel::distributed::Triangulation<dim> &triangulation;
 
@@ -156,8 +158,9 @@ protected:
   bool                                            flag_extract_boundary_ids;
 
   /*!
-   * A flag indicating that a local degree of freedom at the boundary
-   * is to be set to zero.
+   * A flag indicating that a single degree of freedom is constrained
+   * at the boundary. This is required to obtain a regular system matrix
+   * in case of a pure Neumann problem.
    */
   bool                                            flag_datum_at_boundary;
 
@@ -171,7 +174,7 @@ protected:
 
 
 template <int dim>
-inline bool BoundaryConditionsBase<dim>::is_a_datum_set_at_boundary() const
+inline bool BoundaryConditionsBase<dim>::datum_set_at_boundary() const
 {
   return (flag_datum_at_boundary);
 }
@@ -179,7 +182,7 @@ inline bool BoundaryConditionsBase<dim>::is_a_datum_set_at_boundary() const
 
 
 template <int dim>
-inline bool BoundaryConditionsBase<dim>::is_regularity_guaranteed() const
+inline bool BoundaryConditionsBase<dim>::regularity_guaranteed() const
 {
   return (flag_regularity_guaranteed);
 }

@@ -137,8 +137,6 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
 
   if (time_dependent)
     this->time_dependent_bcs_map.emplace(BCType::neumann, boundary_id);
-
-  this->flag_regularity_guaranteed = true;
 }
 
 

@@ -163,6 +163,8 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           // boundary conditions on the pressure field.
           if (!pressure->boundary_conditions.dirichlet_bcs.empty())
             pressure->constraints.distribute(distributed_pressure);
+          else
+            pressure->hanging_nodes.distribute(distributed_pressure);
 
           // Pass the distributed vector to its ghost counterpart.
           pressure->solution = distributed_pressure;
@@ -180,9 +182,6 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             distributed_pressure.add(-mean_value);
             pressure->solution = distributed_pressure;
           }
-            //VectorTools::subtract_mean_value(distributed_pressure);
-
-
 
           if (parameters.verbose)
                 *pcout << " done!" << std::endl

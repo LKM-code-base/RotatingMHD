@@ -122,7 +122,7 @@ void VectorEntity<dim>::setup_dofs()
 template <int dim>
 void VectorEntity<dim>::apply_boundary_conditions()
 {
-  AssertThrow(boundary_conditions.is_regularity_guaranteed(),
+  AssertThrow(boundary_conditions.regularity_guaranteed(),
               ExcMessage("No boundary conditions were set for the \""
                           + this->name + "\" entity"));
 
@@ -213,50 +213,8 @@ void VectorEntity<dim>::apply_boundary_conditions()
       this->constraints);
   }
 
-  /*! @attention This is commented out as I am not sure if this would
-      constraint a component or the whole vector*/
-  /*
-  if (boundary_conditions.is_a_datum_set_at_boundary())
-  {
-    IndexSet    boundary_dofs;
-    DoFTools::extract_boundary_dofs(*this->dof_handler,
-                                    ComponentMask(this->fe.n_components(), true),
-                                    boundary_dofs);
+  /*! @todo Implement a datum for vector valued problem*/
 
-    // Looks for an admissible local degree of freedom to constrain
-    types::global_dof_index local_idx = numbers::invalid_dof_index;
-    IndexSet::ElementIterator idx = boundary_dofs.begin();
-    IndexSet::ElementIterator endidx = boundary_dofs.end();
-    for(; idx != endidx; ++idx)
-      if (this->constraints.can_store_line(*idx) &&
-          !this->constraints.is_constrained(*idx))
-      {
-        local_idx = *idx;
-        break;
-      }
-
-    // Chooses the degree of freedom with the smallest index. If no
-    // admissible degree of freedom was found in a given processor, its
-    // value is set the number of degree of freedom
-    const types::global_dof_index global_idx
-      = Utilities::MPI::min((local_idx != numbers::invalid_dof_index)
-                              ? local_idx
-                              : this->dof_handler->n_dofs(),
-                             this->mpi_communicator);
-
-    // Checks that an admissable degree of freedom was found
-    Assert(global_idx < this->dof_handler->n_dofs(),
-           ExcMessage("Error, couldn't find a DoF to constrain."));
-
-    // Sets the degree of freedom to zero
-    if (this->constraints.can_store_line(global_idx))
-    {
-        Assert(!this->constraints.is_constrained(global_idx),
-               ExcInternalError());
-        this->constraints.add_line(global_idx);
-    }
-  }
-  */
   this->constraints.close();
 }
 
@@ -497,7 +455,7 @@ void ScalarEntity<dim>::setup_dofs()
 template <int dim>
 void ScalarEntity<dim>::apply_boundary_conditions()
 {
-  AssertThrow(boundary_conditions.is_regularity_guaranteed(),
+  AssertThrow(boundary_conditions.regularity_guaranteed(),
               ExcMessage("No boundary conditions were set for the \""
                           + this->name + "\" entity"));
 
@@ -541,7 +499,7 @@ void ScalarEntity<dim>::apply_boundary_conditions()
       this->constraints);
   }
 
-  if (boundary_conditions.is_a_datum_set_at_boundary())
+  if (boundary_conditions.datum_set_at_boundary())
   {
     IndexSet    boundary_dofs;
     DoFTools::extract_boundary_dofs(*this->dof_handler,
