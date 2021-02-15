@@ -75,6 +75,9 @@ solve_diffusion_step(const bool reinit_prec)
                          (velocity->fe_degree > 1? true: false));
   }
 
+  AssertThrow(diffusion_step_preconditioner != nullptr,
+              ExcMessage("The pointer to the diffusion step's preconditioner has not being initialized."));
+
   SolverControl solver_control(
     parameters.diffusion_step_solver_parameters.n_maximum_iterations,
     std::max(solver_parameters.relative_tolerance * diffusion_step_rhs.l2_norm(),

@@ -117,6 +117,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
                                  (pressure->fe_degree > 1? true: false));
           }
 
+          AssertThrow(correction_step_preconditioner != nullptr,
+                      ExcMessage("The pointer to the correction step's preconditioner has not being initialized."));
+
           #ifdef USE_PETSC_LA
             LinearAlgebra::SolverCG solver(solver_control,
                                            mpi_communicator);
