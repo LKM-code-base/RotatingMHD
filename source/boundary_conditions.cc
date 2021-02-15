@@ -247,6 +247,8 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
   const std::shared_ptr<Function<dim>> &function,
   const bool                           time_dependent)
 {
+  AssertThrow(!this->flag_datum_at_boundary,
+              ExcMessage("A datum was already set at the boundary. It is not needed if Dirichlet boundary conditions are to be set."))
   check_boundary_id(boundary_id);
 
   this->constrained_boundaries.push_back(boundary_id);
@@ -298,6 +300,9 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_datum_at_boundary()
 {
+  AssertThrow(this->dirichlet_bcs.empty(),
+              ExcMessage("Dirichlet boundary conditions were set. A datum is not needed."));
+
   this->flag_datum_at_boundary      = true;
   this->flag_regularity_guaranteed  = true;
 }
