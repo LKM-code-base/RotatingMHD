@@ -12,6 +12,8 @@
 namespace RMHD
 {
 
+
+
 template <int dim>
 void HeatEquation<dim>::setup()
 {
@@ -21,6 +23,8 @@ void HeatEquation<dim>::setup()
 
   assemble_constant_matrices();
 }
+
+
 
 template <int dim>
 void HeatEquation<dim>::setup_matrices()
@@ -107,6 +111,8 @@ void HeatEquation<dim>::setup_matrices()
     *pcout << " done!" << std::endl;
 }
 
+
+
 template <int dim>
 void HeatEquation<dim>::
 setup_vectors()
@@ -123,12 +129,14 @@ setup_vectors()
     *pcout << " done!" << std::endl;
 }
 
+
+
 template <int dim>
-void HeatEquation<dim>::set_source_term(
-  Function<dim> &source_term)
+void HeatEquation<dim>::set_source_term(Function<dim> &source_term)
 {
   source_term_ptr = &source_term;
 }
+
 
 } // namespace RMHD
 

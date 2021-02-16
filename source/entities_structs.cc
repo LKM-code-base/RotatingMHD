@@ -1,11 +1,13 @@
 #include <rotatingMHD/entities_structs.h>
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
 #include <algorithm>
+
 namespace RMHD
 {
 
@@ -16,15 +18,18 @@ namespace Entities
 
 template <int dim>
 EntityBase<dim>::EntityBase
-(const unsigned int                               fe_degree,
+(const unsigned int                               n_components,
+ const unsigned int                               fe_degree,
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
+n_components(n_components),
 fe_degree(fe_degree),
 mpi_communicator(triangulation.get_communicator()),
 dof_handler(std::make_shared<DoFHandler<dim>>(triangulation)),
 name(name),
 flag_child_entity(false),
+flag_setup_dofs(true),
 triangulation(triangulation)
 {}
 
@@ -33,6 +38,7 @@ EntityBase<dim>::EntityBase
 (const EntityBase<dim>  &entity,
  const std::string      &new_name)
 :
+n_components(entity.n_components),
 fe_degree(entity.fe_degree),
 mpi_communicator(entity.mpi_communicator),
 dof_handler(entity.dof_handler),
@@ -44,6 +50,8 @@ triangulation(entity.get_triangulation())
 template <int dim>
 void EntityBase<dim>::reinit()
 {
+  Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   #ifdef USE_PETSC_LA
     solution.reinit(locally_owned_dofs,
                     locally_relevant_dofs,
@@ -69,6 +77,8 @@ void EntityBase<dim>::reinit()
 template <int dim>
 void EntityBase<dim>::update_solution_vectors()
 {
+  Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   old_old_solution  = old_solution;
   old_solution      = solution;
 }
@@ -76,6 +86,8 @@ void EntityBase<dim>::update_solution_vectors()
 template <int dim>
 void EntityBase<dim>::set_solution_vectors_to_zero()
 {
+  Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   solution          = 0.;
   old_solution      = 0.;
   old_old_solution  = 0.;
@@ -87,7 +99,7 @@ VectorEntity<dim>::VectorEntity
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
-EntityBase<dim>(fe_degree, triangulation, name),
+EntityBase<dim>(dim, fe_degree, triangulation, name),
 fe(FE_Q<dim>(fe_degree), dim),
 boundary_conditions(triangulation)
 {}
@@ -107,21 +119,39 @@ void VectorEntity<dim>::setup_dofs()
 {
   if (!this->flag_child_entity)
     (this->dof_handler)->distribute_dofs(this->fe);
-
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
-
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
+
+  // Fill hanging node constraints
   this->hanging_nodes.clear();
-  this->hanging_nodes.reinit(this->locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(*(this->dof_handler),
-                                          this->hanging_nodes);
+  {
+    this->hanging_nodes.reinit(this->locally_relevant_dofs);
+    DoFTools::make_hanging_node_constraints(*(this->dof_handler),
+                                            this->hanging_nodes);
+  }
   this->hanging_nodes.close();
+
+  // Modify flag because the dofs are setup
+  this->flag_setup_dofs = false;
+
+  // Setup solution vectors
+  this->reinit();
 }
 
 template <int dim>
 void VectorEntity<dim>::apply_boundary_conditions()
 {
+  AssertThrow(boundary_conditions.regularity_guaranteed(),
+              ExcMessage("No boundary conditions were set for the \""
+                          + this->name + "\" entity"));
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+  {
+    ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+    boundary_conditions.print_summary(pcout, this->name);
+  }
+
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
@@ -208,6 +238,8 @@ void VectorEntity<dim>::apply_boundary_conditions()
       function_map,
       this->constraints);
   }
+
+  /*! @todo Implement a datum for vector valued problem*/
 
   this->constraints.close();
 }
@@ -356,6 +388,8 @@ void VectorEntity<dim>::update_boundary_conditions()
 template<int dim>
 Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 {
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   Vector<double>  point_value(dim);
 
   // try to evaluate the solution at this point. in parallel, the point
@@ -413,7 +447,7 @@ ScalarEntity<dim>::ScalarEntity
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
-EntityBase<dim>(fe_degree, triangulation, name),
+EntityBase<dim>(1, fe_degree, triangulation, name),
 fe(fe_degree),
 boundary_conditions(triangulation)
 {}
@@ -433,22 +467,38 @@ void ScalarEntity<dim>::setup_dofs()
 {
   if (!this->flag_child_entity)
     (this->dof_handler)->distribute_dofs(this->fe);
-
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
-
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
-
+  // Fill hanging node constraints
   this->hanging_nodes.clear();
-  this->hanging_nodes.reinit(this->locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(*(this->dof_handler),
-                                          this->hanging_nodes);
+  {
+    this->hanging_nodes.reinit(this->locally_relevant_dofs);
+    DoFTools::make_hanging_node_constraints(*(this->dof_handler),
+                                            this->hanging_nodes);
+  }
   this->hanging_nodes.close();
+
+  // Modify flag because the dofs are setup
+  this->flag_setup_dofs = false;
+
+  // Setup solution vectors
+  this->reinit();
 }
 
 template <int dim>
 void ScalarEntity<dim>::apply_boundary_conditions()
 {
+  AssertThrow(boundary_conditions.regularity_guaranteed(),
+              ExcMessage("No boundary conditions were set for the \""
+                          + this->name + "\" entity"));
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+  {
+    ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+    boundary_conditions.print_summary(pcout, this->name);
+  }
+
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
@@ -488,6 +538,48 @@ void ScalarEntity<dim>::apply_boundary_conditions()
       function_map,
       this->constraints);
   }
+
+  if (boundary_conditions.datum_set_at_boundary())
+  {
+    IndexSet    boundary_dofs;
+    DoFTools::extract_boundary_dofs(*this->dof_handler,
+                                    ComponentMask(this->fe.n_components(), true),
+                                    boundary_dofs);
+
+    // Looks for an admissible local degree of freedom to constrain
+    types::global_dof_index local_idx = numbers::invalid_dof_index;
+    IndexSet::ElementIterator idx = boundary_dofs.begin();
+    IndexSet::ElementIterator endidx = boundary_dofs.end();
+    for(; idx != endidx; ++idx)
+      if (this->constraints.can_store_line(*idx) &&
+          !this->constraints.is_constrained(*idx))
+      {
+        local_idx = *idx;
+        break;
+      }
+
+    // Chooses the degree of freedom with the smallest index. If no
+    // admissible degree of freedom was found in a given processor, its
+    // value is set the number of degree of freedom
+    const types::global_dof_index global_idx
+      = Utilities::MPI::min((local_idx != numbers::invalid_dof_index)
+                              ? local_idx
+                              : this->dof_handler->n_dofs(),
+                             this->mpi_communicator);
+
+    // Checks that an admissable degree of freedom was found
+    Assert(global_idx < this->dof_handler->n_dofs(),
+           ExcMessage("Error, couldn't find a DoF to constrain."));
+
+    // Sets the degree of freedom to zero
+    if (this->constraints.can_store_line(global_idx))
+    {
+        Assert(!this->constraints.is_constrained(global_idx),
+               ExcInternalError());
+        this->constraints.add_line(global_idx);
+    }
+  }
+
   this->constraints.close();
 }
 
@@ -550,6 +642,8 @@ void ScalarEntity<dim>::update_boundary_conditions()
 template<int dim>
 double ScalarEntity<dim>::point_value(const Point<dim> &point) const
 {
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   double  point_value = 0.0;
 
   // try to evaluate the solution at this point. in parallel, the point
@@ -560,9 +654,9 @@ double ScalarEntity<dim>::point_value(const Point<dim> &point) const
 
   try
   {
-      point_value = VectorTools::point_value(*(this->dof_handler),
-                                             this->solution,
-                                             point);
+    point_value = VectorTools::point_value(*(this->dof_handler),
+                                           this->solution,
+                                           point);
     point_found = true;
   }
   catch (const VectorTools::ExcPointNotAvailableHere &)

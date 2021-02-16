@@ -64,8 +64,6 @@ private:
 
   double                                        cfl_number;
 
-  const bool                                    flag_set_exact_pressure_constant;
-
   void make_grid(const unsigned int &n_global_refinements);
 
   void setup_dofs();
@@ -109,8 +107,7 @@ pressure_exact_solution(
   std::make_shared<EquationData::TGV::PressureExactSolution<dim>>(
     parameters.Re, parameters.time_discretization_parameters.start_time)),
 velocity_convergence_table(velocity, *velocity_exact_solution),
-pressure_convergence_table(pressure, *pressure_exact_solution),
-flag_set_exact_pressure_constant(true)
+pressure_convergence_table(pressure, *pressure_exact_solution)
 {
   *this->pcout << parameters << std::endl << std::endl;
   log_file << "Step" << ","
@@ -210,51 +207,6 @@ template <int dim>
 void TGV<dim>::postprocessing(const bool flag_point_evaluation)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
-
-  if (flag_set_exact_pressure_constant)
-  {
-    LinearAlgebra::MPI::Vector  analytical_pressure(pressure->solution);
-    {
-      #ifdef USE_PETSC_LA
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs,
-                                this->mpi_communicator);
-      #else
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs);
-      #endif
-      VectorTools::project(*pressure->dof_handler,
-                          pressure->constraints,
-                          QGauss<dim>(pressure->fe_degree + 2),
-                          *pressure_exact_solution,
-                          tmp_analytical_pressure);
-
-      analytical_pressure = tmp_analytical_pressure;
-    }
-    {
-      LinearAlgebra::MPI::Vector distributed_analytical_pressure;
-      LinearAlgebra::MPI::Vector distributed_numerical_pressure;
-      #ifdef USE_PETSC_LA
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                               this->mpi_communicator);
-      #else
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                               pressure->locally_relevant_dofs,
-                                               this->mpi_communicator,
-                                               true);
-      #endif
-      distributed_numerical_pressure.reinit(distributed_analytical_pressure);
-
-      distributed_analytical_pressure = analytical_pressure;
-      distributed_numerical_pressure  = pressure->solution;
-
-      distributed_numerical_pressure.add(
-        distributed_analytical_pressure.mean_value() -
-        distributed_numerical_pressure.mean_value());
-
-      pressure->solution = distributed_numerical_pressure;
-    }
-  }
 
   if (flag_point_evaluation)
   {

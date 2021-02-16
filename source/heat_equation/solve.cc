@@ -1,6 +1,5 @@
 #include <rotatingMHD/heat_equation.h>
-
-#include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/utility.h>
 
 namespace RMHD
 {
@@ -11,15 +10,18 @@ void HeatEquation<dim>::solve()
   if (temperature->solution.size() != mass_matrix.m())
   {
     setup();
-    flag_reinit_preconditioner            = true;
-    flag_add_mass_and_stiffness_matrices  = true;
+    flag_matrices_were_updated = true;
   }
 
   assemble_linear_system();
 
-  solve_linear_system(flag_reinit_preconditioner ||
+  rhs_norm = rhs.l2_norm();
+
+  solve_linear_system(flag_matrices_were_updated ||
                       time_stepping.get_step_number() %
                       parameters.preconditioner_update_frequency == 0);
+
+  flag_matrices_were_updated = false;
 }
 
 template <int dim>
@@ -27,7 +29,7 @@ void HeatEquation<dim>::assemble_linear_system()
 {
   // System matrix setup
   if (time_stepping.coefficients_changed() == true ||
-      flag_add_mass_and_stiffness_matrices)
+      flag_matrices_were_updated)
   {
       TimerOutput::Scope  t(*computing_timer, "Heat Equation: Matrix summation");
 
@@ -40,8 +42,6 @@ void HeatEquation<dim>::assemble_linear_system()
     mass_plus_stiffness_matrix.add(
       time_stepping.get_gamma()[0] * parameters.C4,
       stiffness_matrix);
-
-      flag_add_mass_and_stiffness_matrices = false;
   }
 
   if (parameters.convective_term_time_discretization ==
@@ -81,13 +81,24 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
   else
     system_matrix_ptr = &mass_plus_stiffness_matrix;
 
-  if (reinit_preconditioner)
-    preconditioner.initialize(*system_matrix_ptr);
 
-  SolverControl solver_control(
-    parameters.solver_parameters.n_maximum_iterations,
-    std::max(parameters.solver_parameters.relative_tolerance * rhs_norm,
-             parameters.solver_parameters.absolute_tolerance));
+  const typename RunTimeParameters::LinearSolverParameters &solver_parameters
+    = parameters.solver_parameters;
+
+  if (reinit_preconditioner)
+  {
+    build_preconditioner(preconditioner,
+                         *system_matrix_ptr,
+                         solver_parameters.preconditioner_parameters_ptr,
+                         (temperature->fe_degree > 1? true: false));
+  }
+
+  AssertThrow(preconditioner != nullptr,
+              ExcMessage("The pointer to the heat equation solver's preconditioner has not being initialized."));
+
+  SolverControl solver_control(solver_parameters.n_maximum_iterations,
+                               std::max(solver_parameters.relative_tolerance * rhs_norm,
+                                        solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverGMRES solver(solver_control,
@@ -101,7 +112,7 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
     solver.solve(*system_matrix_ptr,
                  distributed_temperature,
                  rhs,
-                 preconditioner);
+                 *preconditioner);
   }
   catch (std::exception &exc)
   {

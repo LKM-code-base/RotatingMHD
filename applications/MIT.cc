@@ -138,13 +138,16 @@ Problem<dim>(parameters),
 params(parameters),
 velocity(std::make_shared<Entities::VectorEntity<dim>>(
               parameters.fe_degree_velocity,
-              this->triangulation)),
+              this->triangulation,
+              "Velocity")),
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.fe_degree_pressure,
-              this->triangulation)),
+              this->triangulation,
+              "Pressure")),
 temperature(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.fe_degree_temperature,
-              this->triangulation)),
+              this->triangulation,
+              "Temperature")),
 temperature_boundary_conditions(
               std::make_shared<EquationData::MIT::TemperatureBoundaryCondition<dim>>(
               parameters.time_discretization_parameters.start_time)),
@@ -274,8 +277,11 @@ void MITBenchmark<dim>::setup_constraints()
   velocity->boundary_conditions.set_dirichlet_bcs(3);
   velocity->boundary_conditions.set_dirichlet_bcs(4);
 
-  // The pressure itself has no boundary conditions. The Navier-Stokes
-  // solver will constrain by setting its mean value to zero.
+  // The pressure itself has no boundary conditions, leading to a pure
+  // Neumann problem. A datum ensures the well-posedness of the problem
+  // and The Navier-Stokes solver will enforce a zero mean value
+  // constraint.
+  pressure->boundary_conditions.set_datum_at_boundary();
 
   // Inhomogeneous time dependent Dirichlet boundary conditions over
   // the side walls and homogeneous Neumann boundary conditions over
@@ -284,6 +290,8 @@ void MITBenchmark<dim>::setup_constraints()
     1, temperature_boundary_conditions, true);
   temperature->boundary_conditions.set_dirichlet_bcs(
     2, temperature_boundary_conditions, true);
+  temperature->boundary_conditions.set_neumann_bcs(3);
+  temperature->boundary_conditions.set_neumann_bcs(4);
 
   velocity->apply_boundary_conditions();
 

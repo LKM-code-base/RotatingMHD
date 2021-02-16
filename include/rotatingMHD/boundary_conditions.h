@@ -70,7 +70,8 @@ enum class BCType
   dirichlet,
   neumann,
   normal_flux,
-  tangential_flux
+  tangential_flux,
+  datum_at_boundary
 };
 
 /*!
@@ -120,6 +121,23 @@ public:
    */
   std::vector<types::boundary_id> get_unconstrained_boundary_ids();
 
+  /*!
+   * A method returning the value of @ref flag_datum_at_boundary.
+   */
+  bool                            datum_set_at_boundary() const;
+
+  /*!
+   * A method returning the value of @ref flag_regularity_guaranteed.
+   */
+  bool                            regularity_guaranteed() const;
+
+  /*!
+   * @brief A method which prints a summary of the boundary conditions which are
+   * currently specified to the stream object @p stream.
+   */
+  template<typename Stream>
+  void print_summary(Stream &stream);
+
 protected:
   /*!
    * @brief A vector containing all boundary indicators assigned to
@@ -135,18 +153,50 @@ protected:
 
   /*!
    * @brief Reference to the underlying triangulation.
+   * @todo Change it to a shared_ptr if copy constructure are allowed
+   * through the change.
    */
   const parallel::distributed::Triangulation<dim> &triangulation;
 
   /*!
-   * @brief A flag indicating wether the boundary indicators are to be
+   * @brief A flag indicating whether the boundary indicators are to be
    * extracted.
    */
   bool                                            flag_extract_boundary_ids;
+
+  /*!
+   * A flag indicating that a single degree of freedom is constrained
+   * at the boundary. This is required to obtain a regular system matrix
+   * in case of a pure Neumann problem.
+   */
+  bool                                            flag_datum_at_boundary;
+
+  /*!
+   * A flag indicating that boundary conditions fulfill the
+   * necessary conditions for a well-posed problem.
+   */
+  bool                                            flag_regularity_guaranteed;
 };
+
+
+
+template <int dim>
+inline bool BoundaryConditionsBase<dim>::datum_set_at_boundary() const
+{
+  return (flag_datum_at_boundary);
+}
+
+
+
+template <int dim>
+inline bool BoundaryConditionsBase<dim>::regularity_guaranteed() const
+{
+  return (flag_regularity_guaranteed);
+}
 
 /*!
  * @struct ScalarBoundaryConditions
+ *
  * @brief A structure containing all the instances related to the
  * boundary conditions of a scalar field.
  */
@@ -160,8 +210,8 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
     const parallel::distributed::Triangulation<dim> &triangulation);
 
   /*!
-   * @brief A typdef for the a mapping using boundary ids as keys
-   * and functions shared pointers as value.
+   * @brief A typedef for a mapping using boundary ids as keys
+   * and shared pointers to functions as values.
    */
   using FunctionMapping = std::map<types::boundary_id,
                                    std::shared_ptr<Function<dim>>>;
@@ -170,6 +220,13 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
    * conditions are set and their respective function.
    */
   FunctionMapping                           neumann_bcs;
+
+  /*!
+   * @brief A method which prints a summary of the boundary conditions which are
+   * currently specified to the stream object @p stream.
+   */
+  template<typename Stream>
+  void print_summary(Stream &stream, const std::string &name);
 
   /*!
    * @brief This method sets a periodic boundary condition by adding a
@@ -218,6 +275,12 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
                          = std::shared_ptr<Function<dim>>(),
                        const bool                           time_depedent
                          = false);
+
+  /*!
+   * @brief Sets an admissible local degree of freedom at the boundary
+   * to zero
+   */
+  void set_datum_at_boundary();
 
   /*!
    * @brief This method sets the time of the functions by calling their
@@ -296,6 +359,13 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
    * conditions are set and their respective functions.
    */
   FunctionMapping         tangential_flux_bcs;
+
+  /*!
+   * @brief A method which prints a summary of the boundary conditions which are
+   * currently specified to the stream object @p stream.
+   */
+  template<typename Stream>
+  void print_summary(Stream &stream, const std::string &name);
 
   /*!
    * @brief This method sets a periodic boundary condition by adding a
@@ -405,14 +475,14 @@ private:
    * @brief A scalar zero tensor function used for homogeneous boundary
    * conditions.
    */
-  std::shared_ptr<TensorFunction<1, dim>>  zero_vector =
-                      std::make_shared<ZeroTensorFunction<1,dim>>();
-
+  const std::shared_ptr<TensorFunction<1, dim>>  zero_tensor_function_ptr
+    = std::make_shared<ZeroTensorFunction<1,dim>>();
 
   /*!
-   * @brief Checks if the passed boundary id was already constrained.
+   * @brief Checks if the boundary passed by through @p boundary_id was already
+   * constrained.
    *
-   * @details It returns an error if it was.
+   * @details It throws an exception if the boundary was constrained.
    */
   void check_boundary_id(const types::boundary_id boundary_id);
 
