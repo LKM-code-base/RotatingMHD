@@ -18,8 +18,6 @@ template<int dim>
 SolutionTransferContainer<dim>::SolutionTransferContainer()
 {}
 
-
-
 template<int dim>
 Problem<dim>::Problem(const RunTimeParameters::ProblemBaseParameters &prm)
 :
@@ -75,6 +73,14 @@ computing_timer(
 }
 
 template <int dim>
+void Problem<dim>::clear()
+{
+  container.clear();
+
+  triangulation.clear();
+}
+
+template <int dim>
 void Problem<dim>::project_function
 (const Function<dim>                             &function,
  const std::shared_ptr<Entities::EntityBase<dim>> entity,
@@ -91,8 +97,8 @@ void Problem<dim>::project_function
     tmp_vector(entity->locally_owned_dofs);
   #endif
 
-  VectorTools::project(this->mapping.get(),
-                       *entity->dof_handler,
+  VectorTools::project(*(this->mapping),
+                      *(entity->dof_handler),
                        entity->constraints,
                        QGauss<dim>(entity->fe_degree + 2),
                        function,
@@ -119,12 +125,9 @@ void Problem<dim>::interpolate_function
     tmp_vector(entity->locally_owned_dofs);
   #endif
 
-  VectorTools::interpolate(this->mapping.get(),
-                           *entity->dof_handler,
+  VectorTools::interpolate(*entity->dof_handler,
                            function,
                            tmp_vector);
-
-  entit
 
   vector = tmp_vector;
 }

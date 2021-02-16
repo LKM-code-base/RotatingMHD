@@ -47,6 +47,8 @@ struct SolutionTransferContainer
    */
   SolutionTransferContainer();
 
+  void clear();
+
   /*!
    * @brief Indicates whether @ref entities is empty or not.
    */
@@ -125,7 +127,11 @@ protected:
    */
   SolutionTransferContainer<dim>              container;
 
-protected:
+  /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear();
 
   /*!
    * @brief Projects the @p function on the finite element space contained
@@ -190,6 +196,12 @@ protected:
 
 
 // inline functions
+template<int dim>
+inline void SolutionTransferContainer<dim>::clear()
+{
+  entities.clear();
+}
+
 template <int dim>
 inline unsigned int SolutionTransferContainer<dim>::get_error_vector_size() const
 {
