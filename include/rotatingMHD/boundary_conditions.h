@@ -140,6 +140,12 @@ public:
 
 protected:
   /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear();
+
+  /*!
    * @brief A vector containing all boundary indicators assigned to
    * boundary faces of active cells of the @ref triangulation.
    */
@@ -291,7 +297,7 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
   /*!
    * @brief This method clears all boundary conditions of this object.
    */
-  void clear();
+  virtual void clear();
 
   /*!
    * @brief This method copies the content of another @ref ScalarBoundaryConditions
@@ -454,7 +460,7 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
   /*!
    * @brief This method clears all boundary conditions.
    */
-  void clear();
+  virtual void clear();
 
   /*!
    * @brief This method copies the content of another @ref VectorBoundaryConditions

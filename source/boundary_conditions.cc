@@ -172,6 +172,20 @@ void BoundaryConditionsBase<dim>::print_summary
   }
 }
 
+template <int dim>
+void BoundaryConditionsBase<dim>::clear()
+{
+  dirichlet_bcs.clear();
+  periodic_bcs.clear();
+  time_dependent_bcs_map.clear();
+
+  boundary_ids.clear();
+  constrained_boundaries.clear();
+
+  flag_extract_boundary_ids = true;
+  flag_datum_at_boundary = false;
+  flag_regularity_guaranteed = false;
+}
 
 template <int dim>
 ScalarBoundaryConditions<dim>::ScalarBoundaryConditions(
@@ -322,13 +336,10 @@ void ScalarBoundaryConditions<dim>::set_time(const double time)
 template <int dim>
 void ScalarBoundaryConditions<dim>::clear()
 {
-  this->dirichlet_bcs.clear();
+  BoundaryConditionsBase<dim>::clear();
 
-  this->neumann_bcs.clear();
+  neumann_bcs.clear();
 
-  this->periodic_bcs.clear();
-
-  this->time_dependent_bcs_map.clear();
 }
 
 template <int dim>
@@ -604,9 +615,9 @@ void VectorBoundaryConditions<dim>::set_time(const double time)
 template <int dim>
 void VectorBoundaryConditions<dim>::clear()
 {
-  this->dirichlet_bcs.clear();
-  this->neumann_bcs.clear();
-  this->periodic_bcs.clear();
+  BoundaryConditionsBase<dim>::clear();
+
+  neumann_bcs.clear();
   normal_flux_bcs.clear();
   tangential_flux_bcs.clear();
 }
