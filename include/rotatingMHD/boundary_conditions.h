@@ -241,7 +241,7 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
   void set_time(const double time);
 
   /*!
-   * @brief This method clears all boundary conditions.
+   * @brief This method clears all boundary conditions of this object.
    */
   void clear();
 
