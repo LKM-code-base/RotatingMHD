@@ -24,6 +24,7 @@ public:
   void run();
 
 protected:
+
   const RunTimeParameters::HydrodynamicProblemParameters &parameters;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
@@ -34,21 +35,81 @@ protected:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
+  /*!
+   * @brief The current Courant number.
+   */
   double                                        cfl_number;
 
+  /*!
+   * @brief This methods continues a simulation until the final time or the
+   * maximum number of steps is reached.
+   *
+   * @attention This method only continues a simulation if the parameters of the
+   * @ref parameter are modified accordingly.
+   */
+  void continue_run();
+
+  /*!
+   * @brief This method loads a checkpoint of a previous simulation from the
+   * file system. This process is referred to as deserialization.
+   */
+  void deserialize(const std::string &fname);
+
+  /*!
+   * @details This methods creates the initial mesh.
+   */
   virtual void make_grid() = 0;
 
+  /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  void clear();
+
+  /*!
+   * @brief This methods restarts a simulation from a serialized checkpoint.
+   *
+   * @details The parameters are nevertheless those being read from the
+   * parameter file.
+   */
   void restart(const std::string &fname);
 
-  void restart_from_function(const double old_step_size,
-                             const double old_old_step_size);
+  /*!
+   * @brief This initializes the problem such that the solution at the fictious
+   * previous timestep is specified according the @p function. The @ref
+   * time_stepping is also initialized accordingly.
+   */
+  void restart_from_function(const Function<dim> &function,
+                             const double         old_step_size,
+                             const double         old_old_step_size);
 
+  /*!
+   * @brief This method saves the current solution as VTK output.
+   */
   void output_results() const;
 
+  /*!
+   * @brief Virtual method to allow the user to run some postprocessing methods.
+   * The default implementation does nothing.
+   */
   virtual void postprocess_solution();
 
+  /*!
+   * @brief Purely virtual method to setup the boundary conditions of the
+   * simulation.
+   */
   virtual void setup_boundary_conditions() = 0;
 
+  /*!
+   * @brief This method saves a previous simulation to the file system. This
+   * process is referred to as serialization.
+   */
+  void serialize(const std::string &fname) const;
+
+  /*!
+   * @brief This method performs a setup of the degrees of freedom of the
+   * @ref velocity and the @ref pressure.
+   */
   void setup_dofs();
 
   virtual void setup_initial_conditions() = 0;

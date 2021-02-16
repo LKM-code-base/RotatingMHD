@@ -16,18 +16,9 @@ using namespace dealii;
 
 template<int dim>
 SolutionTransferContainer<dim>::SolutionTransferContainer()
-:
-error_vector_size(0)
 {}
 
-template<int dim>
-void SolutionTransferContainer<dim>::add_entity(
-std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
-{
-  entities.emplace_back(std::make_pair(entity.get(), flag));
-  if (flag)
-    error_vector_size += 1;
-}
+
 
 template<int dim>
 Problem<dim>::Problem(const RunTimeParameters::ProblemBaseParameters &prm)
@@ -100,11 +91,40 @@ void Problem<dim>::project_function
     tmp_vector(entity->locally_owned_dofs);
   #endif
 
-  VectorTools::project(*entity->dof_handler,
-                        entity->constraints,
-                        QGauss<dim>(entity->fe_degree + 2),
-                        function,
-                        tmp_vector);
+  VectorTools::project(this->mapping.get(),
+                       *entity->dof_handler,
+                       entity->constraints,
+                       QGauss<dim>(entity->fe_degree + 2),
+                       function,
+                       tmp_vector);
+
+  vector = tmp_vector;
+}
+
+
+template <int dim>
+void Problem<dim>::interpolate_function
+(const Function<dim>                             &function,
+ const std::shared_ptr<Entities::EntityBase<dim>> entity,
+ LinearAlgebra::MPI::Vector                      &vector)
+{
+  Assert(function.n_components == entity->n_components,
+         ExcMessage("The number of components of the function does not those "
+                    "of the entity"));
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs, mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs);
+  #endif
+
+  VectorTools::interpolate(this->mapping.get(),
+                           *entity->dof_handler,
+                           function,
+                           tmp_vector);
+
+  entit
 
   vector = tmp_vector;
 }

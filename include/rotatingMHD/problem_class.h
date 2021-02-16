@@ -43,21 +43,9 @@ struct SolutionTransferContainer
   using EntityEntry = std::pair<Entities::EntityBase<dim> *, bool>;
 
   /*!
-   * @brief A std::vector with all the entities to be considered in
-   * a solution transfer
-   */
-  std::vector<EntityEntry>  entities;
-
-  /*!
    * @brief Default constructor.
    */
   SolutionTransferContainer();
-
-  /*!
-   * @brief Inline returning the number of entities to be considered
-   * by the error estimation.
-   */
-  unsigned int get_error_vector_size() const;
 
   /*!
    * @brief Indicates whether @ref entities is empty or not.
@@ -72,26 +60,18 @@ struct SolutionTransferContainer
    */
   void add_entity(std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag = true);
 
-private:
+  /*!
+   * @brief Inline returning the number of entities to be considered
+   * by the error estimation.
+   */
+  unsigned int get_error_vector_size() const;
 
   /*!
-   * @brief The size of the std::vector instance containing all the
-   * Vector instances to be considered by the error estimation.
+   * @brief A std::vector with all the entities to be considered in
+   * a solution transfer
    */
-  unsigned int              error_vector_size;
+  std::vector<EntityEntry>  entities;
 };
-
-template <int dim>
-inline unsigned int SolutionTransferContainer<dim>::get_error_vector_size() const
-{
-  return error_vector_size;
-}
-
-template <int dim>
-inline bool SolutionTransferContainer<dim>::empty() const
-{
-  return entities.empty();
-}
 
 /*!
  * @class Problem
@@ -148,8 +128,8 @@ protected:
 protected:
 
   /*!
-   * @brief Projects the @ref function on the finite element space contained
-   * in the @ref entity and saves the result in the @ref vector.
+   * @brief Projects the @p function on the finite element space contained
+   * in the @p entity and saves the result in the @p vector.
    */
   void project_function
   (const Function<dim>                             &function,
@@ -157,8 +137,19 @@ protected:
    LinearAlgebra::MPI::Vector                      &vector);
 
   /*!
+   * @brief Interpolates the @p function on the finite element space contained
+   * in the @p entity and saves the result in the @p vector.
+   */
+  void interpolate_function
+  (const Function<dim>                             &function,
+   const std::shared_ptr<Entities::EntityBase<dim>> entity,
+   LinearAlgebra::MPI::Vector                      &vector);
+
+
+  /*!
    * @brief Computes the error of the numerical solution against
    * the analytical solution.
+   *
    * @details The error is calculated by subtracting the /f$ L_2/f$
    * projection of the given function from the solution vector and
    * computing the absolute value of the residum.
@@ -200,6 +191,30 @@ protected:
 
 // inline functions
 template <int dim>
+inline unsigned int SolutionTransferContainer<dim>::get_error_vector_size() const
+{
+  unsigned int error_vector_size = 0;
+  for (const auto &pair: entities)
+    if (pair.second)
+      error_vector_size += 1;
+  return (error_vector_size);
+}
+
+template <int dim>
+inline bool SolutionTransferContainer<dim>::empty() const
+{
+  return (entities.empty());
+}
+
+template<int dim>
+inline void SolutionTransferContainer<dim>::add_entity
+(std::shared_ptr<Entities::EntityBase<dim>> entity,
+ bool flag)
+{
+  entities.emplace_back(std::make_pair(entity.get(), flag));
+}
+
+template <int dim>
 inline double Problem<dim>::compute_next_time_step
 (const TimeDiscretization::VSIMEXMethod &time_stepping,
  const double                           cfl_number,
@@ -207,7 +222,7 @@ inline double Problem<dim>::compute_next_time_step
 {
   if (!prm.time_discretization_parameters.adaptive_time_stepping ||
       time_stepping.get_step_number() == 0)
-    return time_stepping.get_next_step_size();
+    return (time_stepping.get_next_step_size());
 
   return (max_cfl_number / cfl_number * time_stepping.get_next_step_size());
 }
