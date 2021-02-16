@@ -937,7 +937,7 @@ struct LinearSolverParameters
   /*!
    * Constructor which sets up the parameters with default values.
    */
-  LinearSolverParameters();
+  LinearSolverParameters(const std::string &name = "default");
 
   /*!
    * @brief Static method which declares the associated parameter to the

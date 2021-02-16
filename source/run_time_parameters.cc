@@ -513,7 +513,10 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
 {
   PreconditionBaseParameters::parse_parameters(prm);
 
-  AssertThrow(preconditioner_type == PreconditionerType::Jacobi,
+  /*! @attetion I added the OR. Otherwise one can not choose SSOR. Or is there a reason
+      for only asserting for Jacobi? */
+  AssertThrow(preconditioner_type == PreconditionerType::Jacobi ||
+              preconditioner_type == PreconditionerType::SSOR,
               ExcMessage("Unexpected preconditioner type in "
                          "PreconditionRelaxationParameters."));
 
@@ -580,17 +583,10 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
 template<typename Stream>
 Stream& operator<<(Stream &stream, const PreconditionRelaxationParameters &prm)
 {
-  internal::add_header(stream);
-  {
-    std::stringstream name;
-    name << "Precondition " << prm.preconditioner_name << " Parameters";
-
-    internal::add_line(stream, name.str().c_str());
-  }
-
-  internal::add_line(stream, "Relaxation parameter", prm.omega);
-  internal::add_line(stream, "Overlap", prm.overlap);
-  internal::add_line(stream, "Number of sweeps", prm.n_sweeps);
+  internal::add_line(stream, "Preconditioner", prm.preconditioner_name);
+  internal::add_line(stream, "  Relaxation parameter", prm.omega);
+  internal::add_line(stream, "  Overlap", prm.overlap);
+  internal::add_line(stream, "  Number of sweeps", prm.n_sweeps);
 
   return (stream);
 }
@@ -680,13 +676,11 @@ void PreconditionILUParameters::parse_parameters(const ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const PreconditionILUParameters &prm)
 {
-  internal::add_header(stream);
-  internal::add_line(stream, "Precondition ILU Parameters");
-
-  internal::add_line(stream, "Fill-in level", prm.fill);
-  internal::add_line(stream, "Overlap", prm.overlap);
-  internal::add_line(stream, "Relative tolerance", prm.relative_tolerance);
-  internal::add_line(stream, "Absolute tolerance", prm.absolute_tolerance);
+  internal::add_line(stream, "Preconditioner", "ILU");
+  internal::add_line(stream, "  Fill-in level", prm.fill);
+  internal::add_line(stream, "  Overlap", prm.overlap);
+  internal::add_line(stream, "  Relative tolerance", prm.relative_tolerance);
+  internal::add_line(stream, "  Absolute tolerance", prm.absolute_tolerance);
 
   return (stream);
 }
@@ -707,7 +701,7 @@ void PreconditionAMGParameters::declare_parameters(ParameterHandler &prm)
 {
   PreconditionBaseParameters::declare_parameters(prm);
 
-  prm.declare_entry("Strong threshold (PETSc)",
+  prm.declare_entry("Strong threshold (PETSc only)",
                     "0.2",
                     Patterns::Double(0.0));
 
@@ -740,8 +734,8 @@ void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
   elliptic = prm.get_bool("Elliptic");
 
   n_cycles = prm.get_integer("Number of cycles");
-  AssertThrow(strong_threshold > 1,
-              ExcLowerRange(n_cycles, 0));
+  AssertThrow(n_cycles > 0,
+              ExcLowerRange(n_cycles, 1));
   AssertIsFinite(aggregation_threshold);
 
   aggregation_threshold = prm.get_double("Aggregation threshold");
@@ -754,25 +748,23 @@ void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const PreconditionAMGParameters &prm)
 {
-  internal::add_header(stream);
-  internal::add_line(stream, "Precondition AMG Parameters");
-
-  internal::add_line(stream, "Strong threshold", prm.strong_threshold);
-  internal::add_line(stream, "Elliptic", (prm.elliptic? "true": "false"));
-  internal::add_line(stream, "Number of cycles", prm.n_cycles);
-  internal::add_line(stream, "Aggregation threshold", prm.aggregation_threshold);
+  internal::add_line(stream, "Preconditioner", "AMG");
+  internal::add_line(stream, "  Strong threshold", prm.strong_threshold);
+  internal::add_line(stream, "  Elliptic", (prm.elliptic? "true": "false"));
+  internal::add_line(stream, "  Number of cycles", prm.n_cycles);
+  internal::add_line(stream, "  Aggregation threshold", prm.aggregation_threshold);
 
   return (stream);
 }
 
 
-LinearSolverParameters::LinearSolverParameters()
+LinearSolverParameters::LinearSolverParameters(const std::string &name)
 :
 relative_tolerance(1e-6),
 absolute_tolerance(1e-9),
 n_maximum_iterations(50),
 preconditioner_parameters_ptr(nullptr),
-solver_name("default")
+solver_name(name)
 {}
 
 
@@ -865,8 +857,12 @@ void LinearSolverParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
 {
+
+
   internal::add_header(stream);
-  internal::add_line(stream, "Linear solver parameters");
+  internal::add_line(stream, "Linear solver parameters" +
+                              (prm.solver_name != "default" ?
+                                " - " + prm.solver_name : ""));
   internal::add_header(stream);
 
   internal::add_line(stream,
@@ -882,7 +878,7 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
   switch (prm.preconditioner_parameters_ptr->preconditioner_type)
   {
     case PreconditionerType::AMG:
-      stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr.get());
+      stream << *static_cast<const PreconditionAMGParameters*>(prm.preconditioner_parameters_ptr.get());
       break;
     case PreconditionerType::ILU:
       stream << *static_cast<const PreconditionILUParameters*>(prm.preconditioner_parameters_ptr.get());
@@ -902,8 +898,6 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
   }
 
   stream << "\r";
-
-  internal::add_header(stream);
 
   return (stream);
 }
@@ -1169,10 +1163,10 @@ C1(0.0),
 C2(1.0),
 C3(0.0),
 C5(0.0),
-diffusion_step_solver_parameters(),
-projection_step_solver_parameters(),
-correction_step_solver_parameters(),
-poisson_prestep_solver_parameters(),
+diffusion_step_solver_parameters("Diffusion step"),
+projection_step_solver_parameters("Projection step"),
+correction_step_solver_parameters("Correction step"),
+poisson_prestep_solver_parameters("Poisson pre-step"),
 preconditioner_update_frequency(10),
 verbose(false)
 {}
@@ -1427,7 +1421,7 @@ HeatEquationParameters::HeatEquationParameters()
 convective_term_weak_form(ConvectiveTermWeakForm::skewsymmetric),
 convective_term_time_discretization(ConvectiveTermTimeDiscretization::semi_implicit),
 C4(1.0),
-solver_parameters(),
+solver_parameters("Heat equation"),
 preconditioner_update_frequency(10),
 verbose(false)
 {}
