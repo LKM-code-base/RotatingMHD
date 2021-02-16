@@ -847,14 +847,15 @@ void ChristensenBenchmark<dim>::find_sample_point()
 
   sample_point_longitude = 0.0;
 
-  sample_point[0] = sample_point_radius *
-                    std::sin(sample_point_colatitude) *
-                    std::cos(sample_point_longitude);
-  sample_point[1] = sample_point_radius *
-                    std::sin(sample_point_colatitude) *
-                    std::sin(sample_point_longitude);
-  sample_point[2] = sample_point_radius *
-                    std::cos(sample_point_colatitude);
+  sample_point[0]   = sample_point_radius *
+                      std::sin(sample_point_colatitude) *
+                      std::cos(sample_point_longitude);
+  sample_point[1]   = sample_point_radius *
+                      std::sin(sample_point_colatitude) *
+                      std::sin(sample_point_longitude);
+  if constexpr(dim == 3)
+    sample_point[2] = sample_point_radius *
+                      std::cos(sample_point_colatitude);
 }
 
 
