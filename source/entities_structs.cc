@@ -26,7 +26,7 @@ EntityBase<dim>::EntityBase
 n_components(n_components),
 fe_degree(fe_degree),
 mpi_communicator(triangulation.get_communicator()),
-dof_handler(std::make_shared<DoFHandler<dim>>(triangulation)),
+dof_handler(std::make_shared<DoFHandler<dim>>()),
 name(name),
 flag_child_entity(false),
 flag_setup_dofs(true),
@@ -44,8 +44,29 @@ mpi_communicator(entity.mpi_communicator),
 dof_handler(entity.dof_handler),
 name(new_name),
 flag_child_entity(true),
-triangulation(entity.get_triangulation())
+flag_setup_dofs(true),
+triangulation(entity.triangulation)
 {}
+
+template <int dim>
+void EntityBase<dim>::clear()
+{
+  solution.clear();
+  old_solution.clear();
+  old_old_solution.clear();
+  distributed_vector.clear();
+
+  hanging_nodes.clear();
+  constraints.clear();
+
+  locally_owned_dofs.clear();
+  locally_relevant_dofs.clear();
+
+  if (!flag_child_entity)
+    dof_handler->clear();
+
+  flag_setup_dofs = true;
+}
 
 template <int dim>
 void EntityBase<dim>::reinit()
@@ -115,10 +136,31 @@ boundary_conditions(entity.get_triangulation())
 {}
 
 template <int dim>
+void VectorEntity<dim>::clear()
+{
+  boundary_conditions.clear();
+
+  EntityBase<dim>::clear();
+}
+
+template <int dim>
 void VectorEntity<dim>::setup_dofs()
 {
-  if (!this->flag_child_entity)
-    (this->dof_handler)->distribute_dofs(this->fe);
+  if (this->flag_child_entity)
+  {
+    AssertThrow(this->dof_handler != nullptr,
+                ExcMessage("The shared pointer to the DoFHandler of the base "
+                           "entity is not setup correctly."));
+    AssertThrow(this->dof_handler->has_active_dofs(),
+                ExcMessage("The DoFHandler of the base entity does not have any "
+                           "active degrees of freedom."));
+
+  }
+  else
+  {
+    this->dof_handler->initialize(this->triangulation, fe);
+  }
+
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
@@ -463,10 +505,33 @@ boundary_conditions(entity.get_triangulation())
 {}
 
 template <int dim>
+void ScalarEntity<dim>::clear()
+{
+  boundary_conditions.clear();
+
+  EntityBase<dim>::clear();
+}
+
+
+template <int dim>
 void ScalarEntity<dim>::setup_dofs()
 {
-  if (!this->flag_child_entity)
-    (this->dof_handler)->distribute_dofs(this->fe);
+  if (this->flag_child_entity)
+  {
+    AssertThrow(this->dof_handler != nullptr,
+                ExcMessage("The shared pointer to the DoFHandler of the base "
+                           "entity is not setup correctly."));
+    AssertThrow(this->dof_handler->has_active_dofs(),
+                ExcMessage("The DoFHandler of the base entity does not have any "
+                           "active degrees of freedom."));
+
+  }
+  else
+  {
+    this->dof_handler->initialize(this->triangulation,
+                                  fe);
+  }
+
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
