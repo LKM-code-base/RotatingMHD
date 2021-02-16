@@ -306,8 +306,9 @@ void Christensen<dim>::setup_constraints()
   velocity->boundary_conditions.set_dirichlet_bcs(0);
   velocity->boundary_conditions.set_dirichlet_bcs(1);
 
-  // The pressure itself has no boundary conditions. The Navier-Stokes
-  // solver will constrain by setting its mean value to zero.
+  // The pressure itself has no boundary conditions. A datum needs to be
+  // set to make the system matrix regular
+  pressure->boundary_conditions.set_datum_at_boundary();
 
   // Inhomogeneous time dependent Dirichlet boundary conditions over
   // the side walls and homogeneous Neumann boundary conditions over
