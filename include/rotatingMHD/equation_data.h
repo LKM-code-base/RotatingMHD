@@ -236,6 +236,8 @@ public:
                                   const unsigned int component) const;
 };
 
+/*! @todo Add a mean value method that considers both domains of the
+    Guermond problem*/
 template <int dim>
 class PressureExactSolution : public Function<dim>
 {

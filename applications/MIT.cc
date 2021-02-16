@@ -274,8 +274,11 @@ void MITBenchmark<dim>::setup_constraints()
   velocity->boundary_conditions.set_dirichlet_bcs(3);
   velocity->boundary_conditions.set_dirichlet_bcs(4);
 
-  // The pressure itself has no boundary conditions. The Navier-Stokes
-  // solver will constrain by setting its mean value to zero.
+  // The pressure itself has no boundary conditions, leading to a pure
+  // Neumann problem. A datum ensures the well-posedness of the problem
+  // and The Navier-Stokes solver will enforce a zero mean value
+  // constraint.
+  pressure->boundary_conditions.set_datum_at_boundary();
 
   // Inhomogeneous time dependent Dirichlet boundary conditions over
   // the side walls and homogeneous Neumann boundary conditions over
