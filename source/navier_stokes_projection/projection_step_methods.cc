@@ -43,6 +43,9 @@ void NavierStokesProjection<dim>::solve_projection_step
                          (phi->fe_degree > 1? true: false));
   }
 
+  AssertThrow(projection_step_preconditioner != nullptr,
+              ExcMessage("The pointer to the projection step's preconditioner has not being initialized."));
+
   SolverControl solver_control(
     solver_parameters.n_maximum_iterations,
     std::max(solver_parameters.relative_tolerance * projection_step_rhs.l2_norm(),
@@ -104,7 +107,7 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of CG iterations: " 
+           << "    Number of CG iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;

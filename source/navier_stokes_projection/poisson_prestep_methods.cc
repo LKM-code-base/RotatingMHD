@@ -49,6 +49,9 @@ solve_poisson_prestep()
                        solver_parameters.preconditioner_parameters_ptr,
                        (pressure->fe_degree > 1? true: false));
 
+  AssertThrow(poisson_prestep_preconditioner != nullptr,
+              ExcMessage("The pointer to the Poisson pre-step's preconditioner has not being initialized."));
+
   SolverControl solver_control(
     solver_parameters.n_maximum_iterations,
     std::max(solver_parameters.relative_tolerance * poisson_prestep_rhs.l2_norm(),
