@@ -93,6 +93,9 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
                          (temperature->fe_degree > 1? true: false));
   }
 
+  AssertThrow(preconditioner != nullptr,
+              ExcMessage("The pointer to the heat equation solver's preconditioner has not being initialized."));
+
   SolverControl solver_control(solver_parameters.n_maximum_iterations,
                                std::max(solver_parameters.relative_tolerance * rhs_norm,
                                         solver_parameters.absolute_tolerance));

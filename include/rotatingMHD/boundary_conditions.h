@@ -70,7 +70,8 @@ enum class BCType
   dirichlet,
   neumann,
   normal_flux,
-  tangential_flux
+  tangential_flux,
+  datum_at_boundary
 };
 
 /*!
@@ -121,6 +122,16 @@ public:
   std::vector<types::boundary_id> get_unconstrained_boundary_ids();
 
   /*!
+   * A method returning the value of @ref flag_datum_at_boundary.
+   */
+  bool                            datum_set_at_boundary() const;
+
+  /*!
+   * A method returning the value of @ref flag_regularity_guaranteed.
+   */
+  bool                            regularity_guaranteed() const;
+
+  /*!
    * @brief A method which prints a summary of the boundary conditions which are
    * currently specified to the stream object @p stream.
    */
@@ -142,6 +153,8 @@ protected:
 
   /*!
    * @brief Reference to the underlying triangulation.
+   * @todo Change it to a shared_ptr if copy constructure are allowed
+   * through the change.
    */
   const parallel::distributed::Triangulation<dim> &triangulation;
 
@@ -150,7 +163,36 @@ protected:
    * extracted.
    */
   bool                                            flag_extract_boundary_ids;
+
+  /*!
+   * A flag indicating that a single degree of freedom is constrained
+   * at the boundary. This is required to obtain a regular system matrix
+   * in case of a pure Neumann problem.
+   */
+  bool                                            flag_datum_at_boundary;
+
+  /*!
+   * A flag indicating that boundary conditions fulfill the
+   * necessary conditions for a well-posed problem.
+   */
+  bool                                            flag_regularity_guaranteed;
 };
+
+
+
+template <int dim>
+inline bool BoundaryConditionsBase<dim>::datum_set_at_boundary() const
+{
+  return (flag_datum_at_boundary);
+}
+
+
+
+template <int dim>
+inline bool BoundaryConditionsBase<dim>::regularity_guaranteed() const
+{
+  return (flag_regularity_guaranteed);
+}
 
 /*!
  * @struct ScalarBoundaryConditions
@@ -233,6 +275,12 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
                          = std::shared_ptr<Function<dim>>(),
                        const bool                           time_depedent
                          = false);
+
+  /*!
+   * @brief Sets an admissible local degree of freedom at the boundary
+   * to zero
+   */
+  void set_datum_at_boundary();
 
   /*!
    * @brief This method sets the time of the functions by calling their

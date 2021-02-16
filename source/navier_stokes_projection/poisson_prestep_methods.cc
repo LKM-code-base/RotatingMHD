@@ -49,6 +49,9 @@ solve_poisson_prestep()
                        solver_parameters.preconditioner_parameters_ptr,
                        (pressure->fe_degree > 1? true: false));
 
+  AssertThrow(poisson_prestep_preconditioner != nullptr,
+              ExcMessage("The pointer to the Poisson pre-step's preconditioner has not being initialized."));
+
   SolverControl solver_control(
     solver_parameters.n_maximum_iterations,
     std::max(solver_parameters.relative_tolerance * poisson_prestep_rhs.l2_norm(),
@@ -94,10 +97,19 @@ solve_poisson_prestep()
 
   pressure->constraints.distribute(distributed_old_pressure);
 
-  if (flag_normalize_pressure)
-    VectorTools::subtract_mean_value(distributed_old_pressure);
-
   pressure->old_solution = distributed_old_pressure;
+
+  if (flag_normalize_pressure)
+  {
+    const LinearAlgebra::MPI::Vector::value_type mean_value
+      = VectorTools::compute_mean_value(*pressure->dof_handler,
+                                        QGauss<dim>(pressure->fe.degree + 1),
+                                        pressure->old_solution,
+                                        0);
+
+    distributed_old_pressure.add(-mean_value);
+    pressure->old_solution = distributed_old_pressure;
+  }
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl

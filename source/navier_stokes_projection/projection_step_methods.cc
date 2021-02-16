@@ -43,6 +43,9 @@ void NavierStokesProjection<dim>::solve_projection_step
                          (phi->fe_degree > 1? true: false));
   }
 
+  AssertThrow(projection_step_preconditioner != nullptr,
+              ExcMessage("The pointer to the projection step's preconditioner has not being initialized."));
+
   SolverControl solver_control(
     solver_parameters.n_maximum_iterations,
     std::max(solver_parameters.relative_tolerance * projection_step_rhs.l2_norm(),
@@ -88,14 +91,23 @@ void NavierStokesProjection<dim>::solve_projection_step
 
   phi->constraints.distribute(distributed_phi);
 
-  if (flag_normalize_pressure)
-    VectorTools::subtract_mean_value(distributed_phi);
-
   phi->solution = distributed_phi;
+
+  if (flag_normalize_pressure)
+  {
+    const LinearAlgebra::MPI::Vector::value_type mean_value
+      = VectorTools::compute_mean_value(*phi->dof_handler,
+                                        QGauss<dim>(phi->fe.degree + 1),
+                                        phi->solution,
+                                        0);
+
+    distributed_phi.add(-mean_value);
+    phi->solution = distributed_phi;
+  }
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of CG iterations: " 
+           << "    Number of CG iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;

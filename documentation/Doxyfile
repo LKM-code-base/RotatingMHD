@@ -918,7 +918,13 @@ RECURSIVE              = YES
 # Note that relative paths are relative to the directory from which doxygen is
 # run.
 
-EXCLUDE                = ../benchmarks/step-35/step-35.cc
+EXCLUDE                = ../tests/ \
+                         ../CMakeLists.txt \
+                         ../CMakeFiles/ \
+                         ../applications/CMakeLists.txt \
+                         ../applications/CMakeFiles/ \
+                         ../source/CMakeLists.txt \
+                         ../source/CMakeFiles/
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -1040,7 +1046,7 @@ USE_MDFILE_AS_MAINPAGE =
 # also VERBATIM_HEADERS is set to NO.
 # The default value is: NO.
 
-SOURCE_BROWSER         = NO
+SOURCE_BROWSER         = YES
 
 # Setting the INLINE_SOURCES tag to YES will include the body of functions,
 # classes and enums directly into the documentation.

@@ -117,6 +117,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
                                  (pressure->fe_degree > 1? true: false));
           }
 
+          AssertThrow(correction_step_preconditioner != nullptr,
+                      ExcMessage("The pointer to the correction step's preconditioner has not being initialized."));
+
           #ifdef USE_PETSC_LA
             LinearAlgebra::SolverCG solver(solver_control,
                                            mpi_communicator);
@@ -170,15 +173,27 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           // The pressure's constraints are distributed to the
           // solution vector to consider the case of Dirichlet
           // boundary conditions on the pressure field.
-          pressure->constraints.distribute(distributed_pressure);
+          if (!pressure->boundary_conditions.dirichlet_bcs.empty())
+            pressure->constraints.distribute(distributed_pressure);
+          else
+            pressure->hanging_nodes.distribute(distributed_pressure);
+
+          // Pass the distributed vector to its ghost counterpart.
+          pressure->solution = distributed_pressure;
 
           // If the pressure field is defined only up to a constant,
           // a zero mean value constraint is enforced
           if (flag_normalize_pressure)
-            VectorTools::subtract_mean_value(distributed_pressure);
+          {
+            const LinearAlgebra::MPI::Vector::value_type mean_value
+              = VectorTools::compute_mean_value(*pressure->dof_handler,
+                                                QGauss<dim>(pressure->fe.degree + 1),
+                                                pressure->solution,
+                                                0);
 
-          // Pass the distributed vector to its ghost counterpart.
-          pressure->solution = distributed_pressure;
+            distributed_pressure.add(-mean_value);
+            pressure->solution = distributed_pressure;
+          }
 
           if (parameters.verbose)
                   *pcout << " done!" << std::endl
