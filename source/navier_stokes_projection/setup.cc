@@ -99,6 +99,11 @@ void NavierStokesProjection<dim>::setup_phi()
   for (auto &neumann_bc : velocity->boundary_conditions.neumann_bcs)
     phi->boundary_conditions.set_dirichlet_bcs(neumann_bc.first);
 
+  // The remaining unconstrained boundaries in the phi space are set to
+  // homogeneous Neumann boundary conditions
+  for (const auto &unconstrained_boundary_id: phi->boundary_conditions.get_unconstrained_boundary_ids())
+    phi->boundary_conditions.set_neumann_bcs(unconstrained_boundary_id);
+
   // Apply boundary conditions
   phi->apply_boundary_conditions();
 
