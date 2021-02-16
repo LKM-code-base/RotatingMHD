@@ -24,7 +24,6 @@ public:
   void run();
 
 protected:
-
   const RunTimeParameters::HydrodynamicProblemParameters &parameters;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
@@ -50,27 +49,18 @@ protected:
   void continue_run();
 
   /*!
-   * @brief This method loads a checkpoint of a previous simulation from the
-   * file system. This process is referred to as deserialization.
-   */
-  void deserialize(const std::string &fname);
-
-  /*!
-   * @details This methods creates the initial mesh.
+   * @brief This methods creates the initial mesh.
+   *
+   * @details This method is only called at the beginning of a simulation.
    */
   virtual void make_grid() = 0;
-
-  /*!
-   * @details Release all memory and return all objects to a state just like
-   * after having called the default constructor.
-   */
-  void clear();
 
   /*!
    * @brief This methods restarts a simulation from a serialized checkpoint.
    *
    * @details The parameters are nevertheless those being read from the
-   * parameter file.
+   * parameter file. This method is only called at the beginning of a
+   * simulation.
    */
   void restart(const std::string &fname);
 
@@ -78,19 +68,18 @@ protected:
    * @brief This initializes the problem such that the solution at the fictious
    * previous timestep is specified according the @p function. The @ref
    * time_stepping is also initialized accordingly.
+   *
+   * @details This method is only called at the beginning of a simulation.
+   *
    */
   void restart_from_function(const Function<dim> &function,
                              const double         old_step_size,
                              const double         old_old_step_size);
 
   /*!
-   * @brief This method saves the current solution as VTK output.
-   */
-  void output_results() const;
-
-  /*!
    * @brief Virtual method to allow the user to run some postprocessing methods.
    * The default implementation does nothing.
+   *
    */
   virtual void postprocess_solution();
 
@@ -101,6 +90,27 @@ protected:
   virtual void setup_boundary_conditions() = 0;
 
   /*!
+   * @brief Purely virtual method to setup the initial conditions of the @ref
+   * velocity and, possibly, the @ref pressure.
+   *
+   * @details This method is only called at the beginning of a simulation.
+   */
+  virtual void setup_initial_conditions() = 0;
+
+private:
+  /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear() override;
+
+  /*!
+   * @brief This method loads a checkpoint of a previous simulation from the
+   * file system. This process is referred to as deserialization.
+   */
+  void deserialize(const std::string &fname);
+
+  /*!
    * @brief This method saves a previous simulation to the file system. This
    * process is referred to as serialization.
    */
@@ -109,15 +119,34 @@ protected:
   /*!
    * @brief This method performs a setup of the degrees of freedom of the
    * @ref velocity and the @ref pressure.
+   *
+   * @details This method is called at the beginning of a simulation and when
+   * the mesh is refined.
    */
   void setup_dofs();
 
-  virtual void setup_initial_conditions() = 0;
+  /*!
+   * @brief This method saves the current solution as VTK output.
+   */
+  void output_results() const;
 
+  /*!
+   * @brief This method updates the solution vectors of the @ref velocity and
+   * the @ref pressure.
+   *
+   * @details This method is commonly called when the timestep is advanced.
+   */
   void update_solution_vectors();
+
 };
 
 // inline functions
+template<int dim>
+inline void HydrodynamicProblem<dim>::postprocess_solution()
+{
+  return;
+}
+
 template<int dim>
 inline void HydrodynamicProblem<dim>::update_solution_vectors()
 {
