@@ -120,6 +120,8 @@ public:
    */
   std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
 
+  void clear();
+
   /*!
    *  @brief Setups and initializes all the internal entities for
    *  the projection method problem.
@@ -203,12 +205,17 @@ private:
   const MPI_Comm                         &mpi_communicator;
 
   /*!
+   * @brief A reference to the class controlling the temporal discretization.
+   */
+  const TimeDiscretization::VSIMEXMethod &time_stepping;
+
+  /*!
    * @brief Pointer to a conditional output stream object.
    */
   std::shared_ptr<ConditionalOStream>     pcout;
 
   /*!
-   * @breif Pointer to a monitor of the computing times.
+   * @brief Pointer to a monitor of the computing times.
    */
   std::shared_ptr<TimerOutput>            computing_timer;
 
@@ -241,11 +248,6 @@ private:
    * @brief A pointer to the gravity unit vector function.
    */
   RMHD::EquationData::BodyForce<dim>    *gravity_vector_ptr;
-
-  /*!
-   * @brief A reference to the class controlling the temporal discretization.
-   */
-  const TimeDiscretization::VSIMEXMethod &time_stepping;
 
   /*!
    * @brief System matrix used to solve for the velocity field in the diffusion
