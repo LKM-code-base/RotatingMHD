@@ -271,7 +271,13 @@ public:
   void run();
 
 private:
+
   BenchmarkData::DFGBechmarkRequest<dim>        benchmark_request;
+
+  const types::boundary_id  inlet_bndry_id;
+  const types::boundary_id  outlet_bndry_id;
+  const types::boundary_id  cylinder_bndry_id;
+  const types::boundary_id  wall_bndry_id;
 
   virtual void make_grid() override;
 
@@ -286,7 +292,11 @@ template <int dim>
 DFG<dim>::DFG(const RunTimeParameters::HydrodynamicProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
-benchmark_request()
+benchmark_request(),
+inlet_bndry_id(0),
+outlet_bndry_id(1),
+cylinder_bndry_id(2),
+wall_bndry_id(3)
 {}
 
 template <int dim>
@@ -329,13 +339,13 @@ void DFG<dim>::setup_boundary_conditions()
          ExcMessage("Boundary conditions are not setup at the start time."));
 
   this->velocity->boundary_conditions.set_dirichlet_bcs
-  (0,
+  (inlet_bndry_id,
    std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>(current_time));
 
-  this->velocity->boundary_conditions.set_dirichlet_bcs(2);
-  this->velocity->boundary_conditions.set_dirichlet_bcs(3);
+  this->velocity->boundary_conditions.set_dirichlet_bcs(cylinder_bndry_id);
+  this->velocity->boundary_conditions.set_dirichlet_bcs(wall_bndry_id);
 
-  this->pressure->boundary_conditions.set_dirichlet_bcs(1);
+  this->pressure->boundary_conditions.set_dirichlet_bcs(outlet_bndry_id);
 
   this->velocity->apply_boundary_conditions();
   this->pressure->apply_boundary_conditions();
