@@ -164,7 +164,7 @@ temperature(std::make_shared<Entities::ScalarEntity<dim>>(
 magnetic_field(std::make_shared<Entities::VectorEntity<dim>>(
               1/*parameters.fe_degree_magnetic_field*/,
               this->triangulation,
-              "Magnetic flux")),
+              "Magnetic field")),
 temperature_initial_conditions(
   std::make_shared<EquationData::Christensen::TemperatureInitialCondition<dim>>(
     r_i,
@@ -432,9 +432,9 @@ void Christensen<dim>::run()
 {
   // Sets up the solvers. This does not need to be done manually but it
   // allows to output the pressure computed by the Poisson pre-step
-  heat_equation.setup();
-  navier_stokes.setup();
-  pressure->old_solution = 0.;
+  //heat_equation.setup();
+  //navier_stokes.setup();
+  //pressure->old_solution = 0.;
   /*navier_stokes.perform_diffusion_step();
   velocity->old_solution = velocity->solution;
   navier_stokes.reset();
