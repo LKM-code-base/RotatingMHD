@@ -513,8 +513,6 @@ void PreconditionRelaxationParameters::parse_parameters(const ParameterHandler &
 {
   PreconditionBaseParameters::parse_parameters(prm);
 
-  /*! @attetion I added the OR. Otherwise one can not choose SSOR. Or is there a reason
-      for only asserting for Jacobi? */
   AssertThrow(preconditioner_type == PreconditionerType::Jacobi ||
               preconditioner_type == PreconditionerType::SSOR,
               ExcMessage("Unexpected preconditioner type in "
@@ -736,7 +734,7 @@ void PreconditionAMGParameters::parse_parameters(const ParameterHandler &prm)
   n_cycles = prm.get_integer("Number of cycles");
   AssertThrow(n_cycles > 0,
               ExcLowerRange(n_cycles, 1));
-  AssertIsFinite(aggregation_threshold);
+  AssertIsFinite(n_cycles);
 
   aggregation_threshold = prm.get_double("Aggregation threshold");
   AssertThrow(aggregation_threshold > 0.0,
