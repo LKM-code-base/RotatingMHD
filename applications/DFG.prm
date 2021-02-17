@@ -95,3 +95,30 @@ subsection Output control parameters
 end
 
 
+subsection Refinement control parameters
+  set Adaptive mesh refinement               = false
+  set Adaptive mesh refinement frequency     = 100
+  set Fraction of cells set to coarsen       = 0.3
+  set Fraction of cells set to refine        = 0.03
+  set Maximum number of levels               = 5
+  set Minimum number of levels               = 0
+  set Number of initial adaptive refinements = 0
+  set Number of initial boundary refinements = 0
+  set Number of initial global refinements   = 3
+end
+
+
+subsection Time stepping parameters
+  set Adaptive time stepping        = false
+  set Adaptive timestepping barrier = 2
+  set Final time                    = 3000.0
+  set Initial time step             = 2.5e-2
+  set Maximum number of time steps  = 10
+  set Maximum time step             = 5e-2
+  set Minimum time step             = 1e-2
+  set Start time                    = 0.0
+  set Time stepping scheme          = BDF2
+  set Verbose                       = false
+end
+
+
