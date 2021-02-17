@@ -28,7 +28,8 @@ rear_evaluation_point(0.25 / reference_length,
                       0.20 / reference_length),
 pressure_difference(0),
 drag_coefficient(0),
-lift_coefficient(0)
+lift_coefficient(0),
+table_is_empty(true)
 {
   data_table.declare_column("n");
   data_table.declare_column("t");
@@ -153,14 +154,15 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
             }
           }
 
-  forces = Utilities::MPI::sum(forces, MPI_COMM_WORLD);
+  forces = Utilities::MPI::sum(forces, velocity->mpi_communicator);
 
   drag_coefficient = 2.0 * forces[0];
   lift_coefficient = 2.0 * forces[1];
 }
 
 template <int dim>
-void DFGBechmarkRequest<dim>::update_table(DiscreteTime  &time)
+void DFGBechmarkRequest<dim>::update_table
+(const TimeDiscretization::DiscreteTime  &time)
 {
   data_table.add_value("n",   time.get_step_number());
   data_table.add_value("t",   time.get_current_time());
@@ -169,67 +171,69 @@ void DFGBechmarkRequest<dim>::update_table(DiscreteTime  &time)
 
   data_table.add_value("C_d", drag_coefficient);
   data_table.add_value("C_l", lift_coefficient);
+
+  table_is_empty = false;
 }
 
 template <int dim>
-void DFGBechmarkRequest<dim>::print_step_data(DiscreteTime &time)
+template <typename Stream>
+void DFGBechmarkRequest<dim>::print_benchmark_data(Stream &stream) const
 {
-  ConditionalOStream  pcout(std::cout,
-                            (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
-
-  pcout << "Step = "
-        << std::setw(4)
-        << time.get_step_number()
-        << " Time = "
-        << std::noshowpos << std::scientific
-        << time.get_current_time()
-        << " dp = "
-        << std::showpos << std::scientific
-        << pressure_difference
-        << " C_d = "
-        << std::showpos << std::scientific
-        << drag_coefficient
-        << " C_l = "
-        << std::showpos << std::scientific
-        << lift_coefficient << std::endl;
+  stream << "Pressure difference = "
+         << std::showpos << std::scientific
+         << pressure_difference << ", "
+         << "Drag = "
+         << std::showpos << std::scientific
+         << drag_coefficient << ", "
+         << "Lift = "
+         << std::showpos << std::scientific
+         << lift_coefficient;
 }
 
 template <int dim>
-void DFGBechmarkRequest<dim>::write_table_to_file(const std::string  &file)
+bool DFGBechmarkRequest<dim>::save(const std::string  &file) const
 {
-  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+  if (table_is_empty)
+    return (false);
+  else
   {
-    std::ofstream out_file(file);
-    data_table.write_text(
-      out_file,
-      TableHandler::TextOutputFormat::org_mode_table);
-    out_file.close();
-  }
+    if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+    {
+      std::ofstream out_file(file);
+      data_table.write_text(out_file,
+                            TableHandler::TextOutputFormat::org_mode_table);
+      out_file.close();
+    }
+    return (true);
+  };
 }
 
 template <int dim>
-MIT<dim>::MIT(
-  const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-  const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
-  const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-  TimeDiscretization::VSIMEXMethod                    &time_stepping,
-  const unsigned int                                  left_wall_boundary_id,
-  const unsigned int                                  right_wall_boundary_id,
-  const std::shared_ptr<Mapping<dim>>                 external_mapping,
-  const std::shared_ptr<ConditionalOStream>           external_pcout,
-  const std::shared_ptr<TimerOutput>                  external_timer)
+MIT<dim>::MIT
+(const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
+ const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
+ const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+ const types::boundary_id  left_wall_boundary_id,
+ const types::boundary_id  right_wall_boundary_id,
+ const std::shared_ptr<Mapping<dim>>                 external_mapping)
 :
 mpi_communicator(velocity->mpi_communicator),
-time_stepping(time_stepping),
 velocity(velocity),
 pressure(pressure),
 temperature(temperature),
-pressure_differences(3),
+pressure_differences(3, std::numeric_limits<double>::max()),
+temperature_at_p1(std::numeric_limits<double>::max()),
+stream_function_at_p1(std::numeric_limits<double>::max()),
+vorticity_at_p1(std::numeric_limits<double>::max()),
+skewness_metric(std::numeric_limits<double>::max()),
+average_velocity_metric(std::numeric_limits<double>::max()),
+average_vorticity_metric(std::numeric_limits<double>::max()),
 width(1.0),
 height(8.0),
 area(8.0),
 left_wall_boundary_id(left_wall_boundary_id),
-right_wall_boundary_id(right_wall_boundary_id)
+right_wall_boundary_id(right_wall_boundary_id),
+table_is_empty(true)
 {
   AssertDimension(dim, 2);
   Assert(velocity.get() != nullptr,
@@ -254,23 +258,6 @@ right_wall_boundary_id(right_wall_boundary_id)
     mapping = external_mapping;
   else
     mapping.reset(new MappingQ<dim>(1));
-
-  // Initiating the internal ConditionalOStream instance.
-  if (external_pcout.get() != nullptr)
-    pcout = external_pcout;
-  else
-    pcout.reset(new ConditionalOStream(
-      std::cout,
-      Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
-
-  // Initiating the internal TimerOutput instance.
-  if (external_timer.get() != nullptr)
-    computing_timer  = external_timer;
-  else
-    computing_timer.reset(new TimerOutput(
-      *pcout,
-      TimerOutput::summary,
-      TimerOutput::wall_times));
 
   // Setting up columns
   data.declare_column("time");
@@ -322,7 +309,7 @@ right_wall_boundary_id(right_wall_boundary_id)
 }
 
 template <int dim>
-void MIT<dim>::compute_benchmark_data()
+void MIT<dim>::update_table(const TimeDiscretization::DiscreteTime &time_stepping)
 {
   // Compute benchmark data
   compute_point_data();
@@ -344,49 +331,52 @@ void MIT<dim>::compute_benchmark_data()
   data.add_value("Nu_right_wall", nusselt_numbers.second);
   data.add_value("average_velocity_metric", average_velocity_metric);
   data.add_value("average_vorticity_metric", average_vorticity_metric);
+
+  table_is_empty = false;
 }
 
 template <int dim>
-void MIT<dim>::print_data_to_file(std::string file_name)
+bool MIT<dim>::save(const std::string &file_name) const
 {
-  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+  if (table_is_empty)
+    return (false);
+  else
   {
-    file_name += ".txt";
-
-    std::ofstream file(file_name);
-
-    data.write_text(
-      file,
-      TableHandler::TextOutputFormat::org_mode_table);
+    if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+    {
+      std::ofstream file(file_name);
+      data.write_text(
+        file,
+        TableHandler::TextOutputFormat::org_mode_table);
+      file.close();
+    }
+    return (true);
   }
 }
 
-
-template<typename Stream, int dim>
-Stream& operator<<(Stream &stream, const MIT<dim> &mit)
+template <int dim>
+template <typename Stream>
+void MIT<dim>::print_benchmark_data(Stream &stream) const
 {
   stream << std::noshowpos << std::scientific << std::setprecision(1)
          << "ux_1 = "
-         << mit.velocity_at_p1[0]
+         << velocity_at_p1[0]
          << ", T_1 = "
-         << mit.temperature_at_p1
+         << temperature_at_p1
          << ", p_14 = "
-         << mit.pressure_differences[0]
+         << pressure_differences[0]
          << ", Nu = "
-         << mit.nusselt_numbers.first
-         << ", u = "
-         << mit.average_velocity_metric
-         << ", w = "
-         << mit.average_vorticity_metric;
-
-  return stream;
+         << nusselt_numbers.first
+         << ", <u> = "
+         << average_velocity_metric
+         << ", omega = "
+         << average_vorticity_metric;
+  return;
 }
 
 template <int dim>
 void MIT<dim>::compute_point_data()
 {
-  TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Point data");
-
   // Obtaining data at sample point 1
   velocity_at_p1        = velocity->point_value(sample_points[0]);
   temperature_at_p1     = temperature->point_value(sample_points[0]);
@@ -412,8 +402,6 @@ void MIT<dim>::compute_point_data()
 template <int dim>
 void MIT<dim>::compute_wall_data()
 {
-  TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Wall data");
-
   /*! @attention What would be the polynomial degree of the normal
       vector? */
   // Polynomial degree of the integrand
@@ -493,8 +481,6 @@ void MIT<dim>::compute_wall_data()
 template <int dim>
 void MIT<dim>::compute_global_data()
 {
-  TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Global data");
-
   // Defining the type to contain the vorticity during assembly
   using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
 
@@ -576,12 +562,3 @@ template struct RMHD::BenchmarkData::DFGBechmarkRequest<3>;
 
 template class RMHD::BenchmarkData::MIT<2>;
 template class RMHD::BenchmarkData::MIT<3>;
-
-template std::ostream & RMHD::BenchmarkData::operator<<
-(std::ostream &, const RMHD::BenchmarkData::MIT<2> &);
-template std::ostream & RMHD::BenchmarkData::operator<<
-(std::ostream &, const RMHD::BenchmarkData::MIT<3> &);
-template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
-(dealii::ConditionalOStream &, const RMHD::BenchmarkData::MIT<2> &);
-template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
-(dealii::ConditionalOStream &, const RMHD::BenchmarkData::MIT<3> &);
