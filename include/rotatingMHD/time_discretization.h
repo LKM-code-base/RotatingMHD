@@ -171,11 +171,6 @@ public:
   VSIMEXMethod(const TimeDiscretizationParameters &parameters);
 
   /*!
-  * @brief Copy constructor.
-  */
-  VSIMEXMethod(const VSIMEXMethod &vsimex);
-
-  /*!
   * @brief A method returning the order of the VSIMEX scheme.
   */
   unsigned int get_order() const;
