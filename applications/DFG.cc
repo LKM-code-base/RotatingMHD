@@ -333,14 +333,15 @@ void DFG<dim>::setup_boundary_conditions()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  const double current_time = this->time_stepping.get_current_time();
+  using namespace EquationData::DFG;
 
+  const double current_time = this->time_stepping.get_current_time();
   Assert(current_time == this->time_stepping.get_start_time(),
          ExcMessage("Boundary conditions are not setup at the start time."));
 
   this->velocity->boundary_conditions.set_dirichlet_bcs
   (inlet_bndry_id,
-   std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>(current_time));
+   std::make_shared<VelocityInflowBoundaryCondition<dim>>(current_time));
 
   this->velocity->boundary_conditions.set_dirichlet_bcs(cylinder_bndry_id);
   this->velocity->boundary_conditions.set_dirichlet_bcs(wall_bndry_id);
@@ -359,7 +360,6 @@ void DFG<dim>::setup_initial_conditions()
   using namespace EquationData::DFG;
 
   const double current_time = this->time_stepping.get_current_time();
-
   Assert(current_time == this->time_stepping.get_start_time(),
          ExcMessage("Initial conditions are not setup at the start time."));
 

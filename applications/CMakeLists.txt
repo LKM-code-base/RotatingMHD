@@ -7,7 +7,7 @@ INCLUDE_DIRECTORIES(
 
 SET(SOURCE_FILES
     DFG.cc
-#    step-35.cc
+    step-35.cc
 #    TGV.cc
 #    Guermond.cc
 #    GuermondNeumannBC.cc

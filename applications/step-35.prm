@@ -1,7 +1,6 @@
 # Listing of Parameters
 # ---------------------
 set FE's polynomial degree - Pressure (Taylor-Hood) = 1
-set FE's polynomial degree - Temperature            = 2
 set Problem type                                    = hydrodynamic
 set Spatial dimension                               = 2
 set Verbose                                         = false
