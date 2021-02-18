@@ -9,12 +9,12 @@ namespace RMHD
 template <int dim>
 NavierStokesProjection<dim>::NavierStokesProjection
 (const RunTimeParameters::NavierStokesParameters  &parameters,
- TimeDiscretization::VSIMEXMethod                 &time_stepping,
- std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
- std::shared_ptr<Entities::ScalarEntity<dim>>     &pressure,
- const std::shared_ptr<Mapping<dim>>              external_mapping,
- const std::shared_ptr<ConditionalOStream>        external_pcout,
- const std::shared_ptr<TimerOutput>               external_timer)
+ const TimeDiscretization::VSIMEXMethod           &time_stepping,
+ const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+ const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+ const std::shared_ptr<const Mapping<dim>>          &external_mapping,
+ const std::shared_ptr<ConditionalOStream>          &external_pcout,
+ const std::shared_ptr<TimerOutput>                 &external_timer)
 :
 phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure, "Phi")),
 parameters(parameters),
@@ -72,13 +72,13 @@ flag_ignore_bouyancy_term(true)
 template <int dim>
 NavierStokesProjection<dim>::NavierStokesProjection
 (const RunTimeParameters::NavierStokesParameters  &parameters,
- TimeDiscretization::VSIMEXMethod                 &time_stepping,
- std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
- std::shared_ptr<Entities::ScalarEntity<dim>>     &pressure,
- std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
- const std::shared_ptr<Mapping<dim>>              external_mapping,
- const std::shared_ptr<ConditionalOStream>        external_pcout,
- const std::shared_ptr<TimerOutput>               external_timer)
+ const TimeDiscretization::VSIMEXMethod           &time_stepping,
+ const std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+ const std::shared_ptr<Entities::ScalarEntity<dim>>     &pressure,
+ const std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+ const std::shared_ptr<Mapping<dim>>              &external_mapping,
+ const std::shared_ptr<ConditionalOStream>        &external_pcout,
+ const std::shared_ptr<TimerOutput>               &external_timer)
 :
 phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure)),
 parameters(parameters),

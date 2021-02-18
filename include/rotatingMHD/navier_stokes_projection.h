@@ -83,14 +83,14 @@ public:
    */
   NavierStokesProjection
   (const RunTimeParameters::NavierStokesParameters  &parameters,
-   TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
-   const std::shared_ptr<Mapping<dim>>          external_mapping =
-       std::shared_ptr<Mapping<dim>>(),
-   const std::shared_ptr<ConditionalOStream>    external_pcout =
+   const TimeDiscretization::VSIMEXMethod           &time_stepping,
+   const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   const std::shared_ptr<const Mapping<dim>>    &external_mapping =
+       std::shared_ptr<const Mapping<dim>>(),
+   const std::shared_ptr<ConditionalOStream>    &external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>           external_timer =
+   const std::shared_ptr<TimerOutput>           &external_timer =
        std::shared_ptr<TimerOutput>());
 
   /*!
@@ -101,18 +101,17 @@ public:
    * pointers for the mapping and terminal output entities.
    */
   NavierStokesProjection
-  (const RunTimeParameters::NavierStokesParameters        &parameters,
-   TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
-   const std::shared_ptr<Mapping<dim>>          external_mapping =
+  (const RunTimeParameters::NavierStokesParameters  &parameters,
+   const TimeDiscretization::VSIMEXMethod           &time_stepping,
+   const std::shared_ptr<Entities::VectorEntity<dim>>   &velocity,
+   const std::shared_ptr<Entities::ScalarEntity<dim>>   &pressure,
+   const std::shared_ptr<Entities::ScalarEntity<dim>>   &temperature,
+   const std::shared_ptr<Mapping<dim>>              &external_mapping =
        std::shared_ptr<Mapping<dim>>(),
-   const std::shared_ptr<ConditionalOStream>    external_pcout =
+   const std::shared_ptr<ConditionalOStream>        &external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>           external_timer =
+   const std::shared_ptr<TimerOutput>               &external_timer =
        std::shared_ptr<TimerOutput>());
-
   /*!
    * @brief The entity for the scalar field \f$ \phi \f$, which is
    * the field computed during the projection step and later used in
@@ -202,27 +201,27 @@ private:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const MPI_Comm                         &mpi_communicator;
+  const MPI_Comm                          &mpi_communicator;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
    */
-  const TimeDiscretization::VSIMEXMethod &time_stepping;
+  const TimeDiscretization::VSIMEXMethod  &time_stepping;
 
   /*!
    * @brief Pointer to a conditional output stream object.
    */
-  std::shared_ptr<ConditionalOStream>     pcout;
+  std::shared_ptr<ConditionalOStream> pcout;
 
   /*!
    * @brief Pointer to a monitor of the computing times.
    */
-  std::shared_ptr<TimerOutput>            computing_timer;
+  std::shared_ptr<TimerOutput>        computing_timer;
 
   /*!
    * @brief Pointer to the mapping to be used throughout the solver.
    */
-  std::shared_ptr<Mapping<dim>>           mapping;
+  std::shared_ptr<const Mapping<dim>>     mapping;
 
   /*!
    * @brief A reference to the entity of velocity field.
