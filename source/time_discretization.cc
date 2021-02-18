@@ -391,7 +391,7 @@ std::string VSIMEXMethod::get_name() const
 {
   std::string name;
 
-  switch (parameters.vsimex_scheme)
+  switch (type)
   {
     case VSIMEXScheme::CNAB:
       name.assign("Crank-Nicolson-Adams-Bashforth");
@@ -419,16 +419,18 @@ VSIMEXMethod::VSIMEXMethod(const TimeDiscretizationParameters &params)
 DiscreteTime(params.start_time,
              params.final_time,
              params.initial_time_step),
-parameters(params),
+type(params.vsimex_scheme),
 omega(1.0),
-flag_coefficients_changed(true)
+flag_coefficients_changed(true),
+minimum_step_size(params.minimum_time_step),
+maximum_step_size(params.maximum_time_step)
 {
 
-  Assert(((parameters.initial_time_step <= parameters.maximum_time_step) &&
-          (parameters.initial_time_step >= parameters.minimum_time_step)),
+  Assert(((this->get_next_step_size() <= maximum_step_size) &&
+          (this->get_next_step_size() >= minimum_step_size)),
          ExcMessage("The desired start step is not inside the given bonded range."));
 
-  switch (parameters.vsimex_scheme)
+  switch (type)
   {
     case VSIMEXScheme::BDF2 :
       order = 2;
@@ -479,17 +481,45 @@ void VSIMEXMethod::reinit()
 
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 {
-  if (time_step_size < parameters.minimum_time_step)
-    DiscreteTime::set_desired_next_step_size(parameters.minimum_time_step);
-  else if (time_step_size > parameters.maximum_time_step)
-    DiscreteTime::set_desired_next_step_size(parameters.maximum_time_step);
+  if (time_step_size < minimum_step_size)
+    DiscreteTime::set_desired_next_step_size(minimum_step_size);
+  else if (time_step_size > maximum_step_size)
+    DiscreteTime::set_desired_next_step_size(maximum_step_size);
   else
     DiscreteTime::set_desired_next_step_size(time_step_size);
 }
 
+inline void VSIMEXMethod::set_minimum_step_size(const double step_size)
+{
+  if (is_at_end())
+    return;
+
+  AssertThrow(maximum_step_size >= step_size,
+              ExcLowerRangeType<double>(maximum_step_size, step_size));
+  AssertThrow(get_next_step_size() >= step_size,
+              ExcLowerRangeType<double>(get_next_step_size(), step_size));
+
+  minimum_step_size = step_size;
+}
+
+inline void VSIMEXMethod::set_maximum_step_size(const double step_size)
+{
+  if (is_at_end())
+    return;
+
+  AssertThrow(step_size >= get_next_step_size(),
+              ExcLowerRangeType<double>(step_size, get_next_step_size()));
+  AssertThrow(step_size >= minimum_step_size,
+              ExcLowerRangeType<double>(step_size, minimum_step_size));
+
+  maximum_step_size = step_size;
+}
+
+
+
 void VSIMEXMethod::update_coefficients()
 {
-  // Computes the ration of the next and previous time step sizes.
+  // Computes the ratio of the next and previous time step sizes.
   // It is nested in an if as get_previous_step_size() returns zero
   // at the start time.
   if (get_step_number() > 0)
@@ -519,7 +549,7 @@ void VSIMEXMethod::update_coefficients()
   // Checks if the time step size changes. If not, exit the method.
   // The second boolean, i.e. get_step_number() <= (get_order() - 1),
   // takes the first step into account.
-  if ((float)omega != 1. || get_step_number() <= (get_order() - 1))
+  if (static_cast<float>(omega) != 1. || get_step_number() <= (get_order() - 1))
     flag_coefficients_changed = true;
   else
   {

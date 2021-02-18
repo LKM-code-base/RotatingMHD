@@ -27,6 +27,7 @@ enum class VSIMEXScheme
   BDF2,
   /*!
    * @brief The classical Crank-Nicolson-Adams-Bashforth scheme.
+   *
    * @details Applies Crank-Nicolson to \f$ g(u) \f$ and Adams-Bashforth extrapolation
    * to \f$ f(u) \f$.
    */
@@ -37,6 +38,7 @@ enum class VSIMEXScheme
   mCNAB,
   /*!
    * @brief The Crank-Nicolson-Leap-Frog scheme.
+   *
    * @details Applies Crank-Nicolson to \f$ g(u) \f$ and Leap-Frog to
    * \f$f(u)\f$.
    */
@@ -209,11 +211,20 @@ public:
   /*!
    * @brief A method returning the previous step sizes.
    */
-  const std::vector<double>& get_old_step_size() const;
+  const std::vector<double>& get_old_step_sizes() const;
+
+  double get_minumum_step_size() const;
+
+  double get_maximum_step_size() const;
+
+  void set_minimum_step_size(const double step_size);
+
+  void set_maximum_step_size(const double step_size);
 
   /*!
   * @brief A method passing the *desired* size of the next time step to the
   * class.
+  *
   * @details The method checks if the the time step is inside the bounds
   * set in the constructor. If not, it adjusts the time step accordingly
   * and passes it to the set_desired_time_step() method from the
@@ -252,24 +263,26 @@ public:
 private:
 
   /*!
-   * @brief Method which updates the sizes of the coefficient vectors .
+   * @brief Method which updates the sizes of the coefficient vectors.
    */
   void reinit();
 
-  /*!
-   * @brief Parameter controlling the behavior of this class.
+  /*
+   * @brief Type of the IMEX scheme.
    */
-  const TimeDiscretizationParameters &parameters;
+  const VSIMEXScheme  type;
 
   /*!
    * @brief Order of the VSIMEX scheme.
    */
-  unsigned int        order;
+  unsigned int  order;
 
   /*!
    * @brief Parameters of the VSIMEX scheme.
+   *
    * @attention This designation is very misleading w.r.t. the
    * TimeDiscretizationParameters!
+   *
    */
   std::vector<double> vsimex_parameters;
 
@@ -327,6 +340,10 @@ private:
    * than 1.0 and is set as false if @ref is equal to 1.0.
    */
   bool                flag_coefficients_changed;
+
+  double minimum_step_size;
+
+  double maximum_step_size;
 };
 
 
@@ -371,7 +388,7 @@ inline const std::vector<double>& VSIMEXMethod::get_old_alpha_zero() const
   return (old_alpha_zero);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_old_step_size() const
+inline const std::vector<double>& VSIMEXMethod::get_old_step_sizes() const
 {
   return (old_step_size_values);
 }
@@ -379,6 +396,16 @@ inline const std::vector<double>& VSIMEXMethod::get_old_step_size() const
 inline bool VSIMEXMethod::coefficients_changed() const
 {
   return (flag_coefficients_changed);
+}
+
+inline double VSIMEXMethod::get_minumum_step_size() const
+{
+  return (minimum_step_size);
+}
+
+inline double VSIMEXMethod::get_maximum_step_size() const
+{
+  return (maximum_step_size);
 }
 
 } // namespace TimeDiscretization
