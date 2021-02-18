@@ -67,7 +67,7 @@ SET(TARGET_SRC
     source/discrete_time.cc
     source/entities_structs.cc
     source/equation_data.cc
-    source/heat_equation.cc
+#    source/heat_equation.cc
     source/hydrodynamic_problem.cc
     source/problem_class.cc
     source/run_time_parameters.cc
@@ -86,12 +86,13 @@ SET(TARGET_SRC
     source/navier_stokes_projection/setup.cc
     source/navier_stokes_projection/solve.cc
     source/navier_stokes_projection/timestep_update.cc
-    source/heat_equation/assemble_advection_matrix.cc
-    source/heat_equation/assemble_constant_matrices.cc
-    source/heat_equation/assemble_rhs.cc
-    source/heat_equation/assembly_data.cc
-    source/heat_equation/setup.cc
-    source/heat_equation/solve.cc
+
+#    source/heat_equation/assemble_advection_matrix.cc
+#    source/heat_equation/assemble_constant_matrices.cc
+#    source/heat_equation/assemble_rhs.cc
+#    source/heat_equation/assembly_data.cc
+#    source/heat_equation/setup.cc
+#    source/heat_equation/solve.cc
 )
 
 # Set the include directory and the name of the project

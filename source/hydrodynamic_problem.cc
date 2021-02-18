@@ -53,7 +53,7 @@ void HydrodynamicProblem<dim>::run()
 
   const unsigned int n_maximum_steps = parameters.time_discretization_parameters.n_maximum_steps;
 
-  *this->pcout << "Solving the problem  until t = "
+  *this->pcout << "Solving the problem until t = "
                << Utilities::to_string(time_stepping.get_end_time(), 6)
                << " or until "
                << Utilities::int_to_string(n_maximum_steps)
