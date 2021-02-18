@@ -188,31 +188,6 @@ enum class ProblemType
 
 
 
-/*!
- * @brief Enumeration for convergence test type.
- */
-enum class ConvergenceTestType
-{
-  /*!
-   * @brief Spatial convergence test.
-   * @details Test to study the spatial discretization dependence of
-   * convergence for a given problem.
-   * @note Spatial convergence tests should be performed with a fine
-   * time discretization, *i. e.*, a small enough time step.
-   */
-  spatial,
-
-  /*!
-   * @brief Temporal convergence test.
-   * @details Test to study the temporal discretization dependence of
-   * convergence for a given problem.
-   * @note Temporal convergence tests should be performed with a fine
-   * spatial discretization, *i. e.*, a triangulation with small enough cells.
-   */
-  temporal
-};
-
-
 
 /*!
  * @brief Enumeration for incremental pressure-correction scheme types.
@@ -545,79 +520,6 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const OutputControlParameters &prm);
 
 
-
-/*!
- * @struct ConvergenceTestParameters
- *
- * @brief @ref ConvergenceTestParameters contains parameters which are
- * related to convergence tests.
- */
-struct ConvergenceTestParameters
-{
-  /*!
-   * @brief Constructor which sets up the parameters with default values.
-   */
-  ConvergenceTestParameters();
-
-  /*!
-   * @brief Static method which declares the associated parameter to the
-   * ParameterHandler object @p prm.
-   */
-  static void declare_parameters(ParameterHandler &prm);
-
-  /*!
-   * @brief Method which parses the parameters from the ParameterHandler
-   * object @p prm.
-   */
-  void parse_parameters(ParameterHandler &prm);
-
-  /*!
-   * @brief Method forwarding parameters to a stream object.
-   *
-   * @details This method does not add a `std::endl` to the stream at the end.
-   */
-  template<typename Stream>
-  friend Stream& operator<<(Stream &stream,
-                            const ConvergenceTestParameters &prm);
-
-  /*!
-   * @brief The type of convergence test (spatial or temporal).
-   */
-  ConvergenceTestType convergence_test_type;
-
-  /*!
-   * @brief Number of initial global mesh refinements.
-   */
-  unsigned int        n_global_initial_refinements;
-
-  /*!
-   * Number of spatial convergence cycles.
-   */
-  unsigned int        n_spatial_convergence_cycles;
-
-  /*!
-   * @brief Factor \f$ s \f$ of the reduction of the timestep between two
-   * subsequent levels, *i. e.*, \f$ \Delta t_{l+1} = s \Delta t_l\f$.
-   *
-   * @details The factor \f$ s \f$ must be positive and less than unity.
-   */
-  double              timestep_reduction_factor;
-
-  /*!
-   * @brief Number of temporal convergence cycles.
-   */
-  unsigned int        n_temporal_convergence_cycles;
-};
-
-
-
-/*!
- * @brief Method forwarding parameters to a stream object.
- *
- * @details This method does not add a `std::endl` to the stream at the end.
- */
-template<typename Stream>
-Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm);
 
 
 /*!
@@ -1604,121 +1506,120 @@ Stream& operator<<(Stream &stream, const BoussinesqProblemParameters &prm);
 /*!
  * @struct ProblemParameters
  */
-struct ProblemParameters
-    : public OutputControlParameters,
-      public DimensionlessNumbers
-{
-  /*!
-   * @brief Constructor which sets up the parameters with default values.
-   */
-  ProblemParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   * @attention I do not like the flag. It was my quick fix in order to
-   * print either the refinement parameters or the convergence test
-   * parameters. As when one is needed the other is not.
-   */
-  ProblemParameters(const std::string &parameter_filename,
-                    const bool        flag = false);
-
-  /*!
-   * @brief Static method which declares the associated parameter to the
-   * ParameterHandler object @p prm.
-   */
-  static void declare_parameters(ParameterHandler &prm);
-
-  /*!
-   * @brief Method which parses the parameters from the ParameterHandler
-   * object @p prm.
-   */
-  void parse_parameters(ParameterHandler &prm);
-
-  /*!
-   * @brief Method forwarding parameters to a stream object.
-   */
-  template<typename Stream>
-  friend Stream& operator<<(Stream &stream, const ProblemParameters &prm);
-
-  /*!
-   * @brief Problem type.
-   */
-  ProblemType                                 problem_type;
-
-  /*!
-   * @brief Spatial dimension of the problem.
-   */
-  unsigned int                                dim;
-
-  /*!
-   * @brief Polynomial degree of the mapping.
-   */
-  unsigned int                                mapping_degree;
-
-  /*!
-   * @brief Boolean indicating if the mapping is to be asigned to
-   * the interior cells too.
-   */
-  bool                                        mapping_interior_cells;
-
-  /*!
-   * @brief The polynomial degree of the pressure's finite element.
-   */
-  unsigned int                                fe_degree_pressure;
-
-  /*!
-   * @brief The polynomial degree of the velocity's finite element.
-   */
-  unsigned int                                fe_degree_velocity;
-
-  /*!
-   * @brief The polynomial degree of the temperature's finite element.
-   */
-  unsigned int                                fe_degree_temperature;
-
-  /*!
-   * @brief Boolean flag to enable verbose output on the terminal.
-   */
-  bool                                        verbose;
-
-  /*!
-   * @brief Parameters of the convergence test.
-   */
-  ConvergenceTestParameters                   convergence_test_parameters;
-
-  /*!
-   * @brief Parameters of the adaptive mesh refinement.
-   */
-  SpatialDiscretizationParameters             spatial_discretization_parameters;
-
-  /*!
-   * @brief Parameters of the time stepping scheme.
-   */
-  TimeDiscretization::TimeDiscretizationParameters  time_discretization_parameters;
-
-  /*!
-   * @brief Parameters of the Navier-Stokes solver.
-   */
-  NavierStokesParameters                      navier_stokes_parameters;
-
-  /*!
-   * @brief Parameters of the heat equation solver.
-   */
-  HeatEquationParameters                      heat_equation_parameters;
-
-private:
-
-  bool                                        flag_convergence_test;
-};
-
-/*!
- * @brief Method forwarding parameters to a stream object.
- */
-template<typename Stream>
-Stream& operator<<(Stream &stream, const ProblemParameters &prm);
-
-
+//struct ProblemParameters
+//    : public OutputControlParameters,
+//      public DimensionlessNumbers
+//{
+//  /*!
+//   * @brief Constructor which sets up the parameters with default values.
+//   */
+//  ProblemParameters();
+//
+//  /*!
+//   * @brief Constructor which sets up the parameters as specified in the
+//   * parameter file with the filename @p parameter_filename.
+//   * @attention I do not like the flag. It was my quick fix in order to
+//   * print either the refinement parameters or the convergence test
+//   * parameters. As when one is needed the other is not.
+//   */
+//  ProblemParameters(const std::string &parameter_filename,
+//                    const bool        flag = false);
+//
+//  /*!
+//   * @brief Static method which declares the associated parameter to the
+//   * ParameterHandler object @p prm.
+//   */
+//  static void declare_parameters(ParameterHandler &prm);
+//
+//  /*!
+//   * @brief Method which parses the parameters from the ParameterHandler
+//   * object @p prm.
+//   */
+//  void parse_parameters(ParameterHandler &prm);
+//
+//  /*!
+//   * @brief Method forwarding parameters to a stream object.
+//   */
+//  template<typename Stream>
+//  friend Stream& operator<<(Stream &stream, const ProblemParameters &prm);
+//
+//  /*!
+//   * @brief Problem type.
+//   */
+//  ProblemType                                 problem_type;
+//
+//  /*!
+//   * @brief Spatial dimension of the problem.
+//   */
+//  unsigned int                                dim;
+//
+//  /*!
+//   * @brief Polynomial degree of the mapping.
+//   */
+//  unsigned int                                mapping_degree;
+//
+//  /*!
+//   * @brief Boolean indicating if the mapping is to be asigned to
+//   * the interior cells too.
+//   */
+//  bool                                        mapping_interior_cells;
+//
+//  /*!
+//   * @brief The polynomial degree of the pressure's finite element.
+//   */
+//  unsigned int                                fe_degree_pressure;
+//
+//  /*!
+//   * @brief The polynomial degree of the velocity's finite element.
+//   */
+//  unsigned int                                fe_degree_velocity;
+//
+//  /*!
+//   * @brief The polynomial degree of the temperature's finite element.
+//   */
+//  unsigned int                                fe_degree_temperature;
+//
+//  /*!
+//   * @brief Boolean flag to enable verbose output on the terminal.
+//   */
+//  bool                                        verbose;
+//
+//  /*!
+//   * @brief Parameters of the convergence test.
+//   */
+//  ConvergenceTestParameters                   convergence_test_parameters;
+//
+//  /*!
+//   * @brief Parameters of the adaptive mesh refinement.
+//   */
+//  SpatialDiscretizationParameters             spatial_discretization_parameters;
+//
+//  /*!
+//   * @brief Parameters of the time stepping scheme.
+//   */
+//  TimeDiscretization::TimeDiscretizationParameters  time_discretization_parameters;
+//
+//  /*!
+//   * @brief Parameters of the Navier-Stokes solver.
+//   */
+//  NavierStokesParameters                      navier_stokes_parameters;
+//
+//  /*!
+//   * @brief Parameters of the heat equation solver.
+//   */
+//  HeatEquationParameters                      heat_equation_parameters;
+//
+//private:
+//
+//  bool                                        flag_convergence_test;
+//};
+//
+///*!
+// * @brief Method forwarding parameters to a stream object.
+// */
+//template<typename Stream>
+//Stream& operator<<(Stream &stream, const ProblemParameters &prm);
+//
 
 } // namespace RunTimeParameters
 

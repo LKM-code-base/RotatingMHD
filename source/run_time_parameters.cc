@@ -300,132 +300,6 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
 
 
 
-ConvergenceTestParameters::ConvergenceTestParameters()
-:
-convergence_test_type(ConvergenceTestType::temporal),
-n_global_initial_refinements(5),
-n_spatial_convergence_cycles(2),
-timestep_reduction_factor(0.5),
-n_temporal_convergence_cycles(2)
-{}
-
-
-
-void ConvergenceTestParameters::declare_parameters(ParameterHandler &prm)
-{
-  prm.enter_subsection("Convergence test parameters");
-  {
-    prm.declare_entry("Convergence test type",
-                      "temporal",
-                      Patterns::Selection("spatial|temporal"));
-
-    prm.declare_entry("Number of initial global refinements",
-                      "5",
-                      Patterns::Integer(1));
-
-    prm.declare_entry("Number of spatial convergence cycles",
-                      "2",
-                      Patterns::Integer(1));
-
-    prm.declare_entry("Time-step reduction factor",
-                      "0.5",
-                      Patterns::Double());
-
-    prm.declare_entry("Number of temporal convergence cycles",
-                      "2",
-                      Patterns::Integer(1));
-  }
-  prm.leave_subsection();
-}
-
-
-
-void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
-{
-  prm.enter_subsection("Convergence test parameters");
-  {
-    if (prm.get("Convergence test type") == std::string("spatial"))
-    {
-      convergence_test_type = ConvergenceTestType::spatial;
-
-      n_spatial_convergence_cycles =
-                  prm.get_integer("Number of spatial convergence cycles");
-      AssertThrow(n_spatial_convergence_cycles > 0,
-                  ExcLowerRange(n_spatial_convergence_cycles, 0));
-    }
-    else if (prm.get("Convergence test type") == std::string("temporal"))
-    {
-      convergence_test_type = ConvergenceTestType::temporal;
-
-      timestep_reduction_factor =
-                  prm.get_double("Time-step reduction factor");
-      AssertThrow(timestep_reduction_factor > 0.0,
-                  ExcLowerRange(timestep_reduction_factor, 0.0));
-      AssertThrow(timestep_reduction_factor < 1.0,
-                  ExcLowerRange(1.0, timestep_reduction_factor));
-
-      n_temporal_convergence_cycles =
-                  prm.get_integer("Number of temporal convergence cycles");
-      AssertThrow(n_temporal_convergence_cycles > 0,
-                  ExcLowerRange(n_temporal_convergence_cycles, 0));
-    }
-    else
-      AssertThrow(false,
-                  ExcMessage("Unexpected identifier for the type of"
-                             " of convergence test."));
-
-    n_global_initial_refinements =
-                prm.get_integer("Number of initial global refinements");
-    AssertThrow(n_global_initial_refinements > 0,
-                ExcLowerRange(n_global_initial_refinements, 0));
-  }
-  prm.leave_subsection();
-}
-
-
-
-template<typename Stream>
-Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
-{
-  internal::add_header(stream);
-  internal::add_line(stream, "Convergence test parameters");
-  internal::add_header(stream);
-
-  switch (prm.convergence_test_type)
-  {
-    case ConvergenceTestType::spatial:
-      internal::add_line(stream, "Convergence test type", "spatial");
-      break;
-    case ConvergenceTestType::temporal:
-      internal::add_line(stream, "Convergence test type", "temporal");
-      break;
-    default:
-      AssertThrow(false, ExcMessage("Unexpected identifier for the type of"
-                               " of convergence test."));
-      break;
-  }
-
-  internal::add_line(stream,
-                     "Number of spatial convergence cycles",
-                     prm.n_spatial_convergence_cycles);
-
-  internal::add_line(stream,
-                     "Number of initial global refinements",
-                     prm.n_global_initial_refinements);
-
-  internal::add_line(stream,
-                     "Number of temporal convergence cycles",
-                     prm.n_temporal_convergence_cycles);
-
-  internal::add_line(stream,
-                     "Time-step reduction factor",
-                     prm.timestep_reduction_factor);
-
-  internal::add_header(stream);
-
-  return (stream);
-}
-
 
 PreconditionBaseParameters::PreconditionBaseParameters
 (const std::string        &name,
@@ -2002,331 +1876,330 @@ Stream& operator<<(Stream &stream, const BoussinesqProblemParameters &prm)
 }
 
 
-ProblemParameters::ProblemParameters()
-:
-OutputControlParameters(),
-DimensionlessNumbers(),
-problem_type(ProblemType::boussinesq),
-dim(2),
-mapping_degree(1),
-mapping_interior_cells(false),
-fe_degree_pressure(1),
-fe_degree_velocity(2),
-fe_degree_temperature(2),
-verbose(false),
-convergence_test_parameters(),
-spatial_discretization_parameters(),
-time_discretization_parameters(),
-navier_stokes_parameters(),
-heat_equation_parameters(),
-flag_convergence_test(false)
-{}
-
-
-
-ProblemParameters::ProblemParameters
-(const std::string &parameter_filename,
- const bool        flag)
-:
-ProblemParameters()
-{
-  flag_convergence_test = flag;
-
-  ParameterHandler prm;
-
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-
-  switch (problem_type)
-  {
-    case ProblemType::hydrodynamic:
-      navier_stokes_parameters.C1 = 0.0;
-      navier_stokes_parameters.C2 = 1.0/Re;
-      navier_stokes_parameters.C3 = 0.0;
-      heat_equation_parameters.C4 = 0.0;
-      navier_stokes_parameters.C5 = 0.0;
-      break;
-    case ProblemType::heat_convection_diffusion:
-      navier_stokes_parameters.C1 = 0.0;
-      navier_stokes_parameters.C2 = 0.0;
-      navier_stokes_parameters.C3 = 0.0;
-      heat_equation_parameters.C4 = 1.0/Pe;
-      navier_stokes_parameters.C5 = 0.0;
-      break;
-    case ProblemType::boussinesq:
-      navier_stokes_parameters.C1 = 0.0;
-      navier_stokes_parameters.C2 = std::sqrt(Pr/Ra);
-      navier_stokes_parameters.C3 = 1.0;
-      heat_equation_parameters.C4 = 1.0/std::sqrt(Ra*Pr);
-      navier_stokes_parameters.C5 = 0.0;
-      break;
-    case ProblemType::rotating_boussinesq:
-      navier_stokes_parameters.C1 = 2.0/Ek;
-      navier_stokes_parameters.C2 = 1.0;
-      navier_stokes_parameters.C3 = Ra/Pr;
-      heat_equation_parameters.C4 = 1.0/Pr;
-      navier_stokes_parameters.C5 = 0.0;
-      break;
-    case ProblemType::rotating_magnetohydrodynamic:
-      navier_stokes_parameters.C1 = 2.0/Ek;
-      navier_stokes_parameters.C2 = 1.0;
-      navier_stokes_parameters.C3 = Ra/Pr;
-      heat_equation_parameters.C4 = 1.0/Pr;
-      navier_stokes_parameters.C5 = 1.0/Pm;
-      break;
-    default:
-      AssertThrow(false,
-            ExcMessage("Unexpected identifier for the problem"
-                        " type."));
-      break;
-  }
-
-  AssertIsFinite(navier_stokes_parameters.C1);
-  AssertIsFinite(navier_stokes_parameters.C2);
-  AssertIsFinite(navier_stokes_parameters.C3);
-  AssertIsFinite(heat_equation_parameters.C4);
-  AssertIsFinite(navier_stokes_parameters.C5);
-
-}
-
-
-
-
-void ProblemParameters::declare_parameters(ParameterHandler &prm)
-{
-  prm.declare_entry("Problem type",
-                    "hydrodynamic",
-                    Patterns::Selection("hydrodynamic|"
-                                         "heat_convection_diffusion |"
-                                         "boussinesq |"
-                                         "rotating_boussinesq |"
-                                         "rotating_magnetohydrodynamic"));
-
-  prm.declare_entry("Spatial dimension",
-                    "2",
-                    Patterns::Integer(1));
-
-  prm.declare_entry("Mapping - Polynomial degree",
-                    "1",
-                    Patterns::Integer(1));
-
-  prm.declare_entry("Mapping - Apply to interior cells",
-                    "false",
-                    Patterns::Bool());
-
-  prm.declare_entry("FE's polynomial degree - Pressure (Taylor-Hood)",
-                    "1",
-                    Patterns::Integer(1));
-
-  prm.declare_entry("FE's polynomial degree - Temperature",
-                    "2",
-                    Patterns::Integer(1));
-
-  prm.declare_entry("Verbose",
-                    "false",
-                    Patterns::Bool());
-
-  OutputControlParameters::declare_parameters(prm);
-
-  DimensionlessNumbers::declare_parameters(prm);
-
-  ConvergenceTestParameters::declare_parameters(prm);
-
-  SpatialDiscretizationParameters::declare_parameters(prm);
-
-  TimeDiscretization::TimeDiscretizationParameters::declare_parameters(prm);
-
-  NavierStokesParameters::declare_parameters(prm);
-
-  HeatEquationParameters::declare_parameters(prm);
-}
-
-
-
-
-void ProblemParameters::parse_parameters(ParameterHandler &prm)
-{
-  const std::string str_problem_type(prm.get("Problem type"));
-
-  if (str_problem_type == std::string("hydrodynamic"))
-    problem_type = ProblemType::hydrodynamic;
-  else if (str_problem_type == std::string("heat_convection_diffusion"))
-    problem_type = ProblemType::heat_convection_diffusion;
-  else if (str_problem_type == std::string("boussinesq"))
-    problem_type = ProblemType::boussinesq;
-  else if (str_problem_type == std::string("rotating_boussinesq"))
-    problem_type = ProblemType::rotating_boussinesq;
-  else if (str_problem_type == std::string("rotating_magnetohydrodynamic"))
-    problem_type = ProblemType::rotating_magnetohydrodynamic;
-  else
-    AssertThrow(false,
-                ExcMessage("Unexpected identifier for the problem"
-                           " type."));
-
-  dim = prm.get_integer("Spatial dimension");
-  AssertThrow(dim > 0, ExcLowerRange(dim, 0) );
-  AssertThrow(dim <= 3, ExcMessage("The spatial dimension are larger than three.") );
-
-  mapping_degree = prm.get_integer("Mapping - Polynomial degree");
-  AssertThrow(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
-
-  mapping_interior_cells = prm.get_bool("Mapping - Apply to interior cells");
-
-  fe_degree_pressure = prm.get_integer("FE's polynomial degree - Pressure (Taylor-Hood)");
-  AssertThrow(fe_degree_pressure > 0,
-              ExcLowerRange(fe_degree_pressure, 0));
-
-
-  fe_degree_temperature = prm.get_integer("FE's polynomial degree - Temperature");
-  AssertThrow(fe_degree_temperature > 0,
-              ExcLowerRange(fe_degree_temperature, 0));
-
-  fe_degree_velocity = fe_degree_pressure + 1;
-
-  verbose = prm.get_bool("Verbose");
-
-  OutputControlParameters::parse_parameters(prm);
-
-  DimensionlessNumbers::parse_parameters(prm);
-
-  if (flag_convergence_test)
-    convergence_test_parameters.parse_parameters(prm);
-  else
-    spatial_discretization_parameters.parse_parameters(prm);
-
-  time_discretization_parameters.parse_parameters(prm);
-
-  if (str_problem_type != std::string("heat_convection_diffusion"))
-    navier_stokes_parameters.parse_parameters(prm);
-
-  if (str_problem_type != std::string("hydrodynamic"))
-    heat_equation_parameters.parse_parameters(prm);
-}
-
-
-
-
-template<typename Stream>
-Stream& operator<<(Stream &stream, const ProblemParameters &prm)
-{
-  internal::add_header(stream);
-  internal::add_line(stream, "Problem parameters");
-  internal::add_header(stream);
-
-  switch (prm.problem_type)
-  {
-    case ProblemType::hydrodynamic:
-      internal::add_line(stream, "Problem type", "hydrodynamic");
-      break;
-    case ProblemType::heat_convection_diffusion:
-      internal::add_line(stream, "Problem type", "heat_convection_diffusion");
-      break;
-    case ProblemType::boussinesq:
-      internal::add_line(stream, "Problem type", "boussinesq");
-      break;
-    case ProblemType::rotating_boussinesq:
-      internal::add_line(stream, "Problem type", "rotating_boussinesq");
-      break;
-    case ProblemType::rotating_magnetohydrodynamic:
-      internal::add_line(stream, "Problem type", "rotating_magnetohydrodynamic");
-      break;
-    default:
-      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
-                               "problem type"));
-      break;
-  }
-
-  internal::add_line(stream, "Spatial dimension", prm.dim);
-
-  {
-    std::stringstream strstream;
-
-    strstream << "MappingQ<" << std::to_string(prm.dim) << ">"
-              << "(" << std::to_string(prm.mapping_degree) << ")";
-    internal::add_line(stream, "Mapping", strstream.str().c_str());
-  }
-
-  internal::add_line(stream,
-                     "Mapping - Apply to interior cells",
-                     (prm.mapping_interior_cells ? "true" : "false"));
-
-  if (prm.problem_type != ProblemType::heat_convection_diffusion)
-  {
-    std::string fe_velocity = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_velocity) + ")^" + std::to_string(prm.dim);
-    std::string fe_pressure = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_pressure) + ")";
-    internal::add_line(stream, "Finite Element - Velocity", fe_velocity);
-    internal::add_line(stream, "Finite Element - Pressure", fe_pressure);
-  }
-
-  if (prm.problem_type != ProblemType::hydrodynamic)
-  {
-    std::string fe_temperature = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_temperature) + ")";
-    internal::add_line(stream,
-                       "Finite Element - Temperature",
-                       fe_temperature);
-  }
-
-  internal::add_line(stream, "Verbose", (prm.verbose? "true": "false"));
-
-  stream << static_cast<const OutputControlParameters &>(prm);
-
-  stream << "\r";
-
-  stream << static_cast<const DimensionlessNumbers &>(prm);
-
-  stream << "\r";
-
-  if (prm.flag_convergence_test)
-    stream << prm.convergence_test_parameters;
-  else
-    stream << prm.spatial_discretization_parameters;
-
-  stream << "\r";
-
-  stream << prm.time_discretization_parameters;
-
-  stream << "\r";
-
-  if (prm.problem_type != ProblemType::heat_convection_diffusion)
-  {
-    stream << prm.navier_stokes_parameters;
-
-    stream << "\r";
-  }
-
-  if (prm.problem_type != ProblemType::hydrodynamic)
-  {
-    stream << prm.heat_equation_parameters;
-
-    stream << "\r";
-  }
-
-  return (stream);
-}
-
+//ProblemParameters::ProblemParameters()
+//:
+//OutputControlParameters(),
+//DimensionlessNumbers(),
+//problem_type(ProblemType::boussinesq),
+//dim(2),
+//mapping_degree(1),
+//mapping_interior_cells(false),
+//fe_degree_pressure(1),
+//fe_degree_velocity(2),
+//fe_degree_temperature(2),
+//verbose(false),
+//convergence_test_parameters(),
+//spatial_discretization_parameters(),
+//time_discretization_parameters(),
+//navier_stokes_parameters(),
+//heat_equation_parameters(),
+//flag_convergence_test(false)
+//{}
+//
+//
+//
+//ProblemParameters::ProblemParameters
+//(const std::string &parameter_filename,
+// const bool        flag)
+//:
+//ProblemParameters()
+//{
+//  flag_convergence_test = flag;
+//
+//  ParameterHandler prm;
+//
+//  declare_parameters(prm);
+//
+//  std::ifstream parameter_file(parameter_filename.c_str());
+//
+//  if (!parameter_file)
+//  {
+//    parameter_file.close();
+//
+//    std::ostringstream message;
+//    message << "Input parameter file <"
+//            << parameter_filename << "> not found. Creating a"
+//            << std::endl
+//            << "template file of the same name."
+//            << std::endl;
+//
+//    std::ofstream parameter_out(parameter_filename.c_str());
+//    prm.print_parameters(parameter_out,
+//                         ParameterHandler::OutputStyle::Text);
+//
+//    AssertThrow(false, ExcMessage(message.str().c_str()));
+//  }
+//
+//  prm.parse_input(parameter_file);
+//
+//  parse_parameters(prm);
+//
+//  switch (problem_type)
+//  {
+//    case ProblemType::hydrodynamic:
+//      navier_stokes_parameters.C1 = 0.0;
+//      navier_stokes_parameters.C2 = 1.0/Re;
+//      navier_stokes_parameters.C3 = 0.0;
+//      heat_equation_parameters.C4 = 0.0;
+//      navier_stokes_parameters.C5 = 0.0;
+//      break;
+//    case ProblemType::heat_convection_diffusion:
+//      navier_stokes_parameters.C1 = 0.0;
+//      navier_stokes_parameters.C2 = 0.0;
+//      navier_stokes_parameters.C3 = 0.0;
+//      heat_equation_parameters.C4 = 1.0/Pe;
+//      navier_stokes_parameters.C5 = 0.0;
+//      break;
+//    case ProblemType::boussinesq:
+//      navier_stokes_parameters.C1 = 0.0;
+//      navier_stokes_parameters.C2 = std::sqrt(Pr/Ra);
+//      navier_stokes_parameters.C3 = 1.0;
+//      heat_equation_parameters.C4 = 1.0/std::sqrt(Ra*Pr);
+//      navier_stokes_parameters.C5 = 0.0;
+//      break;
+//    case ProblemType::rotating_boussinesq:
+//      navier_stokes_parameters.C1 = 2.0/Ek;
+//      navier_stokes_parameters.C2 = 1.0;
+//      navier_stokes_parameters.C3 = Ra/Pr;
+//      heat_equation_parameters.C4 = 1.0/Pr;
+//      navier_stokes_parameters.C5 = 0.0;
+//      break;
+//    case ProblemType::rotating_magnetohydrodynamic:
+//      navier_stokes_parameters.C1 = 2.0/Ek;
+//      navier_stokes_parameters.C2 = 1.0;
+//      navier_stokes_parameters.C3 = Ra/Pr;
+//      heat_equation_parameters.C4 = 1.0/Pr;
+//      navier_stokes_parameters.C5 = 1.0/Pm;
+//      break;
+//    default:
+//      AssertThrow(false,
+//            ExcMessage("Unexpected identifier for the problem"
+//                        " type."));
+//      break;
+//  }
+//
+//  AssertIsFinite(navier_stokes_parameters.C1);
+//  AssertIsFinite(navier_stokes_parameters.C2);
+//  AssertIsFinite(navier_stokes_parameters.C3);
+//  AssertIsFinite(heat_equation_parameters.C4);
+//  AssertIsFinite(navier_stokes_parameters.C5);
+//
+//}
+//
+//
+//
+//
+//void ProblemParameters::declare_parameters(ParameterHandler &prm)
+//{
+//  prm.declare_entry("Problem type",
+//                    "hydrodynamic",
+//                    Patterns::Selection("hydrodynamic|"
+//                                         "heat_convection_diffusion |"
+//                                         "boussinesq |"
+//                                         "rotating_boussinesq |"
+//                                         "rotating_magnetohydrodynamic"));
+//
+//  prm.declare_entry("Spatial dimension",
+//                    "2",
+//                    Patterns::Integer(1));
+//
+//  prm.declare_entry("Mapping - Polynomial degree",
+//                    "1",
+//                    Patterns::Integer(1));
+//
+//  prm.declare_entry("Mapping - Apply to interior cells",
+//                    "false",
+//                    Patterns::Bool());
+//
+//  prm.declare_entry("FE's polynomial degree - Pressure (Taylor-Hood)",
+//                    "1",
+//                    Patterns::Integer(1));
+//
+//  prm.declare_entry("FE's polynomial degree - Temperature",
+//                    "2",
+//                    Patterns::Integer(1));
+//
+//  prm.declare_entry("Verbose",
+//                    "false",
+//                    Patterns::Bool());
+//
+//  OutputControlParameters::declare_parameters(prm);
+//
+//  DimensionlessNumbers::declare_parameters(prm);
+//
+//  ConvergenceTestParameters::declare_parameters(prm);
+//
+//  SpatialDiscretizationParameters::declare_parameters(prm);
+//
+//  TimeDiscretization::TimeDiscretizationParameters::declare_parameters(prm);
+//
+//  NavierStokesParameters::declare_parameters(prm);
+//
+//  HeatEquationParameters::declare_parameters(prm);
+//}
+//
+//
+//
+//
+//void ProblemParameters::parse_parameters(ParameterHandler &prm)
+//{
+//  const std::string str_problem_type(prm.get("Problem type"));
+//
+//  if (str_problem_type == std::string("hydrodynamic"))
+//    problem_type = ProblemType::hydrodynamic;
+//  else if (str_problem_type == std::string("heat_convection_diffusion"))
+//    problem_type = ProblemType::heat_convection_diffusion;
+//  else if (str_problem_type == std::string("boussinesq"))
+//    problem_type = ProblemType::boussinesq;
+//  else if (str_problem_type == std::string("rotating_boussinesq"))
+//    problem_type = ProblemType::rotating_boussinesq;
+//  else if (str_problem_type == std::string("rotating_magnetohydrodynamic"))
+//    problem_type = ProblemType::rotating_magnetohydrodynamic;
+//  else
+//    AssertThrow(false,
+//                ExcMessage("Unexpected identifier for the problem"
+//                           " type."));
+//
+//  dim = prm.get_integer("Spatial dimension");
+//  AssertThrow(dim > 0, ExcLowerRange(dim, 0) );
+//  AssertThrow(dim <= 3, ExcMessage("The spatial dimension are larger than three.") );
+//
+//  mapping_degree = prm.get_integer("Mapping - Polynomial degree");
+//  AssertThrow(mapping_degree > 0, ExcLowerRange(mapping_degree, 0) );
+//
+//  mapping_interior_cells = prm.get_bool("Mapping - Apply to interior cells");
+//
+//  fe_degree_pressure = prm.get_integer("FE's polynomial degree - Pressure (Taylor-Hood)");
+//  AssertThrow(fe_degree_pressure > 0,
+//              ExcLowerRange(fe_degree_pressure, 0));
+//
+//
+//  fe_degree_temperature = prm.get_integer("FE's polynomial degree - Temperature");
+//  AssertThrow(fe_degree_temperature > 0,
+//              ExcLowerRange(fe_degree_temperature, 0));
+//
+//  fe_degree_velocity = fe_degree_pressure + 1;
+//
+//  verbose = prm.get_bool("Verbose");
+//
+//  OutputControlParameters::parse_parameters(prm);
+//
+//  DimensionlessNumbers::parse_parameters(prm);
+//
+//  if (flag_convergence_test)
+//    convergence_test_parameters.parse_parameters(prm);
+//  else
+//    spatial_discretization_parameters.parse_parameters(prm);
+//
+//  time_discretization_parameters.parse_parameters(prm);
+//
+//  if (str_problem_type != std::string("heat_convection_diffusion"))
+//    navier_stokes_parameters.parse_parameters(prm);
+//
+//  if (str_problem_type != std::string("hydrodynamic"))
+//    heat_equation_parameters.parse_parameters(prm);
+//}
+//
+//
+//
+//
+//template<typename Stream>
+//Stream& operator<<(Stream &stream, const ProblemParameters &prm)
+//{
+//  internal::add_header(stream);
+//  internal::add_line(stream, "Problem parameters");
+//  internal::add_header(stream);
+//
+//  switch (prm.problem_type)
+//  {
+//    case ProblemType::hydrodynamic:
+//      internal::add_line(stream, "Problem type", "hydrodynamic");
+//      break;
+//    case ProblemType::heat_convection_diffusion:
+//      internal::add_line(stream, "Problem type", "heat_convection_diffusion");
+//      break;
+//    case ProblemType::boussinesq:
+//      internal::add_line(stream, "Problem type", "boussinesq");
+//      break;
+//    case ProblemType::rotating_boussinesq:
+//      internal::add_line(stream, "Problem type", "rotating_boussinesq");
+//      break;
+//    case ProblemType::rotating_magnetohydrodynamic:
+//      internal::add_line(stream, "Problem type", "rotating_magnetohydrodynamic");
+//      break;
+//    default:
+//      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
+//                               "problem type"));
+//      break;
+//  }
+//
+//  internal::add_line(stream, "Spatial dimension", prm.dim);
+//
+//  {
+//    std::stringstream strstream;
+//
+//    strstream << "MappingQ<" << std::to_string(prm.dim) << ">"
+//              << "(" << std::to_string(prm.mapping_degree) << ")";
+//    internal::add_line(stream, "Mapping", strstream.str().c_str());
+//  }
+//
+//  internal::add_line(stream,
+//                     "Mapping - Apply to interior cells",
+//                     (prm.mapping_interior_cells ? "true" : "false"));
+//
+//  if (prm.problem_type != ProblemType::heat_convection_diffusion)
+//  {
+//    std::string fe_velocity = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_velocity) + ")^" + std::to_string(prm.dim);
+//    std::string fe_pressure = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_pressure) + ")";
+//    internal::add_line(stream, "Finite Element - Velocity", fe_velocity);
+//    internal::add_line(stream, "Finite Element - Pressure", fe_pressure);
+//  }
+//
+//  if (prm.problem_type != ProblemType::hydrodynamic)
+//  {
+//    std::string fe_temperature = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_temperature) + ")";
+//    internal::add_line(stream,
+//                       "Finite Element - Temperature",
+//                       fe_temperature);
+//  }
+//
+//  internal::add_line(stream, "Verbose", (prm.verbose? "true": "false"));
+//
+//  stream << static_cast<const OutputControlParameters &>(prm);
+//
+//  stream << "\r";
+//
+//  stream << static_cast<const DimensionlessNumbers &>(prm);
+//
+//  stream << "\r";
+//
+//  if (prm.flag_convergence_test)
+//    stream << prm.convergence_test_parameters;
+//  else
+//    stream << prm.spatial_discretization_parameters;
+//
+//  stream << "\r";
+//
+//  stream << prm.time_discretization_parameters;
+//
+//  stream << "\r";
+//
+//  if (prm.problem_type != ProblemType::heat_convection_diffusion)
+//  {
+//    stream << prm.navier_stokes_parameters;
+//
+//    stream << "\r";
+//  }
+//
+//  if (prm.problem_type != ProblemType::hydrodynamic)
+//  {
+//    stream << prm.heat_equation_parameters;
+//
+//    stream << "\r";
+//  }
+//
+//  return (stream);
+//}
 
 
 } // namespace RunTimeParameters
@@ -2343,11 +2216,6 @@ template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::OutputControlParameters &);
 template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::OutputControlParameters &);
-
-template std::ostream & RMHD::RunTimeParameters::operator<<
-(std::ostream &, const RMHD::RunTimeParameters::ConvergenceTestParameters &);
-template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
-(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::ConvergenceTestParameters &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::PreconditionRelaxationParameters &);
@@ -2394,7 +2262,7 @@ template std::ostream & RMHD::RunTimeParameters::operator<<
 template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::BoussinesqProblemParameters &);
 
-template std::ostream & RMHD::RunTimeParameters::operator<<
-(std::ostream &, const RMHD::RunTimeParameters::ProblemParameters &);
-template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
-(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::ProblemParameters &);
+//template std::ostream & RMHD::RunTimeParameters::operator<<
+//(std::ostream &, const RMHD::RunTimeParameters::ProblemParameters &);
+//template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
+//(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::ProblemParameters &);
