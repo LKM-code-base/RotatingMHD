@@ -17,6 +17,9 @@ namespace RMHD
  */
 namespace RunTimeParameters
 {
+
+using namespace dealii;
+
 /*!
  * @brief Enumeration for the different types of problems.
  *
@@ -525,7 +528,7 @@ struct OutputControlParameters
   /*!
    * @brief The frequency at which diagnostics are written the terminal.
    */
-  unsigned int  terminal_output_frequency;
+  unsigned int  postprocessing_frequency;
 
   /*!
    * @brief Directory where the graphical output should be written.
