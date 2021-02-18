@@ -87,6 +87,15 @@ namespace
  DiscreteTime::set_end_time(const double new_end_time)
  {
    end_time = new_end_time;
+
+   if (step_number == 0)
+     next_time = calculate_next_time(start_time,
+                                     start_step_size,
+                                     end_time);
+   else
+     next_time = calculate_next_time(current_time,
+                                     get_previous_step_size(),
+                                     end_time);
  }
 
 } // namespace RMHD

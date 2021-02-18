@@ -267,10 +267,12 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
          << std::left
          << " Current time = "
          << std::scientific
+         << std::setprecision(4)
          << vsimex.get_current_time()
          << ","
          << " Next time step = "
          << std::scientific
+         << std::setprecision(4)
          << vsimex.get_next_step_size();
 
   return (stream);
