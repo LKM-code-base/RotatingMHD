@@ -47,6 +47,57 @@ void HydrodynamicProblem<dim>::run()
 
   this->setup_initial_conditions();
 
+  // modify member variable of RMHD::TimeDiscretization::DiscreteTime if necessary
+  if (time_stepping.get_end_time() != parameters.time_discretization_parameters.final_time)
+      time_stepping.set_end_time(parameters.time_discretization_parameters.final_time);
+
+  const unsigned int n_maximum_steps = parameters.time_discretization_parameters.n_maximum_steps;
+
+  *this->pcout << "Solving the problem  until t = "
+               << Utilities::to_string(time_stepping.get_end_time(), 6)
+               << " or until "
+               << Utilities::int_to_string(n_maximum_steps)
+               << " time steps are performed"
+               << std::endl;
+
+  time_loop(n_maximum_steps);
+}
+
+template<int dim>
+void HydrodynamicProblem<dim>::continue_run()
+{
+  const double final_time = parameters.time_discretization_parameters.final_time;
+
+  AssertThrow(time_stepping.get_current_time() < final_time,
+              ExcMessage("Current time is larger equal than the final time. The run "
+                         "cannot be continued."));
+  AssertThrow(time_stepping.get_step_number() < parameters.time_discretization_parameters.n_maximum_steps,
+              ExcMessage("The continuation of the run is aborted because the "
+                         "maximum number was reached!"));
+  // modify member variable end_time of RMHD::TimeDiscretization::DiscreteTime
+  time_stepping.set_end_time(final_time);
+
+  // compute the number of remaining steps
+  const unsigned int n_maximum_steps = parameters.time_discretization_parameters.n_maximum_steps;
+  AssertThrow(n_maximum_steps > time_stepping.get_step_number(),
+              ExcLowerRange(n_maximum_steps, time_stepping.get_step_number()));
+
+  const unsigned int n_remaining_steps = n_maximum_steps - time_stepping.get_step_number();
+
+  *this->pcout << "Continuing the current run until t = "
+               << Utilities::to_string(time_stepping.get_end_time(), 6)
+               << " or until "
+               << Utilities::int_to_string(n_remaining_steps)
+               << " time steps are performed"
+               << std::endl;
+
+  time_loop(n_remaining_steps);
+
+}
+
+template <int dim>
+void HydrodynamicProblem<dim>::time_loop(const unsigned int n_steps)
+{
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
@@ -56,7 +107,7 @@ void HydrodynamicProblem<dim>::run()
 
     // Update the time step, i.e., sets the value of t^{k}
     time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(time_stepping, cfl_number));
+        this->compute_next_time_step(time_stepping, cfl_number));
 
     *this->pcout << time_stepping << std::endl;
 
@@ -71,31 +122,39 @@ void HydrodynamicProblem<dim>::run()
     update_solution_vectors();
 
     // Snapshot stage
-    if (time_stepping.get_step_number() %
-         this->prm.terminal_output_frequency == 0 ||
-        time_stepping.get_current_time() == time_stepping.get_end_time())
-      this->postprocess_solution();
+    if (parameters.postprocessing_frequency > 0)
+      if (time_stepping.get_step_number() % parameters.postprocessing_frequency == 0 ||
+          time_stepping.get_current_time() == time_stepping.get_end_time())
+        this->postprocess_solution();
 
     if (time_stepping.get_step_number() %
-        this->prm.spatial_discretization_parameters.adaptive_mesh_refinement_frequency == 0)
+        parameters.spatial_discretization_parameters.adaptive_mesh_refinement_frequency == 0)
       this->adaptive_mesh_refinement();
 
-    if ((time_stepping.get_step_number() %
-          this->prm.graphical_output_frequency == 0) ||
-        (time_stepping.get_current_time() ==
-                   time_stepping.get_end_time()))
-      output_results();
+    if (parameters.graphical_output_frequency > 0)
+      if ((time_stepping.get_step_number() % parameters.graphical_output_frequency == 0) ||
+          (time_stepping.get_current_time() == time_stepping.get_end_time()))
+        output_results();
+
+    if (time_stepping.get_step_number() >= n_steps)
+      break;
   }
 
+  *this->pcout << time_stepping << std::endl << std::endl;
+
+  this->save_postprocessing_results();
+
+  if (time_stepping.get_current_time() == time_stepping.get_end_time())
+    *this->pcout << std::endl << std::endl
+                 << "This run completed successfully!" << std::endl << std::endl;
+  else if (time_stepping.get_step_number() >= n_steps)
+    *this->pcout << std::endl << std::endl
+                 << std::setw(80)
+                 << "This run terminated because the maximum number of steps was "
+                    "reached! The current\n time is not equal to the desired "
+                    "final time." << std::endl << std::endl;
+
   *(this->pcout) << std::fixed;
-
-  clear();
-}
-
-template<int dim>
-void HydrodynamicProblem<dim>::continue_run()
-{
-  AssertThrow(false, ExcNotImplemented());
 }
 
 template<int dim>

@@ -21,7 +21,19 @@ class HydrodynamicProblem : public Problem<dim>
 public:
   HydrodynamicProblem(const RunTimeParameters::HydrodynamicProblemParameters &parameters);
 
+  /*
+   * @brief This methods starts a simulation.
+   */
   void run();
+
+  /*!
+   * @brief This methods continues a simulation until the final time or the
+   * maximum number of steps is reached.
+   *
+   * @attention This method only continues a simulation if the parameters of the
+   * @ref parameter are modified accordingly.
+   */
+  void continue_run();
 
 protected:
   const RunTimeParameters::HydrodynamicProblemParameters &parameters;
@@ -38,15 +50,6 @@ protected:
    * @brief The current Courant number.
    */
   double                                        cfl_number;
-
-  /*!
-   * @brief This methods continues a simulation until the final time or the
-   * maximum number of steps is reached.
-   *
-   * @attention This method only continues a simulation if the parameters of the
-   * @ref parameter are modified accordingly.
-   */
-  void continue_run();
 
   /*!
    * @brief This methods creates the initial mesh.
@@ -82,6 +85,15 @@ protected:
    *
    */
   virtual void postprocess_solution();
+
+  /*!
+   * @brief Virtual method to allow the user to run some postprocessing methods
+   * at the end of a simulation. The default implementation does nothing.
+   *
+   * @details This method is called at the end of @ref run and @ref continue_run.
+   *
+   */
+  virtual void save_postprocessing_results();
 
   /*!
    * @brief Purely virtual method to setup the boundary conditions of the
@@ -125,6 +137,8 @@ private:
    */
   void setup_dofs();
 
+  void time_loop(const unsigned int n_steps);
+
   /*!
    * @brief This method saves the current solution as VTK output.
    */
@@ -143,6 +157,12 @@ private:
 // inline functions
 template<int dim>
 inline void HydrodynamicProblem<dim>::postprocess_solution()
+{
+  return;
+}
+
+template<int dim>
+inline void HydrodynamicProblem<dim>::save_postprocessing_results()
 {
   return;
 }
