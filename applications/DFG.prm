@@ -111,9 +111,9 @@ end
 subsection Time stepping parameters
   set Adaptive time stepping        = false
   set Adaptive timestepping barrier = 2
-  set Final time                    = 3000.0
+  set Final time                    = 0.20 # 3000.0
   set Initial time step             = 2.5e-2
-  set Maximum number of time steps  = 10
+  set Maximum number of time steps  = 20 # 10
   set Maximum time step             = 5e-2
   set Minimum time step             = 1e-2
   set Start time                    = 0.0

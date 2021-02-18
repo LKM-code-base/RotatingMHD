@@ -268,8 +268,6 @@ class DFG : public HydrodynamicProblem<dim>
 public:
   DFG(const RunTimeParameters::HydrodynamicProblemParameters &parameters);
 
-  void run();
-
 private:
 
   BenchmarkData::DFGBechmarkRequest<dim>        benchmark_request;
@@ -282,6 +280,8 @@ private:
   virtual void make_grid() override;
 
   virtual void postprocess_solution() override;
+
+  virtual void save_postprocessing_results() override;
 
   virtual void setup_boundary_conditions() override;
 
@@ -381,11 +381,28 @@ void DFG<dim>::postprocess_solution()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
+  *this->pcout << "    Postprocessing solution..." << std::endl;
+
   benchmark_request.compute_pressure_difference(this->pressure);
   benchmark_request.compute_drag_and_lift_coefficients(this->velocity,
-                                                       this->pressure);
-  benchmark_request.print_step_data(this->time_stepping);
+                                                       this->pressure,
+                                                       cylinder_bndry_id);
   benchmark_request.update_table(this->time_stepping);
+}
+
+template <int dim>
+void DFG<dim>::save_postprocessing_results()
+{
+  std::stringstream strstream;
+  strstream << this->prm.graphical_output_directory;
+  strstream << "dfg_benchmark_request.txt";
+
+  const bool success = benchmark_request.save(strstream.str());
+
+  if (success)
+    *this->pcout << "Benchmark request written to the file:" << std::endl
+                 << "    " << strstream.str().c_str()
+                 << std::endl;
 }
 
 } // namespace RMHD
@@ -404,8 +421,31 @@ int main(int argc, char *argv[])
       DFG<2> dfg(parameter_set);
 
       HydrodynamicProblem<2>* hydro_problem = &dfg;
-      hydro_problem->run();
 
+      const double final_time = parameter_set.time_discretization_parameters.final_time;
+      const double intermediate_time = 0.1 /* 350.0 */;
+
+      if (final_time > intermediate_time)
+      {
+          const unsigned int postprocessing_frequency
+          = parameter_set.postprocessing_frequency;
+
+          // disable postprocessing
+          parameter_set.postprocessing_frequency = 0;
+          // solve until intermediate time without postprocessing
+          parameter_set.time_discretization_parameters.final_time = intermediate_time;
+          hydro_problem->run();
+
+          // continue simulation with postprocessing
+          parameter_set.time_discretization_parameters.final_time
+          = final_time;
+          parameter_set.postprocessing_frequency = postprocessing_frequency;
+          hydro_problem->continue_run();
+      }
+      else
+      {
+        hydro_problem->run();
+      }
   }
   catch (std::exception &exc)
   {
