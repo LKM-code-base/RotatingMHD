@@ -238,11 +238,11 @@ void OutputControlParameters::declare_parameters(ParameterHandler &prm)
   {
     prm.declare_entry("Graphical output frequency",
                       "100",
-                      Patterns::Integer(1));
+                      Patterns::Integer(0));
 
     prm.declare_entry("Terminal output frequency",
                       "100",
-                      Patterns::Integer(1));
+                      Patterns::Integer(0));
 
     prm.declare_entry("Graphical output directory",
                       "./",
@@ -371,16 +371,16 @@ void PreconditionRelaxationParameters::declare_parameters(ParameterHandler &prm)
 
   prm.declare_entry("Relaxation parameter",
                     "1.0",
-                    Patterns::Double());
+                    Patterns::Double(0.0,2.0));
 
   prm.declare_entry("Overlap",
                     "0",
-                    Patterns::Integer());
+                    Patterns::Integer(0));
 
 
   prm.declare_entry("Number of sweeps",
                     "1",
-                    Patterns::Integer());
+                    Patterns::Integer(1));
 }
 
 
