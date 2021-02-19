@@ -346,7 +346,7 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
   }
 
   stream << std::endl << "|  alpha_zero |     -      | ";
-  for (const auto it: old_alpha_zero)
+  for (const auto it: previous_alpha_zeros)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -357,7 +357,7 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
   }
 
   stream << std::endl << "|old_step_size|     -      | ";
-  for (const auto it: old_step_size_values)
+  for (const auto it: previous_step_sizes)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -420,8 +420,16 @@ DiscreteTime(params.start_time,
              params.final_time,
              params.initial_time_step),
 type(params.vsimex_scheme),
+vsimex_parameters{order, 0.0},
+alpha{order+1, 0.0},
+beta{order, 0.0},
+gamma{order+1, 0.0},
+eta{order, 0.0},
 omega(1.0),
+previous_alpha_zeros{order, 0.0},
+previous_step_sizes{order, 0.0},
 flag_coefficients_changed(true),
+flag_restart(false),
 minimum_step_size(params.minimum_time_step),
 maximum_step_size(params.maximum_time_step)
 {
@@ -433,26 +441,18 @@ maximum_step_size(params.maximum_time_step)
   switch (type)
   {
     case VSIMEXScheme::BDF2 :
-      order = 2;
-      vsimex_parameters.resize(order);
       vsimex_parameters[0] = 1.0;
       vsimex_parameters[1] = 0.0;
       break;
     case VSIMEXScheme::CNAB :
-      order = 2;
-      vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.5;
       vsimex_parameters[1] = 0.0;
       break;
     case VSIMEXScheme::mCNAB :
-      order = 2;
-      vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.5;
       vsimex_parameters[1] = 1.0/8.0;
       break;
     case VSIMEXScheme::CNLF :
-      order = 2;
-      vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.0;
       vsimex_parameters[1] = 1.0;
       break;
@@ -461,22 +461,77 @@ maximum_step_size(params.maximum_time_step)
             ExcMessage("Specified scheme is not implemented. See documentation"));
      break;
   };
-
-  reinit();
 }
 
-
-void VSIMEXMethod::reinit()
+void VSIMEXMethod::clear()
 {
-  // Resize all coefficient vectors according to the scheme's order
-  // and initializing their values to zero except of those acting as
-  // divisor.
-  alpha.resize(order+1, 0.0);
-  beta.resize(order, 0.0);
-  gamma.resize(order+1, 0.0);
-  eta.resize(order, 0.0);
-  old_step_size_values.resize(order, 0.0);
-  old_alpha_zero.resize(order, 1.0);
+  for (unsigned int i=0; i<order+1; ++i)
+  {
+    alpha[i] = 0.0;
+    beta[i] = 0.0;
+    gamma[i] = 0.0;
+  }
+
+  for (unsigned int i=0; i<order; ++i)
+  {
+    eta[i] = 0.0;
+    previous_alpha_zeros[i] = 0.0;
+    previous_step_sizes[i] = 0.0;
+  }
+
+  omega = 1.0;
+
+  this->restart();
+}
+
+void VSIMEXMethod::initialize(const double previous_step_size)
+{
+  // Computes the ratio of the next and previous time step sizes.
+  omega = get_next_step_size() / previous_step_size;
+  AssertIsFinite(omega);
+
+  // and stores their previous values. The inline if considers the
+  // change from a first to second order scheme between the first and
+  // second time steps.
+  previous_alpha_zeros[0] = 1.0;
+  previous_step_sizes[0] = previous_step_size;
+
+  flag_coefficients_changed = true;
+
+  // updates the VSIMEX coefficients
+  {
+    // VSIMEX coefficient's formulas
+    const double a = vsimex_parameters[0];
+    const double b = vsimex_parameters[1];
+
+    alpha[0] = (1.0 + 2.0 * a * omega) / (1.0 + omega);
+    alpha[1] = ((1.0 - 2.0 * a) * omega - 1.0);
+    alpha[2] = (2.0 * a - 1.0) * omega * omega / (1.0 + omega);
+
+    beta[0]  = 1.0 + a * omega;
+    beta[1]  = - a * omega;
+
+    gamma[0] = a + b / (2.0 * omega);
+    gamma[1] = 1.0 - a - (1.0 + 1.0 / omega) * b / 2.0;
+    gamma[2] = b / 2.0;
+
+    // Second order Taylor extrapolation coefficients
+    eta[0] = 1.0 + omega;
+    eta[1] = - omega;
+  }
+  AssertIsFinite(alpha[0]);
+  AssertIsFinite(alpha[1]);
+  AssertIsFinite(alpha[2]);
+  AssertIsFinite(beta[0]);
+  AssertIsFinite(beta[1]);
+  AssertIsFinite(gamma[0]);
+  AssertIsFinite(gamma[1]);
+  AssertIsFinite(gamma[2]);
+  AssertIsFinite(eta[0]);
+  AssertIsFinite(eta[1]);
+
+  flag_restart = true;
+
 }
 
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
@@ -519,6 +574,11 @@ inline void VSIMEXMethod::set_maximum_step_size(const double step_size)
 
 void VSIMEXMethod::update_coefficients()
 {
+  if (flag_restart)
+  {
+    flag_restart = false;
+    return;
+  }
   // Computes the ratio of the next and previous time step sizes.
   // It is nested in an if as get_previous_step_size() returns zero
   // at the start time.
@@ -534,22 +594,21 @@ void VSIMEXMethod::update_coefficients()
   // the std::vectors storing those values
   for (unsigned int i = order-1; i > 0; --i)
   {
-    old_alpha_zero[i]       = old_alpha_zero[i-1];
-    old_step_size_values[i] = old_step_size_values[i-1];
+    previous_alpha_zeros[i] = previous_alpha_zeros[i-1];
+    previous_step_sizes[i] = previous_step_sizes[i-1];
   }
-
   // and stores their previous values. The inline if considers the
   // change from a first to second order scheme between the first and
   // second time steps.
-  old_alpha_zero[0]       = (get_step_number() > 1)
-                            ? alpha[0]
-                            : (1.0 + 2.0 * vsimex_parameters[0])/2.0;
-  old_step_size_values[0] = get_previous_step_size();
+  previous_alpha_zeros[0] = (get_step_number() > 1) ? alpha[0] : 1.0;
+  previous_step_sizes[0] = get_previous_step_size();
 
   // Checks if the time step size changes. If not, exit the method.
   // The second boolean, i.e. get_step_number() <= (get_order() - 1),
   // takes the first step into account.
-  if (static_cast<float>(omega) != 1. || get_step_number() <= (get_order() - 1))
+
+  if ((std::fabs(omega - 1.0) > std::numeric_limits<float>::epsilon()) ||
+      get_step_number() <= (order - 1))
     flag_coefficients_changed = true;
   else
   {
@@ -559,20 +618,18 @@ void VSIMEXMethod::update_coefficients()
 
   // Updates the VSIMEX coefficients. For the first time step, the
   // method returns the coefficients of the Backward Euler scheme instead.
-  if (get_step_number() < (get_order() - 1))
+  if (get_step_number() < (order - 1))
   {
     // Hardcoded coefficients for a Backward Euler first order scheme
-    const double a = 1.0;
-
     alpha[0] = 1.0;
-    alpha[1] = - 1.0;
+    alpha[1] = -1.0;
     alpha[2] = 0.0;
 
     beta[0]  = 1.0;
     beta[1]  = 0.0;
 
-    gamma[0] = a;
-    gamma[1] = 1.0 - a;
+    gamma[0] = 1.0;
+    gamma[1] = 0.0;
     gamma[2] = 0.0;
 
     // First order Taylor extrapolation coefficients
@@ -596,11 +653,10 @@ void VSIMEXMethod::update_coefficients()
     gamma[1] = 1.0 - a - (1.0 + 1.0 / omega) * b / 2.0;
     gamma[2] = b / 2.0;
 
-    // Second order Tayor extrapolation coefficients
-    eta[0]   = 1.0 + omega;
-    eta[1]   = - omega;
+    // Second order Taylor extrapolation coefficients
+    eta[0] = 1.0 + omega;
+    eta[1] = - omega;
   }
-
   AssertIsFinite(alpha[0]);
   AssertIsFinite(alpha[1]);
   AssertIsFinite(alpha[2]);

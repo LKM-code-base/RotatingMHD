@@ -11,9 +11,10 @@ namespace RMHD
 {
 
 /*!
- * @class Problem
- * @brief The class containts instances and methods that are common
- * and/or useful for most problems to be formulated.
+ * @class HydrodynamicProblem
+ *
+ * @brief The class contains instances and methods that are common
+ * and / or useful for most problems to be formulated.
  */
 template <int dim>
 class HydrodynamicProblem : public Problem<dim>
@@ -52,6 +53,12 @@ protected:
   double                                        cfl_number;
 
   /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear() override;
+
+  /*!
    * @brief This methods creates the initial mesh.
    *
    * @details This method is only called at the beginning of a simulation.
@@ -68,16 +75,16 @@ protected:
   void restart(const std::string &fname);
 
   /*!
-   * @brief This initializes the problem such that the solution at the fictious
-   * previous timestep is specified according the @p function. The @ref
+   * @brief This initializes the problem such that the solution at the fictitious
+   * previous time step is specified according the @p function. The @ref
    * time_stepping is also initialized accordingly.
    *
    * @details This method is only called at the beginning of a simulation.
    *
    */
-  void restart_from_function(const Function<dim> &function,
-                             const double         old_step_size,
-                             const double         old_old_step_size);
+  void initialize_from_function(Function<dim> &velocity_function,
+                                Function<dim> &pressure_function,
+                                const double   previous_step_size);
 
   /*!
    * @brief Virtual method to allow the user to run some postprocessing methods.
@@ -110,12 +117,6 @@ protected:
   virtual void setup_initial_conditions() = 0;
 
 private:
-  /*!
-   * @details Release all memory and return all objects to a state just like
-   * after having called the default constructor.
-   */
-  virtual void clear() override;
-
   /*!
    * @brief This method loads a checkpoint of a previous simulation from the
    * file system. This process is referred to as deserialization.

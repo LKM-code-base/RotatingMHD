@@ -164,7 +164,6 @@ Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm);
 */
 class VSIMEXMethod : public DiscreteTime
 {
-
 public:
 
   /*!
@@ -173,9 +172,14 @@ public:
   VSIMEXMethod(const TimeDiscretizationParameters &parameters);
 
   /*!
-  * @brief A method returning the order of the VSIMEX scheme.
-  */
-  unsigned int get_order() const;
+   *
+   */
+  void clear();
+
+  /*!
+   *
+   */
+  void initialize(const double previous_step_size);
 
   /*!
    * @brief Returns a string with the name of the variable step size IMEX
@@ -206,31 +210,51 @@ public:
   /*!
    * @brief A method returning the previous \f$\alpha_0 \f$.
    */
-  const std::vector<double>& get_old_alpha_zero() const;
+  const std::vector<double>& get_previous_alpha_zeros() const;
 
   /*!
    * @brief A method returning the previous step sizes.
    */
-  const std::vector<double>& get_old_step_sizes() const;
+  const std::vector<double>& get_previous_step_sizes() const;
 
-  double get_minumum_step_size() const;
+  /*!
+   * @brief A method returning the minimum size of the time step.
+   */
+  double get_minimum_step_size() const;
 
+  /*!
+   * @brief A method returning the maximum size of the time step.
+   */
   double get_maximum_step_size() const;
 
+  /*!
+  * @brief A method setting the *desired* minimum size of the time step.
+  *
+  * @details This method assigns @p step_size to @ref mininum_step_size.
+  *
+  */
   void set_minimum_step_size(const double step_size);
 
+  /*!
+  * @brief A method setting the *desired* maximum size of the time step.
+  *
+  * @details This method assigns @p step_size to @ref maximum_step_size.
+  *
+  */
   void set_maximum_step_size(const double step_size);
 
   /*!
   * @brief A method passing the *desired* size of the next time step to the
   * class.
   *
-  * @details The method checks if the the time step is inside the bounds
-  * set in the constructor. If not, it adjusts the time step accordingly
-  * and passes it to the set_desired_time_step() method from the
-  * DiscreteTime class which does further modifications if needed.
+  * @details The method checks if the @p step_size is inside the bounds
+  * defined by @ref minimum_step_size and @ref maximum_step_size. If not, it
+  * adjusts the time step accordingly and passes it to the @ref
+  * Discrete::set_desired_time_step() method from the @ref DiscreteTime class
+  * which does further modifications if needed.
+  *
   */
-  void set_desired_next_step_size(const double time_step_size);
+  void set_desired_next_step_size(const double step_size);
 
   /*!
    * @brief Output of the current step number, the current time and the size of
@@ -248,34 +272,30 @@ public:
 
   /*!
   *  @brief A method that updates the coefficients.
-  *  @details Here goes a longer explanation with the formulas.
+  *
+  *  @todo Here goes a longer explanation with the formulas.
   */
   void update_coefficients();
 
   /*!
    * @brief Returns the flag indicating if the VSIMEX coefficients changed from
    * the last step.
-   * @details The flag is set as true if @ref omega is anything other
-   * than 1.0 and is set as false if @ref is equal to 1.0.
+   *
+   * @details The flag is true if @ref omega is not equal to 1.0 and is false
+   * if @ref omega is equal to 1.0.
    */
   bool coefficients_changed() const;
 
 private:
-
   /*!
-   * @brief Method which updates the sizes of the coefficient vectors.
+   * @brief Order of the VSIMEX scheme.
    */
-  void reinit();
+  constexpr static unsigned int order{2};
 
   /*
    * @brief Type of the IMEX scheme.
    */
   const VSIMEXScheme  type;
-
-  /*!
-   * @brief Order of the VSIMEX scheme.
-   */
-  unsigned int  order;
 
   /*!
    * @brief Parameters of the VSIMEX scheme.
@@ -321,7 +341,7 @@ private:
    * @attention This member is only useful in the NavierStokesProjection
    * class.
    */
-  std::vector<double> old_alpha_zero;
+  std::vector<double> previous_alpha_zeros;
 
   /*!
    * @brief A vector containing the previous time steps.
@@ -331,7 +351,7 @@ private:
    * @attention This member is only useful in the NavierStokesProjection
    * class.
    */
-  std::vector<double> old_step_size_values;
+  std::vector<double> previous_step_sizes;
 
   /*!
    * @brief A flag indicating if the VSIMEX coefficients changed from
@@ -339,11 +359,19 @@ private:
    * @details The flag is set as true if @ref omega is anything other
    * than 1.0 and is set as false if @ref is equal to 1.0.
    */
-  bool                flag_coefficients_changed;
+  bool    flag_coefficients_changed;
 
-  double minimum_step_size;
+  bool    flag_restart;
 
-  double maximum_step_size;
+  /*!
+   * @brief The minimum size of the time step.
+   */
+  double  minimum_step_size;
+
+  /*!
+   * @brief The maximum size of the time step.
+   */
+  double  maximum_step_size;
 };
 
 
@@ -358,11 +386,6 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex);
 
 
 // inline functions
-inline unsigned int VSIMEXMethod::get_order() const
-{
-  return (order);
-}
-
 inline const std::vector<double>& VSIMEXMethod::get_alpha() const
 {
   return (alpha);
@@ -383,14 +406,14 @@ inline const std::vector<double>& VSIMEXMethod::get_eta() const
   return (eta);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_old_alpha_zero() const
+inline const std::vector<double>& VSIMEXMethod::get_previous_alpha_zeros() const
 {
-  return (old_alpha_zero);
+  return (previous_alpha_zeros);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_old_step_sizes() const
+inline const std::vector<double>& VSIMEXMethod::get_previous_step_sizes() const
 {
-  return (old_step_size_values);
+  return (previous_step_sizes);
 }
 
 inline bool VSIMEXMethod::coefficients_changed() const
@@ -398,7 +421,7 @@ inline bool VSIMEXMethod::coefficients_changed() const
   return (flag_coefficients_changed);
 }
 
-inline double VSIMEXMethod::get_minumum_step_size() const
+inline double VSIMEXMethod::get_minimum_step_size() const
 {
   return (minimum_step_size);
 }
