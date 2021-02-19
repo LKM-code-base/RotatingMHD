@@ -85,7 +85,7 @@ void HydrodynamicProblem<dim>::continue_run()
   const unsigned int n_remaining_steps = n_maximum_steps - time_stepping.get_step_number();
 
   *this->pcout << "Continuing the current run until t = "
-               << Utilities::to_string(time_stepping.get_end_time(), 6)
+               << Utilities::to_string(time_stepping.get_end_time())
                << " or until "
                << Utilities::int_to_string(n_remaining_steps)
                << " time steps are performed"
@@ -127,9 +127,10 @@ void HydrodynamicProblem<dim>::time_loop(const unsigned int n_steps)
           time_stepping.get_current_time() == time_stepping.get_end_time())
         this->postprocess_solution();
 
-    if (time_stepping.get_step_number() %
-        parameters.spatial_discretization_parameters.adaptive_mesh_refinement_frequency == 0)
-      this->adaptive_mesh_refinement();
+    if (parameters.spatial_discretization_parameters.adaptive_mesh_refinement)
+      if (time_stepping.get_step_number() %
+          parameters.spatial_discretization_parameters.adaptive_mesh_refinement_frequency == 0)
+        this->adaptive_mesh_refinement();
 
     if (parameters.graphical_output_frequency > 0)
       if ((time_stepping.get_step_number() % parameters.graphical_output_frequency == 0) ||
