@@ -54,7 +54,7 @@ void HydrodynamicProblem<dim>::run()
   const unsigned int n_maximum_steps = parameters.time_discretization_parameters.n_maximum_steps;
 
   *this->pcout << "Solving the problem until t = "
-               << Utilities::to_string(time_stepping.get_end_time(), 6)
+               << Utilities::to_string(time_stepping.get_end_time())
                << " or until "
                << Utilities::int_to_string(n_maximum_steps)
                << " time steps are performed"
@@ -163,13 +163,49 @@ void HydrodynamicProblem<dim>::restart(const std::string &)
   AssertThrow(false, ExcNotImplemented());
 }
 
-template<int dim>
-void HydrodynamicProblem<dim>::restart_from_function
-(const Function<dim> &,
- const double,
- const double)
+template <int dim>
+void HydrodynamicProblem<dim>::initialize_from_function
+(Function<dim> &velocity_function,
+ Function<dim> &pressure_function,
+ const double   previous_step_size)
 {
-  AssertThrow(false, ExcNotImplemented());
+  Assert(previous_step_size > 0,
+         ExcLowerRangeType<double>(previous_step_size, 0));
+
+  Assert(this->time_stepping.get_step_number() == 0,
+         ExcMessage("Initialization is not performed at the start of the simulation."));
+  const double current_time = this->time_stepping.get_current_time();
+
+  // compute two fictitious previous times
+  const double previous_time = current_time - previous_step_size;
+
+  // initialize previous solutions of the velocity
+  {
+    velocity_function.set_time(previous_time);
+    this->project_function(velocity_function,
+                           this->velocity,
+                           this->velocity->old_old_solution);
+
+    velocity_function.set_time(current_time);
+    this->project_function(velocity_function,
+                           this->velocity,
+                           this->velocity->old_solution);
+  }
+  // initialize previous solutions of the pressure
+  {
+    pressure_function.set_time(previous_time);
+    this->project_function(pressure_function,
+                           this->pressure,
+                           this->pressure->old_old_solution);
+
+    pressure_function.set_time(current_time);
+    this->project_function(pressure_function,
+                           this->pressure,
+                           this->pressure->old_solution);
+  }
+
+  // initialize the coefficients of the IMEX scheme
+  //  time_stepping.initialize(previous_step_size);
 }
 
 template<int dim>
@@ -180,7 +216,6 @@ void HydrodynamicProblem<dim>::clear()
 
   velocity->clear();
   pressure->clear();
-
 
   Problem<dim>::clear();
 }
