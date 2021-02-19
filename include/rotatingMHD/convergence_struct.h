@@ -58,6 +58,11 @@ struct ConvergenceTestParameters
   ConvergenceTestParameters();
 
   /*!
+   * @brief Constructor which sets up the parameters with default values.
+   */
+  ConvergenceTestParameters(const std::string &parameter_filename);
+
+  /*!
    * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
    */
@@ -122,16 +127,16 @@ public:
   void update_table
   (const DoFHandler<dim, spacedim>  &dof_handler,
    const double           time_step,
-   const std::map<typename VectorTools::NormType, const double> &error_map);
+   const std::map<typename VectorTools::NormType, double> &error_map);
 
   template <int dim, int spacedim>
   void update_table
   (const DoFHandler<dim, spacedim>  &dof_handler,
-   const std::map<typename VectorTools::NormType,const double> &error_map);
+   const std::map<typename VectorTools::NormType, double> &error_map);
 
   void update_table
   (const double time_step,
-   const std::map<typename VectorTools::NormType, const double> &error_map);
+   const std::map<typename VectorTools::NormType, double> &error_map);
 
   /*!
    * @brief Output of the convergence table to a stream object,

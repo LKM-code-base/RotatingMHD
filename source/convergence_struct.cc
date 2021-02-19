@@ -66,6 +66,44 @@ n_temporal_cycles(2)
 
 
 
+
+ConvergenceTestParameters::ConvergenceTestParameters
+(const std::string &parameter_filename)
+:
+ConvergenceTestParameters()
+{
+  ParameterHandler prm;
+
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+
+
+
 void ConvergenceTestParameters::declare_parameters(ParameterHandler &prm)
 {
   prm.enter_subsection("Convergence test parameters");
@@ -193,7 +231,7 @@ template<int dim, int spacedim>
 void ConvergenceTestData::update_table
 (const DoFHandler<dim, spacedim> &dof_hander,
  const double step_size,
- const std::map<typename VectorTools::NormType, const double> &error_map)
+ const std::map<typename VectorTools::NormType, double> &error_map)
 {
   table.add_value("level", level);
   level += 1;
@@ -207,7 +245,7 @@ void ConvergenceTestData::update_table
 template<int dim, int spacedim>
 void ConvergenceTestData::update_table
 (const DoFHandler<dim, spacedim> &dof_hander,
- const std::map<typename VectorTools::NormType, const double> &error_map)
+ const std::map<typename VectorTools::NormType, double> &error_map)
 {
   const types::global_dof_index n_dofs{dof_hander.n_dofs()};
   table.add_value("n_dofs", n_dofs);
@@ -236,7 +274,7 @@ void ConvergenceTestData::update_table
       break;
   }
 
-  std::map<typename VectorTools::NormType, const double>::const_iterator it;
+  std::map<typename VectorTools::NormType, double>::const_iterator it;
 
   if (it != error_map.end())
   {
@@ -273,7 +311,7 @@ void ConvergenceTestData::update_table
 
 void ConvergenceTestData::update_table
 (const double step_size,
- const std::map<typename VectorTools::NormType, const double> &error_map)
+ const std::map<typename VectorTools::NormType, double> &error_map)
 {
   table.add_value("level", level);
   level += 1;
@@ -293,7 +331,7 @@ void ConvergenceTestData::update_table
       break;
   }
 
-  std::map<typename VectorTools::NormType, const double>::const_iterator it;
+  std::map<typename VectorTools::NormType, double>::const_iterator it;
   it = error_map.find(VectorTools::NormType::L2_norm);
 
   if (it != error_map.end())
@@ -563,24 +601,24 @@ template dealii::ConditionalOStream & RMHD::ConvergenceTest::operator<<
 template void RMHD::ConvergenceTest::
 ConvergenceTestData::update_table<2,2>
 (const dealii::DoFHandler<2,2> &,
- const std::map<typename dealii::VectorTools::NormType, const double> &);
+ const std::map<typename dealii::VectorTools::NormType, double> &);
 
 template void RMHD::ConvergenceTest::
 ConvergenceTestData::update_table<3,3>
 (const dealii::DoFHandler<3,3> &,
- const std::map<typename dealii::VectorTools::NormType, const double> &);
+ const std::map<typename dealii::VectorTools::NormType, double> &);
 
 template void RMHD::ConvergenceTest::
 ConvergenceTestData::update_table<2,2>
 (const dealii::DoFHandler<2,2> &,
  const double,
- const std::map<typename dealii::VectorTools::NormType, const double> &);
+ const std::map<typename dealii::VectorTools::NormType, double> &);
 
 template void RMHD::ConvergenceTest::
 ConvergenceTestData::update_table<3,3>
 (const dealii::DoFHandler<3,3> &,
  const double,
- const std::map<typename dealii::VectorTools::NormType, const double> &);
+ const std::map<typename dealii::VectorTools::NormType, double> &);
 
 template void RMHD::ConvergenceTest::
 ConvergenceTestData::print_data
