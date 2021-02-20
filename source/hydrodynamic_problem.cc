@@ -1,3 +1,4 @@
+
 #include <rotatingMHD/hydrodynamic_problem.h>
 
 #include <deal.II/numerics/data_out.h>
@@ -206,14 +207,14 @@ void HydrodynamicProblem<dim>::initialize_from_function
   }
 
   // initialize the coefficients of the IMEX scheme
-  //  time_stepping.initialize(previous_step_size);
+  time_stepping.initialize(previous_step_size);
 }
 
 template<int dim>
 void HydrodynamicProblem<dim>::clear()
 {
   navier_stokes.clear();
-//  time_stepping.clear();
+  time_stepping.clear();
 
   velocity->clear();
   pressure->clear();

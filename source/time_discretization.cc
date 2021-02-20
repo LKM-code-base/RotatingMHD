@@ -461,7 +461,6 @@ maximum_step_size(params.maximum_time_step)
             ExcMessage("Specified scheme is not implemented. See documentation"));
      break;
   }
-
 }
 
 void VSIMEXMethod::clear()
@@ -533,6 +532,7 @@ void VSIMEXMethod::initialize(const double previous_step_size)
   AssertIsFinite(eta[1]);
 
   flag_restart = true;
+
 }
 
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
@@ -598,6 +598,7 @@ void VSIMEXMethod::update_coefficients()
     previous_alpha_zeros[i] = previous_alpha_zeros[i-1];
     previous_step_sizes[i] = previous_step_sizes[i-1];
   }
+
   // and stores their previous values. The inline if considers the
   // change from a first to second order scheme between the first and
   // second time steps.
