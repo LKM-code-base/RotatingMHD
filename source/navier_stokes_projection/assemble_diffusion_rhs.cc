@@ -256,8 +256,8 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   const std::vector<double> gamma = time_stepping.get_gamma();
 
   // Data for the elimination of the selonoidal velocity
-  const std::vector<double> old_alpha_zero  = time_stepping.get_old_alpha_zero();
-  const std::vector<double> old_step_size   = time_stepping.get_old_step_sizes();
+  const std::vector<double> old_alpha_zero  = time_stepping.get_previous_alpha_zeros();
+  const std::vector<double> old_step_size   = time_stepping.get_previous_step_sizes();
 
   // Taylor extrapolation coefficients
   const std::vector<double> eta   = time_stepping.get_eta();

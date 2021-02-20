@@ -188,7 +188,6 @@ void Problem<dim>::adaptive_mesh_refinement()
   /*! Initiates the objects responsible for the solution transfer */
   for (auto const &entity: container.entities)
     solution_transfers.emplace_back(*(entity.first->dof_handler));
-
   {
     TimerOutput::Scope t(*computing_timer,
                          "Problem: Adaptive mesh refinement Pt. 1");
