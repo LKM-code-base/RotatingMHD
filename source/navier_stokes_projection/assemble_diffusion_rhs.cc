@@ -198,16 +198,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.gravity_vector_values);
   }
-  else
-  {
-    scratch.old_temperature_values.assign(scratch.old_temperature_values.size(),
-                                          0.0);
-    scratch.old_old_temperature_values = scratch.old_temperature_values;
-
-    ZeroTensorFunction<1, dim>().value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.gravity_vector_values);
-  }
 
   // Body force
   /*! @note Should body forces be also treated inside the VSIMEX scheme?
@@ -230,15 +220,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       scratch.velocity_fe_values.get_quadrature_points(),
       scratch.body_force_values);
   }
-  else
-  {
-    ZeroTensorFunction<1,dim>().value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.body_force_values);
-
-    scratch.old_body_force_values     = scratch.body_force_values;
-    scratch.old_old_body_force_values = scratch.body_force_values;
-  }
 
   // Coreolis acceleration
   if (angular_velocity_vector_ptr != nullptr)
@@ -250,16 +231,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     angular_velocity_vector_ptr->set_time(time_stepping.get_current_time());
     scratch.old_angular_velocity_value =
                                 angular_velocity_vector_ptr->rotation();
-  }
-  else
-  {
-    if constexpr(dim == 2)
-      scratch.old_angular_velocity_value      = Tensor<1,1>();
-    else if constexpr(dim == 3)
-      scratch.old_angular_velocity_value      = Tensor<1,dim>();
-
-    scratch.old_old_angular_velocity_value =
-                                    scratch.old_angular_velocity_value;
   }
 
   // VSIMEX coefficients
@@ -277,9 +248,189 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   // Local to global indices mapping
   cell->get_dof_indices(data.local_dof_indices);
 
+  // Initialize weak forms of the right-hand side's terms
+  std::vector<Tensor<1,dim>>  explicit_velocity_term(scratch.n_q_points);
+  std::vector<double>         pressure_gradient_term(scratch.n_q_points);
+  std::vector<Tensor<2,dim>>  diffusion_term(scratch.n_q_points);
+  std::vector<Tensor<1,dim>>  body_force_term(scratch.n_q_points);
+  std::vector<Tensor<1,dim>>  bouyancy_term(scratch.n_q_points);
+  std::vector<Tensor<1,dim>>  coriolis_acceleration_term(scratch.n_q_points);
+  std::vector<Tensor<1,dim>>  advection_term(scratch.n_q_points);
+
   // Loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
   {
+    // Evaluate the weak form of the right-hand side's terms at
+    // the quadrature point
+    {
+      explicit_velocity_term[q] =
+                alpha[1] / time_stepping.get_next_step_size() *
+                scratch.old_velocity_values[q]
+                +
+                alpha[2] / time_stepping.get_next_step_size() *
+                scratch.old_old_velocity_values[q];
+
+      pressure_gradient_term[q] =
+                parameters.C6 *
+                (scratch.old_pressure_values[q]
+                 -
+                 old_step_size[0] / time_stepping.get_next_step_size() *
+                 alpha[1] / old_alpha_zero[0] *
+                 scratch.old_phi_values[q]
+                 -
+                 old_step_size[1] / time_stepping.get_next_step_size() *
+                 alpha[2] / old_alpha_zero[1] *
+                 scratch.old_old_phi_values[q]);
+
+      diffusion_term[q] =
+                parameters.C2 *
+                (gamma[1] *
+                 scratch.old_velocity_gradients[q]
+                 +
+                 gamma[2] *
+                 scratch.old_old_velocity_gradients[q]);
+
+      if (body_force_ptr != nullptr)
+        body_force_term[q] =
+                1.0 * /* parameters.C7 */
+                (gamma[0] *
+                 scratch.body_force_values[q]
+                 +
+                 gamma[1] *
+                 scratch.old_body_force_values[q]
+                 +
+                 gamma[2] *
+                 scratch.old_old_body_force_values[q]);
+      else
+        body_force_term[q] = 0.;
+
+      if (!flag_ignore_bouyancy_term)
+        bouyancy_term[q] =
+                parameters.C3 *
+                scratch.gravity_vector_values[q] *
+                (beta[0] *
+                 scratch.old_temperature_values[q]
+                 +
+                 beta[1] *
+                 scratch.old_old_temperature_values[q]);
+      else
+        bouyancy_term[q] = 0.;
+
+      if (angular_velocity_vector_ptr != nullptr)
+      {
+        if constexpr(dim == 2)
+          coriolis_acceleration_term[q] =
+                  parameters.C1 *
+                  (beta[0] *
+                   scratch.old_angular_velocity_value[0] *
+                   cross_product_2d(-scratch.old_velocity_values[q])
+                   +
+                   beta[1] *
+                   scratch.old_old_angular_velocity_value[0] *
+                   cross_product_2d(-scratch.old_old_velocity_values[q]));
+        else if constexpr(dim == 3)
+          coriolis_acceleration_term[q] =
+                  parameters.C1 *
+                  (beta[0] *
+                   cross_product_3d(scratch.old_angular_velocity_value,
+                                    scratch.old_velocity_values[q])
+                   +
+                   beta[1] *
+                   cross_product_3d(scratch.old_old_angular_velocity_value,
+                                    scratch.old_old_velocity_values[q]));
+      }
+      else
+        coriolis_acceleration_term[q] = 0.;
+
+      if (parameters.convective_term_time_discretization ==
+          RunTimeParameters::ConvectiveTermTimeDiscretization::fully_explicit)
+      {
+        switch (parameters.convective_term_weak_form)
+        {
+          case RunTimeParameters::ConvectiveTermWeakForm::standard:
+          {
+            advection_term[q] =
+                  beta[0] *
+                  scratch.old_velocity_gradients[q] *
+                  scratch.old_velocity_values[q]
+                  +
+                  beta[1] *
+                  scratch.old_old_velocity_gradients[q] *
+                  scratch.old_old_velocity_values[q];
+            break;
+          }
+          case RunTimeParameters::ConvectiveTermWeakForm::skewsymmetric:
+          {
+            advection_term[q] =
+                  beta[0] *
+                  (scratch.old_velocity_gradients[q] *
+                   scratch.old_velocity_values[q]
+                   +
+                   0.5 *
+                   scratch.old_velocity_divergences[q] *
+                   scratch.old_velocity_values[q])
+                  +
+                  beta[1] *
+                  (scratch.old_old_velocity_gradients[q] *
+                   scratch.old_old_velocity_values[q]
+                   +
+                   0.5 *
+                   scratch.old_old_velocity_divergences[q] *
+                   scratch.old_old_velocity_values[q]);
+            break;
+          }
+          case RunTimeParameters::ConvectiveTermWeakForm::divergence:
+          {
+            advection_term[q] =
+                  beta[0] *
+                  (scratch.old_velocity_gradients[q] *
+                   scratch.old_velocity_values[q]
+                   +
+                   scratch.old_velocity_divergences[q] *
+                   scratch.old_velocity_values[q])
+                  +
+                  beta[1] *
+                  (scratch.old_old_velocity_gradients[q] *
+                   scratch.old_old_velocity_values[q]
+                   +
+                   scratch.old_old_velocity_divergences[q] *
+                   scratch.old_old_velocity_values[q]);
+            break;
+          }
+          case RunTimeParameters::ConvectiveTermWeakForm::rotational:
+          {
+            // The minus sign in the argument of cross_product_2d
+            // method is due to how the method is defined.
+            if constexpr(dim == 2)
+              advection_term[q] =
+                  beta[0] *
+                  scratch.old_velocity_curls[q][0] *
+                  cross_product_2d(-scratch.old_velocity_values[q])
+                  +
+                  beta[1] *
+                  scratch.old_old_velocity_curls[q][0] *
+                  cross_product_2d(-scratch.old_old_velocity_values[q]);
+            else if constexpr(dim == 3)
+              advection_term[q] =
+                  beta[0] *
+                  cross_product_3d(
+                    scratch.old_velocity_curls[q],
+                    scratch.old_velocity_values[q])
+                  +
+                  beta[1] *
+                  cross_product_3d(
+                    scratch.old_old_velocity_curls[q],
+                    scratch.old_old_velocity_values[q]);
+            break;
+          }
+          default:
+            Assert(false, ExcNotImplemented());
+        };
+      }
+      else
+        advection_term[q] = 0.;
+    }
+
     // Extract test function values at the quadrature points
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
@@ -292,196 +443,24 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     // Loop over local degrees of freedom
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
-      // Local right hand side (Domain integrals)
       data.local_rhs(i) +=
-                (parameters.C6 *
-                 scratch.div_phi[i] *
-                 (scratch.old_pressure_values[q]
-                  -
-                  old_step_size[0] / time_stepping.get_next_step_size() *
-                  alpha[1] / old_alpha_zero[0] *
-                  scratch.old_phi_values[q]
-                  -
-                  old_step_size[1] / time_stepping.get_next_step_size() *
-                  alpha[2] / old_alpha_zero[1] *
-                  scratch.old_old_phi_values[q])
-                -
-                scratch.phi[i] *
-                (alpha[1] / time_stepping.get_next_step_size() *
-                 scratch.old_velocity_values[q]
-                 +
-                 alpha[2] / time_stepping.get_next_step_size() *
-                 scratch.old_old_velocity_values[q])
-                -
-                beta[0] *
-                parameters.C3 *
-                scratch.phi[i] *
-                scratch.gravity_vector_values[q] *
-                scratch.old_temperature_values[q]
-                -
-                beta[1] *
-                parameters.C3 *
-                scratch.phi[i] *
-                scratch.gravity_vector_values[q] *
-                scratch.old_old_temperature_values[q]
-                +
-                gamma[0] *
-                scratch.phi[i] *
-                scratch.body_force_values[q]
-                -
-                gamma[1] *
-                (parameters.C2 *
-                 scalar_product(scratch.grad_phi[i],
-                                scratch.old_velocity_gradients[q])
-                 -
-                 scratch.phi[i] *
-                 scratch.old_body_force_values[q])
-                -
-                gamma[2] *
-                (parameters.C2 *
-                 scalar_product(scratch.grad_phi[i],
-                                scratch.old_old_velocity_gradients[q])
-                 -
-                 scratch.phi[i] *
-                 scratch.old_old_body_force_values[q])) *
-                scratch.velocity_fe_values.JxW(q);
-
-      if (angular_velocity_vector_ptr != nullptr)
-      {
-        if constexpr(dim == 2)
-          // The minus sign in the argument of cross_product_2d
-          // method is due to how the method is defined.
-          data.local_rhs(i) -=
-                (beta[0] *
-                 parameters.C1 *
-                 scratch.old_angular_velocity_value[0] *
-                 scratch.phi[i] *
-                 cross_product_2d(-scratch.old_velocity_values[q])
-                 +
-                 beta[1] *
-                 parameters.C1 *
-                 scratch.old_old_angular_velocity_value[0] *
-                 scratch.phi[i] *
-                 cross_product_2d(-scratch.old_old_velocity_values[q])) *
-                scratch.velocity_fe_values.JxW(q);
-        else if constexpr(dim == 3)
-          data.local_rhs(i) -=
-                (beta[0] *
-                 parameters.C1 *
-                 scratch.phi[i] *
-                 cross_product_3d(scratch.old_angular_velocity_value,
-                                  scratch.old_velocity_values[q])
-                 +
-                 beta[1] *
-                 parameters.C1 *
-                 scratch.phi[i] *
-                 cross_product_3d(scratch.old_old_angular_velocity_value,
-                                  scratch.old_old_velocity_values[q]))*
-                scratch.velocity_fe_values.JxW(q);
-      }
-
-      if (parameters.convective_term_time_discretization ==
-          RunTimeParameters::ConvectiveTermTimeDiscretization::fully_explicit)
-        switch (parameters.convective_term_weak_form)
-        {
-          case RunTimeParameters::ConvectiveTermWeakForm::standard:
-          {
-            data.local_rhs(i) -=
-                (beta[0] *
-                 scratch.phi[i] *
-                 scratch.old_velocity_gradients[q] *
-                 scratch.old_velocity_values[q]
-                 +
-                 beta[1] *
-                 scratch.phi[i] *
-                 scratch.old_old_velocity_gradients[q] *
-                 scratch.old_old_velocity_values[q]) *
-                scratch.velocity_fe_values.JxW(q);
-            break;
-          }
-          case RunTimeParameters::ConvectiveTermWeakForm::skewsymmetric:
-          {
-            data.local_rhs(i) -=
-                (beta[0] *
-                 (scratch.phi[i] *
-                  scratch.old_velocity_gradients[q] *
-                  scratch.old_velocity_values[q]
-                  +
-                  0.5 *
-                  scratch.old_velocity_divergences[q] *
-                  scratch.phi[i] *
-                  scratch.old_velocity_values[q])
-                 +
-                 beta[1] *
-                 (scratch.phi[i] *
-                  scratch.old_old_velocity_gradients[q] *
-                  scratch.old_old_velocity_values[q]
-                  +
-                  0.5 *
-                  scratch.old_old_velocity_divergences[q] *
-                  scratch.phi[i] *
-                  scratch.old_old_velocity_values[q])) *
-                scratch.velocity_fe_values.JxW(q);
-            break;
-          }
-          case RunTimeParameters::ConvectiveTermWeakForm::divergence:
-          {
-            data.local_rhs(i) -=
-                (beta[0] *
-                 (scratch.phi[i] *
-                  scratch.old_velocity_gradients[q] *
-                  scratch.old_velocity_values[q]
-                  +
-                  scratch.old_velocity_divergences[q] *
-                  scratch.phi[i] *
-                  scratch.old_velocity_values[q])
-                 +
-                 beta[1] *
-                 (scratch.phi[i] *
-                  scratch.old_old_velocity_gradients[q] *
-                  scratch.old_old_velocity_values[q]
-                  +
-                  scratch.old_old_velocity_divergences[q] *
-                  scratch.phi[i] *
-                  scratch.old_old_velocity_values[q])) *
-                scratch.velocity_fe_values.JxW(q);
-            break;
-          }
-          case RunTimeParameters::ConvectiveTermWeakForm::rotational:
-          {
-            // The minus sign in the argument of cross_product_2d
-            // method is due to how the method is defined.
-            if constexpr(dim == 2)
-              data.local_rhs(i) -=
-                (beta[0] *
-                 scratch.phi[i] *
-                 scratch.old_velocity_curls[q][0] *
-                 cross_product_2d(-scratch.old_velocity_values[q])
-                 +
-                 beta[1] *
-                 scratch.phi[i] *
-                 scratch.old_old_velocity_curls[q][0] *
-                 cross_product_2d(-scratch.old_old_velocity_values[q])) *
-                scratch.velocity_fe_values.JxW(q);
-            else if constexpr(dim == 3)
-              data.local_rhs(i) -=
-                (beta[0] *
-                 scratch.phi[i] *
-                 cross_product_3d(
-                   scratch.old_velocity_curls[q],
-                   scratch.old_velocity_values[q])
-                 +
-                 beta[1] *
-                 scratch.phi[i] *
-                 cross_product_3d(
-                   scratch.old_old_velocity_curls[q],
-                   scratch.old_old_velocity_values[q])) *
-                scratch.velocity_fe_values.JxW(q);
-            break;
-          }
-          default:
-            Assert(false, ExcNotImplemented());
-        };
+                    (scratch.div_phi[i] *
+                     pressure_gradient_term[q]
+                     -
+                     scalar_product(scratch.grad_phi[i],
+                                    diffusion_term[q])
+                     +
+                     scratch.phi[i] *
+                     (body_force_term[q]
+                      -
+                      bouyancy_term[q]
+                      -
+                      coriolis_acceleration_term[q]
+                      -
+                      explicit_velocity_term[q]
+                      -
+                      advection_term[q])) *
+                    scratch.velocity_fe_values.JxW(q);
 
       // Loop over the i-th column's rows of the local matrix
       // for the case of inhomogeneous Dirichlet boundary conditions
