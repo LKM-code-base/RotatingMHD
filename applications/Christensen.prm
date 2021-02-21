@@ -5,7 +5,7 @@ set FE's polynomial degree - Temperature            = 2
 set Mapping - Apply to interior cells               = true
 set Mapping - Polynomial degree                     = 2
 set Problem type                                    = rotating_boussinesq
-set Spatial dimension                               = 3
+set Spatial dimension                               = 2
 set Verbose                                         = false
 
 
@@ -27,6 +27,16 @@ subsection Heat equation solver parameters
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
     set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 1
+      set Absolute tolerance       = 1.0
+      set Relative tolerance       = 1.0
+      set Overlap                  = 1
+    end
+
   end
 
 end
@@ -44,24 +54,64 @@ subsection Navier-Stokes solver parameters
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
     set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 1
+      set Absolute tolerance       = 1.0
+      set Relative tolerance       = 1.0
+      set Overlap                  = 1
+    end
+
   end
 
   subsection Linear solver parameters - Diffusion step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
     set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 1
+      set Absolute tolerance       = 1.0
+      set Relative tolerance       = 1.0
+      set Overlap                  = 1
+    end
+
   end
 
   subsection Linear solver parameters - Poisson pre-step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
     set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 1
+      set Absolute tolerance       = 1.0
+      set Relative tolerance       = 1.0
+      set Overlap                  = 1
+    end
+
   end
 
   subsection Linear solver parameters - Projection step
     set Absolute tolerance           = 1e-9
     set Maximum number of iterations = 1000
     set Relative tolerance           = 1e-6
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 1
+      set Absolute tolerance       = 1.0
+      set Relative tolerance       = 1.0
+      set Overlap                  = 1
+    end
+
   end
 
 end
@@ -82,15 +132,15 @@ subsection Refinement control parameters
   set Maximum number of levels               = 5
   set Minimum number of levels               = 0
   set Number of initial adaptive refinements = 0
-  set Number of initial boundary refinements = 2
-  set Number of initial global refinements   = 5
+  set Number of initial boundary refinements = 1
+  set Number of initial global refinements   = 2
 end
 
 
 subsection Time stepping parameters
   set Adaptive time stepping        = false
   set Adaptive timestepping barrier = 2
-  set Final time                    = 1.2
+  set Final time                    = 2e-4
   set Initial time step             = 1e-4
   set Maximum number of time steps  = 10
   set Maximum time step             = 7e-2

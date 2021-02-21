@@ -310,9 +310,8 @@ void Christensen<dim>::setup_constraints()
   // set to make the system matrix regular
   pressure->boundary_conditions.set_datum_at_boundary();
 
-  // Inhomogeneous time dependent Dirichlet boundary conditions over
-  // the side walls and homogeneous Neumann boundary conditions over
-  // the bottom and top walls for the temperature field.
+  // Inhomogeneous Dirichlet boundary conditions over the whole boundary
+  // for the velocity field.
   temperature->boundary_conditions.set_dirichlet_bcs(
     0,
     temperature_boundary_conditions);
@@ -337,12 +336,8 @@ void Christensen<dim>::initialize()
   velocity->set_solution_vectors_to_zero();
   pressure->set_solution_vectors_to_zero();
 
-  // The temperature's boundary conditions and its zero scalar field as
-  // initial condition allows one to avoid a projection
-  // by just distributing the constraints to the zero'ed out vector.
-  // Attention: As a quick fix I perform the same operation for the
-  // old_solution too, until I write the initialize method for the
-  // heat equation.
+  // The initial conditions describe a linear function with a
+  // trigonometric perturbation. See the funciton for further reference
   this->set_initial_conditions(temperature,
                                *temperature_initial_conditions,
                                time_stepping);
@@ -430,16 +425,6 @@ void Christensen<dim>::update_solution_vectors()
 template <int dim>
 void Christensen<dim>::run()
 {
-  // Sets up the solvers. This does not need to be done manually but it
-  // allows to output the pressure computed by the Poisson pre-step
-  //heat_equation.setup();
-  //navier_stokes.setup();
-  //pressure->old_solution = 0.;
-  /*navier_stokes.perform_diffusion_step();
-  velocity->old_solution = velocity->solution;
-  navier_stokes.reset();
-  navier_stokes.setup();*/
-
   // Outputs the initial conditions
   velocity->solution    = velocity->old_solution;
   pressure->solution    = pressure->old_solution;
@@ -482,8 +467,6 @@ void Christensen<dim>::run()
         (time_stepping.get_current_time() ==
                    time_stepping.get_end_time()))
       output();
-
-    //return;
   }
 
   // Computes all the benchmark's data. See documentation of the
@@ -511,12 +494,25 @@ int main(int argc, char *argv[])
 
       RunTimeParameters::ProblemParameters parameter_set("Christensen.prm");
 
-      Christensen<2> simulation(parameter_set);
-
-      simulation.run();
-
-      std::cout.precision(1);
- }
+      switch (parameter_set.dim)
+      {
+        case 2:
+        {
+          Christensen<2> simulation(parameter_set);
+          simulation.run();
+          break;
+        }
+        case 3:
+        {
+          Christensen<3> simulation(parameter_set);
+          simulation.run();
+          break;
+        }
+        default:
+          AssertThrow(false, ExcNotImplemented());
+          break;
+      }
+  }
   catch (std::exception &exc)
   {
       std::cerr << std::endl
