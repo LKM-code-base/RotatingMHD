@@ -38,7 +38,6 @@ void NavierStokesProjection<dim>::setup()
 
   if (time_stepping.get_step_number() == 0)
     poisson_prestep();
-
 }
 
 
