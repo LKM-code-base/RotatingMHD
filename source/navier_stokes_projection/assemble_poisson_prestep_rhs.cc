@@ -146,7 +146,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
   }
 
   // Temperature
-  if (!flag_ignore_bouyancy_term)
+  if (temperature != nullptr)
   {
     typename DoFHandler<dim>::active_cell_iterator
     temperature_cell(&pressure->get_triangulation(),
@@ -160,8 +160,8 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       temperature->old_solution,
       scratch.temperature_values);
 
-    Assert(gravity_vector_ptr != nullptr,
-           ExcMessage("No unit vector for the gravity has been specified."))
+    AssertThrow(gravity_vector_ptr != nullptr,
+                ExcMessage("No unit vector for the gravity has been specified."))
 
     gravity_vector_ptr->value_list(
       scratch.pressure_fe_values.get_quadrature_points(),

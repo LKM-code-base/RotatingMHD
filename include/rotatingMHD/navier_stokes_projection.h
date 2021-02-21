@@ -417,11 +417,6 @@ private:
   bool                                  flag_matrices_were_updated;
 
   /*!
-   * @brief A flag indicating if bouyancy term is to be ignored.
-   */
-  bool                                  flag_ignore_bouyancy_term;
-
-  /*!
    * @brief A method initiating the scalar field  \f$ \phi\f$.
    * @details Extracts its locally owned and relevant degrees of freedom;
    * sets its boundary conditions and applies them to its AffineConstraints

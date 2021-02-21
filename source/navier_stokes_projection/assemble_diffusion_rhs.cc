@@ -173,7 +173,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     scratch.old_old_phi_values);
 
   // Temperature and the gravitiy's unit vector.
-  if (!flag_ignore_bouyancy_term)
+  if (temperature != nullptr)
   {
     typename DoFHandler<dim>::active_cell_iterator
     temperature_cell(&velocity->get_triangulation(),
@@ -304,7 +304,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
       else
         body_force_term[q] = 0.;
 
-      if (!flag_ignore_bouyancy_term)
+      if (temperature != nullptr)
         bouyancy_term[q] =
                 parameters.C3 *
                 scratch.gravity_vector_values[q] *

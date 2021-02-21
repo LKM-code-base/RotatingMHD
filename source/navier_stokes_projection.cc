@@ -24,8 +24,7 @@ pressure(pressure),
 time_stepping(time_stepping),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_matrices_were_updated(true),
-flag_ignore_bouyancy_term(true)
+flag_matrices_were_updated(true)
 {
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
@@ -88,8 +87,7 @@ temperature(temperature),
 time_stepping(time_stepping),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_matrices_were_updated(true),
-flag_ignore_bouyancy_term(false)
+flag_matrices_were_updated(true)
 {
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
