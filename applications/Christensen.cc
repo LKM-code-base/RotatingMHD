@@ -91,11 +91,15 @@ public:
 private:
   std::ofstream                                 log_file;
 
-  const double                                  r_i;
+  const double                                  inner_radius;
 
-  const double                                  r_o;
+  const double                                  outer_radius;
 
   const double                                  A;
+
+  const unsigned int                            inner_boundary_id;
+
+  const unsigned int                            outer_boundary_id;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
@@ -146,9 +150,11 @@ Christensen<dim>::Christensen(const RunTimeParameters::ProblemParameters &parame
 :
 Problem<dim>(parameters),
 log_file("Christensen_Log.csv"),
-r_i(7./13.),
-r_o(20./13.),
+inner_radius(7./13.),
+outer_radius(20./13.),
 A(0.1),
+inner_boundary_id(0),
+outer_boundary_id(1),
 velocity(std::make_shared<Entities::VectorEntity<dim>>(
            parameters.fe_degree_velocity,
            this->triangulation,
@@ -167,16 +173,16 @@ magnetic_field(std::make_shared<Entities::VectorEntity<dim>>(
               "Magnetic field")),
 temperature_initial_conditions(
   std::make_shared<EquationData::Christensen::TemperatureInitialCondition<dim>>(
-    r_i,
-    r_o,
+    inner_radius,
+    outer_radius,
     A,
     parameters.time_discretization_parameters.start_time)),
 temperature_boundary_conditions(
   std::make_shared<EquationData::Christensen::TemperatureBoundaryCondition<dim>>(
-    r_i,
-    r_o,
+    inner_radius,
+    outer_radius,
     parameters.time_discretization_parameters.start_time)),
-gravity_vector(r_o,
+gravity_vector(outer_radius,
                parameters.time_discretization_parameters.start_time),
 angular_velocity(parameters.time_discretization_parameters.start_time),
 time_stepping(parameters.time_discretization_parameters),
@@ -200,14 +206,14 @@ christensen_benchmark(velocity,
                       magnetic_field,
                       time_stepping,
                       parameters,
-                      r_i,
-                      r_o,
+                      inner_radius,
+                      outer_radius,
                       0,
                       this->mapping,
                       this->pcout,
                       this->computing_timer)
 {
-  Assert(r_o > r_i, ExcMessage("The outer radius has to be greater then the inner radius"))
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
 
   *this->pcout << parameters << std::endl;
 
@@ -241,8 +247,8 @@ void Christensen<dim>::make_grid(const unsigned int n_global_refinements)
   // 0 and 1 respectively
   GridGenerator::hyper_shell(this->triangulation,
                              Point<dim>(),
-                             r_i,
-                             r_o,
+                             inner_radius,
+                             outer_radius,
                              0,
                              true);
 
@@ -303,8 +309,8 @@ void Christensen<dim>::setup_constraints()
 
   // Homogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  velocity->boundary_conditions.set_dirichlet_bcs(0);
-  velocity->boundary_conditions.set_dirichlet_bcs(1);
+  velocity->boundary_conditions.set_dirichlet_bcs(inner_boundary_id);
+  velocity->boundary_conditions.set_dirichlet_bcs(outer_boundary_id);
 
   // The pressure itself has no boundary conditions. A datum needs to be
   // set to make the system matrix regular
@@ -313,10 +319,10 @@ void Christensen<dim>::setup_constraints()
   // Inhomogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
   temperature->boundary_conditions.set_dirichlet_bcs(
-    0,
+    inner_boundary_id,
     temperature_boundary_conditions);
   temperature->boundary_conditions.set_dirichlet_bcs(
-    1,
+    outer_boundary_id,
     temperature_boundary_conditions);
 
   velocity->apply_boundary_conditions();

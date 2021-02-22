@@ -5,8 +5,11 @@
 #include <deal.II/fe/mapping_q1.h>
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/fe_nothing.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/base/work_stream.h>
+#include <deal.II/grid/filtered_iterator.h>
 
 #include <fstream>
 #include <ostream>
@@ -572,7 +575,7 @@ template <int dim>
 ChristensenBenchmark<dim>::ChristensenBenchmark(
   const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
   const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-  const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_flux,
+  const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_field,
   const TimeDiscretization::VSIMEXMethod              &time_stepping,
   const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
   const double                                        inner_radius,
@@ -586,7 +589,7 @@ mpi_communicator(velocity->mpi_communicator),
 time_stepping(time_stepping),
 velocity(velocity),
 temperature(temperature),
-magnetic_flux(magnetic_flux),
+magnetic_field(magnetic_field),
 dimensionless_numbers(dimensionless_numbers),
 case_number(case_number),
 sample_point_radius(0.5*(outer_radius + inner_radius)),
@@ -605,8 +608,8 @@ sample_point_colatitude(90)
                     " initialized."));
 
   if (case_number != 0)
-    Assert(magnetic_flux.get() != nullptr,
-          ExcMessage("The magnetic flux's shared pointer has not be"
+    Assert(magnetic_field.get() != nullptr,
+          ExcMessage("The magnetic field's shared pointer has not be"
                       " initialized."));
 
   // Initiating the internal Mapping instance.
@@ -720,7 +723,8 @@ Stream& operator<<(Stream &stream, const ChristensenBenchmark<dim> &christensen)
          << ", v_phi = "
          << christensen.velocity_phi_at_sample_point
          << ", B_phi = "
-         << christensen.magnetic_flux_phi_at_sample_point;
+         << christensen.magnetic_flux_phi_at_sample_point
+         << std::defaultfloat;
 
   return stream;
 }
@@ -735,88 +739,65 @@ void ChristensenBenchmark<dim>::compute_global_data()
   // Initiate the mean energy densities and the volume
   mean_kinetic_energy_density   = 0.0;
   mean_magnetic_energy_density  = 0.0;
-  double discrete_volume        = 0.0;
+  discrete_volume               = 0.0;
   drift_frequency               = 0.0;
+
+  // Dummy finite element for when case 0 is being computed
+  const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(2), dim);
+
+  // Create pointer to the pertinent finite element
+  const FESystem<dim>* const magnetic_field_fe =
+              (case_number != 0) ? &magnetic_field->fe : &dummy_fe_system;
 
   // Polynomial degree of the integrand
   const int p_degree = 2 * (case_number != 0
                               ? std::max(velocity->fe_degree,
-                                        magnetic_flux->fe_degree)
+                                        magnetic_field->fe_degree)
                               : velocity->fe_degree);
 
   // Quadrature formula
   const QGauss<dim>   quadrature_formula(
                             std::ceil(0.5 * double(p_degree + 1)));
 
-  // Finite element values
-  FEValues<dim> velocity_fe_values(*mapping,
-                                   velocity->fe,
-                                   quadrature_formula,
-                                   update_values |
-                                   update_JxW_values);
-
-  FEValues<dim> magnetic_flux_fe_values(*mapping,
-                                        case_number != 0
-                                          ? magnetic_flux->fe
-                                          : velocity->fe,
-                                        quadrature_formula,
-                                        update_values);
-
-  // Number of quadrature points
-  const unsigned int n_q_points = quadrature_formula.size();
-
-  // Vectors to stores the local values
-  std::vector<Tensor<1, dim>> velocity_values(n_q_points);
-  std::vector<Tensor<1, dim>> magnetic_flux_values(n_q_points);
-
-  for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
-    if (cell->is_locally_owned())
+  // Set up the lamba function for the local assembly operation
+  auto worker =
+    [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+           AssemblyData::Benchmarks::Christensen::Scratch<dim>  &scratch,
+           AssemblyData::Benchmarks::Christensen::Copy          &data)
     {
-      // Initialize the finite element values
-      velocity_fe_values.reinit(cell);
+      this->compute_local_global_squared_norms(cell,
+                                               scratch,
+                                               data);
+    };
 
-      // Define the vector extractor
-      const FEValuesExtractors::Vector  vector_extractor(0);
+  // Set up the lamba function for the copy local to global operation
+  auto copier =
+    [this](const AssemblyData::Benchmarks::Christensen::Copy  &data)
+    {
+      this->copy_local_to_global_squared_norms(data);
+    };
 
-      // Get the velocity values at each quadrature point
-      velocity_fe_values[vector_extractor].get_function_values(
-        velocity->solution,
-        velocity_values);
+  // Assemble using the WorkStream approach
+  using CellFilter =
+    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
-      // Repeat the steps for the magnetic flux
-      if (case_number != 0)
-      {
-        typename DoFHandler<dim>::active_cell_iterator
-        magnetic_flux_cell(&velocity->get_triangulation(),
-                           cell->level(),
-                           cell->index(),
-                           (magnetic_flux->dof_handler).get());
-
-        magnetic_flux_fe_values.reinit(magnetic_flux_cell);
-
-        magnetic_flux_fe_values[vector_extractor].get_function_values(
-          magnetic_flux->solution,
-          magnetic_flux_values);
-      }
-
-      // Numerical integration (Loop over all quadrature points)
-      for (unsigned int q = 0; q < n_q_points; ++q)
-      {
-        mean_kinetic_energy_density +=
-          velocity_values[q] *  // v
-          velocity_values[q] *  // v
-          velocity_fe_values.JxW(q);     // dv
-
-        if (case_number != 0)
-          mean_magnetic_energy_density +=
-            magnetic_flux_values[q] *  // v
-            magnetic_flux_values[q] *  // v
-            velocity_fe_values.JxW(q);     // dv
-
-        discrete_volume +=
-          velocity_fe_values.JxW(q);
-      }
-    }
+  WorkStream::run
+  (CellFilter(IteratorFilters::LocallyOwnedCell(),
+              (velocity->dof_handler)->begin_active()),
+   CellFilter(IteratorFilters::LocallyOwnedCell(),
+              (velocity->dof_handler)->end()),
+   worker,
+   copier,
+   AssemblyData::Benchmarks::Christensen::Scratch<dim>(
+    *mapping,
+    quadrature_formula,
+    velocity->fe,
+    update_JxW_values|
+    update_values|
+    update_quadrature_points,
+    *magnetic_field_fe,
+    update_values),
+   AssemblyData::Benchmarks::Christensen::Copy(velocity->fe.dofs_per_cell));
 
   // Gather the values of each processor
   mean_kinetic_energy_density = Utilities::MPI::sum(
@@ -841,10 +822,87 @@ void ChristensenBenchmark<dim>::compute_global_data()
 
 
 template <int dim>
+void ChristensenBenchmark<dim>::compute_local_global_squared_norms(
+  const typename DoFHandler<dim>::active_cell_iterator &cell,
+  AssemblyData::Benchmarks::Christensen::Scratch<dim>  &scratch,
+  AssemblyData::Benchmarks::Christensen::Copy          &data)
+{
+  // Reset local data
+  data.local_velocity_squared_norm        = 0.;
+  data.local_magnetic_field_squared_norm  = 0.;
+  data.local_discrete_volume              = 0.;
+
+  // Initialize the finite element values
+  scratch.velocity_fe_values.reinit(cell);
+
+  // Define the vector extractor
+  const FEValuesExtractors::Vector  vector_extractor(0);
+
+  // Get the velocity values at each quadrature point
+  scratch.velocity_fe_values[vector_extractor].get_function_values(
+    velocity->solution,
+    scratch.velocity_values);
+
+  /*
+  // Repeat the steps for the magnetic flux
+  if (case_number != 0)
+  {
+    typename DoFHandler<dim>::active_cell_iterator
+    magnetic_flux_cell(&velocity->get_triangulation(),
+                        cell->level(),
+                        cell->index(),
+                        (magnetic_field->dof_handler).get());
+
+    magnetic_flux_fe_values.reinit(magnetic_flux_cell);
+
+    magnetic_flux_fe_values[vector_extractor].get_function_values(
+      magnetic_field->solution,
+      magnetic_flux_values);
+  }
+  */
+
+  // Numerical integration (Loop over all quadrature points)
+  for (unsigned int q = 0; q < scratch.n_q_points; ++q)
+  {
+    data.local_velocity_squared_norm +=
+      scratch.velocity_values[q] *  // v
+      scratch.velocity_values[q] *  // v
+      scratch.velocity_fe_values.JxW(q);     // dv
+
+    /*
+    if (case_number != 0)
+      data.local_magnetic_field_squared_norm +=
+        scratc.hmagnetic_flux_values[q] *  // v
+        scratc.hmagnetic_flux_values[q] *  // v
+        scratc.hvelocity_fe_values.JxW(q);     // dv
+    */
+
+    data.local_discrete_volume +=
+      scratch.velocity_fe_values.JxW(q);
+  }
+}
+
+
+
+
+template <int dim>
+void ChristensenBenchmark<dim>::copy_local_to_global_squared_norms(
+  const AssemblyData::Benchmarks::Christensen::Copy  &data)
+{
+  mean_kinetic_energy_density   += data.local_velocity_squared_norm;
+  mean_magnetic_energy_density  += data.local_magnetic_field_squared_norm;
+  discrete_volume               += data.local_discrete_volume;
+}
+
+
+
+template <int dim>
 void ChristensenBenchmark<dim>::find_sample_point()
 {
   TimerOutput::Scope  t(*computing_timer, "Christensen Benchmark: Point data");
 
+  return;
+  /*
   sample_point_longitude = 0.0;
 
   sample_point[0]   = sample_point_radius *
@@ -856,6 +914,7 @@ void ChristensenBenchmark<dim>::find_sample_point()
   if constexpr(dim == 3)
     sample_point[2] = sample_point_radius *
                       std::cos(sample_point_colatitude);
+  */
 }
 
 
@@ -865,6 +924,12 @@ void ChristensenBenchmark<dim>::compute_point_data()
 {
   TimerOutput::Scope  t(*computing_timer, "Christensen Benchmark: Point data");
 
+  temperature_at_sample_point       = 0.;
+  velocity_phi_at_sample_point      = 0.;
+  magnetic_flux_phi_at_sample_point = 0.;
+
+  return;
+  /*
   Tensor<1,dim> velocity_at_sample_point;
   Tensor<1,dim> magnetic_flux_at_sample_point;
 
@@ -872,7 +937,7 @@ void ChristensenBenchmark<dim>::compute_point_data()
   velocity_at_sample_point      = velocity->point_value(sample_point);
 
   if (case_number != 0)
-    magnetic_flux_at_sample_point = magnetic_flux->point_value(sample_point);
+    magnetic_flux_at_sample_point = magnetic_field->point_value(sample_point);
 
   velocity_phi_at_sample_point      =
     - velocity_at_sample_point[0] * std::sin(sample_point_longitude)
@@ -882,6 +947,7 @@ void ChristensenBenchmark<dim>::compute_point_data()
       - magnetic_flux_at_sample_point[0] * std::sin(sample_point_longitude)
       + magnetic_flux_at_sample_point[1] * std::cos(sample_point_longitude)
       : 0.0;
+  */
 }
 
 

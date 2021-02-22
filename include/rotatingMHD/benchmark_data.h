@@ -4,6 +4,7 @@
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/time_discretization.h>
 #include <rotatingMHD/run_time_parameters.h>
+#include <rotatingMHD/assembly_data.h>
 
 #include <deal.II/base/discrete_time.h>
 #include <deal.II/base/point.h>
@@ -475,7 +476,7 @@ public:
   ChristensenBenchmark(
     const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
     const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-    const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_flux,
+    const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_field,
     const TimeDiscretization::VSIMEXMethod              &time_stepping,
     const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
     const double                                        outer_radius,
@@ -550,7 +551,7 @@ private:
    * @brief A shared pointer to the magnetic flux field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::VectorEntity<dim>>  magnetic_flux;
+  const std::shared_ptr<const Entities::VectorEntity<dim>>  magnetic_field;
 
   /*!
    * @brief A reference to the struct containing all the relevant
@@ -617,6 +618,10 @@ private:
    */
   double        mean_magnetic_energy_density;
 
+  /*!
+   * @brief The volume of the discrete domain.
+   */
+  double        discrete_volume;
 
   /*!
    * @brief The temperature evaluated at the @ref sample_point.
@@ -645,6 +650,22 @@ private:
    * @todo Compute drift frequency
    */
   void compute_global_data();
+
+  /*!
+   * @brief This method assembles the local mass and the local stiffness
+   * matrices of the velocity field on a single cell.
+   */
+  void compute_local_global_squared_norms(
+    const typename DoFHandler<dim>::active_cell_iterator &cell,
+    AssemblyData::Benchmarks::Christensen::Scratch<dim>  &scratch,
+    AssemblyData::Benchmarks::Christensen::Copy          &data);
+
+  /*!
+   * @brief This method copies the local mass and the local stiffness matrices
+   * of the velocity field on a single cell into the global matrices.
+   */
+  void copy_local_to_global_squared_norms(
+    const AssemblyData::Benchmarks::Christensen::Copy  &data);
 
   /*!
    * @brief A method that locates the sample point.

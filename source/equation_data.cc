@@ -45,18 +45,11 @@ void VectorFunction<dim>::divergence_list(
 
 
 template <int dim>
-CurlType<dim> VectorFunction<dim>::curl(const Point<dim>  &/* point */) const
+curl_type<dim> VectorFunction<dim>::curl(const Point<dim>  &/* point */) const
 {
-  CurlType<dim> value;
+  curl_type<dim> value;
 
-  if constexpr(dim == 2)
-    value[0] = 0.0;
-  else if constexpr(dim ==3)
-  {
-    value[0] = 0.0;
-    value[1] = 0.0;
-    value[2] = 0.0;
-  }
+  value = 0.;
 
   return (value);
 }
@@ -66,7 +59,7 @@ CurlType<dim> VectorFunction<dim>::curl(const Point<dim>  &/* point */) const
 template <int dim>
 void VectorFunction<dim>::curl_list(
   const std::vector<Point<dim>> &points,
-  std::vector<CurlType<dim>>    &values) const
+  std::vector<curl_type<dim>>    &values) const
 {
   for (unsigned int i = 0; i < points.size(); ++i)
     values[i] = curl(points[i]);
@@ -83,18 +76,11 @@ VectorFunction<dim>(time)
 
 
 template <int dim>
-CurlType<dim> AngularVelocity<dim>::rotation() const
+curl_type<dim> AngularVelocity<dim>::rotation() const
 {
-  CurlType<dim> value;
+  curl_type<dim> value;
 
-  if constexpr(dim == 2)
-    value[0] = 0.0;
-  else if constexpr(dim ==3)
-  {
-    value[0] = 0.0;
-    value[1] = 0.0;
-    value[2] = 0.0;
-  }
+  value = 0.;
 
   return (value);
 }
@@ -736,17 +722,17 @@ namespace Christensen
 
 template <int dim>
 TemperatureInitialCondition<dim>::TemperatureInitialCondition
-(const double r_i,
- const double r_o,
+(const double inner_radius,
+ const double outer_radius,
  const double A,
  const double time)
 :
 Function<dim>(1, time),
-r_i(r_i),
-r_o(r_o),
+inner_radius(inner_radius),
+outer_radius(outer_radius),
 A(A)
 {
-  Assert(r_o > r_i, ExcMessage("The outer radius has to be greater then the inner radius"))
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
 }
 
 template<int dim>
@@ -765,14 +751,14 @@ double TemperatureInitialCondition<dim>::value
   // Polar angle
   double theta;
   if constexpr(dim == 2)
-    theta = M_PI_2;
+    theta = numbers::PI_2;
   else if constexpr(dim == 3)
     theta = spherical_coordinates[2];
 
-  const double x_0    = 2. * r - r_i - r_o;
+  const double x_0    = 2. * r - inner_radius - outer_radius;
 
-  temperature = r_o * r_i / r
-                - r_i
+  temperature = outer_radius * inner_radius / r
+                - inner_radius
                 + 210. * A / std::sqrt(17920. * M_PI) *
                   (1. - 3. * x_0 * x_0 + 3. * std::pow(x_0, 4) - std::pow(x_0,6)) *
                   pow(std::sin(theta), 4) *
@@ -786,15 +772,15 @@ double TemperatureInitialCondition<dim>::value
 
 template <int dim>
 TemperatureBoundaryCondition<dim>::TemperatureBoundaryCondition
-(const double r_i,
- const double r_o,
+(const double inner_radius,
+ const double outer_radius,
  const double time)
 :
 Function<dim>(1, time),
-r_i(r_i),
-r_o(r_o)
+inner_radius(inner_radius),
+outer_radius(outer_radius)
 {
-  Assert(r_o > r_i, ExcMessage("The outer radius has to be greater then the inner radius"))
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
 }
 
 
@@ -806,7 +792,7 @@ double TemperatureBoundaryCondition<dim>::value
 {
   const double r = point.norm();
 
-  double value = (r > 0.5*(r_i + r_o)) ? 0.0 : 1.0;
+  double value = (r > 0.5*(inner_radius + outer_radius)) ? 0.0 : 1.0;
 
   return (value);
 }
@@ -815,11 +801,11 @@ double TemperatureBoundaryCondition<dim>::value
 
 template <int dim>
 GravityVector<dim>::GravityVector
-(const double r_o,
+(const double outer_radius,
  const double time)
 :
 RMHD::EquationData::VectorFunction<dim>(time),
-r_o(r_o)
+outer_radius(outer_radius)
 {}
 
 
@@ -827,20 +813,9 @@ r_o(r_o)
 template <int dim>
 Tensor<1, dim> GravityVector<dim>::value(const Point<dim> &point) const
 {
-  Tensor<1, dim> value;
+  Tensor<1, dim> value(point);
 
-  const double x    = point(0);
-  const double y    = point(1);
-
-  value[0]    = - x / r_o;
-  value[1]    = - y / r_o;
-
-  if constexpr(dim == 3)
-  {
-    const double z  = point(2);
-    value[2]        = - z / r_o;
-  }
-
+  value /= -outer_radius;
 
   return value;
 }
@@ -857,18 +832,17 @@ RMHD::EquationData::AngularVelocity<dim>(time)
 
 
 template <int dim>
-CurlType<dim> AngularVelocity<dim>::rotation() const
+curl_type<dim> AngularVelocity<dim>::rotation() const
 {
-  CurlType<dim> value;
+  curl_type<dim> value;
+
+  value = 0.;
 
   if constexpr(dim == 2)
     value[0] = 1.;
   else if constexpr(dim == 3)
-  {
-    value[0] = 0.;
-    value[1] = 0.;
     value[2] = 1.;
-  }
+
 
   return value;
 }

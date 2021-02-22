@@ -26,7 +26,7 @@ namespace EquationData
 
 
 template <int dim>
-using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
 
 
 
@@ -43,10 +43,10 @@ public:
   virtual void divergence_list(const std::vector<Point<dim>> &points,
                                std::vector<double>           &values) const;
 
-  virtual CurlType<dim> curl(const Point<dim> &point) const;
+  virtual curl_type<dim> curl(const Point<dim> &point) const;
 
   virtual void curl_list(const std::vector<Point<dim>>  &points,
-                         std::vector<CurlType<dim>>     &values) const;
+                         std::vector<curl_type<dim>>     &values) const;
 };
 
 
@@ -60,7 +60,7 @@ public:
   /*! @attention I am not really a fan of the method's names. Do you have
       a better naming option perhaps? value is already
       being used by TensorFunction */
-  virtual CurlType<dim> rotation() const;
+  virtual curl_type<dim> rotation() const;
 };
 
 namespace Step35
@@ -469,7 +469,7 @@ namespace Christensen
  * @brief The initial temperature field of the Christensen benchmark.
  * @details Given by
  * \f[
- * \vartheta = \frac{r_i r_o}{r} - r_i + \frac{210 A}{\sqrt{17920 \pi}}
+ * \vartheta = \frac{r_o r_i}{r} - r_i + \frac{210 A}{\sqrt{17920 \pi}}
  * (1-3x^2+3x^4-x^6) \sin^4 \theta \cos 4 \phi
  * \f]
  * where \f$ \vartheta \f$ is the temperature field,
@@ -477,7 +477,7 @@ namespace Christensen
  * \f$ r_i \f$ the inner radius of the shell,
  * \f$ r_o \f$ the outer radius,
  * \f$ A \f$ the amplitude of the harmonic perturbation,
- * \f$ x \f$ a quantitiy defined as \f$ x = 2r - r_i - r_0\f$,
+ * \f$ x \f$ a quantitiy defined as \f$ x = 2r - r_i - r_o\f$,
  * \f$ \theta \f$ the colatitude (polar angle) and
  * \f$ \phi \f$ the longitude (azimuthal angle).
  */
@@ -485,9 +485,9 @@ template <int dim>
 class TemperatureInitialCondition : public Function<dim>
 {
 public:
-  TemperatureInitialCondition(const double r_i,
-                              const double r_o,
-                              const double A,
+  TemperatureInitialCondition(const double inner_radius,
+                              const double outer_radius,
+                              const double A = 0.1,
                               const double time = 0);
 
   virtual double value(const Point<dim> &p,
@@ -497,12 +497,12 @@ private:
   /*!
    * @brief Inner radius of the shell.
    */
-  const double r_i;
+  const double inner_radius;
 
   /*!
    * @brief Outer radius of the shell.
    */
-  const double r_o;
+  const double outer_radius;
 
   /*!
    * @brief Amplitude of the harmonic perturbation.
@@ -523,8 +523,8 @@ template <int dim>
 class TemperatureBoundaryCondition : public Function<dim>
 {
 public:
-  TemperatureBoundaryCondition(const double r_i,
-                               const double r_o,
+  TemperatureBoundaryCondition(const double inner_radius,
+                               const double outer_radius,
                                const double time = 0);
 
   virtual double value(const Point<dim> &p,
@@ -534,12 +534,12 @@ private:
   /*!
    * @brief Inner radius of the shell.
    */
-  const double r_i;
+  const double inner_radius;
 
   /*!
    * @brief Outer radius of the shell.
    */
-  const double r_o;
+  const double outer_radius;
 };
 
 
@@ -559,7 +559,7 @@ template <int dim>
 class GravityVector: public RMHD::EquationData::VectorFunction<dim>
 {
 public:
-  GravityVector(const double r_o,
+  GravityVector(const double outer_radius,
                 const double time = 0);
 
   virtual Tensor<1, dim> value(const Point<dim> &point) const override;
@@ -569,7 +569,7 @@ private:
   /*!
    * @brief Outer radius of the shell.
    */
-  const double r_o;
+  const double outer_radius;
 };
 
 
@@ -590,7 +590,7 @@ class AngularVelocity: public RMHD::EquationData::AngularVelocity<dim>
 public:
   AngularVelocity(const double time = 0);
 
-  virtual CurlType<dim> rotation() const override;
+  virtual curl_type<dim> rotation() const override;
 };
 
 

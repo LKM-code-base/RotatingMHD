@@ -167,7 +167,7 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 
   /*! @note Should I make it global inside the AssemblyData namespace
       or leave it locally in each struct for readability? */
-  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+  using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
 
   std::vector<Tensor<1,dim>>  old_velocity_values;
 
@@ -177,15 +177,15 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 
   std::vector<double>         old_old_velocity_divergences;
 
-  std::vector<CurlType>       old_velocity_curls;
+  std::vector<curl_type>      old_velocity_curls;
 
-  std::vector<CurlType>       old_old_velocity_curls;
+  std::vector<curl_type>      old_old_velocity_curls;
 
   std::vector<Tensor<1,dim>>  phi;
 
   std::vector<Tensor<2,dim>>  grad_phi;
 
-  std::vector<CurlType>       curl_phi;
+  std::vector<curl_type>      curl_phi;
 };
 
 } // namespace AdvectionMatrix
@@ -211,7 +211,7 @@ struct Scratch : ScratchBase<dim>
 
   Scratch(const Scratch<dim>    &data);
 
-  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+  using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
 
   FEValues<dim>               velocity_fe_values;
 
@@ -241,13 +241,13 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<double>         old_old_velocity_divergences;
 
-  std::vector<CurlType>       old_velocity_curls;
+  std::vector<curl_type>      old_velocity_curls;
 
-  std::vector<CurlType>       old_old_velocity_curls;
+  std::vector<curl_type>      old_old_velocity_curls;
 
-  CurlType                    old_angular_velocity_value;
+  curl_type                   old_angular_velocity_value;
 
-  CurlType                    old_old_angular_velocity_value;
+  curl_type                   old_old_angular_velocity_value;
 
   std::vector<double>         old_temperature_values;
 
@@ -273,7 +273,7 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<double>         div_phi;
 
-  std::vector<CurlType>       curl_phi;
+  std::vector<curl_type>      curl_phi;
 
   std::vector<Tensor<1,dim>>  face_phi;
 };
@@ -337,7 +337,7 @@ struct Scratch : ScratchBase<dim>
 
   Scratch(const Scratch<dim>    &data);
 
-  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+  using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
 
   FEValues<dim>               velocity_fe_values;
 
@@ -355,7 +355,7 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  velocity_laplacians;
 
-  CurlType                    angular_velocity_value;
+  curl_type                   angular_velocity_value;
 
   std::vector<double>         temperature_values;
 
@@ -496,6 +496,58 @@ struct Scratch : ScratchBase<dim>
 } // namespace RightHandSide
 
 } // namespace HeatEquation
+
+
+
+namespace Benchmarks
+{
+namespace Christensen
+{
+
+
+
+template <int dim>
+struct Scratch
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags,
+          const FiniteElement<dim>  &magnetic_field_fe,
+          const UpdateFlags         magnetic_field_flags);
+
+  Scratch(const Scratch<dim>        &data);
+
+  const unsigned int          n_q_points;
+
+  const unsigned int          dofs_per_cell;
+
+  FEValues<dim>               velocity_fe_values;
+
+  FEValues<dim>               magnetic_field_fe_values;
+
+  std::vector<Tensor<1,dim>>  velocity_values;
+
+  std::vector<Tensor<1,dim>>  magnetic_field_values;
+};
+
+
+
+struct Copy
+{
+  Copy(const unsigned int dofs_per_cell);
+
+  double local_velocity_squared_norm;
+
+  double local_magnetic_field_squared_norm;
+
+  double local_discrete_volume;
+};
+
+
+
+} // namespace Christensen
+} // namespace Benchmarks
 
 } // namespace AssemblyData
 

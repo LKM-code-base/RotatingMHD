@@ -249,11 +249,11 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   cell->get_dof_indices(data.local_dof_indices);
 
   // Initialize weak forms of the right-hand side's terms
-  std::vector<Tensor<1,dim>>  explicit_velocity_term(scratch.n_q_points);
+  std::vector<Tensor<1,dim>>  acceleration_term(scratch.n_q_points);
   std::vector<double>         pressure_gradient_term(scratch.n_q_points);
   std::vector<Tensor<2,dim>>  diffusion_term(scratch.n_q_points);
   std::vector<Tensor<1,dim>>  body_force_term(scratch.n_q_points);
-  std::vector<Tensor<1,dim>>  bouyancy_term(scratch.n_q_points);
+  std::vector<Tensor<1,dim>>  buoyancy_term(scratch.n_q_points);
   std::vector<Tensor<1,dim>>  coriolis_acceleration_term(scratch.n_q_points);
   std::vector<Tensor<1,dim>>  advection_term(scratch.n_q_points);
 
@@ -263,7 +263,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     // Evaluate the weak form of the right-hand side's terms at
     // the quadrature point
     {
-      explicit_velocity_term[q] =
+      acceleration_term[q] =
                 alpha[1] / time_stepping.get_next_step_size() *
                 scratch.old_velocity_values[q]
                 +
@@ -305,7 +305,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
         body_force_term[q] = 0.;
 
       if (temperature != nullptr)
-        bouyancy_term[q] =
+        buoyancy_term[q] =
                 parameters.C3 *
                 scratch.gravity_vector_values[q] *
                 (beta[0] *
@@ -314,7 +314,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                  beta[1] *
                  scratch.old_old_temperature_values[q]);
       else
-        bouyancy_term[q] = 0.;
+        buoyancy_term[q] = 0.;
 
       if (angular_velocity_vector_ptr != nullptr)
       {
@@ -453,11 +453,11 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                      scratch.phi[i] *
                      (body_force_term[q]
                       -
-                      bouyancy_term[q]
+                      buoyancy_term[q]
                       -
                       coriolis_acceleration_term[q]
                       -
-                      explicit_velocity_term[q]
+                      acceleration_term[q]
                       -
                       advection_term[q])) *
                     scratch.velocity_fe_values.JxW(q);
