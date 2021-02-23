@@ -24,7 +24,8 @@ void NavierStokesProjection<dim>::solve()
   else
   {
     diffusion_step(time_stepping.get_step_number() %
-                   parameters.preconditioner_update_frequency == 0);
+                   parameters.preconditioner_update_frequency == 0) ||
+                   time_stepping.get_step_number() == 1);
 
     projection_step(false);
 
