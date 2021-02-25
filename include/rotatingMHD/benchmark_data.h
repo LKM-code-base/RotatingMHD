@@ -3,6 +3,8 @@
 
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/run_time_parameters.h>
+#include <rotatingMHD/assembly_data.h>
 
 #include <deal.II/base/discrete_time.h>
 #include <deal.II/base/point.h>
@@ -448,6 +450,242 @@ private:
    * \f]
    */
   void compute_global_data();
+};
+
+
+
+template<int dim> class ChristensenBenchmark;
+
+template<typename Stream, int dim>
+Stream& operator<<(Stream &, const ChristensenBenchmark<dim> &);
+
+/*!
+ * @class ChristensenBenchmark
+ * @brief A class which computes and contains all the Christensen
+ * benchmark's data.
+ * @details Furthermore the data can be printed to the terminal through
+ * the overloaded stream operator or to a text file.
+ */
+template <int dim>
+class ChristensenBenchmark
+{
+public:
+  /*!
+   * @brief Constructor.
+   */
+  ChristensenBenchmark(
+    const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
+    const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+    const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_field,
+    const TimeDiscretization::VSIMEXMethod              &time_stepping,
+    const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
+    const double                                        outer_radius,
+    const double                                        inner_radius,
+    const unsigned int                                  case_number,
+    const std::shared_ptr<Mapping<dim>>                 external_mapping
+                              = std::shared_ptr<Mapping<dim>>(),
+    const std::shared_ptr<ConditionalOStream>           external_pcout
+                              = std::shared_ptr<ConditionalOStream>(),
+    const std::shared_ptr<TimerOutput>                  external_timer
+                              = std::shared_ptr<TimerOutput>());
+
+  /*!
+   * @brief A method that computes all the benchmark data with the
+   * last computed field variables.
+   */
+  void compute_benchmark_data();
+
+  /*!
+   * @brief Outputs the computed benchmark data to a text file in
+   * org mode format.
+   */
+  void print_data_to_file(std::string file_name);
+
+
+  /*!
+   * @brief Output of the benchmark data to the terminal.
+   */
+  template<typename Stream, int dim_>
+  friend Stream& operator<<(Stream &stream, const ChristensenBenchmark<dim_> &mit);
+
+
+private:
+  /*!
+   * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
+   */
+  const MPI_Comm                                &mpi_communicator;
+
+  /*!
+   * @brief A reference to the class controlling the temporal discretization.
+   */
+  const TimeDiscretization::VSIMEXMethod        &time_stepping;
+
+  /*!
+   * @brief A shared pointer to a conditional output stream object.
+   */
+  std::shared_ptr<ConditionalOStream>           pcout;
+
+  /*!
+   * @brief A shared pointer to a monitor of the computing times.
+   */
+  std::shared_ptr<TimerOutput>                  computing_timer;
+
+  /*!
+   * @brief A shared pointer to the mapping to be used throughout the solver.
+   */
+  std::shared_ptr<Mapping<dim>>                 mapping;
+
+  /*!
+   * @brief A shared pointer to the velocity field's numerical
+   * representation.
+   */
+  const std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
+
+  /*!
+   * @brief A shared pointer to the temperature field's numerical
+   * representation.
+   */
+  const std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
+
+  /*!
+   * @brief A shared pointer to the magnetic flux field's numerical
+   * representation.
+   */
+  const std::shared_ptr<const Entities::VectorEntity<dim>>  magnetic_field;
+
+  /*!
+   * @brief A reference to the struct containing all the relevant
+   * dimensionless numbers.
+   */
+  const RunTimeParameters::DimensionlessNumbers             &dimensionless_numbers;
+
+  /*!
+   * @brief The number of the case to be performed.
+   */
+  const unsigned int  case_number;
+
+  /*!
+   * @brief The radius of the sample point. Set as the mid-depth radius
+   * \f$ r = \tfrac{1}{2}(r_i + r_o) \f$.
+   */
+  const double  sample_point_radius;
+
+  /*!
+   * @brief The colatitude of the sampling point. Set as the equatiorial
+   * plane, *i. e.*, \f$ \theta = 90 \f$.
+   */
+  const double  sample_point_colatitude;
+
+  /*!
+   * @brief The longitude of the sampling point. Set by the conditions
+   * \f$ u_{\textrm{r}} = 0 \f$ and \f$ \pd{ u_{\textrm{r}}}{\phi} > 0\f$.
+   */
+  double        sample_point_longitude;
+
+  /*!
+   * @brief The sample point.
+   */
+  Point<dim>    sample_point;
+
+  /*!
+   * @brief The drift frequency.
+   */
+  double        drift_frequency;
+
+  /*!
+   * @brief The mean kinetic energy density
+   * @details Given by
+   * \f[
+   * E_{\textrm{kin}} = \frac{1}{2V} \int_\Omega \bs{u} \cdot \bs{u} \dint{v}
+   * \f]
+   * where \f$ V \f$ is the volume of the shell,
+   * \f$ \Omega \f$ the shell domain and
+   * \f$ \bs{u} \f$ the velocity field.
+   */
+  double        mean_kinetic_energy_density;
+
+  /*!
+   * @brief The mean magnetic energy density
+   * @details Given by
+   * \f[
+   * E_{\textrm{mag}} = \frac{1}{2V \Ekman \magPrandtl} \int_\Omega \bs{B} \cdot \bs{B} \dint{v}
+   * \f]
+   * where \f$ V \f$ is the volume of the shell,
+   * \f$ \Ekman \f$ the Ekman number,
+   * \f$ \magPrandtl \f$ the magnetic Prandtl number,
+   * \f$ \Omega \f$ the shell domain and
+   * \f$ \bs{B} \f$ the magnetic field.
+   */
+  double        mean_magnetic_energy_density;
+
+  /*!
+   * @brief The volume of the discrete domain.
+   */
+  double        discrete_volume;
+
+  /*!
+   * @brief The temperature evaluated at the @ref sample_point.
+   */
+  double        temperature_at_sample_point;
+
+  /*!
+   * @brief The velocity vector evaluated at the @ref sample_point.
+   */
+  double        velocity_phi_at_sample_point;
+
+  /*!
+   * @brief The magnetic flux vector evaluated at the @ref sample_point.
+   */
+  double        magnetic_flux_phi_at_sample_point;
+
+  /*!
+   * @brief The table which stores all the benchmark data.
+   */
+  TableHandler  data;
+
+  /*!
+   * @brief A method that computes the @ref drift_frequency, the
+   * @ref mean_kinetic_energy_density and the
+   * @ref mean_magnetic_energy_density.
+   * @todo Compute drift frequency
+   */
+  void compute_global_data();
+
+  /*!
+   * @brief This method assembles the local mass and the local stiffness
+   * matrices of the velocity field on a single cell.
+   */
+  void compute_local_global_squared_norms(
+    const typename DoFHandler<dim>::active_cell_iterator &cell,
+    AssemblyData::Benchmarks::Christensen::Scratch<dim>  &scratch,
+    AssemblyData::Benchmarks::Christensen::Copy          &data);
+
+  /*!
+   * @brief This method copies the local mass and the local stiffness matrices
+   * of the velocity field on a single cell into the global matrices.
+   */
+  void copy_local_to_global_squared_norms(
+    const AssemblyData::Benchmarks::Christensen::Copy  &data);
+
+  /*!
+   * @brief A method that locates the sample point.
+   * @details The radius and the colatitude are set as the mid-depth
+   * radius and the equatorial plane respectively. The longitude is
+   * determine by the conditions
+   * \f[
+   * u_{\textrm{r}} = 0 \qquad
+   * \textrm{and} \qquad
+   * \pd{ u_{\textrm{r}}}{\phi} > 0.
+   * \f]
+   * @todo Write an implementation
+   */
+  void find_sample_point();
+
+  /*!
+   * @brief A method that computes the velocity vector and the temperature
+   * at the @ref sample_point.
+   */
+  void compute_point_data();
 };
 
 } // namespace BenchmarkData

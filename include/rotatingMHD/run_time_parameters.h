@@ -1245,6 +1245,13 @@ struct NavierStokesParameters
    */
   double                            C5;
 
+    /*!
+   * @brief The factor multiplying the pressure gradient.
+   * @attention This factor is only introduced to replicate
+   * Christensen's benchmark. They use a different scaling.
+   */
+  double                            C6;
+
   /*!
    * @brief The parameters for the linear solver used in the
    * diffusion step.

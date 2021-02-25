@@ -5,8 +5,11 @@
 #include <deal.II/fe/mapping_q1.h>
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/fe_nothing.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <deal.II/base/work_stream.h>
+#include <deal.II/grid/filtered_iterator.h>
 
 #include <fstream>
 #include <ostream>
@@ -365,7 +368,7 @@ void MIT<dim>::print_data_to_file(std::string file_name)
 template<typename Stream, int dim>
 Stream& operator<<(Stream &stream, const MIT<dim> &mit)
 {
-  stream << std::noshowpos << std::scientific << std::setprecision(1)
+  stream << std::noshowpos << std::scientific << std::setprecision(6)
          << "ux_1 = "
          << mit.velocity_at_p1[0]
          << ", T_1 = "
@@ -566,6 +569,389 @@ void MIT<dim>::compute_global_data()
   average_vorticity_metric  = std::sqrt(average_vorticity_metric/(2.0 * area));
 }
 
+
+
+template <int dim>
+ChristensenBenchmark<dim>::ChristensenBenchmark(
+  const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
+  const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+  const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_field,
+  const TimeDiscretization::VSIMEXMethod              &time_stepping,
+  const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
+  const double                                        inner_radius,
+  const double                                        outer_radius,
+  const unsigned int                                  case_number,
+  const std::shared_ptr<Mapping<dim>>                 external_mapping,
+  const std::shared_ptr<ConditionalOStream>           external_pcout,
+  const std::shared_ptr<TimerOutput>                  external_timer)
+:
+mpi_communicator(velocity->mpi_communicator),
+time_stepping(time_stepping),
+velocity(velocity),
+temperature(temperature),
+magnetic_field(magnetic_field),
+dimensionless_numbers(dimensionless_numbers),
+case_number(case_number),
+sample_point_radius(0.5*(outer_radius + inner_radius)),
+sample_point_colatitude(90)
+{
+  //AssertDimension(dim, 3);
+
+  Assert(case_number < 3,
+         ExcMessage("Only case 0, 1 and 2  are defined."))
+
+  Assert(velocity.get() != nullptr,
+         ExcMessage("The velocity's shared pointer has not be"
+                    " initialized."));
+  Assert(temperature.get() != nullptr,
+         ExcMessage("The temperature's shared pointer has not be"
+                    " initialized."));
+
+  if (case_number != 0)
+    Assert(magnetic_field.get() != nullptr,
+          ExcMessage("The magnetic field's shared pointer has not be"
+                      " initialized."));
+
+  // Initiating the internal Mapping instance.
+  if (external_mapping.get() != nullptr)
+    mapping = external_mapping;
+  else
+    mapping.reset(new MappingQ<dim>(1));
+
+  // Initiating the internal ConditionalOStream instance.
+  if (external_pcout.get() != nullptr)
+    pcout = external_pcout;
+  else
+    pcout.reset(new ConditionalOStream(
+      std::cout,
+      Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
+
+  // Initiating the internal TimerOutput instance.
+  if (external_timer.get() != nullptr)
+    computing_timer  = external_timer;
+  else
+    computing_timer.reset(new TimerOutput(
+      *pcout,
+      TimerOutput::summary,
+      TimerOutput::wall_times));
+
+  // Setting up columns
+  data.declare_column("case");
+  data.declare_column("time");
+  data.declare_column("drift_frequency");
+  data.declare_column("mean_kinetic_energy_density");
+  data.declare_column("mean_magnetic_energy_density");
+  data.declare_column("temperature");
+  data.declare_column("velocity_phi");
+  data.declare_column("magnetic_flux_phi");
+
+  // Setting all columns to scientific notation
+  data.set_scientific("time", true);
+  data.set_scientific("drift_frequency", true);
+  data.set_scientific("mean_kinetic_energy_density", true);
+  data.set_scientific("mean_magnetic_energy_density", true);
+  data.set_scientific("temperature", true);
+  data.set_scientific("velocity_phi", true);
+  data.set_scientific("magnetic_flux_phi", true);
+
+  // Setting columns' precision
+  data.set_precision("time", 6);
+  data.set_precision("drift_frequency", 6);
+  data.set_precision("mean_kinetic_energy_density", 6);
+  data.set_precision("mean_magnetic_energy_density", 6);
+  data.set_precision("temperature", 6);
+  data.set_precision("velocity_phi", 6);
+  data.set_precision("magnetic_flux_phi", 6);
+}
+
+
+
+template <int dim>
+void ChristensenBenchmark<dim>::compute_benchmark_data()
+{
+  // Compute benchmark data
+  compute_global_data();
+  find_sample_point();
+  compute_point_data();
+
+  // Update column's values
+  data.add_value("case", case_number);
+  data.add_value("time", time_stepping.get_current_time());
+  data.add_value("drift_frequency", drift_frequency);
+  data.add_value("mean_kinetic_energy_density", mean_kinetic_energy_density);
+  data.add_value("mean_magnetic_energy_density", mean_magnetic_energy_density);
+  data.add_value("temperature", temperature_at_sample_point);
+  data.add_value("velocity_phi", velocity_phi_at_sample_point);
+  data.add_value("magnetic_flux_phi", magnetic_flux_phi_at_sample_point);
+}
+
+
+
+template <int dim>
+void ChristensenBenchmark<dim>::print_data_to_file(std::string file_name)
+{
+  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+  {
+    file_name += ".txt";
+
+    std::ofstream file(file_name);
+
+    data.write_text(
+      file,
+      TableHandler::TextOutputFormat::org_mode_table);
+  }
+}
+
+
+
+template<typename Stream, int dim>
+Stream& operator<<(Stream &stream, const ChristensenBenchmark<dim> &christensen)
+{
+  stream << std::noshowpos << std::scientific << std::setprecision(6)
+         << "case = "
+         << christensen.case_number
+         << ", current time = "
+         << christensen.time_stepping.get_current_time()
+         << ", w = "
+         << christensen.drift_frequency
+         << ", E_kin = "
+         << christensen.mean_kinetic_energy_density
+         << ", E_mag = "
+         << christensen.mean_magnetic_energy_density
+         << ", T = "
+         << christensen.temperature_at_sample_point
+         << ", v_phi = "
+         << christensen.velocity_phi_at_sample_point
+         << ", B_phi = "
+         << christensen.magnetic_flux_phi_at_sample_point
+         << std::defaultfloat;
+
+  return stream;
+}
+
+
+
+template <int dim>
+void ChristensenBenchmark<dim>::compute_global_data()
+{
+  TimerOutput::Scope  t(*computing_timer, "Christensen Benchmark: Global data");
+
+  // Initiate the mean energy densities and the volume
+  mean_kinetic_energy_density   = 0.0;
+  mean_magnetic_energy_density  = 0.0;
+  discrete_volume               = 0.0;
+  drift_frequency               = 0.0;
+
+  // Dummy finite element for when case 0 is being computed
+  const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(2), dim);
+
+  // Create pointer to the pertinent finite element
+  const FESystem<dim>* const magnetic_field_fe =
+              (case_number != 0) ? &magnetic_field->fe : &dummy_fe_system;
+
+  // Polynomial degree of the integrand
+  const int p_degree = 2 * (case_number != 0
+                              ? std::max(velocity->fe_degree,
+                                        magnetic_field->fe_degree)
+                              : velocity->fe_degree);
+
+  // Quadrature formula
+  const QGauss<dim>   quadrature_formula(
+                            std::ceil(0.5 * double(p_degree + 1)));
+
+  // Set up the lamba function for the local assembly operation
+  auto worker =
+    [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+           AssemblyData::Benchmarks::Christensen::Scratch<dim>  &scratch,
+           AssemblyData::Benchmarks::Christensen::Copy          &data)
+    {
+      this->compute_local_global_squared_norms(cell,
+                                               scratch,
+                                               data);
+    };
+
+  // Set up the lamba function for the copy local to global operation
+  auto copier =
+    [this](const AssemblyData::Benchmarks::Christensen::Copy  &data)
+    {
+      this->copy_local_to_global_squared_norms(data);
+    };
+
+  // Assemble using the WorkStream approach
+  using CellFilter =
+    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
+
+  WorkStream::run
+  (CellFilter(IteratorFilters::LocallyOwnedCell(),
+              (velocity->dof_handler)->begin_active()),
+   CellFilter(IteratorFilters::LocallyOwnedCell(),
+              (velocity->dof_handler)->end()),
+   worker,
+   copier,
+   AssemblyData::Benchmarks::Christensen::Scratch<dim>(
+    *mapping,
+    quadrature_formula,
+    velocity->fe,
+    update_JxW_values|
+    update_values|
+    update_quadrature_points,
+    *magnetic_field_fe,
+    update_values),
+   AssemblyData::Benchmarks::Christensen::Copy(velocity->fe.dofs_per_cell));
+
+  // Gather the values of each processor
+  mean_kinetic_energy_density = Utilities::MPI::sum(
+                                  mean_kinetic_energy_density,
+                                  mpi_communicator);
+  mean_magnetic_energy_density = Utilities::MPI::sum(
+                                  mean_magnetic_energy_density,
+                                  mpi_communicator);
+  discrete_volume             = Utilities::MPI::sum(
+                                  discrete_volume,
+                                  mpi_communicator);
+
+  // Compute the mean values
+  mean_kinetic_energy_density *= 0.5 / discrete_volume;
+
+  if (case_number != 0)
+    mean_magnetic_energy_density *= 0.5 / discrete_volume /
+                                    dimensionless_numbers.Ek /
+                                    dimensionless_numbers.Pm;
+}
+
+
+
+template <int dim>
+void ChristensenBenchmark<dim>::compute_local_global_squared_norms(
+  const typename DoFHandler<dim>::active_cell_iterator &cell,
+  AssemblyData::Benchmarks::Christensen::Scratch<dim>  &scratch,
+  AssemblyData::Benchmarks::Christensen::Copy          &data)
+{
+  // Reset local data
+  data.local_velocity_squared_norm        = 0.;
+  data.local_magnetic_field_squared_norm  = 0.;
+  data.local_discrete_volume              = 0.;
+
+  // Initialize the finite element values
+  scratch.velocity_fe_values.reinit(cell);
+
+  // Define the vector extractor
+  const FEValuesExtractors::Vector  vector_extractor(0);
+
+  // Get the velocity values at each quadrature point
+  scratch.velocity_fe_values[vector_extractor].get_function_values(
+    velocity->solution,
+    scratch.velocity_values);
+
+  /*
+  // Repeat the steps for the magnetic flux
+  if (case_number != 0)
+  {
+    typename DoFHandler<dim>::active_cell_iterator
+    magnetic_flux_cell(&velocity->get_triangulation(),
+                        cell->level(),
+                        cell->index(),
+                        (magnetic_field->dof_handler).get());
+
+    magnetic_flux_fe_values.reinit(magnetic_flux_cell);
+
+    magnetic_flux_fe_values[vector_extractor].get_function_values(
+      magnetic_field->solution,
+      magnetic_flux_values);
+  }
+  */
+
+  // Numerical integration (Loop over all quadrature points)
+  for (unsigned int q = 0; q < scratch.n_q_points; ++q)
+  {
+    data.local_velocity_squared_norm +=
+      scratch.velocity_values[q] *  // v
+      scratch.velocity_values[q] *  // v
+      scratch.velocity_fe_values.JxW(q);     // dv
+
+    /*
+    if (case_number != 0)
+      data.local_magnetic_field_squared_norm +=
+        scratc.hmagnetic_flux_values[q] *  // v
+        scratc.hmagnetic_flux_values[q] *  // v
+        scratc.hvelocity_fe_values.JxW(q);     // dv
+    */
+
+    data.local_discrete_volume +=
+      scratch.velocity_fe_values.JxW(q);
+  }
+}
+
+
+
+
+template <int dim>
+void ChristensenBenchmark<dim>::copy_local_to_global_squared_norms(
+  const AssemblyData::Benchmarks::Christensen::Copy  &data)
+{
+  mean_kinetic_energy_density   += data.local_velocity_squared_norm;
+  mean_magnetic_energy_density  += data.local_magnetic_field_squared_norm;
+  discrete_volume               += data.local_discrete_volume;
+}
+
+
+
+template <int dim>
+void ChristensenBenchmark<dim>::find_sample_point()
+{
+  TimerOutput::Scope  t(*computing_timer, "Christensen Benchmark: Point data");
+
+  return;
+  /*
+  sample_point_longitude = 0.0;
+
+  sample_point[0]   = sample_point_radius *
+                      std::sin(sample_point_colatitude) *
+                      std::cos(sample_point_longitude);
+  sample_point[1]   = sample_point_radius *
+                      std::sin(sample_point_colatitude) *
+                      std::sin(sample_point_longitude);
+  if constexpr(dim == 3)
+    sample_point[2] = sample_point_radius *
+                      std::cos(sample_point_colatitude);
+  */
+}
+
+
+
+template <int dim>
+void ChristensenBenchmark<dim>::compute_point_data()
+{
+  TimerOutput::Scope  t(*computing_timer, "Christensen Benchmark: Point data");
+
+  temperature_at_sample_point       = 0.;
+  velocity_phi_at_sample_point      = 0.;
+  magnetic_flux_phi_at_sample_point = 0.;
+
+  return;
+  /*
+  Tensor<1,dim> velocity_at_sample_point;
+  Tensor<1,dim> magnetic_flux_at_sample_point;
+
+  temperature_at_sample_point   = temperature->point_value(sample_point);
+  velocity_at_sample_point      = velocity->point_value(sample_point);
+
+  if (case_number != 0)
+    magnetic_flux_at_sample_point = magnetic_field->point_value(sample_point);
+
+  velocity_phi_at_sample_point      =
+    - velocity_at_sample_point[0] * std::sin(sample_point_longitude)
+    + velocity_at_sample_point[1] * std::cos(sample_point_longitude);
+  magnetic_flux_phi_at_sample_point =
+    case_number != 0 ?
+      - magnetic_flux_at_sample_point[0] * std::sin(sample_point_longitude)
+      + magnetic_flux_at_sample_point[1] * std::cos(sample_point_longitude)
+      : 0.0;
+  */
+}
+
+
+
 } // namespace BenchmarkData
 
 } // namespace RMHD
@@ -585,3 +971,15 @@ template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
 (dealii::ConditionalOStream &, const RMHD::BenchmarkData::MIT<2> &);
 template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
 (dealii::ConditionalOStream &, const RMHD::BenchmarkData::MIT<3> &);
+
+template class RMHD::BenchmarkData::ChristensenBenchmark<2>;
+template class RMHD::BenchmarkData::ChristensenBenchmark<3>;
+
+template std::ostream & RMHD::BenchmarkData::operator<<
+(std::ostream &, const RMHD::BenchmarkData::ChristensenBenchmark<2> &);
+template std::ostream & RMHD::BenchmarkData::operator<<
+(std::ostream &, const RMHD::BenchmarkData::ChristensenBenchmark<3> &);
+template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
+(dealii::ConditionalOStream &, const RMHD::BenchmarkData::ChristensenBenchmark<2> &);
+template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
+(dealii::ConditionalOStream &, const RMHD::BenchmarkData::ChristensenBenchmark<3> &);

@@ -24,8 +24,7 @@ pressure(pressure),
 time_stepping(time_stepping),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_matrices_were_updated(true),
-flag_ignore_bouyancy_term(true)
+flag_matrices_were_updated(true)
 {
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
@@ -62,9 +61,10 @@ flag_ignore_bouyancy_term(true)
       TimerOutput::wall_times));
 
   // Explicitly set the body forces and the temperature pointer to null
-  body_force_ptr      = nullptr;
-  gravity_vector_ptr  = nullptr;
-  temperature         = nullptr;
+  body_force_ptr              = nullptr;
+  gravity_vector_ptr          = nullptr;
+  angular_velocity_vector_ptr = nullptr;
+  temperature                 = nullptr;
 }
 
 template <int dim>
@@ -87,8 +87,7 @@ temperature(temperature),
 time_stepping(time_stepping),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_matrices_were_updated(true),
-flag_ignore_bouyancy_term(false)
+flag_matrices_were_updated(true)
 {
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
@@ -128,8 +127,9 @@ flag_ignore_bouyancy_term(false)
       TimerOutput::wall_times));
 
   // Explicitly set the body forces pointer to null
-  body_force_ptr      = nullptr;
-  gravity_vector_ptr  = nullptr;
+  body_force_ptr              = nullptr;
+  gravity_vector_ptr          = nullptr;
+  angular_velocity_vector_ptr = nullptr;
 }
 
 }  // namespace RMHD

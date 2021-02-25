@@ -6,6 +6,7 @@
  */
 
 #include <rotatingMHD/equation_data.h>
+#include <deal.II/base/geometric_utilities.h>
 
 namespace RMHD
 {
@@ -14,26 +15,77 @@ namespace RMHD
 namespace EquationData
 {
 
+
+
 template <int dim>
-BodyForce<dim>::BodyForce(const double time)
+VectorFunction<dim>::VectorFunction(const double time)
 :
 TensorFunction<1, dim>(time)
 {}
 
+
+
 template <int dim>
-double BodyForce<dim>::divergence(const Point<dim>  &/* point */) const
+double VectorFunction<dim>::divergence(const Point<dim>  &/* point */) const
 {
   return (0.0);
 }
 
+
+
 template <int dim>
-void BodyForce<dim>::divergence_list(
+void VectorFunction<dim>::divergence_list(
   const std::vector<Point<dim>> &points,
   std::vector<double>           &values) const
 {
   for (unsigned int i = 0; i < points.size(); ++i)
     values[i] = divergence(points[i]);
 }
+
+
+
+template <int dim>
+curl_type<dim> VectorFunction<dim>::curl(const Point<dim>  &/* point */) const
+{
+  curl_type<dim> value;
+
+  value = 0.;
+
+  return (value);
+}
+
+
+
+template <int dim>
+void VectorFunction<dim>::curl_list(
+  const std::vector<Point<dim>> &points,
+  std::vector<curl_type<dim>>    &values) const
+{
+  for (unsigned int i = 0; i < points.size(); ++i)
+    values[i] = curl(points[i]);
+}
+
+
+
+template <int dim>
+AngularVelocity<dim>::AngularVelocity(const double time)
+:
+VectorFunction<dim>(time)
+{}
+
+
+
+template <int dim>
+curl_type<dim> AngularVelocity<dim>::rotation() const
+{
+  curl_type<dim> value;
+
+  value = 0.;
+
+  return (value);
+}
+
+
 
 namespace Step35
 {
@@ -282,7 +334,7 @@ BodyForce<dim>::BodyForce
 (const double Re,
  const double time)
 :
-RMHD::EquationData::BodyForce<dim>(time),
+RMHD::EquationData::VectorFunction<dim>(time),
 Re(Re)
 {}
 
@@ -415,7 +467,7 @@ BodyForce<dim>::BodyForce
 (const double Re,
  const double time)
 :
-RMHD::EquationData::BodyForce<dim>(time),
+RMHD::EquationData::VectorFunction<dim>(time),
 Re(Re)
 {}
 
@@ -645,7 +697,7 @@ template <int dim>
 GravityUnitVector<dim>::GravityUnitVector
 (const double time)
 :
-RMHD::EquationData::BodyForce<dim>(time)
+RMHD::EquationData::VectorFunction<dim>(time)
 {}
 
 template <int dim>
@@ -661,6 +713,145 @@ Tensor<1, dim> GravityUnitVector<dim>::value(const Point<dim> &/*point*/) const
 
 } // namespace MIT
 
+
+
+namespace Christensen
+{
+
+
+
+template <int dim>
+TemperatureInitialCondition<dim>::TemperatureInitialCondition
+(const double inner_radius,
+ const double outer_radius,
+ const double A,
+ const double time)
+:
+Function<dim>(1, time),
+inner_radius(inner_radius),
+outer_radius(outer_radius),
+A(A)
+{
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
+}
+
+template<int dim>
+double TemperatureInitialCondition<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  double temperature;
+
+  const std::array<double, dim> spherical_coordinates = GeometricUtilities::Coordinates::to_spherical(point);
+
+  // Radius
+  const double r        = spherical_coordinates[0];
+  // Azimuthal angle
+  const double phi      = spherical_coordinates[1];
+  // Polar angle
+  double theta;
+  if constexpr(dim == 2)
+    theta = numbers::PI_2;
+  else if constexpr(dim == 3)
+    theta = spherical_coordinates[2];
+
+  const double x_0    = 2. * r - inner_radius - outer_radius;
+
+  temperature = outer_radius * inner_radius / r
+                - inner_radius
+                + 210. * A / std::sqrt(17920. * M_PI) *
+                  (1. - 3. * x_0 * x_0 + 3. * std::pow(x_0, 4) - std::pow(x_0,6)) *
+                  pow(std::sin(theta), 4) *
+                  std::cos(4. * phi);
+
+  return temperature;
+}
+
+
+
+
+template <int dim>
+TemperatureBoundaryCondition<dim>::TemperatureBoundaryCondition
+(const double inner_radius,
+ const double outer_radius,
+ const double time)
+:
+Function<dim>(1, time),
+inner_radius(inner_radius),
+outer_radius(outer_radius)
+{
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
+}
+
+
+
+template<int dim>
+double TemperatureBoundaryCondition<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  const double r = point.norm();
+
+  double value = (r > 0.5*(inner_radius + outer_radius)) ? 0.0 : 1.0;
+
+  return (value);
+}
+
+
+
+template <int dim>
+GravityVector<dim>::GravityVector
+(const double outer_radius,
+ const double time)
+:
+RMHD::EquationData::VectorFunction<dim>(time),
+outer_radius(outer_radius)
+{}
+
+
+
+template <int dim>
+Tensor<1, dim> GravityVector<dim>::value(const Point<dim> &point) const
+{
+  Tensor<1, dim> value(point);
+
+  value /= -outer_radius;
+
+  return value;
+}
+
+
+
+template <int dim>
+AngularVelocity<dim>::AngularVelocity
+(const double time)
+:
+RMHD::EquationData::AngularVelocity<dim>(time)
+{}
+
+
+
+template <int dim>
+curl_type<dim> AngularVelocity<dim>::rotation() const
+{
+  curl_type<dim> value;
+
+  value = 0.;
+
+  if constexpr(dim == 2)
+    value[0] = 1.;
+  else if constexpr(dim == 3)
+    value[2] = 1.;
+
+
+  return value;
+}
+
+
+
+} // namespace Christensen
+
+
 } // namespace EquationData
 
 } // namespace RMHD
@@ -668,8 +859,11 @@ Tensor<1, dim> GravityUnitVector<dim>::value(const Point<dim> &/*point*/) const
 
 // explicit instantiation
 
-template class RMHD::EquationData::BodyForce<2>;
-template class RMHD::EquationData::BodyForce<3>;
+template class RMHD::EquationData::VectorFunction<2>;
+template class RMHD::EquationData::VectorFunction<3>;
+
+template class RMHD::EquationData::AngularVelocity<2>;
+template class RMHD::EquationData::AngularVelocity<3>;
 
 template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<2>;
 template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<3>;
@@ -725,4 +919,15 @@ template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<3>;
 template class RMHD::EquationData::MIT::GravityUnitVector<2>;
 template class RMHD::EquationData::MIT::GravityUnitVector<3>;
 
+template class RMHD::EquationData::Christensen::TemperatureInitialCondition<2>;
+template class RMHD::EquationData::Christensen::TemperatureInitialCondition<3>;
+
+template class RMHD::EquationData::Christensen::TemperatureBoundaryCondition<2>;
+template class RMHD::EquationData::Christensen::TemperatureBoundaryCondition<3>;
+
+template class RMHD::EquationData::Christensen::GravityVector<2>;
+template class RMHD::EquationData::Christensen::GravityVector<3>;
+
+template class RMHD::EquationData::Christensen::AngularVelocity<2>;
+template class RMHD::EquationData::Christensen::AngularVelocity<3>;
 

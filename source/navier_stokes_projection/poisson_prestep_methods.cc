@@ -13,8 +13,8 @@ assemble_poisson_prestep()
   // Set external functions to their start time
   if (body_force_ptr != nullptr)
     body_force_ptr->set_time(time_stepping.get_start_time());
-  if (gravity_vector_ptr != nullptr)
-    gravity_vector_ptr->set_time(time_stepping.get_start_time());
+  if (angular_velocity_vector_ptr != nullptr)
+    angular_velocity_vector_ptr->set_time(time_stepping.get_start_time());
 
   /* System matrix setup */
   // System matrix is constant and assembled in the
@@ -116,7 +116,7 @@ solve_poisson_prestep()
            << "    Number of CG iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
-           << std::endl;
+           << std::endl << std::endl;
 }
 
 } // namespace RMHD

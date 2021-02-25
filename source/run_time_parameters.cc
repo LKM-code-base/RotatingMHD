@@ -131,6 +131,12 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 
     adaptive_mesh_refinement = prm.get_bool("Adaptive mesh refinement");
 
+    n_initial_global_refinements = prm.get_integer("Number of initial global refinements");
+
+    n_initial_adaptive_refinements = prm.get_integer("Number of initial adaptive refinements");
+
+    n_initial_boundary_refinements = prm.get_integer("Number of initial boundary refinements");
+
     if (adaptive_mesh_refinement)
     {
       n_minimum_levels = prm.get_integer("Minimum number of levels");
@@ -160,8 +166,6 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
                              "coarsen and refine may not exceed 1.0"));
     }
 
-    n_initial_global_refinements = prm.get_integer("Number of initial global refinements");
-
     n_initial_adaptive_refinements = prm.get_integer("Number of initial adaptive refinements");
 
     n_initial_boundary_refinements = prm.get_integer("Number of initial boundary refinements");
@@ -169,10 +173,6 @@ void SpatialDiscretizationParameters::parse_parameters(ParameterHandler &prm)
     const unsigned int n_initial_refinements
     = n_initial_global_refinements + n_initial_adaptive_refinements
     + n_initial_boundary_refinements;
-
-    AssertThrow(n_initial_refinements <= n_maximum_levels ,
-                ExcMessage("Number of initial refinements must be less equal "
-                           "than the maximum number of levels."));
 
     if (adaptive_mesh_refinement)
       AssertThrow(n_minimum_levels <= n_initial_refinements,
@@ -2059,6 +2059,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = 0.0;
       heat_equation_parameters.C4 = 0.0;
       navier_stokes_parameters.C5 = 0.0;
+      navier_stokes_parameters.C6 = 1.0;
       break;
     case ProblemType::heat_convection_diffusion:
       navier_stokes_parameters.C1 = 0.0;
@@ -2066,6 +2067,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = 0.0;
       heat_equation_parameters.C4 = 1.0/Pe;
       navier_stokes_parameters.C5 = 0.0;
+      navier_stokes_parameters.C6 = 1.0;
       break;
     case ProblemType::boussinesq:
       navier_stokes_parameters.C1 = 0.0;
@@ -2073,6 +2075,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = 1.0;
       heat_equation_parameters.C4 = 1.0/std::sqrt(Ra*Pr);
       navier_stokes_parameters.C5 = 0.0;
+      navier_stokes_parameters.C6 = 1.0;
       break;
     case ProblemType::rotating_boussinesq:
       navier_stokes_parameters.C1 = 2.0/Ek;
@@ -2080,6 +2083,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = Ra/Pr;
       heat_equation_parameters.C4 = 1.0/Pr;
       navier_stokes_parameters.C5 = 0.0;
+      navier_stokes_parameters.C6 = 1.0/Ek;
       break;
     case ProblemType::rotating_magnetohydrodynamic:
       navier_stokes_parameters.C1 = 2.0/Ek;
@@ -2087,6 +2091,7 @@ ProblemParameters()
       navier_stokes_parameters.C3 = Ra/Pr;
       heat_equation_parameters.C4 = 1.0/Pr;
       navier_stokes_parameters.C5 = 1.0/Pm;
+      navier_stokes_parameters.C6 = 1.0;
       break;
     default:
       AssertThrow(false,
@@ -2314,6 +2319,28 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
 
     stream << "\r";
   }
+
+  stream << std::endl << std::endl;
+
+  stream << "+----------+----------+----------+----------+----------+----------+\n"
+         << "|    C1    |    C2    |    C3    |    C4    |    C5    |    C6    |\n"
+         << "+----------+----------+----------+----------+----------+----------+\n";
+
+  stream << "| ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C1;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C2;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C3;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.heat_equation_parameters.C4;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C5;
+  stream << " | ";
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C6;
+  stream << " |";
+
+  stream << "\n+----------+----------+----------+----------+----------+----------+\n";
 
   return (stream);
 }
