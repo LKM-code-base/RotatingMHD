@@ -171,8 +171,8 @@ void NavierStokesProjection<dim>::clear()
   // internal entity
   phi->clear();
 
-  norm_diffusion_rhs = 0.0;
-  norm_projection_rhs = 0.0;
+  norm_diffusion_rhs = std::numeric_limits<double>::min();
+  norm_projection_rhs = std::numeric_limits<double>::min();
 
   flag_ignore_bouyancy_term = true;
   flag_setup_phi = true;

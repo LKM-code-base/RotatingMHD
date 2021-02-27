@@ -146,10 +146,9 @@ void Step35<dim>::postprocess_solution()
 
   const Tensor<1,dim> velocity_value = this->velocity->point_value(evaluation_point);
 
-  *this->pcout << "   " << "Velocity = (";
-  for (unsigned int d=0; d<dim; ++d)
-    *this->pcout << Utilities::to_string(velocity_value[d], 4)
-                 << ((d < dim -1)? ", ": "); ");
+  *this->pcout << "   " << "Velocity = ("
+               << velocity_value
+               << "); ";
 
   const double pressure_value = this->pressure->point_value(evaluation_point);
   *this->pcout << "Pressure = "

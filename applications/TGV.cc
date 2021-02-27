@@ -154,8 +154,30 @@ void TGV<dim>::save_postprocessing_results()
   const double current_time = this->time_stepping.get_current_time();
 
   const Triangulation<dim> &tria{this->triangulation};
-
   Vector<double>  cellwise_error(tria.n_active_cells());
+
+
+  auto compute_error
+  = [&tria, &cellwise_error, this]
+     (const Quadrature<dim>          &quadrature,
+      const Entities::EntityBase<dim>&entity,
+      const Function<dim>            &exact_solution,
+      const VectorTools::NormType     norm_type)
+  ->
+  double
+  {
+    VectorTools::integrate_difference(*this->mapping,
+                                      *entity.dof_handler,
+                                      entity.solution,
+                                      exact_solution,
+                                      cellwise_error,
+                                      quadrature,
+                                      norm_type);
+    return (VectorTools::compute_global_error(tria,
+                                              cellwise_error,
+                                              norm_type));
+  };
+
   typename VectorTools::NormType norm_type;
 
   using namespace EquationData::TGV;
@@ -166,48 +188,26 @@ void TGV<dim>::save_postprocessing_results()
     const unsigned int fe_degree{this->velocity->fe_degree};
     const QGauss<dim> quadrature_formula(fe_degree + 2);
 
-    norm_type = VectorTools::NormType::L2_norm;
-    VectorTools::integrate_difference(*this->mapping,
-                                      *this->velocity->dof_handler,
-                                      this->velocity->solution,
-                                      velocity_function,
-                                      cellwise_error,
-                                      quadrature_formula,
-                                      norm_type);
-    double error = VectorTools::compute_global_error(tria,
-                                                     cellwise_error,
-                                                     norm_type);
-    velocity_error_map[norm_type] = error;
+    double error = compute_error(quadrature_formula,
+                                 *this->velocity,
+                                 velocity_function,
+                                 VectorTools::NormType::L2_norm);
+    velocity_error_map[VectorTools::NormType::L2_norm] = error;
 
-
-    norm_type = VectorTools::NormType::H1_norm;
-    VectorTools::integrate_difference(*this->mapping,
-                                      *this->velocity->dof_handler,
-                                      this->velocity->solution,
-                                      velocity_function,
-                                      cellwise_error,
-                                      quadrature_formula,
-                                      norm_type);
-    error = VectorTools::compute_global_error(tria,
-                                              cellwise_error,
-                                              norm_type);
-    velocity_error_map[norm_type] = error;
+    error = compute_error(quadrature_formula,
+                          *this->velocity,
+                          velocity_function,
+                          VectorTools::NormType::H1_norm);
+    velocity_error_map[VectorTools::NormType::H1_norm] = error;
 
     const QTrapez<1>     trapezoidal_rule;
-    const QIterated<dim> linfty_quadrature_rule(trapezoidal_rule,
-                                                fe_degree);
-    norm_type = VectorTools::NormType::Linfty_norm;
-    VectorTools::integrate_difference(*this->mapping,
-                                      *this->velocity->dof_handler,
-                                      this->velocity->solution,
-                                      velocity_function,
-                                      cellwise_error,
-                                      linfty_quadrature_rule,
-                                      norm_type);
-    error = VectorTools::compute_global_error(tria,
-                                              cellwise_error,
-                                              norm_type);
-    velocity_error_map[norm_type] = error;
+    const QIterated<dim> linfty_quadrature_formula(trapezoidal_rule,
+                                                   fe_degree);
+    error = compute_error(linfty_quadrature_formula,
+                          *this->velocity,
+                          velocity_function,
+                          VectorTools::NormType::Linfty_norm);
+    velocity_error_map[VectorTools::NormType::Linfty_norm] = error;
   }
   {
     const PressureExactSolution<dim> pressure_function(this->parameters.Re,
@@ -216,50 +216,28 @@ void TGV<dim>::save_postprocessing_results()
     const unsigned int fe_degree{this->pressure->fe_degree};
     const QGauss<dim> quadrature_formula(fe_degree + 2);
 
-    norm_type = VectorTools::NormType::L2_norm;
-    VectorTools::integrate_difference(*this->mapping,
-                                      *this->velocity->dof_handler,
-                                      this->velocity->solution,
-                                      pressure_function,
-                                      cellwise_error,
-                                      quadrature_formula,
-                                      norm_type);
-    double error = VectorTools::compute_global_error(tria,
-                                                     cellwise_error,
-                                                     norm_type);
-    pressure_error_map[norm_type] = error;
+    double error = compute_error(quadrature_formula,
+                                 *this->pressure,
+                                 pressure_function,
+                                 VectorTools::NormType::L2_norm);
+    pressure_error_map[VectorTools::NormType::L2_norm] = error;
 
 
-    norm_type = VectorTools::NormType::H1_norm;
-    VectorTools::integrate_difference(*this->mapping,
-                                      *this->velocity->dof_handler,
-                                      this->velocity->solution,
-                                      pressure_function,
-                                      cellwise_error,
-                                      quadrature_formula,
-                                      norm_type);
-    error = VectorTools::compute_global_error(tria,
-                                              cellwise_error,
-                                              norm_type);
-    pressure_error_map[norm_type] = error;
+    error = compute_error(quadrature_formula,
+                          *this->pressure,
+                          pressure_function,
+                          VectorTools::NormType::H1_norm);
+    pressure_error_map[VectorTools::NormType::H1_norm] = error;
 
     const QTrapez<1>     trapezoidal_rule;
-    const QIterated<dim> linfty_quadrature_rule(trapezoidal_rule,
-                                                fe_degree);
-    norm_type = VectorTools::NormType::Linfty_norm;
-    VectorTools::integrate_difference(*this->mapping,
-                                      *this->velocity->dof_handler,
-                                      this->velocity->solution,
-                                      pressure_function,
-                                      cellwise_error,
-                                      linfty_quadrature_rule,
-                                      norm_type);
-    error = VectorTools::compute_global_error(tria,
-                                              cellwise_error,
-                                              norm_type);
+    const QIterated<dim> linfty_quadrature_formula(trapezoidal_rule,
+                                                   fe_degree);
+    error = compute_error(linfty_quadrature_formula,
+                          *this->pressure,
+                          pressure_function,
+                          VectorTools::NormType::Linfty_norm);
     pressure_error_map[norm_type] = error;
   }
-
 }
 
 template <int dim>

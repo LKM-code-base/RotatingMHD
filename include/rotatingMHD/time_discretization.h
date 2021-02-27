@@ -293,7 +293,7 @@ private:
   constexpr static unsigned int order{2};
 
   /*
-   * @brief Type of the IMEX scheme.
+   * @brief Type of the VSIMEX scheme.
    */
   const VSIMEXScheme  type;
 

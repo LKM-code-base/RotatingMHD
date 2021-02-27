@@ -217,8 +217,6 @@ Stream& operator<<(Stream &stream, const SpatialDiscretizationParameters &prm)
                      "Number of initial boundary refinements",
                      prm.n_initial_boundary_refinements);
 
-  internal::add_header(stream);
-
   return (stream);
 }
 
@@ -292,8 +290,6 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
   internal::add_line(stream,
                      "Graphical output directory",
                      prm.graphical_output_directory);
-
-  internal::add_header(stream);
 
   return (stream);
 }
@@ -776,10 +772,6 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
       break;
   }
 
-  stream << "\r";
-
-  internal::add_header(stream);
-
   return (stream);
 }
 
@@ -1027,8 +1019,6 @@ Stream& operator<<(Stream &stream, const DimensionlessNumbers &prm)
                   ExcMessage("Unexpected identifier for the problem type."));
       break;
   }
-
-  internal::add_header(stream);
 
   return (stream);
 }
@@ -1544,10 +1534,6 @@ void ProblemBaseParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ProblemBaseParameters &prm)
 {
-  internal::add_header(stream);
-  internal::add_line(stream, "Problem parameters");
-  internal::add_header(stream);
-
   internal::add_line(stream, "Spatial dimension", prm.dim);
 
   {
@@ -1688,12 +1674,8 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm)
 {
   internal::add_header(stream);
-  internal::add_line(stream, "Problem parameters");
+  internal::add_line(stream, "Hydrodynamic problem parameters");
   internal::add_header(stream);
-
-  stream << static_cast<const ProblemBaseParameters &>(prm);
-
-  stream << "\r";
 
   internal::add_line(stream, "Problem type", "hydrodynamic");
 
@@ -1704,6 +1686,10 @@ Stream& operator<<(Stream &stream, const HydrodynamicProblemParameters &prm)
     std::string fe_pressure = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree_pressure) + ")";
     internal::add_line(stream, "Finite Element - Pressure", fe_pressure);
   }
+
+  stream << static_cast<const ProblemBaseParameters &>(prm);
+
+  stream << "\r";
 
   stream << static_cast<const DimensionlessNumbers &>(prm);
 

@@ -229,7 +229,7 @@ level(0)
 
 template<int dim, int spacedim>
 void ConvergenceTestData::update_table
-(const DoFHandler<dim, spacedim> &dof_hander,
+(const DoFHandler<dim, spacedim> &dof_handler,
  const double step_size,
  const std::map<typename VectorTools::NormType, double> &error_map)
 {
@@ -238,19 +238,19 @@ void ConvergenceTestData::update_table
 
   table.add_value("step size", step_size);
 
-  update_table(dof_hander, error_map);
+  update_table(dof_handler, error_map);
 }
 
 
 template<int dim, int spacedim>
 void ConvergenceTestData::update_table
-(const DoFHandler<dim, spacedim> &dof_hander,
+(const DoFHandler<dim, spacedim> &dof_handler,
  const std::map<typename VectorTools::NormType, double> &error_map)
 {
-  const types::global_dof_index n_dofs{dof_hander.n_dofs()};
+  const types::global_dof_index n_dofs{dof_handler.n_dofs()};
   table.add_value("n_dofs", n_dofs);
 
-  const Triangulation<dim, spacedim> &tria{dof_hander.get_triangulation()};
+  const Triangulation<dim, spacedim> &tria{dof_handler.get_triangulation()};
   const types::global_cell_index n_cells{tria.n_global_active_cells()};
   table.add_value("n_cells", n_cells);
 
@@ -276,6 +276,7 @@ void ConvergenceTestData::update_table
 
   std::map<typename VectorTools::NormType, double>::const_iterator it;
 
+  it = error_map.find(VectorTools::NormType::L2_norm);
   if (it != error_map.end())
   {
     table.add_value("L2", it->second);
@@ -332,8 +333,8 @@ void ConvergenceTestData::update_table
   }
 
   std::map<typename VectorTools::NormType, double>::const_iterator it;
-  it = error_map.find(VectorTools::NormType::L2_norm);
 
+  it = error_map.find(VectorTools::NormType::L2_norm);
   if (it != error_map.end())
   {
     table.add_value("L2", it->second);
