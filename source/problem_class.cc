@@ -336,7 +336,7 @@ void Problem<dim>::adaptive_mesh_refinement()
     if (!entity.first->is_child_entity())
     {
       *pcout << std::setw(60)
-             << ("  Number of degrees of freedom of the \""
+             << (" Number of degrees of freedom of the \""
                 + (entity.first)->name + "\" entity")
              << " = "
              << (entity.first)->dof_handler->n_dofs()
@@ -350,7 +350,7 @@ void Problem<dim>::adaptive_mesh_refinement()
   }
 
   *pcout << std::setw(60)
-         << "  Number of total degrees of freedom"
+         << " Number of total degrees of freedom"
          << " = "
          << n_total_dofs << std::endl << std::endl;
 
