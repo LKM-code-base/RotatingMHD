@@ -293,10 +293,12 @@ void MITBenchmark<dim>::setup_constraints()
   temperature->boundary_conditions.set_neumann_bcs(3);
   temperature->boundary_conditions.set_neumann_bcs(4);
 
+  velocity->close_boundary_conditions();
+  pressure->close_boundary_conditions();
+  temperature->close_boundary_conditions();
+
   velocity->apply_boundary_conditions();
-
   pressure->apply_boundary_conditions();
-
   temperature->apply_boundary_conditions();
 }
 
