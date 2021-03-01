@@ -178,7 +178,7 @@ void Couette<dim>::setup_dofs()
   velocity->setup_dofs();
   pressure->setup_dofs();
 
-  *this->pcout  << "  Number of active cells               = "
+  *this->pcout  << "  Number of active cells                = "
                 << this->triangulation.n_global_active_cells() << std::endl;
   *this->pcout  << "  Number of velocity degrees of freedom = "
                 << velocity->dof_handler->n_dofs()

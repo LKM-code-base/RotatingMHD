@@ -842,7 +842,7 @@ struct LinearSolverParameters
   /*!
    * Constructor which sets up the parameters with default values.
    */
-  LinearSolverParameters();
+  LinearSolverParameters(const std::string &name = "default");
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -1149,6 +1149,13 @@ struct NavierStokesParameters
    * @brief The factor multiplying the electromagnetic force.
    */
   double                            C5;
+
+    /*!
+   * @brief The factor multiplying the pressure gradient.
+   * @attention This factor is only introduced to replicate
+   * Christensen's benchmark. They use a different scaling.
+   */
+  double                            C6;
 
   /*!
    * @brief The parameters for the linear solver used in the

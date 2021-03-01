@@ -28,8 +28,8 @@ namespace RMHD
 using namespace dealii;
 
 /*!
- * @class MITBenchmark
- * @brief Class solving the problem formulated in the MIT benchmark.
+ * @class Christensen
+ * @brief Class solving the problem formulated in the Christensen benchmark.
  * @details The benchmark considers the case of a buoyancy-driven flow
  * for which the Boussinesq approximation is assumed to hold true,
  * <em> i. e.</em>, the fluid's behaviour is described by the following
@@ -81,15 +81,25 @@ using namespace dealii;
  * @todo Add a picture
  */
 template <int dim>
-class MITBenchmark : public Problem<dim>
+class Christensen : public Problem<dim>
 {
 public:
-  MITBenchmark(const RunTimeParameters::ProblemParameters &parameters);
+  Christensen(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
 private:
-  const RunTimeParameters::ProblemParameters    &params;
+  std::ofstream                                 log_file;
+
+  const double                                  inner_radius;
+
+  const double                                  outer_radius;
+
+  const double                                  A;
+
+  const unsigned int                            inner_boundary_id;
+
+  const unsigned int                            outer_boundary_id;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
@@ -97,8 +107,18 @@ private:
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
 
-  std::shared_ptr<EquationData::MIT::TemperatureBoundaryCondition<dim>>
+  std::shared_ptr<Entities::VectorEntity<dim>>  magnetic_field;
+
+  std::shared_ptr<EquationData::Christensen::TemperatureInitialCondition<dim>>
+                                                temperature_initial_conditions;
+
+  std::shared_ptr<EquationData::Christensen::TemperatureBoundaryCondition<dim>>
                                                 temperature_boundary_conditions;
+
+  EquationData::Christensen::GravityVector<dim> gravity_vector;
+
+  EquationData::Christensen::AngularVelocity<dim>
+                                                angular_velocity;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
@@ -106,15 +126,9 @@ private:
 
   HeatEquation<dim>                             heat_equation;
 
-  BenchmarkData::MIT<dim>                       mit_benchmark;
-
-  EquationData::MIT::GravityUnitVector<dim>     gravity_vector;
+  BenchmarkData::ChristensenBenchmark<dim>      christensen_benchmark;
 
   double                                        cfl_number;
-
-  std::ofstream                                 cfl_output_file;
-
-  bool                                          flag_local_refinement;
 
   void make_grid(const unsigned int n_global_refinements);
 
@@ -132,25 +146,45 @@ private:
 };
 
 template <int dim>
-MITBenchmark<dim>::MITBenchmark(const RunTimeParameters::ProblemParameters &parameters)
+Christensen<dim>::Christensen(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-params(parameters),
+log_file("Christensen_Log.csv"),
+inner_radius(7./13.),
+outer_radius(20./13.),
+A(0.1),
+inner_boundary_id(0),
+outer_boundary_id(1),
 velocity(std::make_shared<Entities::VectorEntity<dim>>(
-              parameters.fe_degree_velocity,
-              this->triangulation,
-              "Velocity")),
+           parameters.fe_degree_velocity,
+           this->triangulation,
+           "Velocity")),
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(
-              parameters.fe_degree_pressure,
-              this->triangulation,
-              "Pressure")),
+           parameters.fe_degree_pressure,
+           this->triangulation,
+           "Pressure")),
 temperature(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.fe_degree_temperature,
               this->triangulation,
               "Temperature")),
+magnetic_field(std::make_shared<Entities::VectorEntity<dim>>(
+              1/*parameters.fe_degree_magnetic_field*/,
+              this->triangulation,
+              "Magnetic field")),
+temperature_initial_conditions(
+  std::make_shared<EquationData::Christensen::TemperatureInitialCondition<dim>>(
+    inner_radius,
+    outer_radius,
+    A,
+    parameters.time_discretization_parameters.start_time)),
 temperature_boundary_conditions(
-              std::make_shared<EquationData::MIT::TemperatureBoundaryCondition<dim>>(
-              parameters.time_discretization_parameters.start_time)),
+  std::make_shared<EquationData::Christensen::TemperatureBoundaryCondition<dim>>(
+    inner_radius,
+    outer_radius,
+    parameters.time_discretization_parameters.start_time)),
+gravity_vector(outer_radius,
+               parameters.time_discretization_parameters.start_time),
+angular_velocity(parameters.time_discretization_parameters.start_time),
 time_stepping(parameters.time_discretization_parameters),
 navier_stokes(parameters.navier_stokes_parameters,
               time_stepping,
@@ -167,23 +201,24 @@ heat_equation(parameters.heat_equation_parameters,
               this->mapping,
               this->pcout,
               this->computing_timer),
-mit_benchmark(velocity,
-              pressure,
-              temperature,
-              time_stepping,
-              1,
-              2,
-              this->mapping,
-              this->pcout,
-              this->computing_timer),
-gravity_vector(parameters.time_discretization_parameters.start_time),
-cfl_output_file("MIT_cfl_number.csv"),
-flag_local_refinement(true)
+christensen_benchmark(velocity,
+                      temperature,
+                      magnetic_field,
+                      time_stepping,
+                      parameters,
+                      inner_radius,
+                      outer_radius,
+                      0,
+                      this->mapping,
+                      this->pcout,
+                      this->computing_timer)
 {
-  *this->pcout << parameters << std::endl << std::endl;
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
 
-  AssertDimension(dim, 2);
+  *this->pcout << parameters << std::endl;
+
   navier_stokes.set_gravity_vector(gravity_vector);
+  navier_stokes.set_angular_velocity_vector(angular_velocity);
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
@@ -192,39 +227,41 @@ flag_local_refinement(true)
   temperature->reinit();
   initialize();
 
-  // Stores all the fields to the SolutionTransfor container
+  // Stores all the fields to the SolutionTransfer container
   this->container.add_entity(velocity);
   this->container.add_entity(pressure, false);
   this->container.add_entity(navier_stokes.phi, false);
   this->container.add_entity(temperature, false);
 
-  cfl_output_file << "Time" << "," << "CFL" << std::endl;
-}
+  log_file << "Step" << ","
+           << "Time" << ","
+           << "dt" << ","
+           << "CFL" << std::endl;}
 
 template <int dim>
-void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
+void Christensen<dim>::make_grid(const unsigned int n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
-  // Reads the structured mesh done in gmsh. This mesh is modelled after
-  // the one named "1R" by the benchmark's authors.
-  GridIn<dim> grid_in;
-  grid_in.attach_triangulation(this->triangulation);
-  std::ifstream triangulation_file("MIT.msh");
-  grid_in.read_msh(triangulation_file);
+  // Generates the shell with the inner and outer boundary indicators
+  // 0 and 1 respectively
+  GridGenerator::hyper_shell(this->triangulation,
+                             Point<dim>(),
+                             inner_radius,
+                             outer_radius,
+                             0,
+                             true);
 
   // Performs global refinements
   this->triangulation.refine_global(n_global_refinements);
 
-  // Performs a one level local refinement of the cells located at the
-  // side walls
-  if (flag_local_refinement)
+  for (unsigned int i = 0;
+       i < this->prm.spatial_discretization_parameters.n_initial_boundary_refinements;
+       ++i)
   {
     for (const auto &cell : this->triangulation.active_cell_iterators())
       if (cell->is_locally_owned() && cell->at_boundary())
-        for (const auto &face : cell->face_iterators())
-          if (face->boundary_id() == 1 || face->boundary_id() == 2)
-            cell->set_refine_flag();
+        cell->set_refine_flag();
 
     this->triangulation.execute_coarsening_and_refinement();
   }
@@ -237,7 +274,7 @@ void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
 }
 
 template <int dim>
-void MITBenchmark<dim>::setup_dofs()
+void Christensen<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
@@ -266,32 +303,27 @@ void MITBenchmark<dim>::setup_dofs()
 }
 
 template <int dim>
-void MITBenchmark<dim>::setup_constraints()
+void Christensen<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
   // Homogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  velocity->boundary_conditions.set_dirichlet_bcs(1);
-  velocity->boundary_conditions.set_dirichlet_bcs(2);
-  velocity->boundary_conditions.set_dirichlet_bcs(3);
-  velocity->boundary_conditions.set_dirichlet_bcs(4);
+  velocity->boundary_conditions.set_dirichlet_bcs(inner_boundary_id);
+  velocity->boundary_conditions.set_dirichlet_bcs(outer_boundary_id);
 
-  // The pressure itself has no boundary conditions, leading to a pure
-  // Neumann problem. A datum ensures the well-posedness of the problem
-  // and The Navier-Stokes solver will enforce a zero mean value
-  // constraint.
+  // The pressure itself has no boundary conditions. A datum needs to be
+  // set to make the system matrix regular
   pressure->boundary_conditions.set_datum_at_boundary();
 
-  // Inhomogeneous time dependent Dirichlet boundary conditions over
-  // the side walls and homogeneous Neumann boundary conditions over
-  // the bottom and top walls for the temperature field.
+  // Inhomogeneous Dirichlet boundary conditions over the whole boundary
+  // for the velocity field.
   temperature->boundary_conditions.set_dirichlet_bcs(
-    1, temperature_boundary_conditions, true);
+    inner_boundary_id,
+    temperature_boundary_conditions);
   temperature->boundary_conditions.set_dirichlet_bcs(
-    2, temperature_boundary_conditions, true);
-  temperature->boundary_conditions.set_neumann_bcs(3);
-  temperature->boundary_conditions.set_neumann_bcs(4);
+    outer_boundary_id,
+    temperature_boundary_conditions);
 
   velocity->apply_boundary_conditions();
 
@@ -301,7 +333,7 @@ void MITBenchmark<dim>::setup_constraints()
 }
 
 template <int dim>
-void MITBenchmark<dim>::initialize()
+void Christensen<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -310,41 +342,21 @@ void MITBenchmark<dim>::initialize()
   velocity->set_solution_vectors_to_zero();
   pressure->set_solution_vectors_to_zero();
 
-  // The temperature's boundary conditions and its zero scalar field as
-  // initial condition allows one to avoid a projection
-  // by just distributing the constraints to the zero'ed out vector.
-  temperature->set_solution_vectors_to_zero();
-
-  {
-    LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
-
-    distributed_old_temperature = temperature->old_solution;
-
-    temperature->constraints.distribute(distributed_old_temperature);
-
-    temperature->old_solution   = distributed_old_temperature;
-  }
-
-  // Outputs the initial conditions
-  temperature->solution = temperature->old_solution;
-  output();
+  // The initial conditions describe a linear function with a
+  // trigonometric perturbation. See the funciton for further reference
+  this->set_initial_conditions(temperature,
+                               *temperature_initial_conditions,
+                               time_stepping);
 }
 
 template <int dim>
-void MITBenchmark<dim>::postprocessing()
+void Christensen<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  // Computes all the benchmark's data. See documentation of the
-  // class for further information.
-  mit_benchmark.compute_benchmark_data();
-
   std::cout.precision(1);
-  /*! @attention For some reason, a run time error happens when I try
-      to only use one pcout */
   *this->pcout << time_stepping << ", ";
-  *this->pcout << mit_benchmark
-               << ", CFL = "
+  *this->pcout << ", CFL = "
                << cfl_number
                << ", Norms: ("
                << std::noshowpos << std::scientific
@@ -359,13 +371,10 @@ void MITBenchmark<dim>::postprocessing()
                << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
                << "%] \r";
 
-  if (time_stepping.get_step_number() % 10 == 0)
-    cfl_output_file << time_stepping.get_current_time() << ","
-                    << cfl_number << std::endl;
 }
 
 template <int dim>
-void MITBenchmark<dim>::output()
+void Christensen<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
@@ -394,7 +403,11 @@ void MITBenchmark<dim>::output()
   // elements. In other words, the triangulation visualized in the
   // *.pvtu file is one globl refinement finer than the actual
   // triangulation.
-  data_out.build_patches(velocity->fe_degree);
+
+  data_out.build_patches(*this->mapping,
+                         velocity->fe_degree,
+                         DataOut<dim>::curved_inner_cells);
+
 
   // Writes the DataOut instance to the file.
   static int out_index = 0;
@@ -407,7 +420,7 @@ void MITBenchmark<dim>::output()
 }
 
 template <int dim>
-void MITBenchmark<dim>::update_solution_vectors()
+void Christensen<dim>::update_solution_vectors()
 {
   // Sets the solution vectors at t^{k-j} to those at t^{k-j+1}
   velocity->update_solution_vectors();
@@ -416,8 +429,14 @@ void MITBenchmark<dim>::update_solution_vectors()
 }
 
 template <int dim>
-void MITBenchmark<dim>::run()
+void Christensen<dim>::run()
 {
+  // Outputs the initial conditions
+  velocity->solution    = velocity->old_solution;
+  pressure->solution    = pressure->old_solution;
+  temperature->solution = temperature->old_solution;
+  output();
+
   while (time_stepping.get_current_time() < time_stepping.get_end_time())
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
@@ -432,10 +451,6 @@ void MITBenchmark<dim>::run()
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
-    // Updates the functions and constraints to t^{k}
-    temperature->boundary_conditions.set_time(time_stepping.get_next_time());
-    temperature->update_boundary_conditions();
-
     // Solves the system, i.e. computes the fields at t^{k}
     heat_equation.solve();
     navier_stokes.solve();
@@ -446,11 +461,11 @@ void MITBenchmark<dim>::run()
 
     // Performs post-processing
     postprocessing();
-
+    /*
     // Performs coarsening and refining of the triangulation
     if (time_stepping.get_step_number() %
         this->prm.spatial_discretization_parameters.adaptive_mesh_refinement_frequency == 0)
-      this->adaptive_mesh_refinement();
+      this->adaptive_mesh_refinement();*/
 
     // Graphical output of the solution vectors
     if ((time_stepping.get_step_number() %
@@ -460,8 +475,15 @@ void MITBenchmark<dim>::run()
       output();
   }
 
+  // Computes all the benchmark's data. See documentation of the
+  // class for further information.
+  christensen_benchmark.compute_benchmark_data();
+
   // Prints the benchmark's data to the .txt file.
-  mit_benchmark.print_data_to_file("MIT_benchmark");
+  christensen_benchmark.print_data_to_file("Christensen_Benchmark");
+
+  // Outputs the benchmark's data to the terminal
+  *this->pcout << christensen_benchmark;
 }
 
 } // namespace RMHD
@@ -476,14 +498,27 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 2);
 
-      RunTimeParameters::ProblemParameters parameter_set("MIT.prm");
+      RunTimeParameters::ProblemParameters parameter_set("Christensen.prm");
 
-      MITBenchmark<2> simulation(parameter_set);
-
-      simulation.run();
-
-      std::cout.precision(1);
- }
+      switch (parameter_set.dim)
+      {
+        case 2:
+        {
+          Christensen<2> simulation(parameter_set);
+          simulation.run();
+          break;
+        }
+        case 3:
+        {
+          Christensen<3> simulation(parameter_set);
+          simulation.run();
+          break;
+        }
+        default:
+          AssertThrow(false, ExcNotImplemented());
+          break;
+      }
+  }
   catch (std::exception &exc)
   {
       std::cerr << std::endl

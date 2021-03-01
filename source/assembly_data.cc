@@ -111,6 +111,74 @@ fe_values(data.fe_values.get_mapping(),
 
 } // namespace Generic
 
+
+
+namespace Benchmarks
+{
+
+
+namespace Christensen
+{
+
+template <int dim>
+Scratch<dim>::Scratch
+(const Mapping<dim>        &mapping,
+ const Quadrature<dim>     &quadrature_formula,
+ const FiniteElement<dim>  &velocity_fe,
+ const UpdateFlags         velocity_update_flags,
+ const FiniteElement<dim>  &magnetic_field_fe,
+ const UpdateFlags         magnetic_field_flags)
+:
+n_q_points(quadrature_formula.size()),
+dofs_per_cell(velocity_fe.dofs_per_cell),
+velocity_fe_values(
+  mapping,
+  velocity_fe,
+  quadrature_formula,
+  velocity_update_flags),
+magnetic_field_fe_values(
+  mapping,
+  magnetic_field_fe,
+  quadrature_formula,
+  magnetic_field_flags),
+velocity_values(n_q_points),
+magnetic_field_values(n_q_points)
+{}
+
+
+
+template <int dim>
+Scratch<dim>::Scratch(const Scratch<dim> &data)
+:
+n_q_points(data.n_q_points),
+dofs_per_cell(data.dofs_per_cell),
+velocity_fe_values(
+  data.velocity_fe_values.get_mapping(),
+  data.velocity_fe_values.get_fe(),
+  data.velocity_fe_values.get_quadrature(),
+  data.velocity_fe_values.get_update_flags()),
+magnetic_field_fe_values(
+  data.magnetic_field_fe_values.get_mapping(),
+  data.magnetic_field_fe_values.get_fe(),
+  data.magnetic_field_fe_values.get_quadrature(),
+  data.magnetic_field_fe_values.get_update_flags()),
+velocity_values(n_q_points),
+magnetic_field_values(n_q_points)
+{}
+
+
+
+Copy::Copy(const unsigned int dofs_per_cell)
+:
+local_velocity_squared_norm(dofs_per_cell),
+local_magnetic_field_squared_norm(dofs_per_cell),
+local_discrete_volume(dofs_per_cell)
+{}
+
+} // namespace Christensen
+
+} // namespace Benchmarks
+
 } // namespace AssemblyData
 
 } // namespace RMHD
@@ -123,3 +191,6 @@ template struct RMHD::AssemblyData::Generic::Matrix::Scratch<3>;
 
 template struct RMHD::AssemblyData::Generic::RightHandSide::Scratch<2>;
 template struct RMHD::AssemblyData::Generic::RightHandSide::Scratch<3>;
+
+template struct RMHD::AssemblyData::Benchmarks::Christensen::Scratch<2>;
+template struct RMHD::AssemblyData::Benchmarks::Christensen::Scratch<3>;

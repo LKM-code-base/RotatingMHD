@@ -19,7 +19,8 @@ void HeatEquation<dim>::solve()
 
   solve_linear_system(flag_matrices_were_updated ||
                       time_stepping.get_step_number() %
-                      parameters.preconditioner_update_frequency == 0);
+                      parameters.preconditioner_update_frequency == 0 ||
+                      time_stepping.get_step_number() == 1);
 
   flag_matrices_were_updated = false;
 }

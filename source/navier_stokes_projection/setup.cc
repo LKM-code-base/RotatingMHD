@@ -38,7 +38,6 @@ void NavierStokesProjection<dim>::setup()
 
   if (time_stepping.get_step_number() == 0)
     poisson_prestep();
-
 }
 
 
@@ -98,6 +97,11 @@ void NavierStokesProjection<dim>::setup_phi()
   // homogeneous Dirichlet boundary conditions in the phi space
   for (auto &neumann_bc : velocity->boundary_conditions.neumann_bcs)
     phi->boundary_conditions.set_dirichlet_bcs(neumann_bc.first);
+
+  // The remaining unconstrained boundaries in the phi space are set to
+  // homogeneous Neumann boundary conditions
+  for (const auto &unconstrained_boundary_id: phi->boundary_conditions.get_unconstrained_boundary_ids())
+    phi->boundary_conditions.set_neumann_bcs(unconstrained_boundary_id);
 
   // Apply boundary conditions
   phi->apply_boundary_conditions();
@@ -355,7 +359,7 @@ assemble_constant_matrices()
 
 template <int dim>
 void NavierStokesProjection<dim>::set_body_force(
-  RMHD::EquationData::BodyForce<dim> &body_force)
+  RMHD::EquationData::VectorFunction<dim> &body_force)
 {
   body_force_ptr = &body_force;
 }
@@ -364,7 +368,7 @@ void NavierStokesProjection<dim>::set_body_force(
 
 template <int dim>
 void NavierStokesProjection<dim>::set_gravity_vector(
-  RMHD::EquationData::BodyForce<dim> &gravity_vector)
+  RMHD::EquationData::VectorFunction<dim> &gravity_vector)
 {
   gravity_vector_ptr = &gravity_vector;
 }
@@ -372,10 +376,40 @@ void NavierStokesProjection<dim>::set_gravity_vector(
 
 
 template <int dim>
+void NavierStokesProjection<dim>::set_angular_velocity_vector(
+  RMHD::EquationData::AngularVelocity<dim> &angular_velocity_vector)
+{
+  angular_velocity_vector_ptr = &angular_velocity_vector;
+}
+
+template <int dim>
 void NavierStokesProjection<dim>::reset_phi()
 {
   phi->set_solution_vectors_to_zero();
   flag_setup_phi = true;
+}
+
+
+
+template <int dim>
+void NavierStokesProjection<dim>::reset()
+{
+  velocity_system_matrix.clear();
+  velocity_mass_matrix.clear();
+  velocity_laplace_matrix.clear();
+  velocity_mass_plus_laplace_matrix.clear();
+  velocity_advection_matrix.clear();
+  diffusion_step_rhs.clear();
+  projection_mass_matrix.clear();
+  pressure_laplace_matrix.clear();
+  phi_laplace_matrix.clear();
+  projection_step_rhs.clear();
+  poisson_prestep_rhs.clear();
+  correction_step_rhs.clear();
+  norm_diffusion_rhs  = 0.;
+  norm_projection_rhs = 0.;
+  flag_setup_phi              = true;
+  flag_matrices_were_updated  = true;
 }
 
 
@@ -407,14 +441,20 @@ template void RMHD::NavierStokesProjection<3>::setup_vectors();
 template void RMHD::NavierStokesProjection<2>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
 
-template void RMHD::NavierStokesProjection<2>::set_body_force(RMHD::EquationData::BodyForce<2> &);
-template void RMHD::NavierStokesProjection<3>::set_body_force(RMHD::EquationData::BodyForce<3> &);
+template void RMHD::NavierStokesProjection<2>::set_body_force(RMHD::EquationData::VectorFunction<2> &);
+template void RMHD::NavierStokesProjection<3>::set_body_force(RMHD::EquationData::VectorFunction<3> &);
 
-template void RMHD::NavierStokesProjection<2>::set_gravity_vector(RMHD::EquationData::BodyForce<2> &);
-template void RMHD::NavierStokesProjection<3>::set_gravity_vector(RMHD::EquationData::BodyForce<3> &);
+template void RMHD::NavierStokesProjection<2>::set_gravity_vector(RMHD::EquationData::VectorFunction<2> &);
+template void RMHD::NavierStokesProjection<3>::set_gravity_vector(RMHD::EquationData::VectorFunction<3> &);
+
+template void RMHD::NavierStokesProjection<2>::set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<2> &);
+template void RMHD::NavierStokesProjection<3>::set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<3> &);
 
 template void RMHD::NavierStokesProjection<2>::reset_phi();
 template void RMHD::NavierStokesProjection<3>::reset_phi();
+
+template void RMHD::NavierStokesProjection<2>::reset();
+template void RMHD::NavierStokesProjection<3>::reset();
 
 template void RMHD::NavierStokesProjection<2>::poisson_prestep();
 template void RMHD::NavierStokesProjection<3>::poisson_prestep();

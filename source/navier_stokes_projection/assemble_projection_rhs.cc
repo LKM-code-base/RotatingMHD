@@ -128,7 +128,7 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
               scratch.pressure_fe_values.JxW(q);
 
       data.local_projection_step_rhs(i) -=
-              alpha[0] / time_stepping.get_next_step_size() *
+              alpha[0] / time_stepping.get_next_step_size() / parameters.C6 *
               phi_div_v;
 
       data.local_correction_step_rhs(i) -= phi_div_v;
