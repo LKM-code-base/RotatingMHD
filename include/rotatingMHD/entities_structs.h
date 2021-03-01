@@ -167,12 +167,27 @@ public:
   virtual void apply_boundary_conditions() = 0;
 
   /*!
+   * @todo Documentation
+   */
+  virtual void close_boundary_conditions() = 0;
+
+  /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
    * and @ref VectorEntity in a vector and call
    * @ref ScalarEntity::update_boundary_conditions and
    * @ref VectorEntity::update_boundary_conditions respectively.
    */
   virtual void update_boundary_conditions() = 0;
+
+  /*!
+   * @todo Documentation
+   */
+  virtual void clear_boundary_conditions() = 0;
+
+  /*!
+   * @brief Returns the value of @ref flag_child_entity.
+   */
+  bool is_child_entity() const;
 
 protected:
   /*!
@@ -195,6 +210,16 @@ private:
    */
   const parallel::distributed::Triangulation<dim> &triangulation;
 };
+
+
+
+template <int dim>
+inline bool EntityBase<dim>::is_child_entity() const
+{
+  return (flag_child_entity);
+}
+
+
 
 template <int dim>
 inline const parallel::distributed::Triangulation<dim> &EntityBase<dim>::get_triangulation() const
@@ -256,6 +281,11 @@ struct VectorEntity : EntityBase<dim>
   virtual void apply_boundary_conditions() override;
 
   /*!
+   * @todo Documentation
+   */
+  virtual void close_boundary_conditions() override;
+
+  /*!
    * @brief Updates the time dependent boundary conditions.
    *
    * @details It loops over all boundary condition marked as time
@@ -269,6 +299,11 @@ struct VectorEntity : EntityBase<dim>
    * same boundary conditions.
    */
   virtual void update_boundary_conditions() override;
+
+  /*!
+   * @todo Documentation
+   */
+  virtual void clear_boundary_conditions() override;
 
   /*!
    * @brief This method evaluates the value of the continous vector
@@ -334,6 +369,11 @@ struct ScalarEntity : EntityBase<dim>
   virtual void apply_boundary_conditions() override;
 
   /*!
+   * @todo Documentation
+   */
+  virtual void close_boundary_conditions() override;
+
+  /*!
    * @brief Updates the time dependent boundary conditions.
    *
    * @details It loops over all boundary condition marked as time
@@ -349,10 +389,15 @@ struct ScalarEntity : EntityBase<dim>
   virtual void update_boundary_conditions() override;
 
   /*!
+   * @todo Documentation
+   */
+  virtual void clear_boundary_conditions() override;
+
+  /*!
    * @brief This method evaluates the value of the continous scalar
    * field at the given point.
    *
-   * @details It catches the value obtained by the processor who owns 
+   * @details It catches the value obtained by the processor who owns
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
