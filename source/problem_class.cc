@@ -207,7 +207,7 @@ void Problem<dim>::adaptive_mesh_refinement()
                          "Problem: Adaptive mesh refinement Pt. 1");
 
     *pcout << std::endl
-           << "Preparing coarsening and refining..." << std::endl;
+           << " Preparing coarsening and refining..." << std::endl;
 
     // Initiates the estimated error per cell of each entity, which
     // is to be considered
@@ -306,7 +306,7 @@ void Problem<dim>::adaptive_mesh_refinement()
         x_solutions[i]);
 
     // Execute the mesh refinement/coarsening
-    *pcout << "Executing coarsening and refining..." << std::endl;
+    *pcout << " Executing coarsening and refining..." << std::endl;
     triangulation.execute_coarsening_and_refinement();
   }
 
@@ -326,13 +326,33 @@ void Problem<dim>::adaptive_mesh_refinement()
   }
   *pcout << "\b\b \n" << std::endl;
 
+  int n_total_dofs = 0;
+
   // Reinitiate the entities to accomodate to the new mesh
   for (auto &entity: container.entities)
   {
     (entity.first)->setup_dofs();
+
+    if (!entity.first->is_child_entity())
+    {
+      *pcout << std::setw(60)
+             << ("  Number of degrees of freedom of the \""
+                + (entity.first)->name + "\" entity")
+             << " = "
+             << (entity.first)->dof_handler->n_dofs()
+             << std::endl;
+
+      n_total_dofs += (entity.first)->dof_handler->n_dofs();
+    }
+
     (entity.first)->apply_boundary_conditions();
     (entity.first)->reinit();
   }
+
+  *pcout << std::setw(60)
+         << "  Number of total degrees of freedom"
+         << " = "
+         << n_total_dofs << std::endl << std::endl;
 
   {
     TimerOutput::Scope t(*computing_timer,
@@ -341,7 +361,7 @@ void Problem<dim>::adaptive_mesh_refinement()
   for (unsigned int i = 0; i < container.entities.size(); ++i)
   {
     // Temporary vectors to extract the interpolated solutions back
-    //  into the entities
+    // into the entities
     LinearAlgebra::MPI::Vector  distributed_tmp_solution;
     LinearAlgebra::MPI::Vector  distributed_tmp_old_solution;
     LinearAlgebra::MPI::Vector  distributed_tmp_old_old_solution;
