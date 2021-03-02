@@ -137,7 +137,8 @@ public:
   bool                            closed() const;
 
   /*!
-   * @todo Documentation
+   * @todo Sets the boundary condition by setting @ref flag_closed_boundary_conditions
+   * to true.
    */
   void                            close();
 

@@ -167,7 +167,10 @@ public:
   virtual void apply_boundary_conditions() = 0;
 
   /*!
-   * @todo Documentation
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity as EntityBase instances and call
+   * @ref ScalarEntity::close_boundary_conditions and
+   * @ref VectorEntity::close_boundary_conditions respectively.
    */
   virtual void close_boundary_conditions() = 0;
 
@@ -180,7 +183,10 @@ public:
   virtual void update_boundary_conditions() = 0;
 
   /*!
-   * @todo Documentation
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity as EntityBase instances and call
+   * @ref ScalarEntity::clear_boundary_conditions and
+   * @ref VectorEntity::clear_boundary_conditions respectively.
    */
   virtual void clear_boundary_conditions() = 0;
 
@@ -281,7 +287,8 @@ struct VectorEntity : EntityBase<dim>
   virtual void apply_boundary_conditions() override;
 
   /*!
-   * @todo Documentation
+   * @brief Closes the @ref boundary_conditions and prints a summary
+   * of the boundary conditions to the terminal.
    */
   virtual void close_boundary_conditions() override;
 
@@ -301,7 +308,7 @@ struct VectorEntity : EntityBase<dim>
   virtual void update_boundary_conditions() override;
 
   /*!
-   * @todo Documentation
+   * @brief Clears the @ref boundary_conditions and the @ref constraints.
    */
   virtual void clear_boundary_conditions() override;
 
@@ -364,12 +371,7 @@ struct ScalarEntity : EntityBase<dim>
    *
    * @attention This method has to be called even if no boundary conditions
    * are applied because the method initiates @ref constraints, which are used
-   * througout the solver.
-   */
-  virtual void apply_boundary_conditions() override;
-
-  /*!
-   * @todo Documentation
+   * througout the solver.boundary conditionsinal.
    */
   virtual void close_boundary_conditions() override;
 
@@ -389,7 +391,7 @@ struct ScalarEntity : EntityBase<dim>
   virtual void update_boundary_conditions() override;
 
   /*!
-   * @todo Documentation
+   * @brief Clears the @ref boundary_conditions and the @ref constraints.
    */
   virtual void clear_boundary_conditions() override;
 
