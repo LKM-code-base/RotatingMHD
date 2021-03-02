@@ -371,7 +371,13 @@ struct ScalarEntity : EntityBase<dim>
    *
    * @attention This method has to be called even if no boundary conditions
    * are applied because the method initiates @ref constraints, which are used
-   * througout the solver.boundary conditionsinal.
+   * througout the solver.
+   */
+  virtual void apply_boundary_conditions() override;
+
+  /*!
+   * @brief Closes the @ref boundary_conditions and prints a summary
+   * of the boundary conditions to the terminal.
    */
   virtual void close_boundary_conditions() override;
 
