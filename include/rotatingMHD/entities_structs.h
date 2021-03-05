@@ -294,10 +294,18 @@ struct VectorEntity : EntityBase<dim>
    * is inside the domain.
    */
   Tensor<1,dim> point_value(const Point<dim>  &point) const;
+
+  /*!
+   * @todo Documentation
+   */
+  Tensor<2,dim> point_gradient(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
 };
 
   /*!
-   * @struct VectorEntity
+   * @struct ScalarEntity
    * @brief Numerical representation of a scalar field.
    */
 template <int dim>
@@ -372,6 +380,14 @@ struct ScalarEntity : EntityBase<dim>
    * is inside the domain.
    */
   double point_value(const Point<dim> &point) const;
+
+  /*!
+   * @todo Documentation
+   */
+  Tensor<1,dim> point_gradient(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
 };
 
 } // namespace Entities
