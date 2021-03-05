@@ -387,7 +387,9 @@ void VectorEntity<dim>::update_boundary_conditions()
 
 
 template<int dim>
-Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
+Tensor<1,dim> VectorEntity<dim>::point_value(
+  const Point<dim>                    &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
 {
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
@@ -401,10 +403,18 @@ Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 
   try
   {
-    VectorTools::point_value(*(this->dof_handler),
-                             this->solution,
-                             point,
-                             point_value);
+    if (external_mapping != nullptr)
+      VectorTools::point_value(*external_mapping,
+                               *(this->dof_handler),
+                               this->solution,
+                               point,
+                               point_value);
+    else
+      VectorTools::point_value(*(this->dof_handler),
+                               this->solution,
+                               point,
+                               point_value);
+
     point_found = true;
   }
   catch (const VectorTools::ExcPointNotAvailableHere &)
@@ -717,7 +727,9 @@ void ScalarEntity<dim>::update_boundary_conditions()
 
 
 template<int dim>
-double ScalarEntity<dim>::point_value(const Point<dim> &point) const
+double ScalarEntity<dim>::point_value(
+  const Point<dim>                    &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
 {
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
@@ -731,9 +743,15 @@ double ScalarEntity<dim>::point_value(const Point<dim> &point) const
 
   try
   {
-    point_value = VectorTools::point_value(*(this->dof_handler),
-                                           this->solution,
-                                           point);
+    if (external_mapping != nullptr)
+      point_value = VectorTools::point_value(*external_mapping,
+                                             *(this->dof_handler),
+                                             this->solution,
+                                             point);
+    else
+      point_value = VectorTools::point_value(*(this->dof_handler),
+                                             this->solution,
+                                             point);
     point_found = true;
   }
   catch (const VectorTools::ExcPointNotAvailableHere &)
