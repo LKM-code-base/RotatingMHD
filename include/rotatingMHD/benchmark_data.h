@@ -677,9 +677,39 @@ private:
    * \textrm{and} \qquad
    * \pd{ u_{\textrm{r}}}{\phi} > 0.
    * \f]
-   * @todo Write an implementation
    */
   void find_sample_point();
+
+  /*!
+   * @brief A method that computes the value of the radial velocity
+   * at the given spherical coordinates
+   */
+  double compute_radial_velocity(
+    const double &radius,
+    const double &azimuthal_angle,
+    const double polar_angle = numbers::PI_2) const;
+
+  /*!
+   * @brief A method that computes a root of the radial velocity w.r.t.
+   * the longitude.
+   * @details The method is employs around the boost's
+   * bracket_and_solve_root method.
+   */
+  double compute_zero_of_radial_velocity(
+    const double       &phi_guess,
+    const bool         local_slope,
+    const double       &tol,
+    const unsigned int &max_iter) const;
+
+  /*!
+   * @brief A method that computes the value of the derivative of the
+   * radial velocity w.r.t. to the longitude at the given spherical
+   * coordinates
+   */
+  double compute_azimuthal_gradient_of_radial_velocity(
+    const double &radius,
+    const double &azimuthal_angle,
+    const double polar_angle = numbers::PI_2) const;
 
   /*!
    * @brief A method that computes the velocity vector and the temperature

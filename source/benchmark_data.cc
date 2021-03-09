@@ -1,4 +1,5 @@
 #include <rotatingMHD/benchmark_data.h>
+#include <rotatingMHD/exceptions.h>
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/exceptions.h>
@@ -10,6 +11,11 @@
 #include <deal.II/numerics/vector_tools.h>
 #include <deal.II/base/work_stream.h>
 #include <deal.II/grid/filtered_iterator.h>
+#include <deal.II/base/geometric_utilities.h>
+#include <deal.II/base/exceptions.h>
+DeclException0(ExcBoostNoConvergence);
+
+#include <boost/math/tools/roots.hpp>
 
 #include <fstream>
 #include <ostream>
@@ -187,14 +193,16 @@ void DFGBechmarkRequest<dim>::print_step_data(DiscreteTime &time)
         << std::noshowpos << std::scientific
         << time.get_current_time()
         << " dp = "
-        << std::showpos << std::scientific
+        << std::setprecision(6)
+	<< std::showpos << std::scientific
         << pressure_difference
         << " C_d = "
         << std::showpos << std::scientific
         << drag_coefficient
         << " C_l = "
         << std::showpos << std::scientific
-        << lift_coefficient << std::endl;
+        << lift_coefficient
+	<< std::defaultfloat << std::endl;
 }
 
 template <int dim>
@@ -593,10 +601,9 @@ magnetic_field(magnetic_field),
 dimensionless_numbers(dimensionless_numbers),
 case_number(case_number),
 sample_point_radius(0.5*(outer_radius + inner_radius)),
-sample_point_colatitude(90)
+sample_point_colatitude(numbers::PI_2),
+sample_point_longitude(0.)
 {
-  //AssertDimension(dim, 3);
-
   Assert(case_number < 3,
          ExcMessage("Only case 0, 1 and 2  are defined."))
 
@@ -710,6 +717,8 @@ Stream& operator<<(Stream &stream, const ChristensenBenchmark<dim> &christensen)
   stream << std::noshowpos << std::scientific << std::setprecision(6)
          << "case = "
          << christensen.case_number
+         << ", phi = "
+         << christensen.sample_point_longitude
          << ", current time = "
          << christensen.time_stepping.get_current_time()
          << ", w = "
@@ -899,22 +908,330 @@ void ChristensenBenchmark<dim>::copy_local_to_global_squared_norms(
 template <int dim>
 void ChristensenBenchmark<dim>::find_sample_point()
 {
-  TimerOutput::Scope  t(*computing_timer, "Christensen Benchmark: Point data");
+  TimerOutput::Scope  t(*computing_timer, "Christensen Benchmark: Finding sample point");
 
-  return;
-  /*
-  sample_point_longitude = 0.0;
+  // Set the last known value of the sample point's longitude as initial
+  // guess
+  if (sample_point_longitude > 0.)
+  {
+    // Compute the derivative of the radial velocity w.r.t. the
+    // longitude. This value is needed for the boost's
+    // bracket_and_solve_root method.
+    const double gradient_at_trial_point
+    = compute_azimuthal_gradient_of_radial_velocity(sample_point_radius,
+                                                    sample_point_longitude,
+                                                    sample_point_colatitude);
 
-  sample_point[0]   = sample_point_radius *
-                      std::sin(sample_point_colatitude) *
-                      std::cos(sample_point_longitude);
-  sample_point[1]   = sample_point_radius *
-                      std::sin(sample_point_colatitude) *
-                      std::sin(sample_point_longitude);
-  if constexpr(dim == 3)
-    sample_point[2] = sample_point_radius *
-                      std::cos(sample_point_colatitude);
-  */
+    // Compute a root of the radial velocity w.r.t. the longitude
+    const double trial_longitude
+    = compute_zero_of_radial_velocity(sample_point_longitude,
+                                      gradient_at_trial_point > 0.,
+                                      1e-6,
+                                      50);
+
+    // Compute the derivative of the radial velocity w.r.t. the
+    // longitude at the found root.
+    const double gradient_at_zero
+    = compute_azimuthal_gradient_of_radial_velocity(sample_point_radius,
+                                                    trial_longitude,
+                                                    sample_point_colatitude);
+
+    if(gradient_at_zero > 0. &&
+        trial_longitude >= 0. &&
+        trial_longitude <= 2. * numbers::PI)
+    {
+        sample_point_longitude = trial_longitude;
+        return;
+    }
+  }
+
+  // The initial guess was not computed or wasn't good enough. A set of
+  // trial points well be used to find the sample point.
+  const unsigned int n_trial_points = 16;
+
+  std::vector<double> trial_longitudes;
+
+  trial_longitudes.push_back(1e-3 * 2. * numbers::PI / static_cast<double>(n_trial_points));
+
+  for (unsigned int i=1; i<n_trial_points; ++i)
+      trial_longitudes.push_back(i * 2. * numbers::PI / static_cast<double>(n_trial_points));
+
+  bool            point_found = false;
+
+  unsigned int    cnt = 0;
+
+  while(cnt < n_trial_points && point_found == false)
+  {
+      const double gradient_at_trial_point
+      = compute_azimuthal_gradient_of_radial_velocity(
+          sample_point_radius,
+          trial_longitudes[cnt],
+          sample_point_colatitude);
+
+      try
+      {
+          const double tentative_longitude
+          = compute_zero_of_radial_velocity(
+            trial_longitudes[cnt],
+            gradient_at_trial_point > 0.,
+            1e-6,
+            50);
+
+          const double gradient_at_zero
+          = compute_azimuthal_gradient_of_radial_velocity(
+              sample_point_radius,
+              tentative_longitude,
+              sample_point_colatitude);
+
+          if (gradient_at_zero > 0.)
+          {
+              point_found             = true;
+              sample_point_longitude  = tentative_longitude;
+          }
+          ++cnt;
+      }
+      catch(ExcBoostNoConvergence &exc)
+      {
+          ++cnt;
+          continue;
+      }
+      catch (std::exception &exc)
+      {
+          std::cerr << std::endl << std::endl
+                    << "----------------------------------------------------"
+                    << std::endl;
+          std::cerr << "Exception on processing: " << std::endl
+                    << exc.what() << std::endl
+                    << "Aborting!" << std::endl
+                    << "----------------------------------------------------"
+                    << std::endl;
+          std::abort();
+      }
+      catch (...)
+      {
+          std::cerr << std::endl << std::endl
+                    << "----------------------------------------------------"
+                    << std::endl;
+          std::cerr << "Unknown exception!" << std::endl
+                    << "Aborting!" << std::endl
+                    << "----------------------------------------------------"
+                    << std::endl;
+          std::abort();
+      }
+  }
+
+  if (!point_found)
+  {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception on find_sample_point!" << std::endl
+                << "The algorithm did not find a benchmark point using "
+                << n_trial_points << " trial points in [0,2*pi)."
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+  }
+  if (sample_point_longitude < 0. || sample_point_longitude > 2. * numbers::PI)
+  {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception on find_sample_point!" << std::endl
+                << "The algorithm did not find a benchmark point in [0,2*pi)."
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+  }
+
+  // Compute the position vector of the sample point in cartesian
+  // coordinates.
+  std::array<double, dim> spherical_coordinates;
+
+  if constexpr(dim == 2)
+    spherical_coordinates = {sample_point_radius,
+                             sample_point_longitude};
+  else if constexpr(dim == 3)
+    spherical_coordinates = {sample_point_radius,
+                             sample_point_longitude,
+                             sample_point_colatitude};
+
+  sample_point = GeometricUtilities::Coordinates::from_spherical(spherical_coordinates);
+}
+
+
+
+template <int dim>
+double ChristensenBenchmark<dim>::compute_radial_velocity(
+  const double &radius,
+  const double &azimuthal_angle,
+  const double polar_angle) const
+{
+  AssertThrow(radius > 0.,
+              ExcLowerRangeType<double>(radius, 0));
+  AssertThrow((polar_angle >= 0. && polar_angle <= numbers::PI),
+               ExcMessage("The polar angle is not in the range [0,pi]."));
+
+  // The boost's bracket_and_solve_root may produce test for values
+  // outside the admissible range of the dealii's from_spherical method.
+  // To this end, a temporary angle is introduced and shifted to its
+  // admissible value.
+  double tmp_azimuthal_angle = azimuthal_angle;
+
+  if (azimuthal_angle < 0.)
+      tmp_azimuthal_angle += 2. * numbers::PI;
+  else if (azimuthal_angle > 2. * numbers::PI)
+      tmp_azimuthal_angle -= 2. * numbers::PI;
+
+  // Define the position vector in cartesian coordinates from the
+  // spherical ones.
+  std::array<double, dim> spherical_coordinates;
+
+  if constexpr(dim == 2)
+  {
+    (void)polar_angle;
+    spherical_coordinates = {radius, tmp_azimuthal_angle};
+  }
+  else if constexpr(dim == 3)
+    spherical_coordinates = {radius, tmp_azimuthal_angle, polar_angle};
+
+  const Point<dim> point = GeometricUtilities::Coordinates::from_spherical(spherical_coordinates);
+
+  // Compute the radial velocity at the given spherical coordinates.
+  const Tensor<1,dim> local_velocity = velocity->point_value(point);
+
+  return local_velocity * point / radius;
+}
+
+
+
+template<int dim>
+double  ChristensenBenchmark<dim>::compute_zero_of_radial_velocity(
+  const double        &phi_guess,
+  const bool          local_slope,
+  const double        &tol,
+  const unsigned int  &max_iter) const
+{
+    using namespace boost::math::tools;
+    using namespace GeometryExceptions;
+
+    Assert(tol > 0.0, ExcLowerRangeType<double>(tol, 0));
+    Assert(max_iter > 0, ExcLowerRange(max_iter, 0));
+
+    Assert((phi_guess < 0.?
+           (phi_guess >= -numbers::PI && phi_guess <= numbers::PI):
+           (phi_guess >= 0. && phi_guess <= 2. * numbers::PI)),
+           ExcAzimuthalAngleRange(phi_guess));
+
+    auto boost_max_iter = boost::numeric_cast<boost::uintmax_t>(max_iter);
+
+    const double radius = sample_point_radius;
+    const double theta  = sample_point_colatitude;
+
+    // Declare lambda functions for the boost's
+    // root bracket_and_solve_root method
+    auto function = [this,radius,theta](const double &x)
+    {
+        return compute_radial_velocity(radius, x, theta);
+    };
+    auto tolerance_criterion = [tol,function](const double &a, const double &b)
+    {
+        return std::abs(function(a)) <= tol && std::abs(function(b)) <= tol;
+    };
+
+    /*! @attention Why initialize phi to this value? */
+    double phi = -2. * numbers::PI;
+
+    // Find a root of the radial velocity w.r.t. the longitude
+    try
+    {
+        auto phi_interval
+        = bracket_and_solve_root(
+                function,
+                phi_guess,
+                1.05,
+                local_slope,
+                tolerance_criterion,
+                boost_max_iter);
+        phi = 0.5 * (phi_interval.first + phi_interval.second);
+    }
+    catch (std::exception &exc)
+    {
+        throw ExcBoostNoConvergence();
+    }
+    catch (...)
+    {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::cerr << "Unknown exception!" << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+    }
+
+    // The found root may be outside the internal allowed range.
+    // The following if scope corrects it by shifting the value inside
+    // the range.
+    if (phi < 0.)
+        phi += 2. * numbers::PI;
+    else if (phi > 2. * numbers::PI)
+        phi -= 2. * numbers::PI;
+    return phi;
+}
+
+
+
+template <int dim>
+double ChristensenBenchmark<dim>::compute_azimuthal_gradient_of_radial_velocity(
+  const double &radius,
+  const double &azimuthal_angle,
+  const double polar_angle) const
+{
+  AssertThrow(radius > 0.,
+              ExcLowerRangeType<double>(radius, 0));
+  AssertThrow((polar_angle >= 0. && polar_angle <= numbers::PI),
+               ExcMessage("The polar angle is not in the range [0,pi]."));
+  AssertThrow((azimuthal_angle >= 0. && azimuthal_angle < 2. * numbers::PI),
+               ExcMessage("The azimuthal angle is not in the range [0,2 pi)."));
+
+  // Define the local basis vectors and the spherical coordinates
+  Tensor<1,dim> local_radial_basis_vector;
+  Tensor<1,dim> local_azimuthal_basis_vector;
+
+  local_radial_basis_vector[0]    = sin(polar_angle) * cos(azimuthal_angle);
+  local_radial_basis_vector[1]    = sin(polar_angle) * sin(azimuthal_angle);
+
+  local_azimuthal_basis_vector[0] = -sin(azimuthal_angle);
+  local_azimuthal_basis_vector[1] = cos(azimuthal_angle);
+
+  std::array<double, dim> spherical_coordinates;
+
+  if constexpr(dim == 2)
+    spherical_coordinates = {radius, azimuthal_angle};
+  else if constexpr(dim == 3)
+  {
+    spherical_coordinates = {radius, azimuthal_angle, polar_angle};
+
+    local_radial_basis_vector[2] = cos(polar_angle);
+  }
+
+  // Compute the derivative of the radial velocity w.r.t. the
+  // longitude at the given spherical coordinates.
+  const Point<dim> point = GeometricUtilities::Coordinates::from_spherical(spherical_coordinates);
+
+  const Tensor<1,dim> local_velocity          = velocity->point_value(point, mapping);
+  const Tensor<2,dim> local_velocity_gradient = velocity->point_gradient(point, mapping);
+
+  return (sin(polar_angle) *
+          (radius * local_radial_basis_vector * local_velocity_gradient * local_azimuthal_basis_vector
+           +
+           local_velocity * local_azimuthal_basis_vector));
 }
 
 
@@ -924,29 +1241,16 @@ void ChristensenBenchmark<dim>::compute_point_data()
 {
   TimerOutput::Scope  t(*computing_timer, "Christensen Benchmark: Point data");
 
-  temperature_at_sample_point       = 0.;
-  velocity_phi_at_sample_point      = 0.;
-  magnetic_flux_phi_at_sample_point = 0.;
+  Tensor<1,dim> local_azimuthal_basis_vector;
+  local_azimuthal_basis_vector[0]   = -sin(sample_point_longitude);
+  local_azimuthal_basis_vector[1]   = cos(sample_point_longitude);
 
-  return;
+  temperature_at_sample_point       = temperature->point_value(sample_point, mapping);
+  velocity_phi_at_sample_point      = velocity->point_value(sample_point, mapping) *
+                                      local_azimuthal_basis_vector;
   /*
-  Tensor<1,dim> velocity_at_sample_point;
-  Tensor<1,dim> magnetic_flux_at_sample_point;
-
-  temperature_at_sample_point   = temperature->point_value(sample_point);
-  velocity_at_sample_point      = velocity->point_value(sample_point);
-
-  if (case_number != 0)
-    magnetic_flux_at_sample_point = magnetic_field->point_value(sample_point);
-
-  velocity_phi_at_sample_point      =
-    - velocity_at_sample_point[0] * std::sin(sample_point_longitude)
-    + velocity_at_sample_point[1] * std::cos(sample_point_longitude);
-  magnetic_flux_phi_at_sample_point =
-    case_number != 0 ?
-      - magnetic_flux_at_sample_point[0] * std::sin(sample_point_longitude)
-      + magnetic_flux_at_sample_point[1] * std::cos(sample_point_longitude)
-      : 0.0;
+  magnetic_flux_phi_at_sample_point = magnetic_field->point_value(sample_point, mapping) *
+                                      local_azimuthal_basis_vector;
   */
 }
 
