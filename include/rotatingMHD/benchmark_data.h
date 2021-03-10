@@ -631,12 +631,12 @@ private:
   /*!
    * @brief The velocity vector evaluated at the @ref sample_point.
    */
-  double        velocity_phi_at_sample_point;
+  double        azimuthal_velocity_at_sample_point;
 
   /*!
    * @brief The magnetic flux vector evaluated at the @ref sample_point.
    */
-  double        magnetic_flux_phi_at_sample_point;
+  double        polar_magnetic_field_at_sample_point;
 
   /*!
    * @brief The table which stores all the benchmark data.

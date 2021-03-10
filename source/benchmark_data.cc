@@ -605,7 +605,13 @@ sample_point_colatitude(numbers::PI_2),
 sample_point_longitude(0.)
 {
   Assert(case_number < 3,
-         ExcMessage("Only case 0, 1 and 2  are defined."))
+         ExcMessage("Only case 0, 1 and 2  are defined."));
+
+  // Temporary asserts
+  AssertThrow(case_number == 1 ? false : true,
+              ExcMessage("The lines concerning case 1 are currently commented out"));
+  AssertThrow(case_number == 2 ? false : true,
+              ExcMessage("Case 2 has not being implemented yet"));
 
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
@@ -643,32 +649,34 @@ sample_point_longitude(0.)
       TimerOutput::wall_times));
 
   // Setting up columns
-  data.declare_column("case");
   data.declare_column("time");
-  data.declare_column("drift_frequency");
   data.declare_column("mean_kinetic_energy_density");
   data.declare_column("mean_magnetic_energy_density");
-  data.declare_column("temperature");
-  data.declare_column("velocity_phi");
-  data.declare_column("magnetic_flux_phi");
+  data.declare_column("sample_point_longitude");
+  data.declare_column("temperature_at_sample_point");
+  data.declare_column("azimuthal_velocity_at_sample_point");
+  data.declare_column("polar_magnetic_field_at_sample_point");
+  data.declare_column("drift_frequency");
 
   // Setting all columns to scientific notation
   data.set_scientific("time", true);
-  data.set_scientific("drift_frequency", true);
   data.set_scientific("mean_kinetic_energy_density", true);
   data.set_scientific("mean_magnetic_energy_density", true);
-  data.set_scientific("temperature", true);
-  data.set_scientific("velocity_phi", true);
-  data.set_scientific("magnetic_flux_phi", true);
+  data.set_scientific("sample_point_longitude", true);
+  data.set_scientific("temperature_at_sample_point", true);
+  data.set_scientific("azimuthal_velocity_at_sample_point", true);
+  data.set_scientific("polar_magnetic_field_at_sample_point", true);
+  data.set_scientific("drift_frequency", true);
 
   // Setting columns' precision
   data.set_precision("time", 6);
-  data.set_precision("drift_frequency", 6);
   data.set_precision("mean_kinetic_energy_density", 6);
   data.set_precision("mean_magnetic_energy_density", 6);
-  data.set_precision("temperature", 6);
-  data.set_precision("velocity_phi", 6);
-  data.set_precision("magnetic_flux_phi", 6);
+  data.set_precision("sample_point_longitude", 6);
+  data.set_precision("temperature_at_sample_point", 6);
+  data.set_precision("azimuthal_velocity_at_sample_point", 6);
+  data.set_precision("polar_magnetic_field_at_sample_point", 6);
+  data.set_precision("drift_frequency", 6);
 }
 
 
@@ -682,14 +690,15 @@ void ChristensenBenchmark<dim>::compute_benchmark_data()
   compute_point_data();
 
   // Update column's values
-  data.add_value("case", case_number);
   data.add_value("time", time_stepping.get_current_time());
-  data.add_value("drift_frequency", drift_frequency);
   data.add_value("mean_kinetic_energy_density", mean_kinetic_energy_density);
   data.add_value("mean_magnetic_energy_density", mean_magnetic_energy_density);
-  data.add_value("temperature", temperature_at_sample_point);
-  data.add_value("velocity_phi", velocity_phi_at_sample_point);
-  data.add_value("magnetic_flux_phi", magnetic_flux_phi_at_sample_point);
+  data.add_value("sample_point_longitude", sample_point_longitude);
+  data.add_value("temperature_at_sample_point", temperature_at_sample_point);
+  data.add_value("azimuthal_velocity_at_sample_point", azimuthal_velocity_at_sample_point);
+  data.add_value("polar_magnetic_field_at_sample_point", polar_magnetic_field_at_sample_point);
+  data.add_value("drift_frequency", drift_frequency);
+
 }
 
 
@@ -699,7 +708,7 @@ void ChristensenBenchmark<dim>::print_data_to_file(std::string file_name)
 {
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
-    file_name += ".txt";
+    file_name += "_case_" + std::to_string(case_number) + ".txt";
 
     std::ofstream file(file_name);
 
@@ -714,26 +723,47 @@ void ChristensenBenchmark<dim>::print_data_to_file(std::string file_name)
 template<typename Stream, int dim>
 Stream& operator<<(Stream &stream, const ChristensenBenchmark<dim> &christensen)
 {
-  stream << std::noshowpos << std::scientific << std::setprecision(6)
-         << "case = "
-         << christensen.case_number
-         << ", phi = "
-         << christensen.sample_point_longitude
-         << ", current time = "
-         << christensen.time_stepping.get_current_time()
-         << ", w = "
-         << christensen.drift_frequency
-         << ", E_kin = "
-         << christensen.mean_kinetic_energy_density
-         << ", E_mag = "
-         << christensen.mean_magnetic_energy_density
-         << ", T = "
-         << christensen.temperature_at_sample_point
-         << ", v_phi = "
-         << christensen.velocity_phi_at_sample_point
-         << ", B_phi = "
-         << christensen.magnetic_flux_phi_at_sample_point
-         << std::defaultfloat;
+  switch (christensen.case_number)
+  {
+    case 0:
+      stream << std::noshowpos << std::scientific
+             << "E_kin = " << std::setprecision(5)
+             << christensen.mean_kinetic_energy_density
+             << ", phi = " << std::fixed << std::setprecision(2)
+             << (christensen.sample_point_longitude / 2. / numbers::PI * 360.)
+             << ", T = " << std::scientific << std::setprecision(4)
+             << christensen.temperature_at_sample_point
+             << ", v_phi = " << std::setprecision(4)
+             << christensen.azimuthal_velocity_at_sample_point
+             << ", w = "
+             << christensen.drift_frequency
+             << std::defaultfloat;
+      break;
+    case 1:
+      stream << std::noshowpos << std::scientific
+             << "E_kin = " << std::setprecision(5)
+             << christensen.mean_kinetic_energy_density
+             << ", E_mag = "  << std::setprecision(5)
+             << christensen.mean_magnetic_energy_density
+             << ", phi = " << std::fixed << std::setprecision(2)
+             << (christensen.sample_point_longitude / 2. / numbers::PI * 360.)
+             << ", T = " << std::scientific << std::setprecision(4)
+             << christensen.temperature_at_sample_point
+             << ", v_phi = " << std::setprecision(4)
+             << christensen.azimuthal_velocity_at_sample_point
+             << ", B_theta = "
+             << christensen.polar_magnetic_field_at_sample_point
+             << ", w = "
+             << christensen.drift_frequency
+             << std::defaultfloat;
+      break;
+    case 2:
+      AssertThrow(false, ExcNotImplemented());
+      break;
+    default:
+      AssertThrow(false, ExcNotImplemented());
+      break;
+  }
 
   return stream;
 }
@@ -1246,10 +1276,10 @@ void ChristensenBenchmark<dim>::compute_point_data()
   local_azimuthal_basis_vector[1]   = cos(sample_point_longitude);
 
   temperature_at_sample_point       = temperature->point_value(sample_point, mapping);
-  velocity_phi_at_sample_point      = velocity->point_value(sample_point, mapping) *
+  azimuthal_velocity_at_sample_point      = velocity->point_value(sample_point, mapping) *
                                       local_azimuthal_basis_vector;
   /*
-  magnetic_flux_phi_at_sample_point = magnetic_field->point_value(sample_point, mapping) *
+  polar_magnetic_field_at_sample_point = magnetic_field->point_value(sample_point, mapping) *
                                       local_azimuthal_basis_vector;
   */
 }

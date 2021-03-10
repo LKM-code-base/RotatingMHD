@@ -236,7 +236,11 @@ christensen_benchmark(velocity,
   log_file << "Step" << ","
            << "Time" << ","
            << "dt" << ","
-           << "CFL" << std::endl;}
+           << "CFL" << ","
+           << "D_norm" << ","
+           << "P_norm" << ","
+           << "H_norm" << ","
+           << std::endl;}
 
 template <int dim>
 void Christensen<dim>::make_grid(const unsigned int n_global_refinements)
@@ -354,23 +358,38 @@ void Christensen<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  std::cout.precision(1);
-  *this->pcout << time_stepping << ", ";
-  *this->pcout << ", CFL = "
+  // Computes all the benchmark's data. See documentation of the
+  // class for further information.
+  christensen_benchmark.compute_benchmark_data();
+
+  // Time stepping output
+  *this->pcout << time_stepping << " ["
+               << std::setw(5)
+               << std::fixed << std::setprecision(1)
+               << time_stepping.get_current_time()/time_stepping.get_end_time() * 100.
+               << "%] \n";
+  // Outputs CFL number and norms of the right-hand sides
+  *this->pcout << "CFL = " << std::scientific << std::setprecision(2)
                << cfl_number
-               << ", Norms: ("
-               << std::noshowpos << std::scientific
+               << ", Norms = ("
+               << std::noshowpos << std::setprecision(3)
                << navier_stokes.get_diffusion_step_rhs_norm()
                << ", "
                << navier_stokes.get_projection_step_rhs_norm()
                << ", "
                << heat_equation.get_rhs_norm()
-               << ") ["
-               << std::setw(5)
-               << std::fixed
-               << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-               << "%] \r";
+               << ")\n";
+  // Outputs the benchmark's data to the terminal
+  *this->pcout << christensen_benchmark << std::endl << std::endl;
 
+  log_file << time_stepping.get_step_number() << ","
+           << time_stepping.get_current_time() << ","
+           << time_stepping.get_next_step_size() << ","
+           << cfl_number << ","
+           << navier_stokes.get_diffusion_step_rhs_norm() << ","
+           << navier_stokes.get_projection_step_rhs_norm() << ","
+           << heat_equation.get_rhs_norm()
+           << std::endl;
 }
 
 template <int dim>
@@ -460,7 +479,11 @@ void Christensen<dim>::run()
     time_stepping.advance_time();
 
     // Performs post-processing
-    postprocessing();
+    if ((time_stepping.get_step_number() %
+          this->prm.terminal_output_frequency == 0) ||
+        (time_stepping.get_current_time() ==
+                   time_stepping.get_end_time()))
+      postprocessing();
     /*
     // Performs coarsening and refining of the triangulation
     if (time_stepping.get_step_number() %
@@ -475,15 +498,8 @@ void Christensen<dim>::run()
       output();
   }
 
-  // Computes all the benchmark's data. See documentation of the
-  // class for further information.
-  christensen_benchmark.compute_benchmark_data();
-
   // Prints the benchmark's data to the .txt file.
   christensen_benchmark.print_data_to_file("Christensen_Benchmark");
-
-  // Outputs the benchmark's data to the terminal
-  *this->pcout << christensen_benchmark;
 }
 
 } // namespace RMHD
