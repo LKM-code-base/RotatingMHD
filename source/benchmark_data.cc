@@ -1272,15 +1272,24 @@ void ChristensenBenchmark<dim>::compute_point_data()
   TimerOutput::Scope  t(*computing_timer, "Christensen Benchmark: Point data");
 
   Tensor<1,dim> local_azimuthal_basis_vector;
-  local_azimuthal_basis_vector[0]   = -sin(sample_point_longitude);
-  local_azimuthal_basis_vector[1]   = cos(sample_point_longitude);
+  local_azimuthal_basis_vector[0] = -sin(sample_point_longitude);
+  local_azimuthal_basis_vector[1] = cos(sample_point_longitude);
 
-  temperature_at_sample_point       = temperature->point_value(sample_point, mapping);
-  azimuthal_velocity_at_sample_point      = velocity->point_value(sample_point, mapping) *
-                                      local_azimuthal_basis_vector;
+  temperature_at_sample_point           = temperature->point_value(sample_point, mapping);
+  azimuthal_velocity_at_sample_point    = velocity->point_value(sample_point, mapping) *
+                                          local_azimuthal_basis_vector;
+
   /*
-  polar_magnetic_field_at_sample_point = magnetic_field->point_value(sample_point, mapping) *
-                                      local_azimuthal_basis_vector;
+  Tensor<1,dim> local_polar_basis_vector;
+  local_polar_basis_vector[0]   = cos(sample_point_colatitude) *
+                                  cos(sample_point_longitude);
+  local_polar_basis_vector[1]   = cos(sample_point_colatitude) *
+                                  sin(sample_point_longitude);
+  if constexpr(dim == 3)
+    local_polar_basis_vector[2] = -sin(sample_point_colatitude);
+
+  polar_magnetic_field_at_sample_point  = magnetic_field->point_value(sample_point, mapping) *
+                                          local_polar_basis_vector;
   */
 }
 
