@@ -506,9 +506,8 @@ Tensor<2,dim> VectorEntity<dim>::point_gradient(
 
   // Reduce all collected values into local Vector
   for (auto &row : point_gradient_rows)
-    Utilities::MPI::sum(row,
-                        this->mpi_communicator,
-                        row);
+    row = Utilities::MPI::sum(row,
+                              this->mpi_communicator);
 
   // Normalize in cases where points are claimed by multiple processors
   if (n_procs > 1)
@@ -836,9 +835,8 @@ Tensor<1,dim> ScalarEntity<dim>::point_gradient(
                          "solution at a point that lies outside of the domain?"));
 
   // Reduce all collected values into local Vector
-  Utilities::MPI::sum(point_gradient,
-                      this->mpi_communicator,
-                      point_gradient);
+  point_gradient = Utilities::MPI::sum(point_gradient,
+                                       this->mpi_communicator);
 
   // Normalize in cases where points are claimed by multiple processors
   if (n_procs > 1)
