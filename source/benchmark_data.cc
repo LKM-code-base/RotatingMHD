@@ -1132,7 +1132,7 @@ double ChristensenBenchmark<dim>::compute_radial_velocity(
   const Point<dim> point = GeometricUtilities::Coordinates::from_spherical(spherical_coordinates);
 
   // Compute the radial velocity at the given spherical coordinates.
-  const Tensor<1,dim> local_velocity = velocity->point_value(point);
+  const Tensor<1,dim> local_velocity = velocity->point_value(point, mapping);
 
   return local_velocity * point / radius;
 }
