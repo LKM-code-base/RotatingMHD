@@ -971,6 +971,21 @@ void ChristensenBenchmark<dim>::find_sample_point()
         trial_longitude <= 2. * numbers::PI)
     {
         sample_point_longitude = trial_longitude;
+
+        // Compute the position vector of the sample point in cartesian
+        // coordinates.
+        std::array<double, dim> spherical_coordinates;
+
+        if constexpr(dim == 2)
+          spherical_coordinates = {sample_point_radius,
+                                  sample_point_longitude};
+        else if constexpr(dim == 3)
+          spherical_coordinates = {sample_point_radius,
+                                  sample_point_longitude,
+                                  sample_point_colatitude};
+
+        sample_point = GeometricUtilities::Coordinates::from_spherical(spherical_coordinates);
+
         return;
     }
   }
