@@ -214,7 +214,7 @@ void HeatEquation<dim>::assemble_local_rhs(
 
     if (parameters.convective_term_time_discretization ==
             RunTimeParameters::ConvectiveTermTimeDiscretization::fully_explicit &&
-          !flag_ignore_advection)
+          (velocity != nullptr || velocity_function_ptr != nullptr))
       for (unsigned int q = 0; q < scratch.n_q_points; ++q)
         advection_term[q] =
           beta[0] *
@@ -233,7 +233,7 @@ void HeatEquation<dim>::assemble_local_rhs(
 
     if (parameters.convective_term_time_discretization ==
           RunTimeParameters::ConvectiveTermTimeDiscretization::fully_explicit &&
-            !flag_ignore_advection)
+            (velocity != nullptr || velocity_function_ptr != nullptr))
       for (unsigned int q = 0; q < scratch.n_q_points; ++q)
         advection_term[q] =
           beta[0] *
@@ -308,7 +308,7 @@ void HeatEquation<dim>::assemble_local_rhs(
 
           if (parameters.convective_term_time_discretization ==
                 RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit &&
-              !flag_ignore_advection)
+              (velocity != nullptr || velocity_function_ptr != nullptr))
             data.local_matrix_for_inhomogeneous_bc(j,i) +=
               (scratch.phi[j] * (
                  (velocity != nullptr)

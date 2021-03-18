@@ -268,11 +268,6 @@ private:
   bool                                          flag_matrices_were_updated;
 
   /*!
-   * @brief A flag indicating if the advection term is to be ignored.
-   */
-  bool                                          flag_ignore_advection;
-
-  /*!
    * @brief Setup of the sparsity spatterns of the matrices.
    */
   void setup_matrices();

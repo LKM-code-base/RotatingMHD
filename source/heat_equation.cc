@@ -20,8 +20,7 @@ parameters(parameters),
 mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
 temperature(temperature),
-flag_matrices_were_updated(true),
-flag_ignore_advection(true)
+flag_matrices_were_updated(true)
 {
   Assert(temperature.get() != nullptr,
          ExcMessage("The temperature's shared pointer has not be"
@@ -75,8 +74,7 @@ mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
 temperature(temperature),
 velocity(velocity),
-flag_matrices_were_updated(true),
-flag_ignore_advection(false)
+flag_matrices_were_updated(true)
 {
   Assert(temperature.get() != nullptr,
          ExcMessage("The temperature's shared pointer has not be"
@@ -132,8 +130,7 @@ mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
 temperature(temperature),
 velocity_function_ptr(velocity),
-flag_matrices_were_updated(true),
-flag_ignore_advection(false)
+flag_matrices_were_updated(true)
 {
   Assert(temperature.get() != nullptr,
          ExcMessage("The temperature's shared pointer has not be"
