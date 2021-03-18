@@ -107,7 +107,7 @@ triangulation(triangulation),
 flag_extract_boundary_ids(true),
 flag_datum_at_boundary(false),
 flag_regularity_guaranteed(false),
-flag_closed_boundary_conditions(false)
+flag_boundary_conditions_closed(false)
 {}
 
 template <int dim>
@@ -140,7 +140,7 @@ BoundaryConditionsBase<dim>::get_unconstrained_boundary_ids()
 template <int dim>
 void BoundaryConditionsBase<dim>::close()
 {
-  flag_closed_boundary_conditions = true;
+  flag_boundary_conditions_closed = true;
 }
 
 
@@ -352,7 +352,7 @@ void ScalarBoundaryConditions<dim>::clear()
   this->neumann_bcs.clear();
   this->periodic_bcs.clear();
   this->time_dependent_bcs_map.clear();
-  this->flag_closed_boundary_conditions = false;
+  this->flag_boundary_conditions_closed = false;
 }
 
 template <int dim>
@@ -646,7 +646,7 @@ void VectorBoundaryConditions<dim>::clear()
   this->periodic_bcs.clear();
   normal_flux_bcs.clear();
   tangential_flux_bcs.clear();
-  this->flag_closed_boundary_conditions = false;
+  this->flag_boundary_conditions_closed = false;
 }
 
 template <int dim>

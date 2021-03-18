@@ -132,12 +132,12 @@ public:
   bool                            regularity_guaranteed() const;
 
   /*!
-   * @brief A method returning the value of @ref flag_closed_boundary_conditions.
+   * @brief A method returning the value of @ref flag_boundary_conditions_closed.
    */
   bool                            closed() const;
 
   /*!
-   * @todo Sets the boundary condition by setting @ref flag_closed_boundary_conditions
+   * @todo Sets the boundary condition by setting @ref flag_boundary_conditions_closed
    * to true.
    */
   void                            close();
@@ -199,7 +199,7 @@ protected:
    * @brief A flag indicating wether the boundary conditions are closed
    * or not.
    */
-  bool                                            flag_closed_boundary_conditions;
+  bool                                            flag_boundary_conditions_closed;
 };
 
 
@@ -223,7 +223,7 @@ inline bool BoundaryConditionsBase<dim>::regularity_guaranteed() const
 template <int dim>
 inline bool BoundaryConditionsBase<dim>::closed() const
 {
-  return (flag_closed_boundary_conditions);
+  return (flag_boundary_conditions_closed);
 }
 
 
