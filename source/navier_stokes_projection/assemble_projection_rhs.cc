@@ -88,6 +88,12 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
   data.local_projection_step_rhs = 0.;
   data.local_correction_step_rhs = 0.;
 
+  // VSIMEX coefficient
+  const std::vector<double> alpha = time_stepping.get_alpha();
+
+  // Local to global indices mapping
+  cell->get_dof_indices(data.local_dof_indices);
+
   // Pressure
   scratch.pressure_fe_values.reinit(cell);
 
@@ -105,12 +111,6 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
   scratch.velocity_fe_values[vector_extractor].get_function_divergences(
     velocity->solution,
     scratch.velocity_divergences);
-
-  // VSIMEX coefficient
-  const std::vector<double> alpha = time_stepping.get_alpha();
-
-  // Local to global indices mapping
-  cell->get_dof_indices(data.local_dof_indices);
 
   // Loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)

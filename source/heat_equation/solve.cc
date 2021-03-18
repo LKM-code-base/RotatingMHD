@@ -47,7 +47,7 @@ void HeatEquation<dim>::assemble_linear_system()
 
   if (parameters.convective_term_time_discretization ==
         RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit &&
-      !flag_ignore_advection)
+      (velocity != nullptr || velocity_function_ptr != nullptr))
   {
     assemble_advection_matrix();
     system_matrix.copy_from(mass_plus_stiffness_matrix);
@@ -77,7 +77,7 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
   const LinearAlgebra::MPI::SparseMatrix  *system_matrix_ptr;
   if (parameters.convective_term_time_discretization ==
         RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit &&
-      !flag_ignore_advection)
+      (velocity != nullptr || velocity_function_ptr != nullptr))
     system_matrix_ptr = &system_matrix;
   else
     system_matrix_ptr = &mass_plus_stiffness_matrix;

@@ -20,7 +20,7 @@ subsection Heat equation solver parameters
   set Convective term time discretization = semi-implicit
   set Convective term weak form           = skew-symmetric
   set Preconditioner update frequency     = 10
-  set Verbose                             = true
+  set Verbose                             = false
 
 
   subsection Linear solver parameters
@@ -30,11 +30,10 @@ subsection Heat equation solver parameters
 
 
     subsection Preconditioner parameters
-      set Preconditioner type      = ILU
-      set Fill-in level            = 1
-      set Absolute tolerance       = 0.0
-      set Relative tolerance       = 1.0
-      set Overlap                  = 1
+      set Preconditioner type      = AMG
+      set Aggregation threshold    = 1.0e-4
+      set Elliptic                 = true
+      set Number of cycles         = 1
     end
 
   end
@@ -47,7 +46,7 @@ subsection Navier-Stokes solver parameters
   set Convective term weak form              = skew-symmetric
   set Incremental pressure-correction scheme = rotational
   set Preconditioner update frequency        = 10
-  set Verbose                                = true
+  set Verbose                                = false
 
 
   subsection Linear solver parameters - Correction step
@@ -57,11 +56,10 @@ subsection Navier-Stokes solver parameters
 
 
     subsection Preconditioner parameters
-      set Preconditioner type      = ILU
-      set Fill-in level            = 1
-      set Absolute tolerance       = 0.0
-      set Relative tolerance       = 1.0
+      set Preconditioner type      = Jacobi
+      set Number of sweeps         = 10
       set Overlap                  = 1
+      set Relaxation parameter     = 0.5
     end
 
   end
@@ -73,11 +71,10 @@ subsection Navier-Stokes solver parameters
 
 
     subsection Preconditioner parameters
-      set Preconditioner type      = ILU
-      set Fill-in level            = 1
-      set Absolute tolerance       = 0.0
-      set Relative tolerance       = 1.0
-      set Overlap                  = 1
+      set Preconditioner type      = AMG
+      set Aggregation threshold    = 1.0e-4
+      set Elliptic                 = true
+      set Number of cycles         = 1
     end
 
   end
@@ -89,11 +86,10 @@ subsection Navier-Stokes solver parameters
 
 
     subsection Preconditioner parameters
-      set Preconditioner type      = ILU
-      set Fill-in level            = 1
-      set Absolute tolerance       = 0.0
-      set Relative tolerance       = 1.0
-      set Overlap                  = 1
+      set Preconditioner type      = AMG
+      set Aggregation threshold    = 1.0e-4
+      set Elliptic                 = true
+      set Number of cycles         = 1
     end
 
   end
@@ -105,11 +101,10 @@ subsection Navier-Stokes solver parameters
 
 
     subsection Preconditioner parameters
-      set Preconditioner type      = ILU
-      set Fill-in level            = 1
-      set Absolute tolerance       = 0.0
-      set Relative tolerance       = 1.0
-      set Overlap                  = 1
+      set Preconditioner type      = AMG
+      set Aggregation threshold    = 1.0e-4
+      set Elliptic                 = true
+      set Number of cycles         = 1
     end
 
   end
@@ -133,14 +128,14 @@ subsection Refinement control parameters
   set Minimum number of levels               = 0
   set Number of initial adaptive refinements = 0
   set Number of initial boundary refinements = 1
-  set Number of initial global refinements   = 3
+  set Number of initial global refinements   = 5
 end
 
 
 subsection Time stepping parameters
   set Adaptive time stepping        = false
   set Adaptive timestepping barrier = 2
-  set Final time                    = 2e-4
+  set Final time                    = 5e-4
   set Initial time step             = 1e-4
   set Maximum number of time steps  = 10
   set Maximum time step             = 7e-2

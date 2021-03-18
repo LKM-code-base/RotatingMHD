@@ -236,6 +236,9 @@ christensen_benchmark(velocity,
   log_file << "Step" << ","
            << "Time" << ","
            << "dt" << ","
+           << "Diffusion step norm" << ","
+           << "Projection step norm" << ","
+           << "Heat eqution norm" << ","
            << "CFL" << std::endl;}
 
 template <int dim>
@@ -357,6 +360,7 @@ void Christensen<dim>::postprocessing()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
   std::cout.precision(1);
+  *this->pcout << std::endl;
   *this->pcout << time_stepping << ", ";
   *this->pcout << ", CFL = "
                << cfl_number
@@ -370,9 +374,26 @@ void Christensen<dim>::postprocessing()
                << ") ["
                << std::setw(5)
                << std::fixed
-               << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-               << "%] \r";
+               << time_stepping.get_current_time()/time_stepping.get_end_time() * 100.
+               << "%]" << std::endl;
 
+  log_file << time_stepping.get_step_number() << ","
+           << time_stepping.get_current_time() << ","
+           << time_stepping.get_next_step_size() << ","
+           << navier_stokes.get_diffusion_step_rhs_norm() << ","
+           << navier_stokes.get_projection_step_rhs_norm() << ","
+           << heat_equation.get_rhs_norm() << ","
+           << cfl_number << std::endl;
+
+  // Computes all the benchmark's data. See documentation of the
+  // class for further information.
+  christensen_benchmark.compute_benchmark_data();
+
+  // Prints the benchmark's data to the .txt file.
+  christensen_benchmark.print_data_to_file("Christensen_Benchmark");
+
+  // Outputs the benchmark's data to the terminal
+  *this->pcout << christensen_benchmark;
 }
 
 template <int dim>
@@ -462,7 +483,12 @@ void Christensen<dim>::run()
     time_stepping.advance_time();
 
     // Performs post-processing
-    postprocessing();
+    if ((time_stepping.get_step_number() %
+          this->prm.terminal_output_frequency == 0) ||
+        (time_stepping.get_current_time() ==
+                   time_stepping.get_end_time()))
+      postprocessing();
+
     /*
     // Performs coarsening and refining of the triangulation
     if (time_stepping.get_step_number() %
@@ -476,16 +502,6 @@ void Christensen<dim>::run()
                    time_stepping.get_end_time()))
       output();
   }
-
-  // Computes all the benchmark's data. See documentation of the
-  // class for further information.
-  christensen_benchmark.compute_benchmark_data();
-
-  // Prints the benchmark's data to the .txt file.
-  christensen_benchmark.print_data_to_file("Christensen_Benchmark");
-
-  // Outputs the benchmark's data to the terminal
-  *this->pcout << christensen_benchmark;
 }
 
 } // namespace RMHD
