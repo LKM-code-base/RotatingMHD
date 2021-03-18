@@ -122,14 +122,32 @@ public:
   std::vector<types::boundary_id> get_unconstrained_boundary_ids();
 
   /*!
-   * A method returning the value of @ref flag_datum_at_boundary.
+   * @brief A method returning the value of @ref flag_datum_at_boundary.
    */
   bool                            datum_set_at_boundary() const;
 
   /*!
-   * A method returning the value of @ref flag_regularity_guaranteed.
+   * @brief A method returning the value of @ref flag_regularity_guaranteed.
    */
   bool                            regularity_guaranteed() const;
+
+  /*!
+   * @brief A method returning the value of @ref flag_boundary_conditions_closed.
+   */
+  bool                            closed() const;
+
+  /*!
+   * @todo Sets the boundary condition by setting @ref flag_boundary_conditions_closed
+   * to true.
+   */
+  void                            close();
+
+  /*!
+   * @brief This method clears all boundary conditions.
+   * @details This is a pure virtual method. Its implementation is
+   * overriden in the child structs
+   */
+  virtual void                    clear() = 0;
 
   /*!
    * @brief A method which prints a summary of the boundary conditions which are
@@ -165,17 +183,23 @@ protected:
   bool                                            flag_extract_boundary_ids;
 
   /*!
-   * A flag indicating that a single degree of freedom is constrained
+   * @brief A flag indicating that a single degree of freedom is constrained
    * at the boundary. This is required to obtain a regular system matrix
    * in case of a pure Neumann problem.
    */
   bool                                            flag_datum_at_boundary;
 
   /*!
-   * A flag indicating that boundary conditions fulfill the
+   * @brief A flag indicating that boundary conditions fulfill the
    * necessary conditions for a well-posed problem.
    */
   bool                                            flag_regularity_guaranteed;
+
+  /*!
+   * @brief A flag indicating wether the boundary conditions are closed
+   * or not.
+   */
+  bool                                            flag_boundary_conditions_closed;
 };
 
 
@@ -193,6 +217,16 @@ inline bool BoundaryConditionsBase<dim>::regularity_guaranteed() const
 {
   return (flag_regularity_guaranteed);
 }
+
+
+
+template <int dim>
+inline bool BoundaryConditionsBase<dim>::closed() const
+{
+  return (flag_boundary_conditions_closed);
+}
+
+
 
 /*!
  * @struct ScalarBoundaryConditions
@@ -291,7 +325,7 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
   /*!
    * @brief This method clears all boundary conditions.
    */
-  void clear();
+  virtual void clear() override;
 
   /*!
    * @brief This method copies the content of another @ref ScalarBoundaryConditions
@@ -454,7 +488,7 @@ struct VectorBoundaryConditions : BoundaryConditionsBase<dim>
   /*!
    * @brief This method clears all boundary conditions.
    */
-  void clear();
+  virtual void clear() override;
 
   /*!
    * @brief This method copies the content of another @ref VectorBoundaryConditions

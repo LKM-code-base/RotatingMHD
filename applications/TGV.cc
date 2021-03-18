@@ -176,13 +176,16 @@ void TGV<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.clear();
-  pressure->boundary_conditions.clear();
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
 
   velocity->boundary_conditions.set_periodic_bcs(0, 1, 0);
   velocity->boundary_conditions.set_periodic_bcs(2, 3, 1);
   pressure->boundary_conditions.set_periodic_bcs(0, 1, 0);
   pressure->boundary_conditions.set_periodic_bcs(2, 3, 1);
+
+  velocity->close_boundary_conditions();
+  pressure->close_boundary_conditions();
 
   velocity->apply_boundary_conditions();
   pressure->apply_boundary_conditions();

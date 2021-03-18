@@ -103,7 +103,8 @@ void NavierStokesProjection<dim>::setup_phi()
   for (const auto &unconstrained_boundary_id: phi->boundary_conditions.get_unconstrained_boundary_ids())
     phi->boundary_conditions.set_neumann_bcs(unconstrained_boundary_id);
 
-  // Apply boundary conditions
+  // Close and apply boundary conditions
+  phi->close_boundary_conditions();
   phi->apply_boundary_conditions();
 
   //Set all the solution vectors to zero

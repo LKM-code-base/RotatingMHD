@@ -180,8 +180,8 @@ void Guermond<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.clear();
-  pressure->boundary_conditions.clear();
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
 
   velocity_exact_solution->set_time(time_stepping.get_start_time());
 
@@ -192,6 +192,9 @@ void Guermond<dim>::setup_constraints()
       true);
 
   pressure->boundary_conditions.set_datum_at_boundary();
+
+  velocity->close_boundary_conditions();
+  pressure->close_boundary_conditions();
 
   velocity->apply_boundary_conditions();
   pressure->apply_boundary_conditions();

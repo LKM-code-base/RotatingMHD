@@ -412,6 +412,9 @@ void DFG<dim>::setup_constraints()
 
   pressure->boundary_conditions.set_dirichlet_bcs(1);
 
+  velocity->close_boundary_conditions();
+  pressure->close_boundary_conditions();
+
   velocity->apply_boundary_conditions();
   pressure->apply_boundary_conditions();
 }

@@ -197,8 +197,8 @@ void Couette<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.clear();
-  pressure->boundary_conditions.clear();
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
 
   // The domain represents an infinite channel. In order to obtain the
   // analytical solution, periodic boundary conditions need to be
@@ -210,6 +210,8 @@ void Couette<dim>::setup_constraints()
   // The upper plate is displaced by a traction vector
   velocity->boundary_conditions.set_neumann_bcs(3, traction_vector);
 
+  velocity->close_boundary_conditions();
+  pressure->close_boundary_conditions();
 
   velocity->apply_boundary_conditions();
   pressure->apply_boundary_conditions();

@@ -156,13 +156,14 @@ void ThermalTGV<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  temperature->boundary_conditions.clear();
+  temperature->clear_boundary_conditions();
 
   temperature_exact_solution->set_time(time_stepping.get_start_time());
 
   temperature->boundary_conditions.set_periodic_bcs(0, 1, 0);
   temperature->boundary_conditions.set_periodic_bcs(2, 3, 1);
 
+  temperature->close_boundary_conditions();
   temperature->apply_boundary_conditions();
 }
 
