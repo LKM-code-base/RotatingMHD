@@ -16,6 +16,8 @@ using namespace dealii;
 namespace Entities
 {
 
+
+
 template <int dim>
 EntityBase<dim>::EntityBase
 (const unsigned int                               n_components,
@@ -33,6 +35,8 @@ flag_setup_dofs(true),
 triangulation(triangulation)
 {}
 
+
+
 template <int dim>
 EntityBase<dim>::EntityBase
 (const EntityBase<dim>  &entity,
@@ -46,6 +50,8 @@ name(new_name),
 flag_child_entity(true),
 triangulation(entity.get_triangulation())
 {}
+
+
 
 template <int dim>
 void EntityBase<dim>::reinit()
@@ -74,6 +80,8 @@ void EntityBase<dim>::reinit()
   #endif
 }
 
+
+
 template <int dim>
 void EntityBase<dim>::update_solution_vectors()
 {
@@ -82,6 +90,8 @@ void EntityBase<dim>::update_solution_vectors()
   old_old_solution  = old_solution;
   old_solution      = solution;
 }
+
+
 
 template <int dim>
 void EntityBase<dim>::set_solution_vectors_to_zero()
@@ -92,6 +102,8 @@ void EntityBase<dim>::set_solution_vectors_to_zero()
   old_solution      = 0.;
   old_old_solution  = 0.;
 }
+
+
 
 template <int dim>
 VectorEntity<dim>::VectorEntity
@@ -104,6 +116,8 @@ fe(FE_Q<dim>(fe_degree), dim),
 boundary_conditions(triangulation)
 {}
 
+
+
 template <int dim>
 VectorEntity<dim>::VectorEntity
 (const VectorEntity<dim>  &entity,
@@ -113,6 +127,8 @@ EntityBase<dim>(entity, new_name),
 fe(FE_Q<dim>(entity.fe_degree), dim),
 boundary_conditions(entity.get_triangulation())
 {}
+
+
 
 template <int dim>
 void VectorEntity<dim>::setup_dofs()
@@ -139,18 +155,19 @@ void VectorEntity<dim>::setup_dofs()
   this->reinit();
 }
 
+
+
 template <int dim>
 void VectorEntity<dim>::apply_boundary_conditions()
 {
   AssertThrow(boundary_conditions.regularity_guaranteed(),
               ExcMessage("No boundary conditions were set for the \""
                           + this->name + "\" entity"));
+
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
-  {
-    ConditionalOStream  pcout(std::cout,
-                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
-    boundary_conditions.print_summary(pcout, this->name);
-  }
+
+  Assert(boundary_conditions.closed(),
+         ExcMessage("The boundary conditions have not been closed."));
 
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
@@ -243,6 +260,21 @@ void VectorEntity<dim>::apply_boundary_conditions()
 
   this->constraints.close();
 }
+
+
+
+template <int dim>
+void VectorEntity<dim>::close_boundary_conditions()
+{
+  boundary_conditions.close();
+
+  ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+
+  boundary_conditions.print_summary(pcout, this->name);
+}
+
+
 
 template <int dim>
 void VectorEntity<dim>::update_boundary_conditions()
@@ -382,6 +414,16 @@ void VectorEntity<dim>::update_boundary_conditions()
   this->constraints.merge(
     tmp_constraints,
     AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
+}
+
+
+
+template <int dim>
+void VectorEntity<dim>::clear_boundary_conditions()
+{
+  boundary_conditions.clear();
+
+  this->constraints.clear();
 }
 
 
@@ -536,6 +578,8 @@ fe(fe_degree),
 boundary_conditions(triangulation)
 {}
 
+
+
 template <int dim>
 ScalarEntity<dim>::ScalarEntity
 (const ScalarEntity<dim>  &entity,
@@ -545,6 +589,8 @@ EntityBase<dim>(entity, new_name),
 fe(entity.fe_degree),
 boundary_conditions(entity.get_triangulation())
 {}
+
+
 
 template <int dim>
 void ScalarEntity<dim>::setup_dofs()
@@ -570,18 +616,19 @@ void ScalarEntity<dim>::setup_dofs()
   this->reinit();
 }
 
+
+
 template <int dim>
 void ScalarEntity<dim>::apply_boundary_conditions()
 {
   AssertThrow(boundary_conditions.regularity_guaranteed(),
               ExcMessage("No boundary conditions were set for the \""
                           + this->name + "\" entity"));
+
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
-  {
-    ConditionalOStream  pcout(std::cout,
-                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
-    boundary_conditions.print_summary(pcout, this->name);
-  }
+
+  Assert(boundary_conditions.closed(),
+         ExcMessage("The boundary conditions have not been closed."));
 
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
@@ -667,6 +714,21 @@ void ScalarEntity<dim>::apply_boundary_conditions()
   this->constraints.close();
 }
 
+
+
+template <int dim>
+void ScalarEntity<dim>::close_boundary_conditions()
+{
+  boundary_conditions.close();
+
+  ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+
+  boundary_conditions.print_summary(pcout, this->name);
+}
+
+
+
 template <int dim>
 void ScalarEntity<dim>::update_boundary_conditions()
 {
@@ -721,6 +783,16 @@ void ScalarEntity<dim>::update_boundary_conditions()
   this->constraints.merge(
     tmp_constraints,
     AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
+}
+
+
+
+template <int dim>
+void ScalarEntity<dim>::clear_boundary_conditions()
+{
+  boundary_conditions.clear();
+
+  this->constraints.clear();
 }
 
 

@@ -329,10 +329,12 @@ void Christensen<dim>::setup_constraints()
     outer_boundary_id,
     temperature_boundary_conditions);
 
+  velocity->close_boundary_conditions();
+  pressure->close_boundary_conditions();
+  temperature->close_boundary_conditions();
+
   velocity->apply_boundary_conditions();
-
   pressure->apply_boundary_conditions();
-
   temperature->apply_boundary_conditions();
 }
 
@@ -390,6 +392,8 @@ void Christensen<dim>::postprocessing()
            << navier_stokes.get_projection_step_rhs_norm() << ","
            << heat_equation.get_rhs_norm()
            << std::endl;
+
+  christensen_benchmark.print_data_to_file("Christensen_Benchmark");
 }
 
 template <int dim>
@@ -497,9 +501,6 @@ void Christensen<dim>::run()
                    time_stepping.get_end_time()))
       output();
   }
-
-  // Prints the benchmark's data to the .txt file.
-  christensen_benchmark.print_data_to_file("Christensen_Benchmark");
 }
 
 } // namespace RMHD
