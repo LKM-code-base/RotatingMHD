@@ -1112,8 +1112,8 @@ void ChristensenBenchmark<dim>::find_sample_point()
 
 template <int dim>
 double ChristensenBenchmark<dim>::compute_radial_velocity(
-  const double &radius,
-  const double &azimuthal_angle,
+  const double radius,
+  const double azimuthal_angle,
   const double polar_angle) const
 {
   AssertThrow(radius > 0.,
@@ -1156,9 +1156,9 @@ double ChristensenBenchmark<dim>::compute_radial_velocity(
 
 template<int dim>
 double  ChristensenBenchmark<dim>::compute_zero_of_radial_velocity(
-  const double        &phi_guess,
+  const double        phi_guess,
   const bool          local_slope,
-  const double        &tol,
+  const double        tol,
   const unsigned int  &max_iter) const
 {
     using namespace boost::math::tools;
@@ -1234,8 +1234,8 @@ double  ChristensenBenchmark<dim>::compute_zero_of_radial_velocity(
 
 template <int dim>
 double ChristensenBenchmark<dim>::compute_azimuthal_gradient_of_radial_velocity(
-  const double &radius,
-  const double &azimuthal_angle,
+  const double radius,
+  const double azimuthal_angle,
   const double polar_angle) const
 {
   AssertThrow(radius > 0.,

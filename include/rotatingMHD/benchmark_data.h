@@ -685,8 +685,8 @@ private:
    * at the given spherical coordinates
    */
   double compute_radial_velocity(
-    const double &radius,
-    const double &azimuthal_angle,
+    const double radius,
+    const double azimuthal_angle,
     const double polar_angle = numbers::PI_2) const;
 
   /*!
@@ -696,9 +696,9 @@ private:
    * bracket_and_solve_root method.
    */
   double compute_zero_of_radial_velocity(
-    const double       &phi_guess,
+    const double       phi_guess,
     const bool         local_slope,
-    const double       &tol,
+    const double       tol,
     const unsigned int &max_iter) const;
 
   /*!
@@ -707,8 +707,8 @@ private:
    * coordinates
    */
   double compute_azimuthal_gradient_of_radial_velocity(
-    const double &radius,
-    const double &azimuthal_angle,
+    const double radius,
+    const double azimuthal_angle,
     const double polar_angle = numbers::PI_2) const;
 
   /*!
