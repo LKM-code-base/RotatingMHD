@@ -113,7 +113,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
   // Pressure
   scratch.pressure_fe_values.reinit(cell);
-
+  /*
   // Coriolis acceleration
   if (angular_velocity_vector_ptr != nullptr)
   {
@@ -131,7 +131,9 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       velocity->old_old_solution,
       scratch.velocity_values);
 
-    scratch.angular_velocity_value = angular_velocity_vector_ptr->rotation();
+    angular_velocity_vector_ptr->rotation_list(
+      scratch.pressure_fe_values.get_quadrature_points(),
+      scratch.angular_velocity_values);
   }
   else
   {
@@ -140,13 +142,23 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       scratch.velocity_values);
 
     if constexpr(dim == 2)
-      scratch.angular_velocity_value = Tensor<1,1>();
-    else if constexpr(dim == 3)
-      scratch.angular_velocity_value = Tensor<1,dim>();
-  }
+    {
+      const std::vector<Tensor<1,1>> zero_vectors(
+        scratch.angular_velocity_values.size(),
+        Tensor<1,1>());
 
+      scratch.angular_velocity_values = zero_vectors;
+    }
+    else if constexpr(dim == 3)
+    {
+      ZeroTensorFunction<1,dim>().value_list(
+        scratch.pressure_fe_values.get_quadrature_points(),
+        scratch.angular_velocity_values);
+    }
+  }
+  */
   // Temperature
-  if (temperature != nullptr)
+  if (!flag_ignore_bouyancy_term)
   {
     typename DoFHandler<dim>::active_cell_iterator
     temperature_cell(&pressure->get_triangulation(),
@@ -160,8 +172,8 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       temperature->old_solution,
       scratch.temperature_values);
 
-    AssertThrow(gravity_vector_ptr != nullptr,
-                ExcMessage("No unit vector for the gravity has been specified."))
+    Assert(gravity_vector_ptr != nullptr,
+           ExcMessage("No unit vector for the gravity has been specified."))
 
     gravity_vector_ptr->value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
@@ -169,8 +181,9 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
   }
   else
   {
-    scratch.temperature_values.assign(scratch.temperature_values.size(),
-                                      0.0);
+    ZeroFunction<dim>().value_list(
+      scratch.pressure_fe_values.get_quadrature_points(),
+      scratch.temperature_values);
 
     ZeroTensorFunction<1,dim>().value_list(
       scratch.pressure_fe_values.get_quadrature_points(),
@@ -202,7 +215,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
     {
       // Local right hand side (Domain integrals)
       data.local_rhs(i) +=
-              1.0 / parameters.C6  *
+              1.0 /*/ parameters.C6 */ *
               scratch.grad_phi[i] *
               (scratch.body_force_values[q]
                -
@@ -210,24 +223,25 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
                scratch.temperature_values[q] *
                scratch.gravity_vector_values[q]) *
               scratch.pressure_fe_values.JxW(q);
+      /*
       if (angular_velocity_vector_ptr != nullptr)
       {
         if constexpr(dim == 2)
           data.local_rhs(i) -=
               parameters.C1 / parameters.C6 *
               scratch.grad_phi[i] *
-              scratch.angular_velocity_value[0] *
+              scratch.angular_velocity_values[q][0] *
               cross_product_2d(-scratch.velocity_values[q]) *
               scratch.pressure_fe_values.JxW(q);
         else if constexpr(dim == 3)
           data.local_rhs(i) -=
               parameters.C1 / parameters.C6 *
               scratch.grad_phi[i] *
-              cross_product_3d(scratch.angular_velocity_value,
+              cross_product_3d(scratch.angular_velocity_values[q],
                                scratch.velocity_values[q]) *
               scratch.pressure_fe_values.JxW(q);
       }
-
+      */
       // Loop over the i-th column's rows of the local matrix
       // for the case of inhomogeneous Dirichlet boundary conditions
       if (pressure->constraints.is_inhomogeneously_constrained(
@@ -292,7 +306,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
             for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
             {
               data.local_rhs(i) +=
-                              parameters.C2 / parameters.C6 *
+                              parameters.C2 /* / parameters.C6 */*
                               scratch.face_phi[i] *
                               scratch.velocity_laplacians[q] *
                               scratch.normal_vectors[q] *

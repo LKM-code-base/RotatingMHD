@@ -26,7 +26,8 @@ norm_diffusion_rhs(std::numeric_limits<double>::min()),
 norm_projection_rhs(std::numeric_limits<double>::min()),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_matrices_were_updated(true)
+flag_matrices_were_updated(true),
+flag_ignore_bouyancy_term(true)
 {
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
@@ -63,10 +64,9 @@ flag_matrices_were_updated(true)
       TimerOutput::wall_times));
 
   // Explicitly set the body forces and the temperature pointer to null
-  body_force_ptr              = nullptr;
-  gravity_vector_ptr          = nullptr;
-  angular_velocity_vector_ptr = nullptr;
-  temperature                 = nullptr;
+  body_force_ptr      = nullptr;
+  gravity_vector_ptr  = nullptr;
+  temperature         = nullptr;
 }
 
 template <int dim>
@@ -80,7 +80,7 @@ NavierStokesProjection<dim>::NavierStokesProjection
  const std::shared_ptr<ConditionalOStream>        &external_pcout,
  const std::shared_ptr<TimerOutput>               &external_timer)
 :
-phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure, "Phi")),
+phi(std::make_shared<Entities::ScalarEntity<dim>>(*pressure)),
 parameters(parameters),
 mpi_communicator(velocity->mpi_communicator),
 time_stepping(time_stepping),
@@ -91,7 +91,8 @@ norm_diffusion_rhs(std::numeric_limits<double>::min()),
 norm_projection_rhs(std::numeric_limits<double>::min()),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
-flag_matrices_were_updated(true)
+flag_matrices_were_updated(true),
+flag_ignore_bouyancy_term(false)
 {
   Assert(velocity.get() != nullptr,
          ExcMessage("The velocity's shared pointer has not be"
@@ -131,9 +132,8 @@ flag_matrices_were_updated(true)
       TimerOutput::wall_times));
 
   // Explicitly set the body forces pointer to null
-  body_force_ptr              = nullptr;
-  gravity_vector_ptr          = nullptr;
-  angular_velocity_vector_ptr = nullptr;
+  body_force_ptr      = nullptr;
+  gravity_vector_ptr  = nullptr;
 }
 
 template <int dim>
@@ -174,6 +174,7 @@ void NavierStokesProjection<dim>::clear()
   norm_diffusion_rhs = std::numeric_limits<double>::min();
   norm_projection_rhs = std::numeric_limits<double>::min();
 
+  flag_ignore_bouyancy_term = true;
   flag_setup_phi = true;
   flag_matrices_were_updated = true;
   flag_normalize_pressure = false;
@@ -185,3 +186,4 @@ void NavierStokesProjection<dim>::clear()
 // explicit instantiations
 template class RMHD::NavierStokesProjection<2>;
 template class RMHD::NavierStokesProjection<3>;
+

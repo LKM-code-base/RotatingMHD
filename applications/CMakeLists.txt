@@ -9,12 +9,11 @@ SET(SOURCE_FILES
     DFG.cc
     step-35.cc
     TGV.cc
-    Guermond.cc
-    GuermondNeumannBC.cc
-    Couette.cc
-    ThermalTGV.cc
-    MIT.cc
-    Christensen.cc
+#    Guermond.cc
+#    GuermondNeumannBC.cc
+#    Couette.cc
+#    ThermalTGV.cc
+#    MIT.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})
