@@ -11,6 +11,7 @@
 #include <deal.II/base/point.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/tensor_function.h>
+
 #include <deal.II/lac/vector.h>
 
 #include <cmath>
@@ -22,20 +23,6 @@ using namespace dealii;
 
 namespace EquationData
 {
-
-template <int dim>
-class BodyForce : public TensorFunction<1, dim>
-{
-
-public:
-
-  BodyForce(const double time = 0);
-
-  virtual double divergence(const Point<dim>  &point) const;
-
-  virtual void divergence_list(const std::vector<Point<dim>> &points,
-                               std::vector<double>           &values) const;
-};
 
 namespace Step35
 {
@@ -174,13 +161,18 @@ private:
    */
   const double k = 2. * M_PI;
 };
+
 } // namespace TGV
+
+
 
 namespace Guermond
 {
+
 template <int dim>
 class VelocityExactSolution : public Function<dim>
 {
+
 public:
   VelocityExactSolution(const double time = 0);
 
@@ -205,16 +197,15 @@ public:
 };
 
 template <int dim>
-class BodyForce: public RMHD::EquationData::BodyForce<dim>
+class BodyForce: public TensorFunction<1,dim>
 {
 public:
   BodyForce(const double Re,
             const double time = 0);
 
-  virtual Tensor<1, dim> value(
-    const Point<dim>  &point) const override;
+  virtual Tensor<1, dim> value(const Point<dim>  &point) const override;
 
-  virtual double divergence(const Point<dim>  &point) const override;
+  double divergence(const Point<dim>  &point) const;
 
   const double Re;
 };
@@ -252,16 +243,15 @@ public:
 };
 
 template <int dim>
-class BodyForce: public RMHD::EquationData::BodyForce<dim>
+class BodyForce: public TensorFunction<1,dim>
 {
 public:
   BodyForce(const double Re,
             const double time = 0);
 
-  virtual Tensor<1, dim> value(
-    const Point<dim>  &point) const override;
+  virtual Tensor<1, dim> value(const Point<dim>  &point) const override;
 
-  virtual double divergence(const Point<dim>  &point) const override;
+  double divergence(const Point<dim>  &point) const;
 
   const double Re;
 };
@@ -273,20 +263,24 @@ namespace Couette
 
 /*!
  * @class VelocityExactSolution
+ *
  * @brief The velocity's exact solution for the Couette flow, where the
  * displacement of the top plate is driven by a traction vector
+ *
  * @details It is given by
- * \f[ \bs{u} = t_0 \Reynolds \dfrac{y}{H} \bs{e}_\mathrm{x}, \f]
- * where \f$ t_0 \f$, \f$ \Reynolds \f$, \f$ H \f$, \f$ y \f$ and
- * \f$ \bs{e}_\mathrm{x} \f$ are the traction vector magnitude, the
- * Reynolds number, the height of the channel, the \f$ y \f$-component
- * of the position vector and the unit vector in the \f$ x \f$-direction.
+ * \f[
+ * \bs{u} = t_0 \Reynolds \dfrac{y}{H} \bs{e}_\mathrm{x}\,,
+ * \f]
+ *
+ * where \f$ t_0 \f$ is the magnitude of the traction vector, \f$ \Reynolds \f$
+ * the Reynolds number, \f$ H \f$ the height of the channel.
+ *
  */
 template <int dim>
 class VelocityExactSolution : public Function<dim>
 {
 public:
-  VelocityExactSolution(const double t_0,
+  VelocityExactSolution(const double traction_magnitude,
                         const double Re,
                         const double H = 1.0,
                         const double time = 0.0);
@@ -303,40 +297,48 @@ private:
   /*!
    * @brief The magnitude of the applied traction vector.
    */
-  const double t_0;
+  const double traction_magnitude;
 
   /*!
-   * @brief The Reynodls number.
+   * @brief The Reynolds number.
    */
   const double Re;
 
   /*!
    * @brief The height of the channel.
    */
-  const double H;
+  const double height;
 };
 
 /*!
  * @class TractionVector
- * @brief The traction vector applied on the top plate of the Couette
- * Flow
- * @details It is given by \f[ \bs{t} = t_0 \bs{e}_\mathrm{x}, \f]
- * where \f$ t_0 \f$ and \f$ \bs{e}_\mathrm{x} \f$ are the
- * magnitude of the traction and the unit vector in the \f$ x \f$-direction.
+ *
+ * @brief The traction vector applied to the top plate in the Couette flow
+ * problem.
+ *
+ * @details It is given by
+ *
+ * \f[
+ * \bs{t} = t_0 \bs{e}_\mathrm{x}\,,
+ * \f]
+ *
+ * where \f$ t_0 \f$ is the magnitude of the traction vector.
+ *
  */
 template <int dim>
 class TractionVector : public TensorFunction<1,dim>
 {
 public:
-  TractionVector(const double t_0, const double time = 0.);
+  TractionVector(const double traction_magnitude = 1.0, const double time = 0.);
 
   virtual Tensor<1, dim> value(const Point<dim> &point) const override;
 
 private:
+
   /*!
    * @brief The magnitude of the applied traction vector.
    */
-  const double t_0;
+  const double traction_magnitude;
 };
 
 } // namespace Couette
@@ -421,13 +423,12 @@ private:
 };
 
 template <int dim>
-class GravityUnitVector: public RMHD::EquationData::BodyForce<dim>
+class GravityVector: public TensorFunction<1,dim>
 {
 public:
-  GravityUnitVector(const double time = 0);
+  GravityVector(const double time = 0);
 
-  virtual Tensor<1, dim> value(
-    const Point<dim>  &point) const override;
+  virtual Tensor<1, dim> value(const Point<dim>  &point) const override;
 };
 
 }

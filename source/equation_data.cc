@@ -5,6 +5,8 @@
  *      Author: sg
  */
 
+#include <deal.II/base/tensor_function.h>
+
 #include <rotatingMHD/equation_data.h>
 
 namespace RMHD
@@ -13,27 +15,6 @@ namespace RMHD
 
 namespace EquationData
 {
-
-template <int dim>
-BodyForce<dim>::BodyForce(const double time)
-:
-TensorFunction<1, dim>(time)
-{}
-
-template <int dim>
-double BodyForce<dim>::divergence(const Point<dim>  &/* point */) const
-{
-  return (0.0);
-}
-
-template <int dim>
-void BodyForce<dim>::divergence_list(
-  const std::vector<Point<dim>> &points,
-  std::vector<double>           &values) const
-{
-  for (unsigned int i = 0; i < points.size(); ++i)
-    values[i] = divergence(points[i]);
-}
 
 namespace Step35
 {
@@ -282,7 +263,7 @@ BodyForce<dim>::BodyForce
 (const double Re,
  const double time)
 :
-RMHD::EquationData::BodyForce<dim>(time),
+TensorFunction<1,dim>(time),
 Re(Re)
 {}
 
@@ -306,7 +287,7 @@ Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
               /*(cos(x - 1.*y) + cos(2.*t + x + y) -
               1.*Re*(cos(t + x - 1.*y) + sin(2.*t + x + y)))/Re*/;
 
-  return value;
+  return (value);
 }
 
 template <int dim>
@@ -415,7 +396,7 @@ BodyForce<dim>::BodyForce
 (const double Re,
  const double time)
 :
-RMHD::EquationData::BodyForce<dim>(time),
+TensorFunction<1,dim>(time),
 Re(Re)
 {}
 
@@ -465,15 +446,15 @@ namespace Couette
 
 template <int dim>
 VelocityExactSolution<dim>::VelocityExactSolution
-(const double t_0,
+(const double traction_magnitude,
  const double Re,
- const double H,
+ const double height,
  const double time)
 :
 Function<dim>(dim, time),
-t_0(t_0),
+traction_magnitude(traction_magnitude),
 Re(Re),
-H(H)
+height(height)
 {}
 
 template <int dim>
@@ -483,7 +464,7 @@ void VelocityExactSolution<dim>::vector_value(
 {
   const double y = point(1);
 
-  values[0] = t_0 * Re * y / H;
+  values[0] = traction_magnitude * Re * y / height;
   values[1] = 0.0;
 }
 
@@ -498,7 +479,7 @@ Tensor<1, dim> VelocityExactSolution<dim>::gradient(
   if (component == 0)
   {
     gradient[0] = 0.0;
-    gradient[1] = t_0 * Re / H;
+    gradient[1] = traction_magnitude * Re / height;
   }
   else if (component == 1)
   {
@@ -506,16 +487,16 @@ Tensor<1, dim> VelocityExactSolution<dim>::gradient(
     gradient[1] = 0.0;
   }
 
-  return gradient;
+  return (gradient);
 }
 
 template <int dim>
 TractionVector<dim>::TractionVector
-(const double t_0,
+(const double traction_magnitude,
  const double time)
 :
 TensorFunction<1, dim>(time),
-t_0(t_0)
+traction_magnitude(traction_magnitude)
 {}
 
 template <int dim>
@@ -523,10 +504,10 @@ Tensor<1, dim> TractionVector<dim>::value(const Point<dim> &/*point*/) const
 {
   Tensor<1, dim> traction_vector;
 
-  traction_vector[0] = t_0;
+  traction_vector[0] = traction_magnitude;
   traction_vector[1] = 0.0;
 
-  return traction_vector;
+  return (traction_vector);
 }
 } // namespace Couette
 namespace ThermalTGV
@@ -642,21 +623,21 @@ double TemperatureBoundaryCondition<dim>::value
 
 
 template <int dim>
-GravityUnitVector<dim>::GravityUnitVector
+GravityVector<dim>::GravityVector
 (const double time)
 :
-RMHD::EquationData::BodyForce<dim>(time)
+TensorFunction<1,dim>(time)
 {}
 
 template <int dim>
-Tensor<1, dim> GravityUnitVector<dim>::value(const Point<dim> &/*point*/) const
+Tensor<1,dim> GravityVector<dim>::value(const Point<dim> &/*point*/) const
 {
   Tensor<1, dim> value;
 
   value[0] = 0.0;
   value[1] = -1.0;
 
-  return value;
+  return (value);
 }
 
 } // namespace MIT
@@ -667,9 +648,6 @@ Tensor<1, dim> GravityUnitVector<dim>::value(const Point<dim> &/*point*/) const
 
 
 // explicit instantiation
-
-template class RMHD::EquationData::BodyForce<2>;
-template class RMHD::EquationData::BodyForce<3>;
 
 template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<2>;
 template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<3>;
@@ -722,7 +700,6 @@ template class RMHD::EquationData::ThermalTGV::VelocityField<3>;
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<2>;
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<3>;
 
-template class RMHD::EquationData::MIT::GravityUnitVector<2>;
-template class RMHD::EquationData::MIT::GravityUnitVector<3>;
-
+template class RMHD::EquationData::MIT::GravityVector<2>;
+template class RMHD::EquationData::MIT::GravityVector<3>;
 

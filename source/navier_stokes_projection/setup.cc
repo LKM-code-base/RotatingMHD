@@ -354,8 +354,8 @@ assemble_constant_matrices()
 
 
 template <int dim>
-void NavierStokesProjection<dim>::set_body_force(
-  RMHD::EquationData::BodyForce<dim> &body_force)
+void NavierStokesProjection<dim>::set_body_force
+(TensorFunction<1,dim> &body_force)
 {
   body_force_ptr = &body_force;
 }
@@ -363,8 +363,8 @@ void NavierStokesProjection<dim>::set_body_force(
 
 
 template <int dim>
-void NavierStokesProjection<dim>::set_gravity_vector(
-  RMHD::EquationData::BodyForce<dim> &gravity_vector)
+void NavierStokesProjection<dim>::set_gravity_vector
+(TensorFunction<1,dim> &gravity_vector)
 {
   gravity_vector_ptr = &gravity_vector;
 }
@@ -407,11 +407,11 @@ template void RMHD::NavierStokesProjection<3>::setup_vectors();
 template void RMHD::NavierStokesProjection<2>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
 
-template void RMHD::NavierStokesProjection<2>::set_body_force(RMHD::EquationData::BodyForce<2> &);
-template void RMHD::NavierStokesProjection<3>::set_body_force(RMHD::EquationData::BodyForce<3> &);
+template void RMHD::NavierStokesProjection<2>::set_body_force(dealii::TensorFunction<1,2> &);
+template void RMHD::NavierStokesProjection<3>::set_body_force(dealii::TensorFunction<1,3> &);
 
-template void RMHD::NavierStokesProjection<2>::set_gravity_vector(RMHD::EquationData::BodyForce<2> &);
-template void RMHD::NavierStokesProjection<3>::set_gravity_vector(RMHD::EquationData::BodyForce<3> &);
+template void RMHD::NavierStokesProjection<2>::set_gravity_vector(dealii::TensorFunction<1,2> &);
+template void RMHD::NavierStokesProjection<3>::set_gravity_vector(dealii::TensorFunction<1,3> &);
 
 template void RMHD::NavierStokesProjection<2>::reset_phi();
 template void RMHD::NavierStokesProjection<3>::reset_phi();

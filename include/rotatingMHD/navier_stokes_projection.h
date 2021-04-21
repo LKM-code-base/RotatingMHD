@@ -2,11 +2,11 @@
 #define INCLUDE_ROTATINGMHD_NAVIER_STOKES_PROJECTION_H_
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/tensor_function.h>
 #include <deal.II/base/timer.h>
 
 #include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
@@ -39,7 +39,9 @@ using namespace dealii;
  * \qquad \forall(\bs{x},t)\in \Omega \times [0, T]
  * \end{equation}
  * \f]
+ *
  * with
+ *
  * \f[
  * \begin{equation}
  *  p^\sharp = p^{n-1} +
@@ -47,7 +49,9 @@ using namespace dealii;
  *  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^{n-j}
  * \end{equation}
  * \f]
+ *
  * a projection step given by
+ *
  * \f[
  * \begin{equation}
  * \Delta \phi^{n} = \dfrac{\alpha_0^n}{\Delta t_{n-1}} \nabla \cdot
@@ -55,19 +59,26 @@ using namespace dealii;
  * \in \Omega \times \left[0, T \right]
  * \end{equation}
  * \f]
+ *
  * and a pressure correction step given by
+ *
  * \f[
  * \begin{equation*}
- * p^{n} = p^{n-1} + \phi^{n} - \frac{\chi}{\textrm{Re}} \nabla \cdot \bs{u}^{n}
+ * p^{n} = p^{n-1} + \phi^{n} - \frac{\chi}{\textrm{Re}} \nabla \cdot \bs{u}^{n}\,,
  * \end{equation*}
  * \f]
+ *
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
  * incremental scheme respectively.
+ *
  * @todo Implement a generalized extrapolation scheme.
+ *
  * @todo Expand the weak formulation for the case of unconventional
  * boundary conditions.
+ *
  * @attention The code is hardcoded for a second order time discretization
  * scheme.
+ *
  */
 template <int dim>
 class NavierStokesProjection
@@ -76,7 +87,7 @@ class NavierStokesProjection
 public:
   /*!
    * @brief The constructor of the Navier-Stokes projection class where
-   * the bouyancy term is neglected.
+   * the buoyancy term is neglected.
    *
    * @details Stores local references to the input parameters and
    * pointers for the mapping and terminal output entities.
@@ -95,7 +106,7 @@ public:
 
   /*!
    * @brief The constructor of the Navier-Stokes projection class where
-   * the bouyancy term is considered.
+   * the buoyancy term is considered.
    *
    * @details Stores local references to the input parameters and
    * pointers for the mapping and terminal output entities.
@@ -139,7 +150,7 @@ public:
    *  @details Stores the memory address of the body force function in
    *  the pointer @ref body_force.
    */
-  void set_body_force(RMHD::EquationData::BodyForce<dim> &body_force);
+  void set_body_force(TensorFunction<1,dim> &body_force);
 
   /*!
    *  @brief Sets the gravity unit vector of the problem.
@@ -147,7 +158,7 @@ public:
    *  @details Stores the memory address of the gravity unit vector
    *  function in the pointer @ref gravity_unit_vector_ptr.
    */
-  void set_gravity_vector(RMHD::EquationData::BodyForce<dim> &gravity_vector);
+  void set_gravity_vector(TensorFunction<1,dim>&gravity_vector);
 
 
   /*!
@@ -241,12 +252,12 @@ private:
   /*!
    * @brief A pointer to the body force function.
    */
-  RMHD::EquationData::BodyForce<dim>    *body_force_ptr;
+  TensorFunction<1,dim> *body_force_ptr;
 
   /*!
    * @brief A pointer to the gravity unit vector function.
    */
-  RMHD::EquationData::BodyForce<dim>    *gravity_vector_ptr;
+  TensorFunction<1,dim> *gravity_vector_ptr;
 
   /*!
    * @brief System matrix used to solve for the velocity field in the diffusion
