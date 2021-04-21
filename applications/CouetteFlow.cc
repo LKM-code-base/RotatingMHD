@@ -17,7 +17,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <filesystem>
-#include <memory>
+#include <sstream>
 
 namespace RMHD
 {
@@ -116,24 +116,6 @@ bottom_bndry_id(2),
 top_bndry_id(3),
 n_additional_refinements(0),
 traction_magnitude(1.0)
-//test_type(convergence_parameters.test_type),
-//time_stepping(parameters.time_discretization_parameters),
-//navier_stokes(parameters.navier_stokes_parameters,
-//              time_stepping,
-//              velocity,
-//              pressure,
-//              this->mapping,
-//              this->pcout,
-//              this->computing_timer),
-//t_0(1.0),
-//exact_solution(
-//  std::make_shared<EquationData::Couette::VelocityExactSolution<dim>>(
-//    t_0,
-//    parameters.Re,
-//    1.0)),
-//traction_vector(
-//  std::make_shared<EquationData::Couette::TractionVector<dim>>(t_0)),
-//convergence_table(velocity, *exact_solution)
 {
   // The Couette flow is a 2-dimensional problem.
   AssertDimension(dim, 2);
@@ -185,6 +167,13 @@ void CouetteFlow<dim>::setup_boundary_conditions()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
+  this->velocity->boundary_conditions.clear();
+  this->pressure->boundary_conditions.clear();
+
+  const double current_time = this->time_stepping.get_current_time();
+  Assert(current_time == this->time_stepping.get_start_time(),
+         ExcMessage("Boundary conditions are not setup at the start time."));
+
   // The domain represents an infinite channel. In order to obtain the
   // analytical solution, periodic boundary conditions need to be
   // implemented.
@@ -194,9 +183,10 @@ void CouetteFlow<dim>::setup_boundary_conditions()
   // No-slip boundary conditions on the lower plate
   this->velocity->boundary_conditions.set_dirichlet_bcs(bottom_bndry_id);
   // Traction boundary condition on the upper plate
+  using namespace EquationData::Couette;
   this->velocity->boundary_conditions.set_neumann_bcs
   (top_bndry_id,
-   std::make_shared<EquationData::Couette::TractionVector<dim>>(traction_magnitude));
+   std::make_shared<TractionVector<dim>>(traction_magnitude));
 
   this->velocity->apply_boundary_conditions(/* print_summary */ false);
   this->pressure->apply_boundary_conditions(/* print_summary */ false);
@@ -207,6 +197,10 @@ template <int dim>
 void CouetteFlow<dim>::setup_initial_conditions()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
+
+  const double current_time = this->time_stepping.get_current_time();
+  Assert(current_time == this->time_stepping.get_start_time(),
+         ExcMessage("Initial conditions are not setup at the start time."));
 
   // The initial conditions are zero and the velocity's Dirichlet
   // boundary conditions are homogeneous. This allows to just
@@ -220,8 +214,6 @@ void CouetteFlow<dim>::setup_initial_conditions()
 template <int dim>
 void CouetteFlow<dim>::save_postprocessing_results()
 {
-  const double current_time = this->time_stepping.get_current_time();
-
   const Triangulation<dim> &tria{this->triangulation};
   Vector<double>  cellwise_error(tria.n_active_cells());
 
@@ -251,8 +243,8 @@ void CouetteFlow<dim>::save_postprocessing_results()
 
   using namespace EquationData::Couette;
   {
-    const VelocityExactSolution<dim> velocity_function(this->parameters.Re,
-                                                         current_time);
+    const VelocityExactSolution<dim> velocity_function(traction_magnitude,
+                                                       this->parameters.Re);
 
     const unsigned int fe_degree{this->velocity->fe_degree};
     const QGauss<dim> quadrature_formula(fe_degree + 2);

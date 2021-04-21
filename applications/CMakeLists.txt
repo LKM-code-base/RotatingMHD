@@ -9,8 +9,8 @@ SET(SOURCE_FILES
     DFG.cc
     step-35.cc
     TGV.cc
-#    Guermond.cc
-#    GuermondNeumannBC.cc
+    Guermond.cc
+    GuermondNeumannBC.cc
     CouetteFlow.cc
 #    ThermalTGV.cc
 #    MIT.cc
