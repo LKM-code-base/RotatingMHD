@@ -4,6 +4,7 @@
 
 #include <rotatingMHD/discrete_time.h>
 
+#include <deal.II/base/exceptions.h>
 #include <deal.II/base/parameter_handler.h>
 
 #include <iostream>
@@ -429,6 +430,36 @@ inline double VSIMEXMethod::get_minimum_step_size() const
 inline double VSIMEXMethod::get_maximum_step_size() const
 {
   return (maximum_step_size);
+}
+
+inline void VSIMEXMethod::set_minimum_step_size(const double step_size)
+{
+  if (is_at_end())
+    return;
+
+  using namespace dealii;
+
+  AssertThrow(maximum_step_size >= step_size,
+              ExcLowerRangeType<double>(maximum_step_size, step_size));
+  AssertThrow(get_next_step_size() >= step_size,
+              ExcLowerRangeType<double>(get_next_step_size(), step_size));
+
+  minimum_step_size = step_size;
+}
+
+inline void VSIMEXMethod::set_maximum_step_size(const double step_size)
+{
+  if (is_at_end())
+    return;
+
+  using namespace dealii;
+
+  AssertThrow(step_size >= get_next_step_size(),
+              ExcLowerRangeType<double>(step_size, get_next_step_size()));
+  AssertThrow(step_size >= minimum_step_size,
+              ExcLowerRangeType<double>(step_size, minimum_step_size));
+
+  maximum_step_size = step_size;
 }
 
 } // namespace TimeDiscretization

@@ -1,6 +1,5 @@
 #include <rotatingMHD/time_discretization.h>
 
-#include <deal.II/base/exceptions.h>
 #include <deal.II/base/conditional_ostream.h>
 
 #include <iomanip>
@@ -544,34 +543,6 @@ void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
   else
     DiscreteTime::set_desired_next_step_size(time_step_size);
 }
-
-inline void VSIMEXMethod::set_minimum_step_size(const double step_size)
-{
-  if (is_at_end())
-    return;
-
-  AssertThrow(maximum_step_size >= step_size,
-              ExcLowerRangeType<double>(maximum_step_size, step_size));
-  AssertThrow(get_next_step_size() >= step_size,
-              ExcLowerRangeType<double>(get_next_step_size(), step_size));
-
-  minimum_step_size = step_size;
-}
-
-inline void VSIMEXMethod::set_maximum_step_size(const double step_size)
-{
-  if (is_at_end())
-    return;
-
-  AssertThrow(step_size >= get_next_step_size(),
-              ExcLowerRangeType<double>(step_size, get_next_step_size()));
-  AssertThrow(step_size >= minimum_step_size,
-              ExcLowerRangeType<double>(step_size, minimum_step_size));
-
-  maximum_step_size = step_size;
-}
-
-
 
 void VSIMEXMethod::update_coefficients()
 {
