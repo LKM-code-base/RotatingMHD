@@ -320,11 +320,27 @@ struct VectorEntity : EntityBase<dim>
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
-  Tensor<1,dim> point_value(const Point<dim>  &point) const;
+  Tensor<1,dim> point_value(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
+
+  /*!
+   * @brief This method evaluates the gradient of the continous vector
+   * field at the given point.
+   *
+   * @details It catches the value obtained by the processor who owns
+   * the point while ignoring the rest. It also checks if the point
+   * is inside the domain.
+   */
+  Tensor<2,dim> point_gradient(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
 };
 
   /*!
-   * @struct VectorEntity
+   * @struct ScalarEntity
    * @brief Numerical representation of a scalar field.
    */
 template <int dim>
@@ -409,7 +425,23 @@ struct ScalarEntity : EntityBase<dim>
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
-  double point_value(const Point<dim> &point) const;
+  double point_value(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
+
+  /*!
+   * @brief This method evaluates the gradient of the continous scalar
+   * field at the given point.
+   *
+   * @details It catches the value obtained by the processor who owns
+   * the point while ignoring the rest. It also checks if the point
+   * is inside the domain.
+   */
+  Tensor<1,dim> point_gradient(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
 };
 
 } // namespace Entities
