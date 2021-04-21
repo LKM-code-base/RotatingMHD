@@ -8,7 +8,7 @@ namespace RMHD
 
 template<int dim>
 HydrodynamicProblem<dim>::HydrodynamicProblem
-(const RunTimeParameters::HydrodynamicProblemParameters &prm)
+(RunTimeParameters::HydrodynamicProblemParameters &prm)
 :
 Problem<dim>(prm),
 parameters(prm),
@@ -110,7 +110,8 @@ void HydrodynamicProblem<dim>::time_loop(const unsigned int n_steps)
     time_stepping.set_desired_next_step_size(
         this->compute_next_time_step(time_stepping, cfl_number));
 
-    *this->pcout << time_stepping << std::endl;
+    if (this->prm.verbose)
+      *this->pcout << time_stepping << std::endl;
 
     // Update the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -119,8 +120,8 @@ void HydrodynamicProblem<dim>::time_loop(const unsigned int n_steps)
     navier_stokes.solve();
 
     // Advances the VSIMEXMethod instance to t^{k}
-    time_stepping.advance_time();
     update_solution_vectors();
+    time_stepping.advance_time();
 
     // Snapshot stage
     if (parameters.postprocessing_frequency > 0)
@@ -142,16 +143,14 @@ void HydrodynamicProblem<dim>::time_loop(const unsigned int n_steps)
       break;
   }
 
-  *this->pcout << time_stepping << std::endl << std::endl;
+  *this->pcout << time_stepping << std::endl;
 
   this->save_postprocessing_results();
 
   if (time_stepping.get_current_time() == time_stepping.get_end_time())
-    *this->pcout << std::endl << std::endl
-                 << "This run completed successfully!" << std::endl << std::endl;
+    *this->pcout << "This run completed successfully!" << std::endl << std::endl;
   else if (time_stepping.get_step_number() >= n_steps)
-    *this->pcout << std::endl << std::endl
-                 << std::setw(80)
+    *this->pcout << std::setw(80)
                  << "This run terminated because the maximum number of steps was "
                     "reached! The current\n time is not equal to the desired "
                     "final time." << std::endl << std::endl;

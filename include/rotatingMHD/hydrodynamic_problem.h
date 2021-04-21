@@ -19,8 +19,9 @@ namespace RMHD
 template <int dim>
 class HydrodynamicProblem : public Problem<dim>
 {
+
 public:
-  HydrodynamicProblem(const RunTimeParameters::HydrodynamicProblemParameters &parameters);
+  HydrodynamicProblem(RunTimeParameters::HydrodynamicProblemParameters &parameters);
 
   /*
    * @brief This methods starts a simulation.
@@ -37,7 +38,7 @@ public:
   void continue_run();
 
 protected:
-  const RunTimeParameters::HydrodynamicProblemParameters &parameters;
+  RunTimeParameters::HydrodynamicProblemParameters &parameters;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 

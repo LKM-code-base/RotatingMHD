@@ -20,7 +20,7 @@ template <int dim>
 class Step35 : public HydrodynamicProblem<dim>
 {
 public:
-  Step35(const RunTimeParameters::HydrodynamicProblemParameters &parameters);
+  Step35(RunTimeParameters::HydrodynamicProblemParameters &parameters);
 
   void run();
 
@@ -45,7 +45,7 @@ private:
 
 template <int dim>
 Step35<dim>::Step35
-(const RunTimeParameters::HydrodynamicProblemParameters &parameters)
+(RunTimeParameters::HydrodynamicProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
 evaluation_point(2.0, 3.0),

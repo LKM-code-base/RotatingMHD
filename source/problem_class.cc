@@ -19,7 +19,7 @@ SolutionTransferContainer<dim>::SolutionTransferContainer()
 {}
 
 template<int dim>
-Problem<dim>::Problem(const RunTimeParameters::ProblemBaseParameters &prm)
+Problem<dim>::Problem(RunTimeParameters::ProblemBaseParameters &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
 prm(prm),

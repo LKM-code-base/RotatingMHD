@@ -266,7 +266,7 @@ template <int dim>
 class DFG : public HydrodynamicProblem<dim>
 {
 public:
-  DFG(const RunTimeParameters::HydrodynamicProblemParameters &parameters);
+  DFG(RunTimeParameters::HydrodynamicProblemParameters &parameters);
 
 private:
 
@@ -289,7 +289,7 @@ private:
 };
 
 template <int dim>
-DFG<dim>::DFG(const RunTimeParameters::HydrodynamicProblemParameters &parameters)
+DFG<dim>::DFG(RunTimeParameters::HydrodynamicProblemParameters &parameters)
 :
 HydrodynamicProblem<dim>(parameters),
 benchmark_request(),
