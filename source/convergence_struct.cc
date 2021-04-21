@@ -233,10 +233,8 @@ void ConvergenceTestData::update_table
  const double step_size,
  const std::map<typename VectorTools::NormType, double> &error_map)
 {
-  table.add_value("level", level);
-  level += 1;
-
   table.add_value("step size", step_size);
+  step_size_specified = true;
 
   update_table(dof_handler, error_map);
 }
@@ -247,6 +245,9 @@ void ConvergenceTestData::update_table
 (const DoFHandler<dim, spacedim> &dof_handler,
  const std::map<typename VectorTools::NormType, double> &error_map)
 {
+  table.add_value("level", level);
+  level += 1;
+
   const types::global_dof_index n_dofs{dof_handler.n_dofs()};
   table.add_value("n_dofs", n_dofs);
 
@@ -256,6 +257,7 @@ void ConvergenceTestData::update_table
 
   const double h_max{GridTools::maximal_cell_diameter(tria)};
   table.add_value("h_max", h_max);
+  h_max_specified = true;
 
   std::string column;
   unsigned int dimension{spacedim};
@@ -287,6 +289,7 @@ void ConvergenceTestData::update_table
   if (it != error_map.end())
   {
     table.add_value("L2", it->second);
+    L2_error_specified = true;
 
     if (evaluate_convergence)
       table.evaluate_convergence_rates("L2",
@@ -299,6 +302,7 @@ void ConvergenceTestData::update_table
   if (it != error_map.end())
   {
     table.add_value("Linfty", it->second);
+    Linfty_error_specified = true;
 
     if (evaluate_convergence)
       table.evaluate_convergence_rates("Linfty",
@@ -311,6 +315,7 @@ void ConvergenceTestData::update_table
   if (it != error_map.end())
   {
     table.add_value("H1", it->second);
+    H1_error_specified = true;
 
     if (evaluate_convergence)
       table.evaluate_convergence_rates("H1",
@@ -329,6 +334,7 @@ void ConvergenceTestData::update_table
   level += 1;
 
   table.add_value("step size", step_size);
+  step_size_specified = true;
 
   std::string column;
   switch (type)
@@ -349,6 +355,7 @@ void ConvergenceTestData::update_table
   if (it != error_map.end())
   {
     table.add_value("L2", it->second);
+    L2_error_specified = true;
 
     table.evaluate_convergence_rates("L2",
                                      column,
@@ -359,6 +366,7 @@ void ConvergenceTestData::update_table
   if (it != error_map.end())
   {
     table.add_value("Linfty", it->second);
+    Linfty_error_specified = true;
 
     table.evaluate_convergence_rates("Linfty",
                                      column,
@@ -369,6 +377,7 @@ void ConvergenceTestData::update_table
   if (it != error_map.end())
   {
     table.add_value("H1", it->second);
+    H1_error_specified = true;
 
     table.evaluate_convergence_rates("H1",
                                      column,
@@ -378,180 +387,41 @@ void ConvergenceTestData::update_table
 
 void ConvergenceTestData::format_columns()
 {
-  const unsigned precision{6};
+  const unsigned int precision{6};
 
-  try
+  if (step_size_specified)
   {
-    table.set_scientific("step size", true);
-    table.set_precision("step size", 2);
-  }
-  catch (ConvergenceTable::ExcColumnNotExistent &)
-  {
-  }
-  catch (std::exception &exc)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Exception on processing: " << std::endl
-                << exc.what() << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-  }
-  catch (...)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Unknown exception!" << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
+      table.set_scientific("step size", true);
+      table.set_precision("step size", 2);
   }
 
-  try
+  if (h_max_specified)
   {
     table.set_scientific("h_max", true);
     table.set_precision("h_max", 2);
   }
-  catch (ConvergenceTable::ExcColumnNotExistent &)
-  {
-  }
-  catch (std::exception &exc)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Exception on processing: " << std::endl
-                << exc.what() << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-  }
-  catch (...)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Unknown exception!" << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-  }
 
-  try
+  if (L2_error_specified)
   {
     table.set_scientific("L2", true);
     table.set_precision("L2", precision);
     table.add_column_to_supercolumn("L2", "error norms");
   }
-  catch (ConvergenceTable::ExcColumnNotExistent &)
-  {
-  }
-  catch (std::exception &exc)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Exception on processing: " << std::endl
-                << exc.what() << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-  }
-  catch (...)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Unknown exception!" << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-  }
 
-  try
+  if (H1_error_specified)
   {
     table.set_scientific("H1", true);
     table.set_precision("H1", precision);
     table.add_column_to_supercolumn("L2", "error norms");
   }
-  catch (ConvergenceTable::ExcColumnNotExistent &)
+
+  if (Linfty_error_specified)
   {
-  }
-  catch (std::exception &exc)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Exception on processing: " << std::endl
-                << exc.what() << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-  }
-  catch (...)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Unknown exception!" << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
+    table.set_scientific("Linfty", true);
+    table.set_precision("Linfty", precision);
+    table.add_column_to_supercolumn("Linfty", "error norms");
   }
 
-  try
-  {
-      table.set_scientific("Linfty", true);
-      table.set_precision("Linfty", precision);
-      table.add_column_to_supercolumn("Linfty", "error norms");
-  }
-  catch (ConvergenceTable::ExcColumnNotExistent &)
-  {
-  }
-  catch (std::exception &exc)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Exception on processing: " << std::endl
-                << exc.what() << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-  }
-  catch (...)
-  {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Unknown exception!" << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::abort();
-  }
 }
 
 /*!

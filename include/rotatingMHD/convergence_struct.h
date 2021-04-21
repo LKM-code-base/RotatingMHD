@@ -3,7 +3,9 @@
 
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/base/parameter_handler.h>
+
 #include <deal.II/dofs/dof_handler.h>
+
 #include <deal.II/numerics/vector_tools.h>
 
 #include <fstream>
@@ -153,6 +155,12 @@ private:
   unsigned int level;
 
   ConvergenceTable  table;
+
+  bool step_size_specified{false};
+  bool h_max_specified{false};
+  bool L2_error_specified{false};
+  bool H1_error_specified{false};
+  bool Linfty_error_specified{false};
 
   void format_columns();
 };

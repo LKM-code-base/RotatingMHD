@@ -271,6 +271,7 @@ void TGV<dim>::run()
                                                 velocity_error_map);
         pressure_convergence_table.update_table(*this->pressure->dof_handler,
                                                 pressure_error_map);
+
         velocity_error_map.clear();
         pressure_error_map.clear();
 
@@ -325,11 +326,9 @@ void TGV<dim>::run()
 
         HydrodynamicProblem<dim>::run();
 
-        velocity_convergence_table.update_table(*this->velocity->dof_handler,
-                                                time_step,
+        velocity_convergence_table.update_table(time_step,
                                                 velocity_error_map);
-        pressure_convergence_table.update_table(*this->pressure->dof_handler,
-                                                time_step,
+        pressure_convergence_table.update_table(time_step,
                                                 pressure_error_map);
         velocity_error_map.clear();
         pressure_error_map.clear();
