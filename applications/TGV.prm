@@ -101,7 +101,7 @@ subsection Refinement control parameters
   set Maximum number of levels               = 10
   set Number of initial adaptive refinements = 0
   set Number of initial boundary refinements = 0
-  set Number of initial global refinements   = 5
+  set Number of initial global refinements   = 3
 end
 
 
@@ -109,10 +109,10 @@ subsection Time stepping parameters
   set Adaptive time stepping        = false
   set Adaptive timestepping barrier = 2
   set Final time                    = 1.0
-  set Initial time step             = 0.5
+  set Initial time step             = 1.0e-1
   set Maximum number of time steps  = 10
-  set Maximum time step             = 2e-1
-  set Minimum time step             = 1e-3
+  set Maximum time step             = 2.0e-1
+  set Minimum time step             = 1.0e-3
   set Start time                    = 0.0
   set Time stepping scheme          = BDF2
   set Verbose                       = false

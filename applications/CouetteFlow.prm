@@ -8,17 +8,8 @@ set Spatial dimension                               = 2
 set Verbose                                         = false
 
 
-subsection Convergence test parameters
-  set Convergence test type                 = temporal
-  set Number of initial global refinements  = 3
-  set Number of spatial convergence cycles  = 2
-  set Number of temporal convergence cycles = 2
-  set Time-step reduction factor            = 0.5
-end
-
-
 subsection Dimensionless numbers
-  set Reynolds number         = 1.0
+  set Reynolds number = 1.0
 end
 
 
@@ -59,6 +50,7 @@ subsection Navier-Stokes solver parameters
       set Relative tolerance       = 1.01
       set Overlap                  = 2
     end
+
   end
 
   subsection Linear solver parameters - Poisson pre-step
@@ -97,9 +89,18 @@ end
 
 
 subsection Output control parameters
-  set Graphical output directory = CouetteResults/
-  set Graphical output frequency = 1
-  set Terminal output frequency  = 1
+  set Graphical output directory = CouetteFlowResults/
+  set Graphical output frequency = 100
+  set Terminal output frequency  = 100
+end
+
+
+subsection Refinement control parameters
+  set Adaptive mesh refinement               = false
+  set Maximum number of levels               = 10
+  set Number of initial adaptive refinements = 0
+  set Number of initial boundary refinements = 0
+  set Number of initial global refinements   = 3
 end
 
 
@@ -107,10 +108,10 @@ subsection Time stepping parameters
   set Adaptive time stepping        = false
   set Adaptive timestepping barrier = 2
   set Final time                    = 1.0
-  set Initial time step             = 1e-2
+  set Initial time step             = 1.0e-2
   set Maximum number of time steps  = 10
-  set Maximum time step             = 2e-2
-  set Minimum time step             = 9e-3
+  set Maximum time step             = 2.0e-1
+  set Minimum time step             = 1.0e-3
   set Start time                    = 0.0
   set Time stepping scheme          = BDF2
   set Verbose                       = false

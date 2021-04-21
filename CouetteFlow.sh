@@ -4,7 +4,7 @@ nproc=${1:-4}
 make -j$nproc
 cd applications
 
-dir="CouetteResults"
+dir="CouetteFlowResults"
  
 if [ -d "$dir" -a ! -h "$dir" ]
 then
@@ -13,5 +13,5 @@ then
    cd ..
 fi
 
-mpirun -np $nproc ./Couette
+mpirun -np $nproc ./CouetteFlow
 cd ..

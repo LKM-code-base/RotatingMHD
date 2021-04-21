@@ -12,6 +12,9 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <filesystem>
+#include <sstream>
+
 namespace RMHD
 {
 
@@ -188,26 +191,30 @@ void TGV<dim>::save_postprocessing_results()
     const unsigned int fe_degree{this->velocity->fe_degree};
     const QGauss<dim> quadrature_formula(fe_degree + 2);
 
+    norm_type = VectorTools::NormType::L2_norm;
     double error = compute_error(quadrature_formula,
                                  *this->velocity,
                                  velocity_function,
-                                 VectorTools::NormType::L2_norm);
-    velocity_error_map[VectorTools::NormType::L2_norm] = error;
+                                 norm_type);
+    velocity_error_map[norm_type] = error;
 
+    norm_type = VectorTools::NormType::H1_norm;
     error = compute_error(quadrature_formula,
                           *this->velocity,
                           velocity_function,
-                          VectorTools::NormType::H1_norm);
-    velocity_error_map[VectorTools::NormType::H1_norm] = error;
+                          norm_type);
+    velocity_error_map[norm_type] = error;
 
     const QTrapez<1>     trapezoidal_rule;
     const QIterated<dim> linfty_quadrature_formula(trapezoidal_rule,
                                                    fe_degree);
+
+    norm_type = VectorTools::NormType::Linfty_norm;
     error = compute_error(linfty_quadrature_formula,
                           *this->velocity,
                           velocity_function,
-                          VectorTools::NormType::Linfty_norm);
-    velocity_error_map[VectorTools::NormType::Linfty_norm] = error;
+                          norm_type);
+    velocity_error_map[norm_type] = error;
   }
   {
     const PressureExactSolution<dim> pressure_function(this->parameters.Re,
@@ -216,33 +223,73 @@ void TGV<dim>::save_postprocessing_results()
     const unsigned int fe_degree{this->pressure->fe_degree};
     const QGauss<dim> quadrature_formula(fe_degree + 2);
 
+    norm_type = VectorTools::NormType::L2_norm;
     double error = compute_error(quadrature_formula,
                                  *this->pressure,
                                  pressure_function,
-                                 VectorTools::NormType::L2_norm);
-    pressure_error_map[VectorTools::NormType::L2_norm] = error;
+                                 norm_type);
+    pressure_error_map[norm_type] = error;
 
-
+    norm_type = VectorTools::NormType::H1_norm;
     error = compute_error(quadrature_formula,
                           *this->pressure,
                           pressure_function,
-                          VectorTools::NormType::H1_norm);
-    pressure_error_map[VectorTools::NormType::H1_norm] = error;
+                          norm_type);
+    pressure_error_map[norm_type] = error;
 
     const QTrapez<1>     trapezoidal_rule;
     const QIterated<dim> linfty_quadrature_formula(trapezoidal_rule,
                                                    fe_degree);
+    norm_type = VectorTools::NormType::Linfty_norm;
     error = compute_error(linfty_quadrature_formula,
                           *this->pressure,
                           pressure_function,
-                          VectorTools::NormType::Linfty_norm);
+                          norm_type);
     pressure_error_map[norm_type] = error;
   }
+
 }
 
 template <int dim>
 void TGV<dim>::run()
 {
+
+  if (!std::filesystem::exists(this->prm.graphical_output_directory) &&
+      Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+  {
+    try
+    {
+      std::filesystem::create_directories(this->prm.graphical_output_directory);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output directory: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output directory!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
+
+  std::filesystem::path path{this->prm.graphical_output_directory};
+
   using TestType = ConvergenceTest::ConvergenceTestType;
 
   switch (test_type)
@@ -288,8 +335,13 @@ void TGV<dim>::run()
       *this->pcout << std::endl;
 
       // write tabular output to a file
-      velocity_convergence_table.save("velocity_spatial_convergence.txt");
-      pressure_convergence_table.save("pressure_spatial_convergence.txt");
+      {
+        std::filesystem::path filename = path / "velocity_spatial_convergence.txt";
+        velocity_convergence_table.save(filename.string());
+
+        filename = path / "pressure_spatial_convergence.txt";
+        pressure_convergence_table.save(filename.string());
+      }
 
       break;
     }
@@ -346,8 +398,13 @@ void TGV<dim>::run()
       *this->pcout << std::endl;
 
       // write tabular output to a file
-      velocity_convergence_table.save("velocity_temporal_convergence.txt");
-      pressure_convergence_table.save("pressure_temporal_convergence.txt");
+      {
+        std::filesystem::path filename = path / "velocity_temporal_convergence.txt";
+        velocity_convergence_table.save(filename.string());
+
+        filename = path / "pressure_temporal_convergence.txt";
+        pressure_convergence_table.save(filename.string());
+      }
 
       break;
     }
@@ -401,18 +458,22 @@ void TGV<dim>::run()
           *this->pcout << std::endl;
 
           // write tabular output to a file
-          std::stringstream sstream;
-          sstream << "velocity_convergence_on_level"
-                  << Utilities::int_to_string(spatial_cycle, 2)
-                  << ".txt";
-          velocity_convergence_table.save(sstream.str());
+          {
+            std::stringstream sstream;
+            sstream << "velocity_convergence_on_level"
+                    << Utilities::int_to_string(spatial_cycle, 2)
+                    << ".txt";
 
-          sstream.clear();
-          sstream << "pressure_convergence_on_level"
-                  << Utilities::int_to_string(spatial_cycle, 2)
-                  << ".txt";
-          pressure_convergence_table.save("pressure_convergence.txt");
+            std::filesystem::path filename = path / sstream.str();
+            velocity_convergence_table.save(filename.string());
 
+            sstream.clear();
+            sstream << "pressure_convergence_on_level"
+                    << Utilities::int_to_string(spatial_cycle, 2)
+                    << ".txt";
+            filename = path / sstream.str();
+            pressure_convergence_table.save(filename.string());
+          }
         }
       }
 
