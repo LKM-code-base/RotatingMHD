@@ -4,7 +4,7 @@ The repository is meant to act as a source code control and back up of the proje
 Milestones:
 - [x] Incompressible Navier-Stokes equations
 - [x] Convective flow (Incompressible Navier-Stokes equations with bouyancy term + heat equation)
-- [ ] Rotational convective flow (Incompressible Navier-Stokes equations with bouyancy term and coriolis term + heat equation)
+- [x] Rotational convective flow (Incompressible Navier-Stokes equations with bouyancy term and coriolis term + heat equation)
 - [ ] Rotational magnetohydrodynamic flow (Incompressible Navier-Stokes equations with bouyancy term and coriolis term + heat equation + induction equation )
 
 which are to be tested with the following benchmarks
