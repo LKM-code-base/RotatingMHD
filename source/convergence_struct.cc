@@ -259,15 +259,22 @@ void ConvergenceTestData::update_table
 
   std::string column;
   unsigned int dimension{spacedim};
+  bool evaluate_convergence{false};
+
   switch (type)
   {
     case ConvergenceTestType::spatial:
       column.assign("h_max");
+      evaluate_convergence = true;
       break;
     case ConvergenceTestType::temporal:
       column.assign("step size");
       dimension = 1;
+      evaluate_convergence = true;
       break;
+    case ConvergenceTestType::spatio_temporal:
+      break;
+
     default:
       Assert(false,
              ExcMessage("Unexpected value for the ConvergenceTestType."));
@@ -281,10 +288,11 @@ void ConvergenceTestData::update_table
   {
     table.add_value("L2", it->second);
 
-    table.evaluate_convergence_rates("L2",
-                                     column,
-                                     ConvergenceTable::reduction_rate_log2,
-                                     dimension);
+    if (evaluate_convergence)
+      table.evaluate_convergence_rates("L2",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       dimension);
   }
 
   it = error_map.find(VectorTools::NormType::Linfty_norm);
@@ -292,10 +300,11 @@ void ConvergenceTestData::update_table
   {
     table.add_value("Linfty", it->second);
 
-    table.evaluate_convergence_rates("Linfty",
-                                     column,
-                                     ConvergenceTable::reduction_rate_log2,
-                                     dimension);
+    if (evaluate_convergence)
+      table.evaluate_convergence_rates("Linfty",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       dimension);
   }
 
   it = error_map.find(VectorTools::NormType::H1_norm);
@@ -303,11 +312,13 @@ void ConvergenceTestData::update_table
   {
     table.add_value("H1", it->second);
 
-    table.evaluate_convergence_rates("H1",
-                                     column,
-                                     ConvergenceTable::reduction_rate_log2,
-                                     dimension);
+    if (evaluate_convergence)
+      table.evaluate_convergence_rates("H1",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       dimension);
   }
+
 }
 
 void ConvergenceTestData::update_table

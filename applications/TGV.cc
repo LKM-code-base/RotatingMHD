@@ -30,8 +30,8 @@ class TGV : public HydrodynamicProblem<dim>
 {
 public:
 
-  TGV(const RunTimeParameters::HydrodynamicProblemParameters  &parameters,
-      const ConvergenceTest::ConvergenceTestParameters        &convergence_parameters);
+  TGV(RunTimeParameters::HydrodynamicProblemParameters  &parameters,
+      const ConvergenceTest::ConvergenceTestParameters  &convergence_parameters);
 
   void run();
 
@@ -65,7 +65,7 @@ private:
 
 template <int dim>
 TGV<dim>::TGV
-(const RunTimeParameters::HydrodynamicProblemParameters &parameters,
+(RunTimeParameters::HydrodynamicProblemParameters &parameters,
  const ConvergenceTest::ConvergenceTestParameters     &convergence_parameters)
 :
 HydrodynamicProblem<dim>(parameters),
@@ -126,8 +126,8 @@ void TGV<dim>::setup_boundary_conditions()
   this->pressure->boundary_conditions.set_periodic_bcs(left_bndry_id, right_bndry_id, 0);
   this->pressure->boundary_conditions.set_periodic_bcs(bottom_bndry_id, top_bndry_id, 1);
 
-  this->velocity->apply_boundary_conditions();
-  this->pressure->apply_boundary_conditions();
+  this->velocity->apply_boundary_conditions(/* print_summary */ false);
+  this->pressure->apply_boundary_conditions(/* print_summary */ false);
 }
 
 template <int dim>
@@ -276,6 +276,20 @@ void TGV<dim>::run()
 
         this->clear();
       }
+
+      // print tabular output
+      *this-> pcout << "Velocity convergence table" << std::endl;
+      velocity_convergence_table.print_data(*this->pcout);
+      *this->pcout << std::endl;
+
+      *this-> pcout << "Pressure convergence table" << std::endl;
+      pressure_convergence_table.print_data(*this->pcout);
+      *this->pcout << std::endl;
+
+      // write tabular output to a file
+      velocity_convergence_table.save("velocity_spatial_convergence.txt");
+      pressure_convergence_table.save("pressure_spatial_convergence.txt");
+
       break;
     }
     case TestType::temporal:
@@ -287,8 +301,14 @@ void TGV<dim>::run()
       {
         const double time_step
         = this->prm.time_discretization_parameters.initial_time_step *
-          std::pow(step_size_reduction_factor,
-                   cycle);
+          std::pow(step_size_reduction_factor, cycle);
+
+        const double final_time
+        = this->prm.time_discretization_parameters.final_time;
+
+        this->prm.time_discretization_parameters.n_maximum_steps
+        = static_cast<unsigned int>(std::ceil(final_time / time_step));;
+
 
         this->time_stepping.set_desired_next_step_size(time_step);
 
@@ -317,12 +337,18 @@ void TGV<dim>::run()
         this->clear();
       }
 
+      // print tabular output
+      *this-> pcout << "Velocity convergence table" << std::endl;
       velocity_convergence_table.print_data(*this->pcout);
-      pressure_convergence_table.print_data(*this->pcout);
+      *this->pcout << std::endl;
 
-      {
-        // Write tabular output to a file
-      }
+      *this-> pcout << "Pressure convergence table" << std::endl;
+      pressure_convergence_table.print_data(*this->pcout);
+      *this->pcout << std::endl;
+
+      // write tabular output to a file
+      velocity_convergence_table.save("velocity_temporal_convergence.txt");
+      pressure_convergence_table.save("pressure_temporal_convergence.txt");
 
       break;
     }
@@ -331,8 +357,8 @@ void TGV<dim>::run()
       for (unsigned int spatial_cycle=0; spatial_cycle < n_spatial_cycles;
            ++spatial_cycle, ++n_additional_refinements)
       {
-        ConvergenceTest::ConvergenceTestData velocity_convergence_table(TestType::temporal);
-        ConvergenceTest::ConvergenceTestData pressure_convergence_table(TestType::temporal);
+        ConvergenceTest::ConvergenceTestData velocity_convergence_table(TestType::spatio_temporal);
+        ConvergenceTest::ConvergenceTestData pressure_convergence_table(TestType::spatio_temporal);
 
         for (unsigned int temporal_cycle=0; temporal_cycle < n_temporal_cycles; ++temporal_cycle)
         {
@@ -365,8 +391,32 @@ void TGV<dim>::run()
           pressure_error_map.clear();
 
           this->clear();
+
+          // print tabular output
+          *this-> pcout << "Velocity convergence table" << std::endl;
+          velocity_convergence_table.print_data(*this->pcout);
+          *this->pcout << std::endl;
+
+          *this-> pcout << "Pressure convergence table" << std::endl;
+          pressure_convergence_table.print_data(*this->pcout);
+          *this->pcout << std::endl;
+
+          // write tabular output to a file
+          std::stringstream sstream;
+          sstream << "velocity_convergence_on_level"
+                  << Utilities::int_to_string(spatial_cycle, 2)
+                  << ".txt";
+          velocity_convergence_table.save(sstream.str());
+
+          sstream.clear();
+          sstream << "pressure_convergence_on_level"
+                  << Utilities::int_to_string(spatial_cycle, 2)
+                  << ".txt";
+          pressure_convergence_table.save("pressure_convergence.txt");
+
         }
       }
+
       break;
     }
     default:
@@ -389,9 +439,10 @@ int main(int argc, char *argv[])
       RunTimeParameters::HydrodynamicProblemParameters problem_parameters("TGV.prm");
       ConvergenceTest::ConvergenceTestParameters convergence_parameters("TGVConvergence.prm");
 
-      TGV<2> simulation(problem_parameters, convergence_parameters);
+      TGV<2> tgv(problem_parameters, convergence_parameters);
 
-      simulation.run();
+      tgv.run();
+
   }
   catch (std::exception &exc)
   {
