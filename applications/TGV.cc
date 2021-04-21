@@ -124,19 +124,30 @@ void TGV<dim>::setup_boundary_conditions()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
+  this->velocity->boundary_conditions.clear();
+  this->pressure->boundary_conditions.clear();
+
+  const double current_time = this->time_stepping.get_current_time();
+  Assert(current_time == this->time_stepping.get_start_time(),
+         ExcMessage("Boundary conditions are not setup at the start time."));
+
   this->velocity->boundary_conditions.set_periodic_bcs(left_bndry_id, right_bndry_id, 0);
   this->velocity->boundary_conditions.set_periodic_bcs(bottom_bndry_id, top_bndry_id, 1);
   this->pressure->boundary_conditions.set_periodic_bcs(left_bndry_id, right_bndry_id, 0);
   this->pressure->boundary_conditions.set_periodic_bcs(bottom_bndry_id, top_bndry_id, 1);
 
-  this->velocity->apply_boundary_conditions(/* print_summary */ false);
-  this->pressure->apply_boundary_conditions(/* print_summary */ false);
+  this->velocity->apply_boundary_conditions(/* print_summary? */ false);
+  this->pressure->apply_boundary_conditions(/* print_summary? */ false);
 }
 
 template <int dim>
 void TGV<dim>::setup_initial_conditions()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
+
+  const double current_time = this->time_stepping.get_current_time();
+  Assert(current_time == this->time_stepping.get_start_time(),
+         ExcMessage("Initial conditions are not setup at the start time."));
 
   using namespace EquationData::TGV;
   VelocityExactSolution<dim> velocity_function(this->parameters.Re);
@@ -154,6 +165,8 @@ void TGV<dim>::setup_initial_conditions()
 template <int dim>
 void TGV<dim>::save_postprocessing_results()
 {
+  TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
+
   const double current_time = this->time_stepping.get_current_time();
 
   const Triangulation<dim> &tria{this->triangulation};

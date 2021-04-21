@@ -1136,12 +1136,12 @@ struct NavierStokesParameters
   double                            C1;
 
     /*!
-   * @brief The factor multiplying the velocity's laplacian.
+   * @brief The factor multiplying the viscous term.
    */
   double                            C2;
 
     /*!
-   * @brief The factor multiplying the bouyancy term.
+   * @brief The factor multiplying the buoyancy term.
    */
   double                            C3;
 
