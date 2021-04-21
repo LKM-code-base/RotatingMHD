@@ -182,12 +182,15 @@ void VectorEntity<dim>::setup_dofs()
 }
 
 template <int dim>
-void VectorEntity<dim>::apply_boundary_conditions()
+void VectorEntity<dim>::apply_boundary_conditions(const bool print_summary)
 {
   AssertThrow(boundary_conditions.regularity_guaranteed(),
               ExcMessage("No boundary conditions were set for the \""
                           + this->name + "\" entity"));
-  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  AssertThrow(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  if (print_summary)
   {
     ConditionalOStream  pcout(std::cout,
                               Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
@@ -552,12 +555,14 @@ void ScalarEntity<dim>::setup_dofs()
 }
 
 template <int dim>
-void ScalarEntity<dim>::apply_boundary_conditions()
+void ScalarEntity<dim>::apply_boundary_conditions(const bool print_summary)
 {
   AssertThrow(boundary_conditions.regularity_guaranteed(),
               ExcMessage("No boundary conditions were set for the \""
                           + this->name + "\" entity"));
-  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+  AssertThrow(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  if (print_summary)
   {
     ConditionalOStream  pcout(std::cout,
                               Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
@@ -569,6 +574,7 @@ void ScalarEntity<dim>::apply_boundary_conditions()
   this->constraints.clear();
   this->constraints.reinit(this->locally_relevant_dofs);
   this->constraints.merge(this->hanging_nodes);
+
   if (!boundary_conditions.periodic_bcs.empty())
   {
     std::vector<unsigned int> first_vector_components;

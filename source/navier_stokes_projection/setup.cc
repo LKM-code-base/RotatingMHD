@@ -100,7 +100,7 @@ void NavierStokesProjection<dim>::setup_phi()
     phi->boundary_conditions.set_dirichlet_bcs(neumann_bc.first);
 
   // Apply boundary conditions
-  phi->apply_boundary_conditions();
+  phi->apply_boundary_conditions(parameters.verbose);
 
   //Set all the solution vectors to zero
   phi->set_solution_vectors_to_zero();
