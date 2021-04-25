@@ -182,6 +182,11 @@ public:
    */
   virtual void update_boundary_conditions() = 0;
 
+  /*!
+   * @brief Returns the value of @ref flag_child_entity.
+   */
+  bool is_child_entity() const;
+
 protected:
   /*!
    * @brief A flag indicating whether the entity is a child entity. This menas
@@ -202,6 +207,16 @@ protected:
    */
   const parallel::distributed::Triangulation<dim> &triangulation;
 };
+
+
+
+template <int dim>
+inline bool EntityBase<dim>::is_child_entity() const
+{
+  return (flag_child_entity);
+}
+
+
 
 template <int dim>
 inline const parallel::distributed::Triangulation<dim> &EntityBase<dim>::get_triangulation() const
@@ -372,7 +387,7 @@ struct ScalarEntity : EntityBase<dim>
    * @brief This method evaluates the value of the continous scalar
    * field at the given point.
    *
-   * @details It catches the value obtained by the processor who owns 
+   * @details It catches the value obtained by the processor who owns
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
