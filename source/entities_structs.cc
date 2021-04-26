@@ -190,6 +190,9 @@ void VectorEntity<dim>::apply_boundary_conditions(const bool print_summary)
 
   AssertThrow(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
+  Assert(boundary_conditions.closed(),
+         ExcMessage("The boundary conditions have not been closed."));
+
   if (print_summary)
   {
     ConditionalOStream  pcout(std::cout,
@@ -288,6 +291,21 @@ void VectorEntity<dim>::apply_boundary_conditions(const bool print_summary)
 
   this->constraints.close();
 }
+
+
+
+template <int dim>
+void VectorEntity<dim>::close_boundary_conditions()
+{
+  boundary_conditions.close();
+
+  ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+
+  boundary_conditions.print_summary(pcout, this->name);
+}
+
+
 
 template <int dim>
 void VectorEntity<dim>::update_boundary_conditions()
@@ -430,6 +448,17 @@ void VectorEntity<dim>::update_boundary_conditions()
 }
 
 
+
+template <int dim>
+void VectorEntity<dim>::clear_boundary_conditions()
+{
+  boundary_conditions.clear();
+
+  this->constraints.clear();
+}
+
+
+
 template<int dim>
 Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 {
@@ -562,6 +591,8 @@ void ScalarEntity<dim>::apply_boundary_conditions(const bool print_summary)
                           + this->name + "\" entity"));
   AssertThrow(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   if (print_summary)
   {
     ConditionalOStream  pcout(std::cout,
@@ -654,6 +685,21 @@ void ScalarEntity<dim>::apply_boundary_conditions(const bool print_summary)
   this->constraints.close();
 }
 
+
+
+template <int dim>
+void ScalarEntity<dim>::close_boundary_conditions()
+{
+  boundary_conditions.close();
+
+  ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+
+  boundary_conditions.print_summary(pcout, this->name);
+}
+
+
+
 template <int dim>
 void ScalarEntity<dim>::update_boundary_conditions()
 {
@@ -709,6 +755,18 @@ void ScalarEntity<dim>::update_boundary_conditions()
     tmp_constraints,
     AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
 }
+
+
+
+template <int dim>
+void ScalarEntity<dim>::clear_boundary_conditions()
+{
+  boundary_conditions.clear();
+
+  EntityBase<dim>::clear();
+}
+
+
 
 template<int dim>
 double ScalarEntity<dim>::point_value(const Point<dim> &point) const

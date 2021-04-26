@@ -245,17 +245,15 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<CurlType>       old_old_velocity_curls;
 
-  std::vector<Tensor<1,dim>>  old_rotation_values;
+  Tensor<1,dim>               old_angular_velocity_value;
 
-  std::vector<Tensor<1,dim>>  old_old_rotation_values;
+  Tensor<1,dim>               old_old_angular_velocity_value;
 
   std::vector<double>         old_temperature_values;
 
   std::vector<double>         old_old_temperature_values;
 
-  std::vector<Tensor<1,dim>>  old_gravity_vector_values;
-
-  std::vector<Tensor<1,dim>>  old_old_gravity_vector_values;
+  std::vector<Tensor<1,dim>>  gravity_vector_values;
 
   std::vector<Tensor<1,dim>>  body_force_values;
 
@@ -360,7 +358,7 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  velocity_laplacians;
 
-  std::vector<Tensor<1,dim>>  angular_velocity_values;
+  Tensor<1,dim>               angular_velocity_value;
 
   std::vector<double>         temperature_values;
 

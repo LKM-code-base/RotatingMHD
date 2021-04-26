@@ -38,7 +38,6 @@ void NavierStokesProjection<dim>::setup()
 
   if (time_stepping.get_step_number() == 0)
     poisson_prestep();
-
 }
 
 
@@ -99,8 +98,14 @@ void NavierStokesProjection<dim>::setup_phi()
   for (auto &neumann_bc : velocity->boundary_conditions.neumann_bcs)
     phi->boundary_conditions.set_dirichlet_bcs(neumann_bc.first);
 
-  // Apply boundary conditions
-  phi->apply_boundary_conditions(parameters.verbose);
+  // The remaining unconstrained boundaries in the phi space are set to
+  // homogeneous Neumann boundary conditions
+  for (const auto &unconstrained_boundary_id: phi->boundary_conditions.get_unconstrained_boundary_ids())
+    phi->boundary_conditions.set_neumann_bcs(unconstrained_boundary_id);
+
+  // Close and apply boundary conditions
+  phi->close_boundary_conditions();
+  phi->apply_boundary_conditions();
 
   //Set all the solution vectors to zero
   phi->set_solution_vectors_to_zero();
@@ -372,10 +377,40 @@ void NavierStokesProjection<dim>::set_gravity_vector
 
 
 template <int dim>
+void NavierStokesProjection<dim>::set_angular_velocity_vector
+(AngularVelocity<dim> &angular_velocity_vector)
+{
+  angular_velocity_vector_ptr = &angular_velocity_vector;
+}
+
+template <int dim>
 void NavierStokesProjection<dim>::reset_phi()
 {
   phi->set_solution_vectors_to_zero();
   flag_setup_phi = true;
+}
+
+
+
+template <int dim>
+void NavierStokesProjection<dim>::reset()
+{
+  velocity_system_matrix.clear();
+  velocity_mass_matrix.clear();
+  velocity_laplace_matrix.clear();
+  velocity_mass_plus_laplace_matrix.clear();
+  velocity_advection_matrix.clear();
+  diffusion_step_rhs.clear();
+  projection_mass_matrix.clear();
+  pressure_laplace_matrix.clear();
+  phi_laplace_matrix.clear();
+  projection_step_rhs.clear();
+  poisson_prestep_rhs.clear();
+  correction_step_rhs.clear();
+  norm_diffusion_rhs  = 0.;
+  norm_projection_rhs = 0.;
+  flag_setup_phi              = true;
+  flag_matrices_were_updated  = true;
 }
 
 
@@ -413,8 +448,15 @@ template void RMHD::NavierStokesProjection<3>::set_body_force(dealii::TensorFunc
 template void RMHD::NavierStokesProjection<2>::set_gravity_vector(dealii::TensorFunction<1,2> &);
 template void RMHD::NavierStokesProjection<3>::set_gravity_vector(dealii::TensorFunction<1,3> &);
 
+template void RMHD::NavierStokesProjection<2>::set_angular_velocity_vector(RMHD::AngularVelocity<2> &);
+template void RMHD::NavierStokesProjection<3>::set_angular_velocity_vector(RMHD::AngularVelocity<3> &);
+
+
 template void RMHD::NavierStokesProjection<2>::reset_phi();
 template void RMHD::NavierStokesProjection<3>::reset_phi();
+
+template void RMHD::NavierStokesProjection<2>::reset();
+template void RMHD::NavierStokesProjection<3>::reset();
 
 template void RMHD::NavierStokesProjection<2>::poisson_prestep();
 template void RMHD::NavierStokesProjection<3>::poisson_prestep();

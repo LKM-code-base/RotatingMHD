@@ -176,11 +176,27 @@ public:
 
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity as EntityBase instances and call
+   * @ref ScalarEntity::close_boundary_conditions and
+   * @ref VectorEntity::close_boundary_conditions respectively.
+   */
+  virtual void close_boundary_conditions() = 0;
+
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
    * and @ref VectorEntity in a vector and call
    * @ref ScalarEntity::update_boundary_conditions and
    * @ref VectorEntity::update_boundary_conditions respectively.
    */
   virtual void update_boundary_conditions() = 0;
+
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity as EntityBase instances and call
+   * @ref ScalarEntity::clear_boundary_conditions and
+   * @ref VectorEntity::clear_boundary_conditions respectively.
+   */
+  virtual void clear_boundary_conditions() = 0;
 
   /*!
    * @brief Returns the value of @ref flag_child_entity.
@@ -284,6 +300,12 @@ struct VectorEntity : EntityBase<dim>
   virtual void apply_boundary_conditions(const bool print_summary = true) override;
 
   /*!
+   * @brief Closes the @ref boundary_conditions and prints a summary
+   * of the boundary conditions to the terminal.
+   */
+  virtual void close_boundary_conditions() override;
+
+  /*!
    * @brief Updates the time dependent boundary conditions.
    *
    * @details It loops over all boundary condition marked as time
@@ -297,6 +319,11 @@ struct VectorEntity : EntityBase<dim>
    * same boundary conditions.
    */
   virtual void update_boundary_conditions() override;
+
+  /*!
+   * @brief Clears the @ref boundary_conditions and the @ref constraints.
+   */
+  virtual void clear_boundary_conditions() override;
 
   /*!
    * @brief This method evaluates the value of the continous vector
@@ -369,6 +396,12 @@ struct ScalarEntity : EntityBase<dim>
   virtual void apply_boundary_conditions(const bool print_summary = true) override;
 
   /*!
+   * @brief Closes the @ref boundary_conditions and prints a summary
+   * of the boundary conditions to the terminal.
+   */
+  virtual void close_boundary_conditions() override;
+
+  /*!
    * @brief Updates the time dependent boundary conditions.
    *
    * @details It loops over all boundary condition marked as time
@@ -382,6 +415,11 @@ struct ScalarEntity : EntityBase<dim>
    * same boundary conditions.
    */
   virtual void update_boundary_conditions() override;
+
+  /*!
+   * @brief Clears the @ref boundary_conditions and the @ref constraints.
+   */
+  virtual void clear_boundary_conditions() override;
 
   /*!
    * @brief This method evaluates the value of the continous scalar

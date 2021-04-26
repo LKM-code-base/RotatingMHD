@@ -20,6 +20,31 @@ namespace RMHD
 
 using namespace dealii;
 
+
+template <int dim>
+class AngularVelocity : public FunctionTime<double>, public Subscriptor
+{
+
+public:
+  /**
+   * Constructor. May take an initial value for the time variable, which
+   * defaults to zero.
+   */
+  AngularVelocity(const double initial_time = 0.0);
+
+  /**
+   * Virtual destructor
+   */
+  virtual ~AngularVelocity() override = default;
+
+  /**
+   * Return the value of the angular velocity.
+   */
+  virtual Tensor<1,dim> value() const;
+
+};
+
+
 /*!
  * @brief Solves the Navier Stokes equations with the incremental pressure
  * projection scheme.
@@ -158,8 +183,16 @@ public:
    *  @details Stores the memory address of the gravity unit vector
    *  function in the pointer @ref gravity_unit_vector_ptr.
    */
-  void set_gravity_vector(TensorFunction<1,dim>&gravity_vector);
+  void set_gravity_vector(TensorFunction<1,dim> &gravity_vector);
 
+  /*!
+   *  @brief Sets the angular velocity of the rotating frame of
+   *  reference.
+   *
+   *  @details Stores the memory address of the angular velocity unit vector
+   *  function in the pointer @ref angular_velocity_vector_ptr.
+   */
+  void set_angular_velocity_vector(AngularVelocity<dim>  &angular_velocity_vector);
 
   /*!
    *  @brief Solves the problem for one single timestep.
@@ -175,6 +208,12 @@ public:
    *  the solver to set up the entity on the next solve call.
    */
   void reset_phi();
+
+  /*!
+   *  @brief Resets the internal linear algebra members.
+   *  @details Calls their respective clear method.
+   */
+  void reset();
 
   /*!
    *  @brief Computes Courant-Friedrichs-Lewy number for the current
@@ -258,6 +297,12 @@ private:
    * @brief A pointer to the gravity unit vector function.
    */
   TensorFunction<1,dim> *gravity_vector_ptr;
+
+  /*!
+   * @brief A pointer to unit vector function of the angular velocity of
+   * the rotating frame of reference.
+   */
+  AngularVelocity<dim>  *angular_velocity_vector_ptr;
 
   /*!
    * @brief System matrix used to solve for the velocity field in the diffusion

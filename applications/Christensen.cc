@@ -328,10 +328,12 @@ void Christensen<dim>::setup_constraints()
     outer_boundary_id,
     temperature_boundary_conditions);
 
+  velocity->close_boundary_conditions();
+  pressure->close_boundary_conditions();
+  temperature->close_boundary_conditions();
+
   velocity->apply_boundary_conditions();
-
   pressure->apply_boundary_conditions();
-
   temperature->apply_boundary_conditions();
 }
 

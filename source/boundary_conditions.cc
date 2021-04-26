@@ -102,7 +102,8 @@ BoundaryConditionsBase<dim>::BoundaryConditionsBase(
 triangulation(triangulation),
 flag_extract_boundary_ids(true),
 flag_datum_at_boundary(false),
-flag_regularity_guaranteed(false)
+flag_regularity_guaranteed(false),
+flag_boundary_conditions_closed(false)
 {}
 
 template <int dim>
@@ -129,6 +130,15 @@ BoundaryConditionsBase<dim>::get_unconstrained_boundary_ids()
 
   return unconstrained_boundaries;
 }
+
+
+
+template <int dim>
+void BoundaryConditionsBase<dim>::close()
+{
+  flag_boundary_conditions_closed = true;
+}
+
 
 
 template <int dim>
@@ -240,6 +250,9 @@ void ScalarBoundaryConditions<dim>::set_periodic_bcs(
   const FullMatrix<double>  rotation_matrix,
   const Tensor<1,dim>       offset)
 {
+  AssertThrow(!this->closed(),
+              ExcMessage("The boundary conditions have already been closed"));
+
   check_boundary_id(first_boundary);
   check_boundary_id(second_boundary);
 
@@ -261,8 +274,12 @@ void ScalarBoundaryConditions<dim>::set_dirichlet_bcs(
   const std::shared_ptr<Function<dim>> &function,
   const bool                           time_dependent)
 {
+  AssertThrow(!this->closed(),
+              ExcMessage("The boundary conditions have already been closed"));
+
   AssertThrow(!this->flag_datum_at_boundary,
               ExcMessage("A datum was already set at the boundary. It is not needed if Dirichlet boundary conditions are to be set."))
+
   check_boundary_id(boundary_id);
 
   this->constrained_boundaries.push_back(boundary_id);
@@ -290,6 +307,9 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
   const std::shared_ptr<Function<dim>> &function,
   const bool                           time_dependent)
 {
+  AssertThrow(!this->closed(),
+              ExcMessage("The boundary conditions have already been closed"));
+
   check_boundary_id(boundary_id);
 
   this->constrained_boundaries.push_back(boundary_id);
@@ -314,6 +334,9 @@ void ScalarBoundaryConditions<dim>::set_neumann_bcs(
 template <int dim>
 void ScalarBoundaryConditions<dim>::set_datum_at_boundary()
 {
+  AssertThrow(!this->closed(),
+              ExcMessage("The boundary conditions have already been closed"));
+
   AssertThrow(this->dirichlet_bcs.empty(),
               ExcMessage("Dirichlet boundary conditions were set. A datum is not needed."));
 
@@ -340,16 +363,19 @@ void ScalarBoundaryConditions<dim>::clear()
 
   neumann_bcs.clear();
 
+  this->flag_boundary_conditions_closed = false;
 }
 
 template <int dim>
 void ScalarBoundaryConditions<dim>::copy
 (const ScalarBoundaryConditions<dim> &other)
 {
+  this->constrained_boundaries      = other.constrained_boundaries;
   this->dirichlet_bcs               = other.dirichlet_bcs;
   this->neumann_bcs                 = other.neumann_bcs;
   this->periodic_bcs                = other.periodic_bcs;
   this->time_dependent_bcs_map      = other.time_dependent_bcs_map;
+  this->flag_datum_at_boundary      = other.flag_datum_at_boundary;
   this->flag_regularity_guaranteed  = other.flag_regularity_guaranteed;
 }
 
@@ -461,6 +487,9 @@ void VectorBoundaryConditions<dim>::set_periodic_bcs(
   const FullMatrix<double>  rotation_matrix,
   const Tensor<1,dim>       offset)
 {
+  AssertThrow(!this->closed(),
+              ExcMessage("The boundary conditions have already been closed"));
+
   check_boundary_id(first_boundary);
   check_boundary_id(second_boundary);
 
@@ -482,6 +511,9 @@ void VectorBoundaryConditions<dim>::set_dirichlet_bcs(
   const std::shared_ptr<Function<dim>> &function,
   const bool                           time_dependent)
 {
+  AssertThrow(!this->closed(),
+              ExcMessage("The boundary conditions have already been closed"));
+
   check_boundary_id(boundary_id);
 
   this->constrained_boundaries.push_back(boundary_id);
@@ -512,6 +544,9 @@ void VectorBoundaryConditions<dim>::set_neumann_bcs(
   const std::shared_ptr<TensorFunction<1, dim>> &function,
   const bool                                    time_dependent)
 {
+  AssertThrow(!this->closed(),
+              ExcMessage("The boundary conditions have already been closed"));
+
   check_boundary_id(boundary_id);
 
   this->constrained_boundaries.push_back(boundary_id);
@@ -539,6 +574,9 @@ void VectorBoundaryConditions<dim>::set_normal_flux_bcs(
   const std::shared_ptr<Function<dim>> &function,
   const bool                           time_dependent)
 {
+  AssertThrow(!this->closed(),
+              ExcMessage("The boundary conditions have already been closed"));
+
   check_boundary_id(boundary_id);
 
   this->constrained_boundaries.push_back(boundary_id);
@@ -570,6 +608,9 @@ void VectorBoundaryConditions<dim>::set_tangential_flux_bcs(
   const std::shared_ptr<Function<dim>> &function,
   const bool                           time_dependent)
 {
+  AssertThrow(!this->closed(),
+              ExcMessage("The boundary conditions have already been closed"));
+
   check_boundary_id(boundary_id);
 
   this->constrained_boundaries.push_back(boundary_id);
@@ -620,12 +661,15 @@ void VectorBoundaryConditions<dim>::clear()
   neumann_bcs.clear();
   normal_flux_bcs.clear();
   tangential_flux_bcs.clear();
+
+  this->flag_boundary_conditions_closed = false;
 }
 
 template <int dim>
 void VectorBoundaryConditions<dim>::copy(
   const VectorBoundaryConditions<dim> &other)
 {
+  this->constrained_boundaries      = other.constrained_boundaries;
   this->dirichlet_bcs               = other.dirichlet_bcs;
   this->neumann_bcs                 = other.neumann_bcs;
   this->periodic_bcs                = other.periodic_bcs;
