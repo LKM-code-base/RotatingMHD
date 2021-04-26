@@ -136,6 +136,9 @@ void Guermond<dim>::setup_boundary_conditions()
                                                         velocity_exact_solution,
                                                         true);
 
+  this->velocity->boundary_conditions.close();
+  this->pressure->boundary_conditions.close();
+
   this->velocity->apply_boundary_conditions();
   this->pressure->apply_boundary_conditions();
 }

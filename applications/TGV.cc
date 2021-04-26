@@ -136,6 +136,9 @@ void TGV<dim>::setup_boundary_conditions()
   this->pressure->boundary_conditions.set_periodic_bcs(left_bndry_id, right_bndry_id, 0);
   this->pressure->boundary_conditions.set_periodic_bcs(bottom_bndry_id, top_bndry_id, 1);
 
+  this->velocity->boundary_conditions.close();
+  this->pressure->boundary_conditions.close();
+
   this->velocity->apply_boundary_conditions(/* print_summary? */ false);
   this->pressure->apply_boundary_conditions(/* print_summary? */ false);
 }

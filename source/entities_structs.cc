@@ -460,7 +460,9 @@ void VectorEntity<dim>::clear_boundary_conditions()
 
 
 template<int dim>
-Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
+Tensor<1,dim> VectorEntity<dim>::point_value(
+  const Point<dim>                    &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
 {
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
@@ -474,10 +476,18 @@ Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 
   try
   {
-    VectorTools::point_value(*(this->dof_handler),
-                             this->solution,
-                             point,
-                             point_value);
+    if (external_mapping != nullptr)
+      VectorTools::point_value(*external_mapping,
+                               *(this->dof_handler),
+                               this->solution,
+                               point,
+                               point_value);
+    else
+      VectorTools::point_value(*(this->dof_handler),
+                               this->solution,
+                               point,
+                               point_value);
+
     point_found = true;
   }
   catch (const VectorTools::ExcPointNotAvailableHere &)
@@ -514,6 +524,79 @@ Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 
   return (point_value_tensor);
 }
+
+
+
+template<int dim>
+Tensor<2,dim> VectorEntity<dim>::point_gradient(
+  const Point<dim>                    &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
+{
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  std::vector<Tensor<1,dim>>  point_gradient_rows(dim);
+
+  // try to evaluate the solution at this point. in parallel, the point
+  // will be on only one processor's owned cells, so the others are
+  // going to throw an exception. make sure at least one processor
+  // finds the given point
+  bool point_found = false;
+
+  try
+  {
+    if (external_mapping != nullptr)
+      VectorTools::point_gradient(*external_mapping,
+                                  *(this->dof_handler),
+                                  this->solution,
+                                  point,
+                                  point_gradient_rows);
+    else
+      VectorTools::point_gradient(*(this->dof_handler),
+                                  this->solution,
+                                  point,
+                                  point_gradient_rows);
+
+    point_found = true;
+  }
+  catch (const VectorTools::ExcPointNotAvailableHere &)
+  {
+    // ignore
+  }
+
+  // ensure that at least one processor found things
+  const int n_procs = Utilities::MPI::sum(point_found ? 1 : 0, this->mpi_communicator);
+  AssertThrow(n_procs > 0,
+              ExcMessage("While trying to evaluate the solution at point " +
+                         Utilities::to_string(point[0]) + ", " +
+                         Utilities::to_string(point[1]) +
+                         (dim == 3 ?
+                             ", " + Utilities::to_string(point[2]) :
+                             "") +
+                         "), " +
+                         "no processors reported that the point lies inside the " +
+                         "set of cells they own. Are you trying to evaluate the " +
+                         "solution at a point that lies outside of the domain?"));
+
+  // Reduce all collected values into local Vector
+  for (auto &row : point_gradient_rows)
+    row = Utilities::MPI::sum(row,
+                              this->mpi_communicator);
+
+  // Normalize in cases where points are claimed by multiple processors
+  if (n_procs > 1)
+    for (auto &row : point_gradient_rows)
+      row /= n_procs;
+
+  Tensor<2,dim> point_gradient_tensor;
+
+  for (unsigned i=0; i<dim; ++i)
+    for (unsigned j=0; j<dim; ++j)
+      point_gradient_tensor[i][j] = point_gradient_rows[i][j];
+
+  return (point_gradient_tensor);
+}
+
+
 
 template <int dim>
 ScalarEntity<dim>::ScalarEntity
@@ -769,7 +852,9 @@ void ScalarEntity<dim>::clear_boundary_conditions()
 
 
 template<int dim>
-double ScalarEntity<dim>::point_value(const Point<dim> &point) const
+double ScalarEntity<dim>::point_value(
+  const Point<dim>                    &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
 {
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
@@ -783,9 +868,15 @@ double ScalarEntity<dim>::point_value(const Point<dim> &point) const
 
   try
   {
-    point_value = VectorTools::point_value(*(this->dof_handler),
-                                           this->solution,
-                                           point);
+    if (external_mapping != nullptr)
+      point_value = VectorTools::point_value(*external_mapping,
+                                             *(this->dof_handler),
+                                             this->solution,
+                                             point);
+    else
+      point_value = VectorTools::point_value(*(this->dof_handler),
+                                             this->solution,
+                                             point);
     point_found = true;
   }
   catch (const VectorTools::ExcPointNotAvailableHere &)
@@ -816,6 +907,68 @@ double ScalarEntity<dim>::point_value(const Point<dim> &point) const
     point_value /= n_procs;
 
   return (point_value);
+}
+
+
+
+template<int dim>
+Tensor<1,dim> ScalarEntity<dim>::point_gradient(
+  const Point<dim> &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
+{
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  Tensor<1,dim>  point_gradient;
+
+  // try to evaluate the solution at this point. in parallel, the point
+  // will be on only one processor's owned cells, so the others are
+  // going to throw an exception. make sure at least one processor
+  // finds the given point
+  bool point_found = false;
+
+  try
+  {
+    if (external_mapping != nullptr)
+      point_gradient = VectorTools::point_gradient(
+                              *external_mapping,
+                              *(this->dof_handler),
+                              this->solution,
+                              point);
+    else
+      point_gradient = VectorTools::point_gradient(
+                              *(this->dof_handler),
+                              this->solution,
+                              point);
+    point_found = true;
+  }
+  catch (const VectorTools::ExcPointNotAvailableHere &)
+  {
+    // ignore
+  }
+
+  // ensure that at least one processor found things
+  const int n_procs = Utilities::MPI::sum(point_found ? 1 : 0, this->mpi_communicator);
+  AssertThrow(n_procs > 0,
+              ExcMessage("While trying to evaluate the solution at point " +
+                         Utilities::to_string(point[0]) + ", " +
+                         Utilities::to_string(point[1]) +
+                         (dim == 3 ?
+                             ", " + Utilities::to_string(point[2]) :
+                             "") +
+                         "), " +
+                         "no processors reported that the point lies inside the " +
+                         "set of cells they own. Are you trying to evaluate the " +
+                         "solution at a point that lies outside of the domain?"));
+
+  // Reduce all collected values into local Vector
+  point_gradient = Utilities::MPI::sum(point_gradient,
+                                       this->mpi_communicator);
+
+  // Normalize in cases where points are claimed by multiple processors
+  if (n_procs > 1)
+    point_gradient /= n_procs;
+
+  return (point_gradient);
 }
 
 

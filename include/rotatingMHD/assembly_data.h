@@ -500,6 +500,52 @@ struct Scratch : ScratchBase<dim>
 
 } // namespace HeatEquation
 
+namespace Benchmarks
+{
+
+namespace Christensen
+{
+
+template <int dim>
+struct Scratch
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags,
+          const FiniteElement<dim>  &magnetic_field_fe,
+          const UpdateFlags         magnetic_field_flags);
+
+  Scratch(const Scratch<dim>        &data);
+
+  const unsigned int          n_q_points;
+
+  const unsigned int          dofs_per_cell;
+
+  FEValues<dim>               velocity_fe_values;
+
+  FEValues<dim>               magnetic_field_fe_values;
+
+  std::vector<Tensor<1,dim>>  velocity_values;
+
+  std::vector<Tensor<1,dim>>  magnetic_field_values;
+};
+
+struct Copy
+{
+  Copy(const unsigned int dofs_per_cell);
+
+  double local_velocity_squared_norm;
+
+  double local_magnetic_field_squared_norm;
+
+  double local_discrete_volume;
+};
+
+} // namespace Christensen
+
+} // namespace Benchmarks
+
 } // namespace AssemblyData
 
 } // namespace RMHD

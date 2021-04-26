@@ -110,8 +110,10 @@ void Step35<dim>::setup_boundary_conditions()
 
   this->pressure->boundary_conditions.set_dirichlet_bcs(outlet_boundary_id);
 
-  this->velocity->apply_boundary_conditions();
+  this->velocity->boundary_conditions.close();
+  this->pressure->boundary_conditions.close();
 
+  this->velocity->apply_boundary_conditions();
   this->pressure->apply_boundary_conditions();
 
 }

@@ -143,6 +143,9 @@ void Guermond<dim>::setup_boundary_conditions()
 
   this->pressure->boundary_conditions.set_datum_at_boundary();
 
+  this->velocity->boundary_conditions.close();
+  this->pressure->boundary_conditions.close();
+
   this->velocity->apply_boundary_conditions(/* print_summary? */ false);
   this->pressure->apply_boundary_conditions(/* print_summary? */ false);
 }

@@ -188,6 +188,9 @@ void CouetteFlow<dim>::setup_boundary_conditions()
   (top_bndry_id,
    std::make_shared<TractionVector<dim>>(traction_magnitude));
 
+  this->velocity->boundary_conditions.close();
+  this->pressure->boundary_conditions.close();
+
   this->velocity->apply_boundary_conditions(/* print_summary */ false);
   this->pressure->apply_boundary_conditions(/* print_summary */ false);
 

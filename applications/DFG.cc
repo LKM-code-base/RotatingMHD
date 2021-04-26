@@ -350,6 +350,9 @@ void DFG<dim>::setup_boundary_conditions()
 
   this->pressure->boundary_conditions.set_dirichlet_bcs(outlet_bndry_id);
 
+  this->velocity->boundary_conditions.close();
+  this->pressure->boundary_conditions.close();
+
   this->velocity->apply_boundary_conditions();
   this->pressure->apply_boundary_conditions();
 }
