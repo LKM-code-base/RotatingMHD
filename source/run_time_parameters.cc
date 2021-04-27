@@ -8,6 +8,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/mpi.h>
 
 #include <fstream>
 
