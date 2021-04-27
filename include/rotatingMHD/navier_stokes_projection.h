@@ -120,6 +120,8 @@ public:
    */
   std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
 
+  void clear();
+
   /*!
    *  @brief Setups and initializes all the internal entities for
    *  the projection method problem.
@@ -228,7 +230,7 @@ private:
   std::shared_ptr<ConditionalOStream>     pcout;
 
   /*!
-   * @breif Pointer to a monitor of the computing times.
+   * @brief Pointer to a monitor of the computing times.
    */
   std::shared_ptr<TimerOutput>            computing_timer;
 
