@@ -83,6 +83,14 @@ computing_timer(
   }
 }
 
+template <int dim>
+void Problem<dim>::clear()
+{
+  container.clear();
+
+  triangulation.clear();
+}
+
 
 
 template <int dim>
@@ -358,47 +366,46 @@ void Problem<dim>::adaptive_mesh_refinement()
     TimerOutput::Scope t(*computing_timer,
                          "Problem: Adaptive mesh refinement Pt. 2");
 
-  for (unsigned int i = 0; i < container.entities.size(); ++i)
-  {
-    // Temporary vectors to extract the interpolated solutions back
-    // into the entities
-    LinearAlgebra::MPI::Vector  distributed_tmp_solution;
-    LinearAlgebra::MPI::Vector  distributed_tmp_old_solution;
-    LinearAlgebra::MPI::Vector  distributed_tmp_old_old_solution;
+    for (unsigned int i = 0; i < container.entities.size(); ++i)
+    {
+      // Temporary vectors to extract the interpolated solutions back
+      // into the entities
+      LinearAlgebra::MPI::Vector  distributed_tmp_solution;
+      LinearAlgebra::MPI::Vector  distributed_tmp_old_solution;
+      LinearAlgebra::MPI::Vector  distributed_tmp_old_old_solution;
 
-    #ifdef USE_PETSC_LA
-      distributed_tmp_solution.reinit(
-        (container.entities[i].first)->locally_owned_dofs,
-        (container.entities[i].first)->mpi_communicator);
-    #else
-      distributed_tmp_solution.reinit(
-        (container.entities[i].first)->locally_owned_dofs,
-        (container.entities[i].first)->locally_relevant_dofs,
-        (container.entities[i].first)->mpi_communicator,
-        true);
-    #endif
+      #ifdef USE_PETSC_LA
+        distributed_tmp_solution.reinit(
+          (container.entities[i].first)->locally_owned_dofs,
+          (container.entities[i].first)->mpi_communicator);
+      #else
+        distributed_tmp_solution.reinit(
+          (container.entities[i].first)->locally_owned_dofs,
+          (container.entities[i].first)->locally_relevant_dofs,
+          (container.entities[i].first)->mpi_communicator,
+          true);
+      #endif
 
-    distributed_tmp_old_solution.reinit(distributed_tmp_solution);
-    distributed_tmp_old_old_solution.reinit(distributed_tmp_solution);
+      distributed_tmp_old_solution.reinit(distributed_tmp_solution);
+      distributed_tmp_old_old_solution.reinit(distributed_tmp_solution);
 
-    std::vector<LinearAlgebra::MPI::Vector *>  tmp(3);
-    tmp[0] = &(distributed_tmp_solution);
-    tmp[1] = &(distributed_tmp_old_solution);
-    tmp[2] = &(distributed_tmp_old_old_solution);
+      std::vector<LinearAlgebra::MPI::Vector *>  tmp(3);
+      tmp[0] = &(distributed_tmp_solution);
+      tmp[1] = &(distributed_tmp_old_solution);
+      tmp[2] = &(distributed_tmp_old_old_solution);
 
-    // Interpolates and apply constraines to the temporary vectors
-    solution_transfers[i].interpolate(tmp);
+      // Interpolates and apply constraines to the temporary vectors
+      solution_transfers[i].interpolate(tmp);
 
-    (container.entities[i].first)->constraints.distribute(distributed_tmp_solution);
-    (container.entities[i].first)->constraints.distribute(distributed_tmp_old_solution);
-    (container.entities[i].first)->constraints.distribute(distributed_tmp_old_old_solution);
+      (container.entities[i].first)->constraints.distribute(distributed_tmp_solution);
+      (container.entities[i].first)->constraints.distribute(distributed_tmp_old_solution);
+      (container.entities[i].first)->constraints.distribute(distributed_tmp_old_old_solution);
 
-    // Passes the interpolated vectors to the entities' vector instances
-    (container.entities[i].first)->solution          = distributed_tmp_solution;
-    (container.entities[i].first)->old_solution      = distributed_tmp_old_solution;
-    (container.entities[i].first)->old_old_solution  = distributed_tmp_old_old_solution;
-  }
-
+      // Passes the interpolated vectors to the entities' vector instances
+      (container.entities[i].first)->solution          = distributed_tmp_solution;
+      (container.entities[i].first)->old_solution      = distributed_tmp_old_solution;
+      (container.entities[i].first)->old_old_solution  = distributed_tmp_old_old_solution;
+    }
   }
 }
 
