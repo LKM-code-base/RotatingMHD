@@ -143,7 +143,20 @@ void BoundaryConditionsBase<dim>::close()
   flag_boundary_conditions_closed = true;
 }
 
+template <int dim>
+void BoundaryConditionsBase<dim>::clear()
+{
+  dirichlet_bcs.clear();
+  periodic_bcs.clear();
+  time_dependent_bcs_map.clear();
 
+  boundary_ids.clear();
+  constrained_boundaries.clear();
+
+  flag_extract_boundary_ids = true;
+  flag_datum_at_boundary = false;
+  flag_regularity_guaranteed = false;
+}
 
 template <int dim>
 template <typename Stream>
@@ -348,11 +361,9 @@ void ScalarBoundaryConditions<dim>::set_time(const double time)
 template <int dim>
 void ScalarBoundaryConditions<dim>::clear()
 {
-  this->dirichlet_bcs.clear();
+  BoundaryConditionsBase<dim>::clear();
+
   this->neumann_bcs.clear();
-  this->periodic_bcs.clear();
-  this->time_dependent_bcs_map.clear();
-  this->flag_boundary_conditions_closed = false;
 }
 
 template <int dim>
@@ -641,12 +652,11 @@ void VectorBoundaryConditions<dim>::set_time(const double time)
 template <int dim>
 void VectorBoundaryConditions<dim>::clear()
 {
-  this->dirichlet_bcs.clear();
+  BoundaryConditionsBase<dim>::clear();
+
   this->neumann_bcs.clear();
-  this->periodic_bcs.clear();
-  normal_flux_bcs.clear();
-  tangential_flux_bcs.clear();
-  this->flag_boundary_conditions_closed = false;
+  this->normal_flux_bcs.clear();
+  this->tangential_flux_bcs.clear();
 }
 
 template <int dim>
