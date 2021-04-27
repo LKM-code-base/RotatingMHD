@@ -111,11 +111,8 @@ fe_values(data.fe_values.get_mapping(),
 
 } // namespace Generic
 
-
-
 namespace Benchmarks
 {
-
 
 namespace Christensen
 {
@@ -145,8 +142,6 @@ velocity_values(n_q_points),
 magnetic_field_values(n_q_points)
 {}
 
-
-
 template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
@@ -165,8 +160,6 @@ magnetic_field_fe_values(
 velocity_values(n_q_points),
 magnetic_field_values(n_q_points)
 {}
-
-
 
 Copy::Copy(const unsigned int dofs_per_cell)
 :

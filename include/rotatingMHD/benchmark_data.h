@@ -1,12 +1,12 @@
 #ifndef INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 #define INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 
+#include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/entities_structs.h>
+#include <rotatingMHD/discrete_time.h>
 #include <rotatingMHD/time_discretization.h>
 #include <rotatingMHD/run_time_parameters.h>
-#include <rotatingMHD/assembly_data.h>
 
-#include <deal.II/base/discrete_time.h>
 #include <deal.II/base/point.h>
 #include <deal.II/base/table_handler.h>
 #include <deal.II/base/timer.h>
@@ -184,32 +184,33 @@ struct DFGBechmarkRequest
    * the current dimensionless time, @ref pressure_difference,
    * @ref drag_coefficient and the @ref lift_coefficient.
    */
-  void update_table(DiscreteTime  &time);
+  void update_table(const TimeDiscretization::DiscreteTime  &time);
 
   /*!
    * @brief A method that prints @ref data_table with the step number,
    * the current dimensionless time, @ref pressure_difference,
    * @ref drag_coefficient and the @ref lift_coefficient.
    */
-  void print_step_data(DiscreteTime &time);
+  template <typename Stream>
+  void print_benchmark_data(Stream &stream) const;
 
   /*!
-   * @brief A method that outputs the @ref data_table into a file.
+   * @brief A method that save the @ref data_table to a file.
    */
-  void write_table_to_file(const std::string &file);
+  bool save(const std::string &file) const;
+
+private:
+  bool table_is_empty;
 };
-
-template<int dim> class MIT;
-
-template<typename Stream, int dim>
-Stream& operator<<(Stream &, const MIT<dim> &);
 
 /*!
  * @class MIT
+ *
  * @brief A class which computes and contains all the MIT benchmark's data.
  * @details Furthermore the probed data at the first sample point can
  * be printed to the terminal through the overloaded stream operator
  * and the entire data can be printed to a text file.
+ *
  * @todo Compute the stream function and the vorticity at the
  * first sample point.
  */
@@ -223,55 +224,35 @@ public:
   MIT(const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
       const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
       const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-      TimeDiscretization::VSIMEXMethod                    &time_stepping,
-      const unsigned int                                  left_wall_boundary_id,
-      const unsigned int                                  right_wall_boundary_id,
+      const types::boundary_id  left_wall_boundary_id,
+      const types::boundary_id  right_wall_boundary_id,
       const std::shared_ptr<Mapping<dim>>                 external_mapping
-                                = std::shared_ptr<Mapping<dim>>(),
-      const std::shared_ptr<ConditionalOStream>           external_pcout
-                                = std::shared_ptr<ConditionalOStream>(),
-      const std::shared_ptr<TimerOutput>                  external_timer
-                                = std::shared_ptr<TimerOutput>());
+                                = std::shared_ptr<Mapping<dim>>());
 
   /*!
    * @brief A method that computes all the benchmark data with the
    * last computed field variables.
    */
-  void compute_benchmark_data();
+  void update_table(const TimeDiscretization::DiscreteTime  &time);
 
   /*!
    * @brief Outputs the computed benchmark data to a text file in
    * org mode format.
    */
-  void print_data_to_file(std::string file_name);
+  bool save(const std::string &file_name) const;
 
 
   /*!
    * @brief Output of the benchmark data to the terminal.
    */
-  template<typename Stream, int dim_>
-  friend Stream& operator<<(Stream &stream, const MIT<dim_> &mit);
+  template<typename Stream>
+  void print_benchmark_data(Stream &stream) const;
 
 private:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
   const MPI_Comm                                &mpi_communicator;
-
-  /*!
-   * @brief A reference to the class controlling the temporal discretization.
-   */
-  const TimeDiscretization::VSIMEXMethod        &time_stepping;
-
-  /*!
-   * @brief A shared pointer to a conditional output stream object.
-   */
-  std::shared_ptr<ConditionalOStream>           pcout;
-
-  /*!
-   * @brief A shared pointer to a monitor of the computing times.
-   */
-  std::shared_ptr<TimerOutput>                  computing_timer;
 
   /*!
    * @brief A shared pointer to the mapping to be used throughout the solver.
@@ -383,35 +364,37 @@ private:
   /*!
    * @brief The table which stores all the benchmark data.
    */
-  TableHandler                                  data;
+  TableHandler              data;
 
   /*!
    * @brief The width of the cavity.
    * @details Given by  \f$ W = 1.0 \f$.
    */
-  const double                                  width;
+  const double              width;
 
   /*!
    * @brief The height of the cavity.
    * @details Given by  \f$ H = 8.0 \f$.
    */
-  const double                                  height;
+  const double              height;
 
   /*!
    * @brief The areaa of the cavity.
    * @details Given by  \f$ A = WH \f$
    */
-  const double                                  area;
+  const double              area;
 
   /*!
    * @brief The boundary id of the cavity's left wall.
    */
-  const unsigned int                            left_wall_boundary_id;
+  const types::boundary_id  left_wall_boundary_id;
 
   /*!
    * @brief The boundary id of the cavity's right wall.
    */
-  const unsigned int                            right_wall_boundary_id;
+  const types::boundary_id  right_wall_boundary_id;
+
+  bool  table_is_empty;
 
   /*!
    * @brief A method that samples all the point data and computes the
@@ -453,9 +436,8 @@ private:
 };
 
 
-
+// forward declaration
 template<int dim> class ChristensenBenchmark;
-
 template<typename Stream, int dim>
 Stream& operator<<(Stream &, const ChristensenBenchmark<dim> &);
 
@@ -664,8 +646,7 @@ private:
    * @brief This method copies the local mass and the local stiffness matrices
    * of the velocity field on a single cell into the global matrices.
    */
-  void copy_local_to_global_squared_norms(
-    const AssemblyData::Benchmarks::Christensen::Copy  &data);
+  void copy_local_to_global_squared_norms(const AssemblyData::Benchmarks::Christensen::Copy  &data);
 
   /*!
    * @brief A method that locates the sample point.

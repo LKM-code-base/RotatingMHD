@@ -76,9 +76,11 @@ enum class BCType
 
 /*!
  * @struct BoundaryConditionsBase
+ *
  * @brief A structure containing all instances related to the
  * boundary conditions which are independent
  * of the rank of the tensor field.
+ *
  */
 template <int dim>
 struct BoundaryConditionsBase
@@ -144,8 +146,10 @@ public:
 
   /*!
    * @brief This method clears all boundary conditions.
+   *
    * @details This is a pure virtual method. Its implementation is
    * overriden in the child structs
+   *
    */
   virtual void                    clear() = 0;
 
@@ -323,7 +327,7 @@ struct ScalarBoundaryConditions : BoundaryConditionsBase<dim>
   void set_time(const double time);
 
   /*!
-   * @brief This method clears all boundary conditions.
+   * @brief This method clears all boundary conditions of this object.
    */
   virtual void clear() override;
 

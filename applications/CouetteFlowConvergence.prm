@@ -1,0 +1,10 @@
+# Listing of Parameters
+# ---------------------
+subsection Convergence test parameters
+  set Convergence test type                 = temporal
+  set Number of spatial convergence cycles  = 3
+  set Number of temporal convergence cycles = 5
+  set Time-step reduction factor            = 0.5
+end
+
+

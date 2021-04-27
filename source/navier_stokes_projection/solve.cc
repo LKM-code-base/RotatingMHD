@@ -24,8 +24,7 @@ void NavierStokesProjection<dim>::solve()
   else
   {
     diffusion_step(time_stepping.get_step_number() %
-                   parameters.preconditioner_update_frequency == 0 ||
-                   time_stepping.get_step_number() == 1);
+                   parameters.preconditioner_update_frequency == 0);
 
     projection_step(false);
 
@@ -33,12 +32,6 @@ void NavierStokesProjection<dim>::solve()
   }
 
   phi->update_solution_vectors();
-}
-
-template <int dim>
-void NavierStokesProjection<dim>::perform_diffusion_step()
-{
-  diffusion_step(true);
 }
 
 template <int dim>
@@ -169,7 +162,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
           // The projected divergence is scaled and the old pressure
           // is added to it
-          distributed_pressure.sadd(parameters.C2 / parameters.C6,
+          distributed_pressure.sadd(parameters.C2,
                                     1.,
                                     distributed_old_pressure);
 
@@ -221,10 +214,6 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::solve();
 template void RMHD::NavierStokesProjection<3>::solve();
-
-template void RMHD::NavierStokesProjection<2>::perform_diffusion_step();
-template void RMHD::NavierStokesProjection<3>::perform_diffusion_step();
-
 
 template void RMHD::NavierStokesProjection<2>::diffusion_step(const bool);
 template void RMHD::NavierStokesProjection<3>::diffusion_step(const bool);

@@ -118,9 +118,9 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   const std::vector<double> beta  = time_stepping.get_beta();
   const std::vector<double> gamma = time_stepping.get_gamma();
 
-  // Data for the elimination of the selonoidal velocity
-  const std::vector<double> old_alpha_zero  = time_stepping.get_old_alpha_zero();
-  const std::vector<double> old_step_size   = time_stepping.get_old_step_size();
+  // Data for the elimination of the solenoidal velocity
+  const std::vector<double> old_alpha_zeros = time_stepping.get_previous_alpha_zeros();
+  const std::vector<double> old_step_sizes  = time_stepping.get_previous_step_sizes();
 
   // Taylor extrapolation coefficients
   const std::vector<double> eta   = time_stepping.get_eta();
@@ -200,19 +200,16 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   if (body_force_ptr != nullptr)
   {
     body_force_ptr->set_time(time_stepping.get_previous_time());
-    body_force_ptr->value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.old_old_body_force_values);
+    body_force_ptr->value_list(scratch.velocity_fe_values.get_quadrature_points(),
+                               scratch.old_old_body_force_values);
 
     body_force_ptr->set_time(time_stepping.get_current_time());
-    body_force_ptr->value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.old_body_force_values);
+    body_force_ptr->value_list(scratch.velocity_fe_values.get_quadrature_points(),
+                               scratch.old_body_force_values);
 
     body_force_ptr->set_time(time_stepping.get_next_time());
-    body_force_ptr->value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.body_force_values);
+    body_force_ptr->value_list(scratch.velocity_fe_values.get_quadrature_points(),
+                               scratch.body_force_values);
 
     // Loop over quadrature points
     for (unsigned int q = 0; q < scratch.n_q_points; ++q)
@@ -239,20 +236,17 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
     scratch.temperature_fe_values.reinit(temperature_cell);
 
-    scratch.temperature_fe_values.get_function_values(
-      temperature->old_solution,
-      scratch.old_temperature_values);
+    scratch.temperature_fe_values.get_function_values(temperature->old_solution,
+                                                      scratch.old_temperature_values);
 
-    scratch.temperature_fe_values.get_function_values(
-      temperature->old_old_solution,
-      scratch.old_old_temperature_values);
+    scratch.temperature_fe_values.get_function_values(temperature->old_old_solution,
+                                                      scratch.old_old_temperature_values);
 
     Assert(gravity_vector_ptr != nullptr,
            ExcMessage("No unit vector for the gravity has been specified."))
 
-    gravity_vector_ptr->value_list(
-      scratch.velocity_fe_values.get_quadrature_points(),
-      scratch.gravity_vector_values);
+    gravity_vector_ptr->value_list(scratch.velocity_fe_values.get_quadrature_points(),
+                                   scratch.gravity_vector_values);
 
     // Loop over quadrature points
     for (unsigned int q = 0; q < scratch.n_q_points; ++q)
@@ -266,16 +260,14 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
          scratch.old_old_temperature_values[q]);
   }
 
-  // Coreolis acceleration
+  // Coriolis acceleration
   if (angular_velocity_vector_ptr != nullptr)
   {
     angular_velocity_vector_ptr->set_time(time_stepping.get_previous_time());
-    scratch.old_old_angular_velocity_value =
-                                angular_velocity_vector_ptr->rotation();
+    scratch.old_old_angular_velocity_value = angular_velocity_vector_ptr->value();
 
     angular_velocity_vector_ptr->set_time(time_stepping.get_current_time());
-    scratch.old_angular_velocity_value =
-                                angular_velocity_vector_ptr->rotation();
+    scratch.old_angular_velocity_value = angular_velocity_vector_ptr->value();
 
     if constexpr(dim == 2)
       // Loop over quadrature points
@@ -413,15 +405,15 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
               scratch.old_old_velocity_values[q];
 
     pressure_gradient_term[q] =
-              parameters.C6 *
+              /* parameters.C6 * */
               (scratch.old_pressure_values[q]
                -
-               old_step_size[0] / time_stepping.get_next_step_size() *
-               alpha[1] / old_alpha_zero[0] *
+               old_step_sizes[0] / time_stepping.get_next_step_size() *
+               alpha[1] / old_alpha_zeros[0] *
                scratch.old_phi_values[q]
                -
-               old_step_size[1] / time_stepping.get_next_step_size() *
-               alpha[2] / old_alpha_zero[1] *
+               old_step_sizes[1] / time_stepping.get_next_step_size() *
+               alpha[2] / old_alpha_zeros[1] *
                scratch.old_old_phi_values[q]);
 
     diffusion_term[q] =

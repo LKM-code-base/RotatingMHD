@@ -2,11 +2,11 @@
 #define INCLUDE_ROTATINGMHD_NAVIER_STOKES_PROJECTION_H_
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/tensor_function.h>
 #include <deal.II/base/timer.h>
 
 #include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
@@ -19,6 +19,31 @@ namespace RMHD
 {
 
 using namespace dealii;
+
+
+template <int dim>
+class AngularVelocity : public FunctionTime<double>, public Subscriptor
+{
+
+public:
+  /**
+   * Constructor. May take an initial value for the time variable, which
+   * defaults to zero.
+   */
+  AngularVelocity(const double initial_time = 0.0);
+
+  /**
+   * Virtual destructor
+   */
+  virtual ~AngularVelocity() override = default;
+
+  /**
+   * Return the value of the angular velocity.
+   */
+  virtual Tensor<1,dim> value() const;
+
+};
+
 
 /*!
  * @brief Solves the Navier Stokes equations with the incremental pressure
@@ -39,7 +64,9 @@ using namespace dealii;
  * \qquad \forall(\bs{x},t)\in \Omega \times [0, T]
  * \end{equation}
  * \f]
+ *
  * with
+ *
  * \f[
  * \begin{equation}
  *  p^\sharp = p^{n-1} +
@@ -47,7 +74,9 @@ using namespace dealii;
  *  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^{n-j}
  * \end{equation}
  * \f]
+ *
  * a projection step given by
+ *
  * \f[
  * \begin{equation}
  * \Delta \phi^{n} = \dfrac{\alpha_0^n}{\Delta t_{n-1}} \nabla \cdot
@@ -55,19 +84,26 @@ using namespace dealii;
  * \in \Omega \times \left[0, T \right]
  * \end{equation}
  * \f]
+ *
  * and a pressure correction step given by
+ *
  * \f[
  * \begin{equation*}
- * p^{n} = p^{n-1} + \phi^{n} - \frac{\chi}{\textrm{Re}} \nabla \cdot \bs{u}^{n}
+ * p^{n} = p^{n-1} + \phi^{n} - \frac{\chi}{\textrm{Re}} \nabla \cdot \bs{u}^{n}\,,
  * \end{equation*}
  * \f]
+ *
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
  * incremental scheme respectively.
+ *
  * @todo Implement a generalized extrapolation scheme.
+ *
  * @todo Expand the weak formulation for the case of unconventional
  * boundary conditions.
+ *
  * @attention The code is hardcoded for a second order time discretization
  * scheme.
+ *
  */
 template <int dim>
 class NavierStokesProjection
@@ -76,49 +112,50 @@ class NavierStokesProjection
 public:
   /*!
    * @brief The constructor of the Navier-Stokes projection class where
-   * the bouyancy term is neglected.
+   * the buoyancy term is neglected.
    *
    * @details Stores local references to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   NavierStokesProjection
   (const RunTimeParameters::NavierStokesParameters  &parameters,
-   TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
-   const std::shared_ptr<Mapping<dim>>          external_mapping =
-       std::shared_ptr<Mapping<dim>>(),
-   const std::shared_ptr<ConditionalOStream>    external_pcout =
+   const TimeDiscretization::VSIMEXMethod           &time_stepping,
+   const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   const std::shared_ptr<const Mapping<dim>>    &external_mapping =
+       std::shared_ptr<const Mapping<dim>>(),
+   const std::shared_ptr<ConditionalOStream>    &external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>           external_timer =
+   const std::shared_ptr<TimerOutput>           &external_timer =
        std::shared_ptr<TimerOutput>());
 
   /*!
    * @brief The constructor of the Navier-Stokes projection class where
-   * the bouyancy term is considered.
+   * the buoyancy term is considered.
    *
    * @details Stores local references to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   NavierStokesProjection
-  (const RunTimeParameters::NavierStokesParameters        &parameters,
-   TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
-   const std::shared_ptr<Mapping<dim>>          external_mapping =
+  (const RunTimeParameters::NavierStokesParameters  &parameters,
+   const TimeDiscretization::VSIMEXMethod           &time_stepping,
+   const std::shared_ptr<Entities::VectorEntity<dim>>   &velocity,
+   const std::shared_ptr<Entities::ScalarEntity<dim>>   &pressure,
+   const std::shared_ptr<Entities::ScalarEntity<dim>>   &temperature,
+   const std::shared_ptr<Mapping<dim>>              &external_mapping =
        std::shared_ptr<Mapping<dim>>(),
-   const std::shared_ptr<ConditionalOStream>    external_pcout =
+   const std::shared_ptr<ConditionalOStream>        &external_pcout =
        std::shared_ptr<ConditionalOStream>(),
-   const std::shared_ptr<TimerOutput>           external_timer =
+   const std::shared_ptr<TimerOutput>               &external_timer =
        std::shared_ptr<TimerOutput>());
-
   /*!
    * @brief The entity for the scalar field \f$ \phi \f$, which is
    * the field computed during the projection step and later used in
    * the pressure-correction step.
    */
   std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
+
+  void clear();
 
   /*!
    *  @brief Setups and initializes all the internal entities for
@@ -138,15 +175,15 @@ public:
    *  @details Stores the memory address of the body force function in
    *  the pointer @ref body_force.
    */
-  void set_body_force(RMHD::EquationData::VectorFunction<dim> &body_force);
+  void set_body_force(TensorFunction<1,dim> &body_force);
 
   /*!
    *  @brief Sets the gravity unit vector of the problem.
    *
    *  @details Stores the memory address of the gravity unit vector
-   *  function in the pointer @ref gravity_vector_ptr.
+   *  function in the pointer @ref gravity_unit_vector_ptr.
    */
-  void set_gravity_vector(RMHD::EquationData::VectorFunction<dim> &gravity_vector);
+  void set_gravity_vector(TensorFunction<1,dim> &gravity_vector);
 
   /*!
    *  @brief Sets the angular velocity of the rotating frame of
@@ -155,7 +192,7 @@ public:
    *  @details Stores the memory address of the angular velocity unit vector
    *  function in the pointer @ref angular_velocity_vector_ptr.
    */
-  void set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<dim> &angular_velocity_vector);
+  void set_angular_velocity_vector(AngularVelocity<dim>  &angular_velocity_vector);
 
   /*!
    *  @brief Solves the problem for one single timestep.
@@ -177,12 +214,6 @@ public:
    *  @details Calls their respective clear method.
    */
   void reset();
-
-  /*!
-   * @brief Performs one diffusion step
-   * @attention This is just a method for testing
-   */
-  void perform_diffusion_step();
 
   /*!
    *  @brief Computes Courant-Friedrichs-Lewy number for the current
@@ -220,22 +251,27 @@ private:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const MPI_Comm                         &mpi_communicator;
+  const MPI_Comm                          &mpi_communicator;
+
+  /*!
+   * @brief A reference to the class controlling the temporal discretization.
+   */
+  const TimeDiscretization::VSIMEXMethod  &time_stepping;
 
   /*!
    * @brief Pointer to a conditional output stream object.
    */
-  std::shared_ptr<ConditionalOStream>     pcout;
+  std::shared_ptr<ConditionalOStream> pcout;
 
   /*!
-   * @breif Pointer to a monitor of the computing times.
+   * @brief Pointer to a monitor of the computing times.
    */
-  std::shared_ptr<TimerOutput>            computing_timer;
+  std::shared_ptr<TimerOutput>        computing_timer;
 
   /*!
    * @brief Pointer to the mapping to be used throughout the solver.
    */
-  std::shared_ptr<Mapping<dim>>           mapping;
+  std::shared_ptr<const Mapping<dim>>     mapping;
 
   /*!
    * @brief A reference to the entity of velocity field.
@@ -255,23 +291,18 @@ private:
   /*!
    * @brief A pointer to the body force function.
    */
-  RMHD::EquationData::VectorFunction<dim>    *body_force_ptr;
+  TensorFunction<1,dim> *body_force_ptr;
 
   /*!
    * @brief A pointer to the gravity unit vector function.
    */
-  RMHD::EquationData::VectorFunction<dim>    *gravity_vector_ptr;
+  TensorFunction<1,dim> *gravity_vector_ptr;
 
   /*!
    * @brief A pointer to unit vector function of the angular velocity of
    * the rotating frame of reference.
    */
-  RMHD::EquationData::AngularVelocity<dim>    *angular_velocity_vector_ptr;
-
-  /*!
-   * @brief A reference to the class controlling the temporal discretization.
-   */
-  const TimeDiscretization::VSIMEXMethod &time_stepping;
+  AngularVelocity<dim>  *angular_velocity_vector_ptr;
 
   /*!
    * @brief System matrix used to solve for the velocity field in the diffusion
@@ -415,6 +446,11 @@ private:
    * @brief A flag indicating if the matrices were updated.
    */
   bool                                  flag_matrices_were_updated;
+
+  /*!
+   * @brief A flag indicating if bouyancy term is to be ignored.
+   */
+  bool                                  flag_ignore_bouyancy_term;
 
   /*!
    * @brief A method initiating the scalar field  \f$ \phi\f$.

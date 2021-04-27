@@ -175,7 +175,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
       velocity->old_old_solution,
       scratch.velocity_values);
 
-    scratch.angular_velocity_value = angular_velocity_vector_ptr->rotation();
+    scratch.angular_velocity_value = angular_velocity_vector_ptr->value();
 
     if constexpr(dim == 2)
       // Loop over quadrature points
@@ -190,7 +190,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
         coriolis_acceleration_term[q] =
           parameters.C1 *
           cross_product_3d(scratch.angular_velocity_value,
-                            scratch.velocity_values[q]);
+                           scratch.velocity_values[q]);
   }
 
   // Loop over quadrature points
@@ -205,7 +205,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
     {
       // Local right hand side (Domain integrals)
       data.local_rhs(i) +=
-              1.0 / parameters.C6  *
+              /* 1.0 / parameters.C6  * */
               scratch.grad_phi[i] *
               (body_force_term[q]
                -
@@ -272,7 +272,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
             for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
             {
               data.local_rhs(i) +=
-                              parameters.C2 / parameters.C6 *
+                              parameters.C2 * /* / parameters.C6 * */
                               scratch.face_phi[i] *
                               scratch.velocity_laplacians[q] *
                               scratch.normal_vectors[q] *

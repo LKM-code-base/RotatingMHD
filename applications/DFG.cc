@@ -3,21 +3,12 @@
  *@brief The source file for solving the DFG benchmark.
  */
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
-#include <rotatingMHD/navier_stokes_projection.h>
-#include <rotatingMHD/problem_class.h>
-#include <rotatingMHD/run_time_parameters.h>
-#include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/hydrodynamic_problem.h>
 
-#include <deal.II/fe/mapping_q.h>
-#include <deal.II/base/conditional_ostream.h>
-#include <deal.II/base/utilities.h>
-#include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/manifold_lib.h>
-#include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
 #include <iostream>
@@ -272,81 +263,41 @@ using namespace dealii;
  *
  */
 template <int dim>
-class DFG : public Problem<dim>
+class DFG : public HydrodynamicProblem<dim>
 {
 public:
-  DFG(const RunTimeParameters::ProblemParameters &parameters);
+  DFG(RunTimeParameters::HydrodynamicProblemParameters &parameters);
 
-  void run();
 private:
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
-
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
-
-  TimeDiscretization::VSIMEXMethod              time_stepping;
-
-  NavierStokesProjection<dim>                   navier_stokes;
 
   BenchmarkData::DFGBechmarkRequest<dim>        benchmark_request;
 
-  EquationData::DFG::VelocityInitialCondition<dim>
-                                                velocity_initial_condition;
+  const types::boundary_id  inlet_bndry_id;
+  const types::boundary_id  outlet_bndry_id;
+  const types::boundary_id  cylinder_bndry_id;
+  const types::boundary_id  wall_bndry_id;
 
-  EquationData::DFG::PressureInitialCondition<dim>
-                                                pressure_initial_condition;
+  virtual void make_grid() override;
 
-  double                                        cfl_number;
+  virtual void postprocess_solution() override;
 
-  void make_grid();
+  virtual void save_postprocessing_results() override;
 
-  void setup_dofs();
+  virtual void setup_boundary_conditions() override;
 
-  void setup_constraints();
-
-  void initialize();
-
-  void postprocessing();
-
-  void output();
-
-  void update_solution_vectors();
+  virtual void setup_initial_conditions() override;
 };
 
 template <int dim>
-DFG<dim>::DFG(const RunTimeParameters::ProblemParameters &parameters)
+DFG<dim>::DFG(RunTimeParameters::HydrodynamicProblemParameters &parameters)
 :
-Problem<dim>(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>
-         (parameters.fe_degree_velocity,
-          this->triangulation,
-          "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>
-         (parameters.fe_degree_pressure,
-          this->triangulation,
-          "Pressure")),
-time_stepping(parameters.time_discretization_parameters),
-navier_stokes(parameters.navier_stokes_parameters,
-              time_stepping,
-              velocity,
-              pressure,
-              this->mapping,
-              this->pcout,
-              this->computing_timer),
+HydrodynamicProblem<dim>(parameters),
 benchmark_request(),
-velocity_initial_condition(dim),
-pressure_initial_condition()
-{
-  *this->pcout << parameters << std::endl << std::endl;
-  make_grid();
-  setup_dofs();
-  setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
-  initialize();
-  this->container.add_entity(velocity);
-  this->container.add_entity(pressure, false);
-  this->container.add_entity(navier_stokes.phi, false);
-}
+inlet_bndry_id(0),
+outlet_bndry_id(1),
+cylinder_bndry_id(2),
+wall_bndry_id(3)
+{}
 
 template <int dim>
 void DFG<dim>::make_grid()
@@ -378,196 +329,84 @@ void DFG<dim>::make_grid()
 }
 
 template <int dim>
-void DFG<dim>::setup_dofs()
-{
-  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
-
-  velocity->setup_dofs();
-  pressure->setup_dofs();
-
-  *this->pcout << "Number of velocity degrees of freedom = "
-               << (velocity->dof_handler)->n_dofs()
-               << std::endl
-               << "Number of pressure degrees of freedom = "
-               << (pressure->dof_handler)->n_dofs()
-               << std::endl
-               << "Number of total degrees of freedom    = "
-               << (pressure->dof_handler->n_dofs() +
-                  velocity->dof_handler->n_dofs())
-               << std::endl << std::endl;
-}
-
-template <int dim>
-void DFG<dim>::setup_constraints()
+void DFG<dim>::setup_boundary_conditions()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.set_dirichlet_bcs
-  (0,
-   std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>(
-     this->prm.time_discretization_parameters.start_time));
+  this->velocity->boundary_conditions.clear();
+  this->pressure->boundary_conditions.clear();
 
-  velocity->boundary_conditions.set_dirichlet_bcs(2);
-  velocity->boundary_conditions.set_dirichlet_bcs(3);
+  const double current_time = this->time_stepping.get_current_time();
+  Assert(current_time == this->time_stepping.get_start_time(),
+         ExcMessage("Boundary conditions are not setup at the start time."));
 
-  pressure->boundary_conditions.set_dirichlet_bcs(1);
+  using namespace EquationData::DFG;
+  this->velocity->boundary_conditions.set_dirichlet_bcs
+  (inlet_bndry_id,
+   std::make_shared<VelocityInflowBoundaryCondition<dim>>(current_time));
 
-  velocity->close_boundary_conditions();
-  pressure->close_boundary_conditions();
+  this->velocity->boundary_conditions.set_dirichlet_bcs(cylinder_bndry_id);
+  this->velocity->boundary_conditions.set_dirichlet_bcs(wall_bndry_id);
 
-  velocity->apply_boundary_conditions();
-  pressure->apply_boundary_conditions();
+  this->pressure->boundary_conditions.set_dirichlet_bcs(outlet_bndry_id);
+
+  this->velocity->boundary_conditions.close();
+  this->pressure->boundary_conditions.close();
+
+  this->velocity->apply_boundary_conditions();
+  this->pressure->apply_boundary_conditions();
 }
 
 template <int dim>
-void DFG<dim>::initialize()
+void DFG<dim>::setup_initial_conditions()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
-  this->set_initial_conditions(velocity,
-                               velocity_initial_condition,
-                               time_stepping);
-  this->set_initial_conditions(pressure,
-                               pressure_initial_condition,
-                               time_stepping);
+  const double current_time = this->time_stepping.get_current_time();
+  Assert(current_time == this->time_stepping.get_start_time(),
+         ExcMessage("Initial conditions are not setup at the start time."));
+
+  using namespace EquationData::DFG;
+  const VelocityInitialCondition<dim>  velocity_initial_condition(dim);
+  this->project_function(velocity_initial_condition,
+                         this->velocity,
+                         this->velocity->old_solution);
+  this->velocity->solution = this->velocity->old_solution;
+
+  const PressureInitialCondition<dim> pressure_initial_condition;
+  this->project_function(pressure_initial_condition,
+                         this->pressure,
+                         this->pressure->old_solution);
+  this->pressure->solution = this->pressure->old_solution;
 }
 
 template <int dim>
-void DFG<dim>::postprocessing()
+void DFG<dim>::postprocess_solution()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  benchmark_request.compute_pressure_difference(pressure);
-  benchmark_request.compute_drag_and_lift_coefficients(velocity,
-                                                        pressure);
-  benchmark_request.print_step_data(time_stepping);
-  benchmark_request.update_table(time_stepping);
+  *this->pcout << "    Postprocessing solution..." << std::endl;
+
+  benchmark_request.compute_pressure_difference(this->pressure);
+  benchmark_request.compute_drag_and_lift_coefficients(this->velocity,
+                                                       this->pressure,
+                                                       cylinder_bndry_id);
+  benchmark_request.update_table(this->time_stepping);
 }
 
 template <int dim>
-void DFG<dim>::output()
+void DFG<dim>::save_postprocessing_results()
 {
-  TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
+  std::stringstream strstream;
+  strstream << this->prm.graphical_output_directory;
+  strstream << "dfg_benchmark_request.txt";
 
-  std::vector<std::string> names(dim, "velocity");
-  std::vector<DataComponentInterpretation::DataComponentInterpretation>
-    component_interpretation(
-      dim, DataComponentInterpretation::component_is_part_of_vector);
+  const bool success = benchmark_request.save(strstream.str());
 
-  DataOut<dim>        data_out;
-
-  data_out.add_data_vector(*(velocity->dof_handler),
-                           velocity->solution,
-                           names,
-                           component_interpretation);
-
-  data_out.add_data_vector(*(pressure->dof_handler),
-                           pressure->solution,
-                           "Pressure");
-
-  data_out.build_patches(velocity->fe_degree);
-
-  static int out_index = 0;
-
-  data_out.write_vtu_with_pvtu_record(this->prm.graphical_output_directory,
-                                      "solution",
-                                      out_index,
-                                      this->mpi_communicator,
-                                      5);
-
-  out_index++;
-}
-
-template <int dim>
-void DFG<dim>::update_solution_vectors()
-{
-  velocity->update_solution_vectors();
-  pressure->update_solution_vectors();
-}
-
-template <int dim>
-void DFG<dim>::run()
-{
-  *this->pcout << "Solving until t = 350..." << std::endl;
-
-  while (time_stepping.get_current_time() <= 350.0)
-  {
-    // The VSIMEXMethod instance starts each loop at t^{k-1}
-
-    // Compute CFL number
-    cfl_number = navier_stokes.get_cfl_number();
-
-    // Updates the time step, i.e sets the value of t^{k}
-    time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(time_stepping, cfl_number));
-
-    // Updates the coefficients to their k-th value
-    time_stepping.update_coefficients();
-
-    // Solves the system, i.e. computes the fields at t^{k}
-    navier_stokes.solve();
-
-    // Advances the VSIMEXMethod instance to t^{k}
-    update_solution_vectors();
-    time_stepping.advance_time();
-
-    // Snapshot stage, all time calls should be done with get_current_time()
-    if ((time_stepping.get_step_number() %
-          this->prm.terminal_output_frequency == 0) ||
-        (time_stepping.get_next_time() ==
-          time_stepping.get_end_time()))
-      postprocessing();
-  }
-
-  *this->pcout << "Restarting..." << std::endl;
-
-  time_stepping.restart();
-  velocity->old_old_solution = velocity->solution;
-  navier_stokes.reset_phi();
-
-  *this->pcout << "Solving until t = "
-               << time_stepping.get_end_time()
-               << "..." << std::endl;
-
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
-  {
-    // The VSIMEXMethod instance starts each loop at t^{k-1}
-
-    // Compute CFL number
-    cfl_number = navier_stokes.get_cfl_number();
-
-    // Updates the time step, i.e sets the value of t^{k}
-    time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(time_stepping, cfl_number));
-
-    // Updates the coefficients to their k-th value
-    time_stepping.update_coefficients();
-
-    // Solves the system, i.e. computes the fields at t^{k}
-    navier_stokes.solve();
-
-    // Advances the VSIMEXMethod instance to t^{k}
-    update_solution_vectors();
-    time_stepping.advance_time();
-
-    // Snapshot stage, all time calls should be done with get_current_time()
-    if ((time_stepping.get_step_number() %
-          this->prm.terminal_output_frequency == 0) ||
-        (time_stepping.get_next_time() ==
-          time_stepping.get_end_time()))
-      postprocessing();
-
-    if ((time_stepping.get_step_number() %
-          this->prm.graphical_output_frequency == 0) ||
-        (time_stepping.get_next_time() ==
-          time_stepping.get_end_time()))
-      output();
-  }
-
-  benchmark_request.write_table_to_file("dfg_benchmark.tex");
-
-  *(this->pcout) << std::fixed;
-
+  if (success)
+    *this->pcout << "Benchmark request written to the file:" << std::endl
+                 << "    " << strstream.str().c_str()
+                 << std::endl;
 }
 
 } // namespace RMHD
@@ -579,14 +418,38 @@ int main(int argc, char *argv[])
       using namespace dealii;
       using namespace RMHD;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 1);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-      RunTimeParameters::ProblemParameters parameter_set("DFG.prm");
+      RunTimeParameters::HydrodynamicProblemParameters parameter_set("DFG.prm");
 
-      DFG<2> simulation(parameter_set);
+      DFG<2> dfg(parameter_set);
 
-      simulation.run();
+      HydrodynamicProblem<2>* hydro_problem = &dfg;
+
+      const double final_time = parameter_set.time_discretization_parameters.final_time;
+      const double intermediate_time = 0.1 /* 350.0 */;
+
+      if (final_time > intermediate_time)
+      {
+          const unsigned int postprocessing_frequency
+          = parameter_set.postprocessing_frequency;
+
+          // disable postprocessing
+          parameter_set.postprocessing_frequency = 0;
+          // solve until intermediate time without postprocessing
+          parameter_set.time_discretization_parameters.final_time = intermediate_time;
+          hydro_problem->run();
+
+          // continue simulation with postprocessing
+          parameter_set.time_discretization_parameters.final_time
+          = final_time;
+          parameter_set.postprocessing_frequency = postprocessing_frequency;
+          hydro_problem->continue_run();
+      }
+      else
+      {
+        hydro_problem->run();
+      }
   }
   catch (std::exception &exc)
   {

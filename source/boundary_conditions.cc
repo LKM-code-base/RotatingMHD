@@ -18,11 +18,10 @@ namespace Entities
 
 namespace internal
 {
-  constexpr char header[] = "+---------+"
-                            "------------+"
-                            "------------------------------------------+";
+  constexpr char header[] = "+----------------------+"
+      "------------------------------------------+";
 
-  constexpr size_t column_width[3] = { 7, 10, 40};
+  constexpr size_t column_width[2] = { 20, 40 };
 
   constexpr size_t line_width = 63;
 
@@ -37,19 +36,16 @@ namespace internal
            << std::endl;
   }
 
-  template<typename Stream, typename A, typename B, typename C>
+  template<typename Stream, typename A, typename B>
   void add_line(Stream  &stream,
                 const A &first_column,
-                const B &second_column,
-                const C &third_column)
+                const B &second_column)
   {
     stream << "| "
            << std::setw(column_width[0]) << first_column
            << " | "
            << std::setw(column_width[1]) << second_column
-           << " | "
-           << std::setw(column_width[2]) << third_column
-          << " |"
+           << " |"
            << std::endl;
   }
 
@@ -151,37 +147,55 @@ void BoundaryConditionsBase<dim>::print_summary
 (Stream &stream)
 {
   if (dirichlet_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Dirichlet boundary conditions");
+    internal::add_line(stream, "Boundary id", "   Type name");
+
     for(auto &[key, value]: this->dirichlet_bcs)
       internal::add_line(stream,
                          key,
-                         "Dirichlet",
                          internal::get_type_string(*value));
+  }
 
   if (periodic_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Periodic boundary conditions");
+    internal::add_line(stream, "1st id", "2nd id");
+
     for(const PeriodicBoundaryData<dim> &periodic_bc: this->periodic_bcs)
       internal::add_line(stream,
-                         std::to_string(periodic_bc.boundary_pair.first) + ", " +
-                         std::to_string(periodic_bc.boundary_pair.second),
-                         "Periodic",
-                         "---");
+                         periodic_bc.boundary_pair.first,
+                         periodic_bc.boundary_pair.second);
+  }
 
   const std::vector<types::boundary_id> unconstrained_boundary_ids
     = get_unconstrained_boundary_ids();
-
   if (unconstrained_boundary_ids.size() != 0)
   {
+    internal::add_line(stream, "Unconstrained boundary ids");
+
     std::stringstream strstream;
-    strstream << "Unconstrained boundary ids: ";
     for(const auto &boundary_id: unconstrained_boundary_ids)
       strstream << boundary_id << ", ";
-
-    strstream.seekp(-2, strstream.cur);
-    strstream << " ";
 
     internal::add_line(stream, strstream.str().c_str());
   }
 }
 
+template <int dim>
+void BoundaryConditionsBase<dim>::clear()
+{
+  dirichlet_bcs.clear();
+  periodic_bcs.clear();
+  time_dependent_bcs_map.clear();
+
+  boundary_ids.clear();
+  constrained_boundaries.clear();
+
+  flag_extract_boundary_ids = true;
+  flag_datum_at_boundary = false;
+  flag_regularity_guaranteed = false;
+}
 
 template <int dim>
 ScalarBoundaryConditions<dim>::ScalarBoundaryConditions(
@@ -211,22 +225,19 @@ void ScalarBoundaryConditions<dim>::print_summary
 
   internal::add_header(stream);
 
-  internal::add_line(stream,
-                     "Bdy. id",
-                     "   Type",
-                     "             Function");
+  BoundaryConditionsBase<dim>::print_summary(stream);
 
   if (neumann_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Neumann boundary conditions");
+
+    internal::add_line(stream, "Boundary id", "   Type name");
+
     for(const auto &[key, value]: neumann_bcs)
       internal::add_line(stream,
                          key,
-                         "Neumann",
                          internal::get_type_string(*value));
-
-  if (this->flag_datum_at_boundary)
-    internal::add_line(stream, "A datum has been set at the boundary");
-
-  BoundaryConditionsBase<dim>::print_summary(stream);
+  }
 
   internal::add_header(stream);
 }
@@ -348,10 +359,10 @@ void ScalarBoundaryConditions<dim>::set_time(const double time)
 template <int dim>
 void ScalarBoundaryConditions<dim>::clear()
 {
-  this->dirichlet_bcs.clear();
-  this->neumann_bcs.clear();
-  this->periodic_bcs.clear();
-  this->time_dependent_bcs_map.clear();
+  BoundaryConditionsBase<dim>::clear();
+
+  neumann_bcs.clear();
+
   this->flag_boundary_conditions_closed = false;
 }
 
@@ -432,33 +443,37 @@ void VectorBoundaryConditions<dim>::print_summary
 
   internal::add_header(stream);
 
-  internal::add_line(stream,
-                     "Bdy. id",
-                     "   Type",
-                     "             Function");
+  BoundaryConditionsBase<dim>::print_summary(stream);
 
   if (neumann_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Neumann boundary conditions");
+    internal::add_line(stream, "Boundary id", "   Type name");
     for(const auto &[key, value]: this->neumann_bcs)
       internal::add_line(stream,
                          key,
-                         "Neumann",
                          internal::get_type_string(*value));
+  }
 
   if (normal_flux_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Normal flux boundary conditions");
+    internal::add_line(stream, "   Boundary id", "   Type name");
     for(const auto &[key, value]: normal_flux_bcs)
       internal::add_line(stream,
                          key,
-                         "Norm. flux",
                          internal::get_type_string(*value));
+  }
 
   if (tangential_flux_bcs.size() != 0)
+  {
+    internal::add_line(stream, "Tangential flux boundary conditions");
+    internal::add_line(stream, "   Boundary id", "   Type name");
     for(const auto &[key, value]: tangential_flux_bcs)
       internal::add_line(stream,
                          key,
-                         "Tang. flux",
                          internal::get_type_string(*value)  );
-
-  BoundaryConditionsBase<dim>::print_summary(stream);
+  }
 
   internal::add_header(stream);
 }
@@ -641,11 +656,12 @@ void VectorBoundaryConditions<dim>::set_time(const double time)
 template <int dim>
 void VectorBoundaryConditions<dim>::clear()
 {
-  this->dirichlet_bcs.clear();
-  this->neumann_bcs.clear();
-  this->periodic_bcs.clear();
+  BoundaryConditionsBase<dim>::clear();
+
+  neumann_bcs.clear();
   normal_flux_bcs.clear();
   tangential_flux_bcs.clear();
+
   this->flag_boundary_conditions_closed = false;
 }
 

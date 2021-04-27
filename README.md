@@ -23,11 +23,11 @@ To do list
 - [x] Reduce global communication and do not compute extrapolated values using vectors
 - [x] Neumann boundary conditions in the incremental pressure projection scheme (Navier-Stokes solver)
 - [x] Restructure the parameters of the solvers
-- [x] Algebraic multigrid preconditioning in both solvers
 - [ ] Python or bash script for running convergence tests
 - [ ] Adaptive timestepping
 - [ ] Initialization from analytical solution
 - [ ] Restart from numerical solution
+- [ ] Algebraic multigrid preconditioning in both solvers
 
 
 

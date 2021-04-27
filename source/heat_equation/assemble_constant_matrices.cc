@@ -68,7 +68,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
   stiffness_matrix.compress(VectorOperation::add);
 
   if (parameters.verbose)
-    *pcout << " done!" << std::endl << std::endl;
+    *pcout << " done!" << std::endl;
 }
 
 template <int dim>

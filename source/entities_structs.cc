@@ -16,8 +16,6 @@ using namespace dealii;
 namespace Entities
 {
 
-
-
 template <int dim>
 EntityBase<dim>::EntityBase
 (const unsigned int                               n_components,
@@ -28,14 +26,12 @@ EntityBase<dim>::EntityBase
 n_components(n_components),
 fe_degree(fe_degree),
 mpi_communicator(triangulation.get_communicator()),
-dof_handler(std::make_shared<DoFHandler<dim>>(triangulation)),
+dof_handler(std::make_shared<DoFHandler<dim>>()),
 name(name),
 flag_child_entity(false),
 flag_setup_dofs(true),
 triangulation(triangulation)
 {}
-
-
 
 template <int dim>
 EntityBase<dim>::EntityBase
@@ -48,10 +44,29 @@ mpi_communicator(entity.mpi_communicator),
 dof_handler(entity.dof_handler),
 name(new_name),
 flag_child_entity(true),
-triangulation(entity.get_triangulation())
+flag_setup_dofs(true),
+triangulation(entity.triangulation)
 {}
 
+template <int dim>
+void EntityBase<dim>::clear()
+{
+  solution.clear();
+  old_solution.clear();
+  old_old_solution.clear();
+  distributed_vector.clear();
 
+  hanging_nodes.clear();
+  constraints.clear();
+
+  locally_owned_dofs.clear();
+  locally_relevant_dofs.clear();
+
+  if (!flag_child_entity)
+    dof_handler->clear();
+
+  flag_setup_dofs = true;
+}
 
 template <int dim>
 void EntityBase<dim>::reinit()
@@ -80,8 +95,6 @@ void EntityBase<dim>::reinit()
   #endif
 }
 
-
-
 template <int dim>
 void EntityBase<dim>::update_solution_vectors()
 {
@@ -90,8 +103,6 @@ void EntityBase<dim>::update_solution_vectors()
   old_old_solution  = old_solution;
   old_solution      = solution;
 }
-
-
 
 template <int dim>
 void EntityBase<dim>::set_solution_vectors_to_zero()
@@ -102,8 +113,6 @@ void EntityBase<dim>::set_solution_vectors_to_zero()
   old_solution      = 0.;
   old_old_solution  = 0.;
 }
-
-
 
 template <int dim>
 VectorEntity<dim>::VectorEntity
@@ -116,8 +125,6 @@ fe(FE_Q<dim>(fe_degree), dim),
 boundary_conditions(triangulation)
 {}
 
-
-
 template <int dim>
 VectorEntity<dim>::VectorEntity
 (const VectorEntity<dim>  &entity,
@@ -128,13 +135,32 @@ fe(FE_Q<dim>(entity.fe_degree), dim),
 boundary_conditions(entity.get_triangulation())
 {}
 
+template <int dim>
+void VectorEntity<dim>::clear()
+{
+  boundary_conditions.clear();
 
+  EntityBase<dim>::clear();
+}
 
 template <int dim>
 void VectorEntity<dim>::setup_dofs()
 {
-  if (!this->flag_child_entity)
-    (this->dof_handler)->distribute_dofs(this->fe);
+  if (this->flag_child_entity)
+  {
+    AssertThrow(this->dof_handler != nullptr,
+                ExcMessage("The shared pointer to the DoFHandler of the base "
+                           "entity is not setup correctly."));
+    AssertThrow(this->dof_handler->has_active_dofs(),
+                ExcMessage("The DoFHandler of the base entity does not have any "
+                           "active degrees of freedom."));
+
+  }
+  else
+  {
+    this->dof_handler->initialize(this->triangulation, fe);
+  }
+
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
@@ -155,19 +181,24 @@ void VectorEntity<dim>::setup_dofs()
   this->reinit();
 }
 
-
-
 template <int dim>
-void VectorEntity<dim>::apply_boundary_conditions()
+void VectorEntity<dim>::apply_boundary_conditions(const bool print_summary)
 {
   AssertThrow(boundary_conditions.regularity_guaranteed(),
               ExcMessage("No boundary conditions were set for the \""
                           + this->name + "\" entity"));
 
-  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+  AssertThrow(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
   Assert(boundary_conditions.closed(),
          ExcMessage("The boundary conditions have not been closed."));
+
+  if (print_summary)
+  {
+    ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+    boundary_conditions.print_summary(pcout, this->name);
+  }
 
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
@@ -578,8 +609,6 @@ fe(fe_degree),
 boundary_conditions(triangulation)
 {}
 
-
-
 template <int dim>
 ScalarEntity<dim>::ScalarEntity
 (const ScalarEntity<dim>  &entity,
@@ -590,13 +619,34 @@ fe(entity.fe_degree),
 boundary_conditions(entity.get_triangulation())
 {}
 
+template <int dim>
+void ScalarEntity<dim>::clear()
+{
+  boundary_conditions.clear();
+
+  EntityBase<dim>::clear();
+}
 
 
 template <int dim>
 void ScalarEntity<dim>::setup_dofs()
 {
-  if (!this->flag_child_entity)
-    (this->dof_handler)->distribute_dofs(this->fe);
+  if (this->flag_child_entity)
+  {
+    AssertThrow(this->dof_handler != nullptr,
+                ExcMessage("The shared pointer to the DoFHandler of the base "
+                           "entity is not setup correctly."));
+    AssertThrow(this->dof_handler->has_active_dofs(),
+                ExcMessage("The DoFHandler of the base entity does not have any "
+                           "active degrees of freedom."));
+
+  }
+  else
+  {
+    this->dof_handler->initialize(this->triangulation,
+                                  fe);
+  }
+
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
@@ -616,25 +666,29 @@ void ScalarEntity<dim>::setup_dofs()
   this->reinit();
 }
 
-
-
 template <int dim>
-void ScalarEntity<dim>::apply_boundary_conditions()
+void ScalarEntity<dim>::apply_boundary_conditions(const bool print_summary)
 {
   AssertThrow(boundary_conditions.regularity_guaranteed(),
               ExcMessage("No boundary conditions were set for the \""
                           + this->name + "\" entity"));
+  AssertThrow(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
-  Assert(boundary_conditions.closed(),
-         ExcMessage("The boundary conditions have not been closed."));
+  if (print_summary)
+  {
+    ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+    boundary_conditions.print_summary(pcout, this->name);
+  }
 
   using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
   this->constraints.reinit(this->locally_relevant_dofs);
   this->constraints.merge(this->hanging_nodes);
+
   if (!boundary_conditions.periodic_bcs.empty())
   {
     std::vector<unsigned int> first_vector_components;
@@ -792,7 +846,7 @@ void ScalarEntity<dim>::clear_boundary_conditions()
 {
   boundary_conditions.clear();
 
-  this->constraints.clear();
+  EntityBase<dim>::clear();
 }
 
 

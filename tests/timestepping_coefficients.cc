@@ -45,20 +45,53 @@ void checkTimeStepper(const TimeDiscretizationParameters &parameters)
         std::cout << "Fixed time stepping with "
                   << timestepper.get_name() << " scheme" << std::endl;
 
-        do
+        while (timestepper.get_current_time() < timestepper.get_end_time())
         {
+          // Update the time step, i.e., sets the value of t^{k}
+          timestepper.set_desired_next_step_size(1.0);
+
           std::cout << timestepper << std::endl;
 
+          // Update the coefficients to their k-th value
           timestepper.update_coefficients();
 
+          // Print the coefficients
           timestepper.print_coefficients(std::cout);
 
+          // Advances the VSIMEXMethod instance to t^{k}
           timestepper.advance_time();
 
-        } while (timestepper.is_at_end() == false &&
-                 timestepper.get_step_number() < parameters.n_maximum_steps);
-    }
+          if (timestepper.get_step_number() >= parameters.n_maximum_steps)
+            break;
+        }
 
+        std::cout << "Restarting time stepping with "
+                  << timestepper.get_name() << " scheme" << std::endl;
+
+        timestepper.clear();
+        timestepper.initialize(1.0);
+
+        while (timestepper.get_current_time() < timestepper.get_end_time())
+        {
+          // Update the time step, i.e., sets the value of t^{k}
+          timestepper.set_desired_next_step_size(1.0);
+
+          std::cout << timestepper << std::endl;
+
+          // Update the coefficients to their k-th value
+          timestepper.update_coefficients();
+
+          // Print the coefficients
+          timestepper.print_coefficients(std::cout);
+
+          // Advances the VSIMEXMethod instance to t^{k}
+          timestepper.advance_time();
+
+          if (timestepper.get_step_number() >= parameters.n_maximum_steps)
+            break;
+        }
+
+    }
     return;
 }
 
@@ -66,12 +99,12 @@ int main(int /* argc */, char **/* argv[] */)
 {
   try
   {
-    TimeDiscretizationParameters parameters("timestepping_coefficients.prm");
+    TimeDiscretizationParameters parameters;
 
-    parameters.final_time = 3.0;
+    parameters.final_time = 4.0;
     parameters.initial_time_step = 1.0;
     parameters.maximum_time_step = 1.0;
-    parameters.minimum_time_step = 0.001;
+    parameters.minimum_time_step = 0.1;
 
     // fixed time steps
     parameters.adaptive_time_stepping = false;
@@ -98,10 +131,10 @@ int main(int /* argc */, char **/* argv[] */)
 
 
     // adaptive time steps
-    parameters.final_time = 1.0;
-    parameters.initial_time_step = 0.1;
-    parameters.maximum_time_step = 1.0;
-    parameters.minimum_time_step = 0.001;
+//    parameters.final_time = 1.0;
+//    parameters.initial_time_step = 0.1;
+//    parameters.maximum_time_step = 1.0;
+//    parameters.minimum_time_step = 0.001;
 
     /*
      * To be performed when the adaptivity is implemented...

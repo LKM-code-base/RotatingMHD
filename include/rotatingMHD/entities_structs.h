@@ -3,7 +3,6 @@
 #define INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
 
 #include <rotatingMHD/global.h>
-#include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/boundary_conditions.h>
 
 #include <deal.II/base/index_set.h>
@@ -23,8 +22,10 @@ namespace RMHD
 {
 
 using namespace dealii;
+
 /*!
  * @namespace Entities
+
  * @brief The namescape encompasses the numerical representation
  * of scalar and vector fields.
  */
@@ -33,6 +34,7 @@ namespace Entities
 
 /*!
  * @struct EntityBase
+ *
  * @brief This struct gathers all the numerical attributes that are
  * independent of the rank of the tensor.
  */
@@ -84,13 +86,13 @@ public:
    * @brief The AffineConstraints<double> instance handling the
    * hanging nodes.
    */
-  AffineConstraints<double>         hanging_nodes;
+  AffineConstraints<LinearAlgebra::MPI::Vector::value_type> hanging_nodes;
 
   /*!
    * @brief The AffineConstraints<double> instance handling the
    * hanging nodes and the boundary conditions.
    */
-  AffineConstraints<double>         constraints;
+  AffineConstraints<LinearAlgebra::MPI::Vector::value_type> constraints;
 
   /*!
    * @brief The set of the degrees of freedom owned by the processor.
@@ -135,6 +137,12 @@ public:
   const parallel::distributed::Triangulation<dim> &get_triangulation() const;
 
   /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear();
+
+  /*!
    * @brief Initializes the solution vectors by calling their respective
    * reinit method.
    */
@@ -164,7 +172,7 @@ public:
    * @ref ScalarEntity::apply_boundary_conditions and
    * @ref VectorEntity::apply_boundary_conditions respectively.
    */
-  virtual void apply_boundary_conditions() = 0;
+  virtual void apply_boundary_conditions(const bool print_summary = true) = 0;
 
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
@@ -210,7 +218,6 @@ protected:
    */
   bool        flag_setup_dofs;
 
-private:
   /*!
    * @brief Reference to the underlying triangulation.
    */
@@ -265,6 +272,12 @@ struct VectorEntity : EntityBase<dim>
   VectorBoundaryConditions<dim> boundary_conditions;
 
   /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear() override;
+
+  /*!
    * @brief Set ups the degrees of freedom of the vector field.
    *
    * @details It distributes the degrees of freedom bases on @ref fe;
@@ -284,7 +297,7 @@ struct VectorEntity : EntityBase<dim>
    * are applied as the method initiates @ref constraints, which is used
    * througout the solver.
    */
-  virtual void apply_boundary_conditions() override;
+  virtual void apply_boundary_conditions(const bool print_summary = true) override;
 
   /*!
    * @brief Closes the @ref boundary_conditions and prints a summary
@@ -324,7 +337,6 @@ struct VectorEntity : EntityBase<dim>
     const Point<dim>                    &point,
     const std::shared_ptr<Mapping<dim>> external_mapping =
                                           std::shared_ptr<Mapping<dim>>()) const;
-
   /*!
    * @brief This method evaluates the gradient of the continous vector
    * field at the given point.
@@ -339,10 +351,11 @@ struct VectorEntity : EntityBase<dim>
                                           std::shared_ptr<Mapping<dim>>()) const;
 };
 
-  /*!
-   * @struct ScalarEntity
-   * @brief Numerical representation of a scalar field.
-   */
+/*!
+ * @struct ScalarEntity
+ *
+ * @brief Numerical representation of a scalar field.
+ */
 template <int dim>
 struct ScalarEntity : EntityBase<dim>
 {
@@ -371,6 +384,12 @@ struct ScalarEntity : EntityBase<dim>
   ScalarBoundaryConditions<dim>       boundary_conditions;
 
   /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear() override;
+
+  /*!
    * @brief Set ups the degrees of freedom of the scalar field.
    * @details It distributes the degrees of freedom bases on @ref fe;
    * extracts the @ref locally_owned_dofs and the @ref locally_relevant_dofs;
@@ -389,7 +408,7 @@ struct ScalarEntity : EntityBase<dim>
    * are applied because the method initiates @ref constraints, which are used
    * througout the solver.
    */
-  virtual void apply_boundary_conditions() override;
+  virtual void apply_boundary_conditions(const bool print_summary = true) override;
 
   /*!
    * @brief Closes the @ref boundary_conditions and prints a summary

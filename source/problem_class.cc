@@ -16,21 +16,10 @@ using namespace dealii;
 
 template<int dim>
 SolutionTransferContainer<dim>::SolutionTransferContainer()
-:
-error_vector_size(0)
 {}
 
 template<int dim>
-void SolutionTransferContainer<dim>::add_entity(
-std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
-{
-  entities.emplace_back(std::make_pair(entity.get(), flag));
-  if (flag)
-    error_vector_size += 1;
-}
-
-template<int dim>
-Problem<dim>::Problem(const RunTimeParameters::ProblemParameters &prm)
+Problem<dim>::Problem(RunTimeParameters::ProblemBaseParameters &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
 prm(prm),
@@ -83,60 +72,69 @@ computing_timer(
   }
 }
 
+template <int dim>
+void Problem<dim>::clear()
+{
+  container.clear();
 
+  triangulation.clear();
+}
 
 template <int dim>
-void Problem<dim>::set_initial_conditions
-(std::shared_ptr<Entities::EntityBase<dim>> entity,
- Function<dim>                              &function,
- const TimeDiscretization::VSIMEXMethod     &time_stepping,
- const bool                                 boolean)
+void Problem<dim>::project_function
+(const Function<dim>                             &function,
+ const std::shared_ptr<Entities::EntityBase<dim>> entity,
+ LinearAlgebra::MPI::Vector                      &vector)
 {
+  Assert(function.n_components == entity->n_components,
+         ExcMessage("The number of components of the function does not those "
+                    "of the entity"));
   #ifdef USE_PETSC_LA
     LinearAlgebra::MPI::Vector
-    tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
+    tmp_vector(entity->locally_owned_dofs, mpi_communicator);
   #else
     LinearAlgebra::MPI::Vector
-    tmp_old_solution(entity->locally_owned_dofs);
+    tmp_vector(entity->locally_owned_dofs);
   #endif
 
-  function.set_time(time_stepping.get_start_time());
+  VectorTools::project(*(this->mapping),
+                      *(entity->dof_handler),
+                       entity->constraints,
+                       QGauss<dim>(entity->fe_degree + 2),
+                       function,
+                       tmp_vector);
 
-  if (!boolean)
-  {
-    VectorTools::project(*entity->dof_handler,
-                          entity->constraints,
-                          QGauss<dim>(entity->fe_degree + 2),
-                          function,
-                          tmp_old_solution);
-
-    entity->old_solution = tmp_old_solution;
-  }
-  else
-  {
-    LinearAlgebra::MPI::Vector tmp_old_old_solution(tmp_old_solution);
-
-    VectorTools::project(*entity->dof_handler,
-                          entity->constraints,
-                          QGauss<dim>(entity->fe_degree + 2),
-                          function,
-                          tmp_old_old_solution);
-
-    function.advance_time(time_stepping.get_next_step_size());
-
-    VectorTools::project(*entity->dof_handler,
-                          entity->constraints,
-                          QGauss<dim>(entity->fe_degree + 2),
-                          function,
-                          tmp_old_solution);
-
-    entity->old_old_solution = tmp_old_old_solution;
-    entity->old_solution     = tmp_old_solution;
-  }
+  vector = tmp_vector;
 }
 
 
+template <int dim>
+void Problem<dim>::interpolate_function
+(const Function<dim>                             &function,
+ const std::shared_ptr<Entities::EntityBase<dim>> entity,
+ LinearAlgebra::MPI::Vector                      &vector)
+{
+  Assert(function.n_components == entity->n_components,
+         ExcMessage("The number of components of the function does not those "
+                    "of the entity"));
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs, mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs);
+  #endif
 
+  VectorTools::interpolate(*entity->dof_handler,
+                           function,
+                           tmp_vector);
+
+  vector = tmp_vector;
+}
+
+
+/*
+ *
 template <int dim>
 void Problem<dim>::compute_error(
   LinearAlgebra::MPI::Vector                  &error_vector,
@@ -169,20 +167,9 @@ void Problem<dim>::compute_error(
 
   error_vector = distributed_error_vector;
 }
+*
+*/
 
-template <int dim>
-double Problem<dim>::compute_next_time_step
-(const TimeDiscretization::VSIMEXMethod &time_stepping,
- const double                           cfl_number,
- const double                           max_cfl_number) const
-{
-  if (!prm.time_discretization_parameters.adaptive_time_stepping ||
-      time_stepping.get_step_number() == 0)
-    return time_stepping.get_next_step_size();
-
-  return max_cfl_number / cfl_number *
-         time_stepping.get_next_step_size();
-}
 
 template <int dim>
 void Problem<dim>::adaptive_mesh_refinement()
@@ -201,7 +188,6 @@ void Problem<dim>::adaptive_mesh_refinement()
   /*! Initiates the objects responsible for the solution transfer */
   for (auto const &entity: container.entities)
     solution_transfers.emplace_back(*(entity.first->dof_handler));
-
   {
     TimerOutput::Scope t(*computing_timer,
                          "Problem: Adaptive mesh refinement Pt. 1");

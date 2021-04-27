@@ -138,16 +138,13 @@ Problem<dim>(parameters),
 params(parameters),
 velocity(std::make_shared<Entities::VectorEntity<dim>>(
               parameters.fe_degree_velocity,
-              this->triangulation,
-              "Velocity")),
+              this->triangulation)),
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.fe_degree_pressure,
-              this->triangulation,
-              "Pressure")),
+              this->triangulation)),
 temperature(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.fe_degree_temperature,
-              this->triangulation,
-              "Temperature")),
+              this->triangulation)),
 temperature_boundary_conditions(
               std::make_shared<EquationData::MIT::TemperatureBoundaryCondition<dim>>(
               parameters.time_discretization_parameters.start_time)),
@@ -290,8 +287,6 @@ void MITBenchmark<dim>::setup_constraints()
     1, temperature_boundary_conditions, true);
   temperature->boundary_conditions.set_dirichlet_bcs(
     2, temperature_boundary_conditions, true);
-  temperature->boundary_conditions.set_neumann_bcs(3);
-  temperature->boundary_conditions.set_neumann_bcs(4);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -481,7 +476,6 @@ int main(int argc, char *argv[])
       RunTimeParameters::ProblemParameters parameter_set("MIT.prm");
 
       MITBenchmark<2> simulation(parameter_set);
-
       simulation.run();
 
       std::cout.precision(1);
