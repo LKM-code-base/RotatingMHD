@@ -2015,6 +2015,30 @@ flag_convergence_test(false)
 {}
 
 
+/*
+ *
+ * @attention Delete this once the problem solver is working
+ *
+ */
+ProblemParameters::ProblemParameters(const ProblemBaseParameters &prm_base)
+:
+OutputControlParameters(),
+DimensionlessNumbers(),
+problem_type(ProblemType::boussinesq),
+dim(2),
+mapping_degree(1),
+mapping_interior_cells(false),
+fe_degree_pressure(1),
+fe_degree_velocity(2),
+fe_degree_temperature(2),
+verbose(false),
+convergence_test_parameters(),
+spatial_discretization_parameters(),
+time_discretization_parameters(),
+navier_stokes_parameters(),
+heat_equation_parameters(),
+flag_convergence_test(false)
+{}
 
 ProblemParameters::ProblemParameters
 (const std::string &parameter_filename,

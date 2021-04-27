@@ -529,6 +529,8 @@ struct OutputControlParameters
    */
   unsigned int  terminal_output_frequency;
 
+  unsigned int	postprocessing_frequency;
+
   /*!
    * @brief Directory where the graphical output should be written.
    */
@@ -1628,6 +1630,13 @@ struct ProblemParameters
    */
   ProblemParameters(const std::string &parameter_filename,
                     const bool        flag = false);
+
+  /*
+   *
+   * @attention Delete this once the problem solver is working
+   *
+   */
+  ProblemParameters(const ProblemBaseParameters &prm_base);
 
   /*!
    * @brief Static method which declares the associated parameter to the

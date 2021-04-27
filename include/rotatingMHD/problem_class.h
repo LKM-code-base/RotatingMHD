@@ -110,8 +110,16 @@ class Problem
 public:
   /*!
    * @brief Default constructor which initializes the member variables.
+   *
+   * @attention Delete this once the problem solver is working
+   *
    */
   Problem(const RunTimeParameters::ProblemParameters &prm);
+
+  /*!
+   * @brief Default constructor which initializes the member variables.
+   */
+  Problem(const RunTimeParameters::ProblemBaseParameters &prm);
 
 protected:
   /*!
@@ -155,7 +163,7 @@ protected:
    * @details Release all memory and return all objects to a state just like
    * after having called the default constructor.
    */
-  void clear();
+  virtual void clear();
 
   /*!
    * @brief Loads the initial conditions to the pertinent solution
@@ -176,6 +184,15 @@ protected:
    Function<dim>                              &function,
    const TimeDiscretization::VSIMEXMethod     &time_stepping,
    const bool                                 boolean = false);
+
+  /*!
+   * @brief Projects the @ref function on the finite element space contained
+   * in the @ref entity and saves the result in the @ref vector.
+   */
+  void project_function
+  (const Function<dim>                             &function,
+   const std::shared_ptr<Entities::EntityBase<dim>> entity,
+   LinearAlgebra::MPI::Vector                      &vector);
 
   /*!
    * @brief Computes the error of the numerical solution against
