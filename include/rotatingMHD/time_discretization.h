@@ -176,6 +176,11 @@ public:
   VSIMEXMethod(const VSIMEXMethod &vsimex);
 
   /*!
+   * @brief Release all memory and reset all objects.
+   */
+  void clear();
+
+  /*!
   * @brief A method returning the order of the VSIMEX scheme.
   */
   unsigned int get_order() const;

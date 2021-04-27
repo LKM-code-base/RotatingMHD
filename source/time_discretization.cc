@@ -496,6 +496,27 @@ old_step_size_values(vsimex.old_step_size_values),
 flag_coefficients_changed(vsimex.flag_coefficients_changed)
 {}
 
+void VSIMEXMethod::clear()
+{
+  for (unsigned int i=0; i<order+1; ++i)
+  {
+    alpha[i] = 0.0;
+    beta[i] = 0.0;
+    gamma[i] = 0.0;
+  }
+
+  for (unsigned int i=0; i<order; ++i)
+  {
+    eta[i] = 0.0;
+    old_alpha_zero[i] = 0.0;
+    old_step_size_values[i] = 0.0;
+  }
+
+  omega = 1.0;
+
+  this->restart();
+}
+
 void VSIMEXMethod::reinit()
 {
   // Resize all coefficient vectors according to the scheme's order
