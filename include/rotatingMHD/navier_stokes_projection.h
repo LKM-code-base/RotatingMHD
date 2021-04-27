@@ -27,31 +27,31 @@ using namespace dealii;
  * @details This version is parallelized using deal.ii's MPI facilities and
  * relies either on the Trilinos or the PETSc library. Moreover, for the time
  * discretization an implicit-explicit scheme (IMEX) with variable step size is
- * used. 
- * 
+ * used.
+ *
  * The class is coded to solve a diffusion step given by
  * \f[
  * \begin{equation}
- * \dfrac{\alpha_0^n}{\Delta t_{n-1}} \bs{u}^{n} -\dfrac{1}{\textrm{Re}} 
+ * \dfrac{\alpha_0^n}{\Delta t_{n-1}} \bs{u}^{n} -\dfrac{1}{\textrm{Re}}
  * \Delta \bs{u}^{n} + \bs{u}^{\star, n} \cdot (\nabla \otimes \bs{u}^{n})
  * + \frac{1}{2} (\nabla \cdot \bs{u}^{\star, n}) \bs{u}^{n} = -\nabla p^{\sharp, n}
- * - \sum_{j=1}^{2} \dfrac{\alpha_j^n}{\Delta t_{n-1}}\bs{u}^{n-j}, 
+ * - \sum_{j=1}^{2} \dfrac{\alpha_j^n}{\Delta t_{n-1}}\bs{u}^{n-j},
  * \qquad \forall(\bs{x},t)\in \Omega \times [0, T]
  * \end{equation}
  * \f]
  * with
- * \f[ 
+ * \f[
  * \begin{equation}
- *  p^\sharp = p^{n-1} + 
+ *  p^\sharp = p^{n-1} +
  *  \sum_{j=1}^{2} \frac{\Delta t_{n-1-j}}{\Delta t_{n-1}}
  *  \frac{\alpha_j^n}{\alpha_0^{n-j}}\phi^{n-j}
  * \end{equation}
  * \f]
  * a projection step given by
- * \f[ 
+ * \f[
  * \begin{equation}
- * \Delta \phi^{n} = \dfrac{\alpha_0^n}{\Delta t_{n-1}} \nabla \cdot 
- * \bs{u}^{n},  \qquad \forall (\bs{x}, t) 
+ * \Delta \phi^{n} = \dfrac{\alpha_0^n}{\Delta t_{n-1}} \nabla \cdot
+ * \bs{u}^{n},  \qquad \forall (\bs{x}, t)
  * \in \Omega \times \left[0, T \right]
  * \end{equation}
  * \f]
@@ -64,10 +64,10 @@ using namespace dealii;
  * where \f$ \chi \f$ is either 0 or 1 denoting the standard or rotational
  * incremental scheme respectively.
  * @todo Implement a generalized extrapolation scheme.
- * @todo Implement Neumann boundary conditions.
+ * @todo Expand the weak formulation for the case of unconventional
+ * boundary conditions.
  * @attention The code is hardcoded for a second order time discretization
- * scheme. Setting a first order scheme in the parameter file will cause
- * errors.
+ * scheme.
  */
 template <int dim>
 class NavierStokesProjection
@@ -75,14 +75,14 @@ class NavierStokesProjection
 
 public:
   /*!
-   * @brief The constructor of the Navier-Stokes projection class where 
+   * @brief The constructor of the Navier-Stokes projection class where
    * the bouyancy term is neglected.
-   * 
-   * @details Stores local references to the input parameters and 
+   *
+   * @details Stores local references to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   NavierStokesProjection
-  (const RunTimeParameters::ParameterSet        &parameters,
+  (const RunTimeParameters::NavierStokesParameters  &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
    std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
@@ -94,14 +94,14 @@ public:
        std::shared_ptr<TimerOutput>());
 
   /*!
-   * @brief The constructor of the Navier-Stokes projection class where 
+   * @brief The constructor of the Navier-Stokes projection class where
    * the bouyancy term is considered.
-   * 
-   * @details Stores local references to the input parameters and 
+   *
+   * @details Stores local references to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   NavierStokesProjection
-  (const RunTimeParameters::ParameterSet        &parameters,
+  (const RunTimeParameters::NavierStokesParameters        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
    std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
@@ -116,8 +116,8 @@ public:
   /*!
    * @brief The entity for the scalar field \f$ \phi \f$, which is
    * the field computed during the projection step and later used in
-   * the pressure-correction step. 
-   */ 
+   * the pressure-correction step.
+   */
   std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
 
   /*!
@@ -135,19 +135,27 @@ public:
   /*!
    *  @brief Sets the body force of the problem.
    *
-   *  @details Stores the memory address of the body force function in 
+   *  @details Stores the memory address of the body force function in
    *  the pointer @ref body_force.
    */
-  void set_body_force(RMHD::EquationData::BodyForce<dim> &body_force);
+  void set_body_force(RMHD::EquationData::VectorFunction<dim> &body_force);
 
   /*!
    *  @brief Sets the gravity unit vector of the problem.
    *
-   *  @details Stores the memory address of the gravity unit vector 
-   *  function in the pointer @ref gravity_unit_vector_ptr.
+   *  @details Stores the memory address of the gravity unit vector
+   *  function in the pointer @ref gravity_vector_ptr.
    */
-  void set_gravity_unit_vector(RMHD::EquationData::BodyForce<dim> &gravity_unit_vector);
+  void set_gravity_vector(RMHD::EquationData::VectorFunction<dim> &gravity_vector);
 
+  /*!
+   *  @brief Sets the angular velocity of the rotating frame of
+   *  reference.
+   *
+   *  @details Stores the memory address of the angular velocity unit vector
+   *  function in the pointer @ref angular_velocity_vector_ptr.
+   */
+  void set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<dim> &angular_velocity_vector);
 
   /*!
    *  @brief Solves the problem for one single timestep.
@@ -161,19 +169,31 @@ public:
    *  @brief Resets the internal entity \f$ \phi \f$
    *  @details Sets all its solution vectors to zero and signals
    *  the solver to set up the entity on the next solve call.
-   */ 
+   */
   void reset_phi();
-  
+
+  /*!
+   *  @brief Resets the internal linear algebra members.
+   *  @details Calls their respective clear method.
+   */
+  void reset();
+
+  /*!
+   * @brief Performs one diffusion step
+   * @attention This is just a method for testing
+   */
+  void perform_diffusion_step();
+
   /*!
    *  @brief Computes Courant-Friedrichs-Lewy number for the current
    *  velocity field.
    *
-   *  @details It is given by 
+   *  @details It is given by
    * \f[
    *    C = \Delta t_{n-1} \min_{K \in \Omega_\textrm{h}}
    *    \left\lbrace \frac{\max_{P \in K} { \left\lVert \bs{v} \right\rVert}}{h_K} \right\rbrace
-   * \f] 
-   * where \f$ C \f$ is the Courant number, \f$ K\f$ denotes the 
+   * \f]
+   * where \f$ C \f$ is the Courant number, \f$ K\f$ denotes the
    * \f$ K\f$-th cell of the tessallation, \f$ \Omega_\textrm{h}\f$ the tessallation,
    * \f$ P \f$ a quadrature point inside the \f$ K\f$-th cell,
    * \f$ \bs{v} \f$ the velocity, \f$ h_K\f$ the largest diagonal of the \f$ K\f$-th
@@ -183,19 +203,19 @@ public:
 
   /*!
    * @brief Returns the norm of the right hand side of the diffusion step.
-   */ 
+   */
   double get_diffusion_step_rhs_norm() const;
 
   /*!
    * @brief Returns the norm of the right hand side of the projection step.
-   */ 
+   */
   double get_projection_step_rhs_norm() const;
 
 private:
   /*!
    * @brief A reference to the parameters which control the solution process.
    */
-  const RunTimeParameters::ParameterSet  &parameters;
+  const RunTimeParameters::NavierStokesParameters  &parameters;
 
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
@@ -235,12 +255,18 @@ private:
   /*!
    * @brief A pointer to the body force function.
    */
-  RMHD::EquationData::BodyForce<dim>    *body_force_ptr;
+  RMHD::EquationData::VectorFunction<dim>    *body_force_ptr;
 
   /*!
    * @brief A pointer to the gravity unit vector function.
    */
-  RMHD::EquationData::BodyForce<dim>    *gravity_unit_vector_ptr;
+  RMHD::EquationData::VectorFunction<dim>    *gravity_vector_ptr;
+
+  /*!
+   * @brief A pointer to unit vector function of the angular velocity of
+   * the rotating frame of reference.
+   */
+  RMHD::EquationData::AngularVelocity<dim>    *angular_velocity_vector_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
@@ -299,12 +325,12 @@ private:
    * @brief Vector representing the right-hand side of the linear system of the
    * diffusion step.
    */
-  LinearAlgebra::MPI::Vector        velocity_rhs;
+  LinearAlgebra::MPI::Vector        diffusion_step_rhs;
 
   /*!
    * @brief Mass matrix of the pressure field.
    */
-  LinearAlgebra::MPI::SparseMatrix  pressure_mass_matrix;
+  LinearAlgebra::MPI::SparseMatrix  projection_mass_matrix;
 
   /*!
    * @brief Stiffness matrix of the pressure field. Assembly of  the weak of the
@@ -313,10 +339,16 @@ private:
   LinearAlgebra::MPI::SparseMatrix  pressure_laplace_matrix;
 
   /*!
+   * @brief Stiffness matrix of the phi field. Assembly of  the weak of the
+   * Laplace operator.
+   */
+  LinearAlgebra::MPI::SparseMatrix  phi_laplace_matrix;
+
+  /*!
    * @brief Vector representing the right-hand side of the linear system of the
    * projection step.
    */
-  LinearAlgebra::MPI::Vector        pressure_rhs;
+  LinearAlgebra::MPI::Vector        projection_step_rhs;
 
   /*!
    * @brief Vector representing the right-hand side of the linear system of the
@@ -325,69 +357,64 @@ private:
   LinearAlgebra::MPI::Vector        poisson_prestep_rhs;
 
   /*!
-   * @brief The preconditioner of the diffusion step.
-   * @attention Hardcoded for a ILU preconditioner.
+   * @brief Vector representing the right-hand side of the projection
+   * performed during the pressure-correction step.
    */
-  LinearAlgebra::MPI::PreconditionILU     diffusion_step_preconditioner;
-  
-  /*!
-   * @brief The preconditioner of the projection step.
-   * @attention Hardcoded for a ILU preconditioner.
-   */
-  LinearAlgebra::MPI::PreconditionILU     projection_step_preconditioner;
-  
-  /*!
-   * @brief The preconditioner of the correction step.
-   * @attention Hardcoded for a Jacobi preconditioner.
-   */
-  LinearAlgebra::MPI::PreconditionJacobi  correction_step_preconditioner;
+  LinearAlgebra::MPI::Vector        correction_step_rhs;
 
   /*!
-   * @brief The aboslute tolerance of all internal solvers used
-   * for the pressure-correction scheme.
-   * @attention Its value is hardcoded to \f$ \num{1e-9}\f$.
+   * @brief The preconditioner of the diffusion step.
    */
-  const double                          absolute_tolerance = 1.0e-9;
-  
+  std::shared_ptr<LinearAlgebra::PreconditionBase> diffusion_step_preconditioner;
+
+  /*!
+   * @brief The preconditioner of the projection step.
+   */
+  std::shared_ptr<LinearAlgebra::PreconditionBase> projection_step_preconditioner;
+
+  /*!
+   * @brief The preconditioner of the poisson prestep.
+   */
+  std::shared_ptr<LinearAlgebra::PreconditionBase> poisson_prestep_preconditioner;
+
+  /*!
+   * @brief The preconditioner of the correction step.
+   */
+  std::shared_ptr<LinearAlgebra::PreconditionBase> correction_step_preconditioner;
+
   /*!
    * @brief The norm of the right hand side of the diffusion step.
    * @details Its value is that of the last computed pressure-correction
    * scheme step.
-   */ 
+   */
   double                                  norm_diffusion_rhs;
 
   /*!
    * @brief The norm of the right hand side of the projection step.
    * @details Its value is that of the last computed pressure-correction
    * scheme step.
-   */ 
+   */
   double                                  norm_projection_rhs;
-  
+
   /*!
    * @brief A flag to normalize the pressure field.
-   * @details In the case of an unconstrained formulation in the 
+   * @details In the case of an unconstrained formulation in the
    * pressure space, i.e. no Dirichlet boundary conditions, this flag
    * has to be set to true in order to constraint the pressure field.
    */
   bool                                  flag_normalize_pressure;
 
   /*!
-   * @brief A flag indicating if the scalar field  \f$ \phi\f$ is to 
+   * @brief A flag indicating if the scalar field  \f$ \phi\f$ is to
    * be initiated.
    * @details The initiation is done by the @ref setup_phi method.
    */
   bool                                  flag_setup_phi;
 
   /*!
-   * @brief A flag indicating if the velocity's mass and stiffness 
-   * matrices are to be added.
+   * @brief A flag indicating if the matrices were updated.
    */
-  bool                                  flag_add_mass_and_stiffness_matrices;
-
-  /*!
-   * @brief A flag indicating if bouyancy term is to be ignored.
-   */
-  bool                                  flag_ignore_bouyancy_term;
+  bool                                  flag_matrices_were_updated;
 
   /*!
    * @brief A method initiating the scalar field  \f$ \phi\f$.
@@ -458,7 +485,8 @@ private:
   void assemble_diffusion_step();
 
   /*!
-   * @brief This method solves the linear system of the diffusion step.
+   * @brief This method solves the linear system of the diffusion step. Updates
+   * the Entities::VectorEntity::solution vector of the #velocity.
    */
   void solve_diffusion_step(const bool reinit_prec);
 
@@ -473,12 +501,15 @@ private:
   void assemble_projection_step();
 
   /*!
-   * @brief This method solves the linear system of the projection step.
+   * @brief This method solves the linear system of the projection step. Updates
+   * the Entities::ScalarEntity::solution vector of the pressure correction
+   * #phi.
    */
   void solve_projection_step(const bool reinit_prec);
 
   /*!
    * @brief This method performs the pressure update of the projection step.
+   * Updates the Entities::ScalarEntity::solution vector of the #pressure.
    */
   void pressure_correction(const bool reinit_prec);
 
@@ -507,16 +538,16 @@ private:
    * matrices of the velocity field on a single cell.
    */
   void assemble_local_velocity_matrices(
-    const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>  &scratch,
-    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim>     &data);
+    const typename DoFHandler<dim>::active_cell_iterator                        &cell,
+    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>&scratch,
+    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy        &data);
 
   /*!
    * @brief This method copies the local mass and the local stiffness matrices
    * of the velocity field on a single cell into the global matrices.
    */
   void copy_local_to_global_velocity_matrices(
-    const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy  &data);
 
   /*!
    * @brief This method assembles the mass \f$\bs{M}^{(p)}\f$ and the
@@ -542,32 +573,32 @@ private:
    * matrices of the velocity field on a single cell.
    */
   void assemble_local_pressure_matrices(
-    const typename DoFHandler<dim>::active_cell_iterator  &cell,
-    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>  &scratch,
-    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim>     &data);
+    const typename DoFHandler<dim>::active_cell_iterator                        &cell,
+    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>&scratch,
+    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy        &data);
 
   /*!
    * @brief This method copies the local mass and the local stiffness matrices
    * of the pressure field on a single cell into the global matrices.
    */
   void copy_local_to_global_pressure_matrices(
-    const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy  &data);
 
   /*!
    * @brief This method assembles the right-hand side of the poisson
    * prestep using the WorkStream approach.
    */
   void assemble_local_poisson_prestep_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator        &cell,
-    AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>     &scratch,
-    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim>       &data);
+    const typename DoFHandler<dim>::active_cell_iterator                &cell,
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>  &scratch,
+    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy          &data);
 
   /*!
    * @brief This method assembles the local right-hand side of the poisson
    * prestep on a single cell.
    */
   void copy_local_to_global_poisson_prestep_rhs(
-    const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy    &data);
 
   /*!
    * @brief This method assembles the right-hand side of the diffusion step
@@ -576,7 +607,7 @@ private:
    * This method assembles the following weak form into the vector representing
    * the right-hand side \f$\bs{b}\f$
    * \f[
-   * \bs{b}_i = -\int\limits_\Omega (\frac{\alpha_1}{\Delta t_{n-1}} 
+   * \bs{b}_i = -\int\limits_\Omega (\frac{\alpha_1}{\Delta t_{n-1}}
    * \bs{v}^{n-1} + \frac{\alpha_2}{\Delta t_{n-1}} \bs{v}^{n-2}) \cdot
    * \bs{\varphi}_i \dint{V} + \int\limits_\Omega p^\star
    * (\nabla\cdot\bs{\varphi}_i) \dint{V}\,,
@@ -591,16 +622,16 @@ private:
    * step on a single cell.
    */
   void assemble_local_diffusion_step_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator                  &cell,
-    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>  &scratch,
-    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim>     &data);
+    const typename DoFHandler<dim>::active_cell_iterator                 &cell,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data);
 
   /*!
    * @brief This method copies the local right-hand side of the diffusion step
    * into the global vector.
    */
   void copy_local_to_global_diffusion_step_rhs(
-    const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy  &data);
 
   /*!
    * @brief This method assembles the right-hand side of the projection step
@@ -620,16 +651,16 @@ private:
    * step on a single cell.
    */
   void assemble_local_projection_step_rhs(
-    const typename DoFHandler<dim>::active_cell_iterator                  &cell,
-    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim> &scratch,
-    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim>    &data);
+    const typename DoFHandler<dim>::active_cell_iterator                    &cell,
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>   &scratch,
+    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy           &data);
 
   /*!
    * @brief This method copies the local right-hand side of the projection step
    * on a single cell to the global vector.
    */
   void copy_local_to_global_projection_step_rhs(
-    const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<dim> &data);
+    const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy &data);
 
   /*!
    * @brief This method assembles the velocity advection matrix using the
@@ -656,15 +687,15 @@ private:
   void assemble_local_velocity_advection_matrix(
     const typename DoFHandler<dim>::active_cell_iterator                &cell,
     AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim> &scratch,
-    AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>    &data);
+    AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy         &data);
 
   /*!
    * @brief This method copies the local velocity advection matrix into the
    * global matrix.
    */
   void copy_local_to_global_velocity_advection_matrix(
-    const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy<dim>  &data);
-  
+    const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy   &data);
+
 };
 
 // inline functions

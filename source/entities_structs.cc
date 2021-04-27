@@ -1,11 +1,13 @@
 #include <rotatingMHD/entities_structs.h>
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
 #include <algorithm>
+
 namespace RMHD
 {
 
@@ -14,25 +16,33 @@ using namespace dealii;
 namespace Entities
 {
 
+
+
 template <int dim>
 EntityBase<dim>::EntityBase
-(const unsigned int                               fe_degree,
+(const unsigned int                               n_components,
+ const unsigned int                               fe_degree,
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
+n_components(n_components),
 fe_degree(fe_degree),
 mpi_communicator(triangulation.get_communicator()),
 dof_handler(std::make_shared<DoFHandler<dim>>(triangulation)),
 name(name),
 flag_child_entity(false),
+flag_setup_dofs(true),
 triangulation(triangulation)
 {}
+
+
 
 template <int dim>
 EntityBase<dim>::EntityBase
 (const EntityBase<dim>  &entity,
  const std::string      &new_name)
 :
+n_components(entity.n_components),
 fe_degree(entity.fe_degree),
 mpi_communicator(entity.mpi_communicator),
 dof_handler(entity.dof_handler),
@@ -41,11 +51,21 @@ flag_child_entity(true),
 triangulation(entity.get_triangulation())
 {}
 
+
+
 template <int dim>
 void EntityBase<dim>::reinit()
 {
-  solution.reinit(locally_relevant_dofs,
-                  mpi_communicator);
+  Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  #ifdef USE_PETSC_LA
+    solution.reinit(locally_owned_dofs,
+                    locally_relevant_dofs,
+                    mpi_communicator);
+  #else
+    solution.reinit(locally_relevant_dofs,
+                    mpi_communicator);
+  #endif
   old_solution.reinit(solution);
   old_old_solution.reinit(solution);
 
@@ -60,20 +80,30 @@ void EntityBase<dim>::reinit()
   #endif
 }
 
+
+
 template <int dim>
 void EntityBase<dim>::update_solution_vectors()
 {
+  Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   old_old_solution  = old_solution;
   old_solution      = solution;
 }
 
+
+
 template <int dim>
 void EntityBase<dim>::set_solution_vectors_to_zero()
 {
+  Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   solution          = 0.;
   old_solution      = 0.;
   old_old_solution  = 0.;
 }
+
+
 
 template <int dim>
 VectorEntity<dim>::VectorEntity
@@ -81,10 +111,12 @@ VectorEntity<dim>::VectorEntity
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
-EntityBase<dim>(fe_degree, triangulation, name),
+EntityBase<dim>(dim, fe_degree, triangulation, name),
 fe(FE_Q<dim>(fe_degree), dim),
 boundary_conditions(triangulation)
 {}
+
+
 
 template <int dim>
 VectorEntity<dim>::VectorEntity
@@ -96,27 +128,48 @@ fe(FE_Q<dim>(entity.fe_degree), dim),
 boundary_conditions(entity.get_triangulation())
 {}
 
+
+
 template <int dim>
 void VectorEntity<dim>::setup_dofs()
 {
   if (!this->flag_child_entity)
     (this->dof_handler)->distribute_dofs(this->fe);
-
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
-
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
+
+  // Fill hanging node constraints
   this->hanging_nodes.clear();
-  this->hanging_nodes.reinit(this->locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(*(this->dof_handler),
-                                          this->hanging_nodes);
+  {
+    this->hanging_nodes.reinit(this->locally_relevant_dofs);
+    DoFTools::make_hanging_node_constraints(*(this->dof_handler),
+                                            this->hanging_nodes);
+  }
   this->hanging_nodes.close();
+
+  // Modify flag because the dofs are setup
+  this->flag_setup_dofs = false;
+
+  // Setup solution vectors
+  this->reinit();
 }
+
+
 
 template <int dim>
 void VectorEntity<dim>::apply_boundary_conditions()
 {
-  using FunctionMap = std::map<types::boundary_id, 
+  AssertThrow(boundary_conditions.regularity_guaranteed(),
+              ExcMessage("No boundary conditions were set for the \""
+                          + this->name + "\" entity"));
+
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  Assert(boundary_conditions.closed(),
+         ExcMessage("The boundary conditions have not been closed."));
+
+  using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
   this->constraints.reinit(this->locally_relevant_dofs);
@@ -142,7 +195,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
         periodicity_vector,
         periodic_bc.offset,
         periodic_bc.rotation_matrix);
-    
+
     DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
       periodicity_vector,
       this->constraints,
@@ -156,7 +209,7 @@ void VectorEntity<dim>::apply_boundary_conditions()
 
     for (auto const &[boundary_id, function] : boundary_conditions.dirichlet_bcs)
       function_map[boundary_id] = function.get();
-    
+
     VectorTools::interpolate_boundary_values(
       *(this->dof_handler),
       function_map,
@@ -203,8 +256,25 @@ void VectorEntity<dim>::apply_boundary_conditions()
       this->constraints);
   }
 
+  /*! @todo Implement a datum for vector valued problem*/
+
   this->constraints.close();
 }
+
+
+
+template <int dim>
+void VectorEntity<dim>::close_boundary_conditions()
+{
+  boundary_conditions.close();
+
+  ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+
+  boundary_conditions.print_summary(pcout, this->name);
+}
+
+
 
 template <int dim>
 void VectorEntity<dim>::update_boundary_conditions()
@@ -212,7 +282,7 @@ void VectorEntity<dim>::update_boundary_conditions()
   if (boundary_conditions.time_dependent_bcs_map.empty())
     return;
 
-  using FunctionMap = std::map<types::boundary_id, 
+  using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
 
   AffineConstraints<double>   tmp_constraints;
@@ -227,21 +297,21 @@ void VectorEntity<dim>::update_boundary_conditions()
     FunctionMap   function_map;
 
     /*!
-     * Extract an std::pair containing the upper and 
-     * lower limit of the iteration range of all the boundary ids on 
-     * which a time dependent given BCType boundary condition was set. 
-     */ 
-  
-    auto iterator_range = 
+     * Extract an std::pair containing the upper and
+     * lower limit of the iteration range of all the boundary ids on
+     * which a time dependent given BCType boundary condition was set.
+     */
+
+    auto iterator_range =
       boundary_conditions.time_dependent_bcs_map.equal_range(
         BCType::dirichlet);
 
     /*!
-     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>,
      * from which the the boundary_id is extracted to populate the
-     * std::map<boundary_id, const Function<dim> *> needed to 
+     * std::map<boundary_id, const Function<dim> *> needed to
      * constraint the AffineConstraints instance.
-     */ 
+     */
 
     for (auto multimap_pair = iterator_range.first;
          multimap_pair != iterator_range.second;
@@ -263,20 +333,20 @@ void VectorEntity<dim>::update_boundary_conditions()
     std::set<types::boundary_id>  boundary_id_set;
 
     /*!
-     * Extract an std::pair containing the upper and 
-     * lower limit of the iteration range of all the boundary ids on 
-     * which a time dependent given BCType boundary condition was set. 
-     */ 
+     * Extract an std::pair containing the upper and
+     * lower limit of the iteration range of all the boundary ids on
+     * which a time dependent given BCType boundary condition was set.
+     */
 
-    auto iterator_range = 
+    auto iterator_range =
       boundary_conditions.time_dependent_bcs_map.equal_range(
         BCType::normal_flux);
-    
+
     /*!
-     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>,
      * from which the the boundary_id is extracted to populate the
-     * std::map<boundary_id, const Function<dim> *> and 
-     * std::set<boundary_id> instances needed to 
+     * std::map<boundary_id, const Function<dim> *> and
+     * std::set<boundary_id> instances needed to
      * constraint the AffineConstraints instance.
      */
 
@@ -288,7 +358,7 @@ void VectorEntity<dim>::update_boundary_conditions()
         boundary_conditions.normal_flux_bcs[multimap_pair->second].get();
       boundary_id_set.insert(multimap_pair->second);
     }
-    
+
     VectorTools::compute_nonzero_normal_flux_constraints(
       *(this->dof_handler),
       0,
@@ -305,20 +375,20 @@ void VectorEntity<dim>::update_boundary_conditions()
     std::set<types::boundary_id>  boundary_id_set;
 
     /*!
-     * Extract an std::pair containing the upper and 
-     * lower limit of the iteration range of all the boundary ids on 
-     * which a time dependent given BCType boundary condition was set. 
-     */ 
+     * Extract an std::pair containing the upper and
+     * lower limit of the iteration range of all the boundary ids on
+     * which a time dependent given BCType boundary condition was set.
+     */
 
-    auto iterator_range = 
+    auto iterator_range =
       boundary_conditions.time_dependent_bcs_map.equal_range(
         BCType::tangential_flux);
 
     /*!
-     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>,
      * from which the the boundary_id is extracted to populate the
-     * std::map<boundary_id, const Function<dim> *> and 
-     * std::set<boundary_id> instances needed to 
+     * std::map<boundary_id, const Function<dim> *> and
+     * std::set<boundary_id> instances needed to
      * constraint the AffineConstraints instance.
      */
 
@@ -330,7 +400,7 @@ void VectorEntity<dim>::update_boundary_conditions()
         boundary_conditions.tangential_flux_bcs[multimap_pair->second].get();
       boundary_id_set.insert(multimap_pair->second);
     }
-    
+
     VectorTools::compute_nonzero_tangential_flux_constraints(
       *(this->dof_handler),
       0,
@@ -347,9 +417,24 @@ void VectorEntity<dim>::update_boundary_conditions()
 }
 
 
-template<int dim>
-Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
+
+template <int dim>
+void VectorEntity<dim>::clear_boundary_conditions()
 {
+  boundary_conditions.clear();
+
+  this->constraints.clear();
+}
+
+
+
+template<int dim>
+Tensor<1,dim> VectorEntity<dim>::point_value(
+  const Point<dim>                    &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
+{
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   Vector<double>  point_value(dim);
 
   // try to evaluate the solution at this point. in parallel, the point
@@ -360,10 +445,18 @@ Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
 
   try
   {
-    VectorTools::point_value(*(this->dof_handler),
-                             this->solution,
-                             point,
-                             point_value);
+    if (external_mapping != nullptr)
+      VectorTools::point_value(*external_mapping,
+                               *(this->dof_handler),
+                               this->solution,
+                               point,
+                               point_value);
+    else
+      VectorTools::point_value(*(this->dof_handler),
+                               this->solution,
+                               point,
+                               point_value);
+
     point_found = true;
   }
   catch (const VectorTools::ExcPointNotAvailableHere &)
@@ -401,16 +494,91 @@ Tensor<1,dim> VectorEntity<dim>::point_value(const Point<dim> &point) const
   return (point_value_tensor);
 }
 
+
+
+template<int dim>
+Tensor<2,dim> VectorEntity<dim>::point_gradient(
+  const Point<dim>                    &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
+{
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  std::vector<Tensor<1,dim>>  point_gradient_rows(dim);
+
+  // try to evaluate the solution at this point. in parallel, the point
+  // will be on only one processor's owned cells, so the others are
+  // going to throw an exception. make sure at least one processor
+  // finds the given point
+  bool point_found = false;
+
+  try
+  {
+    if (external_mapping != nullptr)
+      VectorTools::point_gradient(*external_mapping,
+                                  *(this->dof_handler),
+                                  this->solution,
+                                  point,
+                                  point_gradient_rows);
+    else
+      VectorTools::point_gradient(*(this->dof_handler),
+                                  this->solution,
+                                  point,
+                                  point_gradient_rows);
+
+    point_found = true;
+  }
+  catch (const VectorTools::ExcPointNotAvailableHere &)
+  {
+    // ignore
+  }
+
+  // ensure that at least one processor found things
+  const int n_procs = Utilities::MPI::sum(point_found ? 1 : 0, this->mpi_communicator);
+  AssertThrow(n_procs > 0,
+              ExcMessage("While trying to evaluate the solution at point " +
+                         Utilities::to_string(point[0]) + ", " +
+                         Utilities::to_string(point[1]) +
+                         (dim == 3 ?
+                             ", " + Utilities::to_string(point[2]) :
+                             "") +
+                         "), " +
+                         "no processors reported that the point lies inside the " +
+                         "set of cells they own. Are you trying to evaluate the " +
+                         "solution at a point that lies outside of the domain?"));
+
+  // Reduce all collected values into local Vector
+  for (auto &row : point_gradient_rows)
+    row = Utilities::MPI::sum(row,
+                              this->mpi_communicator);
+
+  // Normalize in cases where points are claimed by multiple processors
+  if (n_procs > 1)
+    for (auto &row : point_gradient_rows)
+      row /= n_procs;
+
+  Tensor<2,dim> point_gradient_tensor;
+
+  for (unsigned i=0; i<dim; ++i)
+    for (unsigned j=0; j<dim; ++j)
+      point_gradient_tensor[i][j] = point_gradient_rows[i][j];
+
+  return (point_gradient_tensor);
+}
+
+
+
 template <int dim>
 ScalarEntity<dim>::ScalarEntity
 (const unsigned int                               fe_degree,
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
-EntityBase<dim>(fe_degree, triangulation, name),
+EntityBase<dim>(1, fe_degree, triangulation, name),
 fe(fe_degree),
 boundary_conditions(triangulation)
 {}
+
+
 
 template <int dim>
 ScalarEntity<dim>::ScalarEntity
@@ -422,28 +590,47 @@ fe(entity.fe_degree),
 boundary_conditions(entity.get_triangulation())
 {}
 
+
+
 template <int dim>
 void ScalarEntity<dim>::setup_dofs()
 {
   if (!this->flag_child_entity)
     (this->dof_handler)->distribute_dofs(this->fe);
-
   this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
-
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
-  
+  // Fill hanging node constraints
   this->hanging_nodes.clear();
-  this->hanging_nodes.reinit(this->locally_relevant_dofs);
-  DoFTools::make_hanging_node_constraints(*(this->dof_handler),
-                                          this->hanging_nodes);
+  {
+    this->hanging_nodes.reinit(this->locally_relevant_dofs);
+    DoFTools::make_hanging_node_constraints(*(this->dof_handler),
+                                            this->hanging_nodes);
+  }
   this->hanging_nodes.close();
+
+  // Modify flag because the dofs are setup
+  this->flag_setup_dofs = false;
+
+  // Setup solution vectors
+  this->reinit();
 }
+
+
 
 template <int dim>
 void ScalarEntity<dim>::apply_boundary_conditions()
 {
-  using FunctionMap = std::map<types::boundary_id, 
+  AssertThrow(boundary_conditions.regularity_guaranteed(),
+              ExcMessage("No boundary conditions were set for the \""
+                          + this->name + "\" entity"));
+
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  Assert(boundary_conditions.closed(),
+         ExcMessage("The boundary conditions have not been closed."));
+
+  using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
   this->constraints.clear();
   this->constraints.reinit(this->locally_relevant_dofs);
@@ -465,7 +652,7 @@ void ScalarEntity<dim>::apply_boundary_conditions()
         periodic_bc.direction,
         periodicity_vector,
         periodic_bc.offset);
-    
+
     DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
       periodicity_vector,
       this->constraints);
@@ -476,14 +663,71 @@ void ScalarEntity<dim>::apply_boundary_conditions()
 
     for (auto const &[boundary_id, function] : boundary_conditions.dirichlet_bcs)
       function_map[boundary_id] = function.get();
-    
+
     VectorTools::interpolate_boundary_values(
       *(this->dof_handler),
       function_map,
       this->constraints);
   }
+
+  if (boundary_conditions.datum_set_at_boundary())
+  {
+    IndexSet    boundary_dofs;
+    DoFTools::extract_boundary_dofs(*this->dof_handler,
+                                    ComponentMask(this->fe.n_components(), true),
+                                    boundary_dofs);
+
+    // Looks for an admissible local degree of freedom to constrain
+    types::global_dof_index local_idx = numbers::invalid_dof_index;
+    IndexSet::ElementIterator idx = boundary_dofs.begin();
+    IndexSet::ElementIterator endidx = boundary_dofs.end();
+    for(; idx != endidx; ++idx)
+      if (this->constraints.can_store_line(*idx) &&
+          !this->constraints.is_constrained(*idx))
+      {
+        local_idx = *idx;
+        break;
+      }
+
+    // Chooses the degree of freedom with the smallest index. If no
+    // admissible degree of freedom was found in a given processor, its
+    // value is set the number of degree of freedom
+    const types::global_dof_index global_idx
+      = Utilities::MPI::min((local_idx != numbers::invalid_dof_index)
+                              ? local_idx
+                              : this->dof_handler->n_dofs(),
+                             this->mpi_communicator);
+
+    // Checks that an admissable degree of freedom was found
+    Assert(global_idx < this->dof_handler->n_dofs(),
+           ExcMessage("Error, couldn't find a DoF to constrain."));
+
+    // Sets the degree of freedom to zero
+    if (this->constraints.can_store_line(global_idx))
+    {
+        Assert(!this->constraints.is_constrained(global_idx),
+               ExcInternalError());
+        this->constraints.add_line(global_idx);
+    }
+  }
+
   this->constraints.close();
 }
+
+
+
+template <int dim>
+void ScalarEntity<dim>::close_boundary_conditions()
+{
+  boundary_conditions.close();
+
+  ConditionalOStream  pcout(std::cout,
+                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+
+  boundary_conditions.print_summary(pcout, this->name);
+}
+
+
 
 template <int dim>
 void ScalarEntity<dim>::update_boundary_conditions()
@@ -491,7 +735,7 @@ void ScalarEntity<dim>::update_boundary_conditions()
   if (boundary_conditions.time_dependent_bcs_map.empty())
     return;
 
-  using FunctionMap = std::map<types::boundary_id, 
+  using FunctionMap = std::map<types::boundary_id,
                               const Function<dim> *>;
 
   AffineConstraints<double>   tmp_constraints;
@@ -506,19 +750,19 @@ void ScalarEntity<dim>::update_boundary_conditions()
     FunctionMap   function_map;
 
     /*!
-     * Extract an std::pair containing the upper and 
-     * lower limit of the iteration range of all the boundary ids on 
-     * which a time dependent given BCType boundary condition was set. 
-     */ 
+     * Extract an std::pair containing the upper and
+     * lower limit of the iteration range of all the boundary ids on
+     * which a time dependent given BCType boundary condition was set.
+     */
 
-    auto iterator_range = 
+    auto iterator_range =
       boundary_conditions.time_dependent_bcs_map.equal_range(
         BCType::dirichlet);
 
     /*!
-     * The variable multimap_pair is a std::pair<BCType, boundary_id>, 
+     * The variable multimap_pair is a std::pair<BCType, boundary_id>,
      * from which the the boundary_id is extracted to populate the
-     * std::map<boundary_id, const Function<dim> *> instance needed to 
+     * std::map<boundary_id, const Function<dim> *> instance needed to
      * constraint the AffineConstraints instance.
      */
 
@@ -541,9 +785,25 @@ void ScalarEntity<dim>::update_boundary_conditions()
     AffineConstraints<double>::MergeConflictBehavior::right_object_wins);
 }
 
-template<int dim>
-double ScalarEntity<dim>::point_value(const Point<dim> &point) const
+
+
+template <int dim>
+void ScalarEntity<dim>::clear_boundary_conditions()
 {
+  boundary_conditions.clear();
+
+  this->constraints.clear();
+}
+
+
+
+template<int dim>
+double ScalarEntity<dim>::point_value(
+  const Point<dim>                    &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
+{
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
   double  point_value = 0.0;
 
   // try to evaluate the solution at this point. in parallel, the point
@@ -554,6 +814,12 @@ double ScalarEntity<dim>::point_value(const Point<dim> &point) const
 
   try
   {
+    if (external_mapping != nullptr)
+      point_value = VectorTools::point_value(*external_mapping,
+                                             *(this->dof_handler),
+                                             this->solution,
+                                             point);
+    else
       point_value = VectorTools::point_value(*(this->dof_handler),
                                              this->solution,
                                              point);
@@ -587,6 +853,68 @@ double ScalarEntity<dim>::point_value(const Point<dim> &point) const
     point_value /= n_procs;
 
   return (point_value);
+}
+
+
+
+template<int dim>
+Tensor<1,dim> ScalarEntity<dim>::point_gradient(
+  const Point<dim> &point,
+  const std::shared_ptr<Mapping<dim>> external_mapping) const
+{
+  Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
+
+  Tensor<1,dim>  point_gradient;
+
+  // try to evaluate the solution at this point. in parallel, the point
+  // will be on only one processor's owned cells, so the others are
+  // going to throw an exception. make sure at least one processor
+  // finds the given point
+  bool point_found = false;
+
+  try
+  {
+    if (external_mapping != nullptr)
+      point_gradient = VectorTools::point_gradient(
+                              *external_mapping,
+                              *(this->dof_handler),
+                              this->solution,
+                              point);
+    else
+      point_gradient = VectorTools::point_gradient(
+                              *(this->dof_handler),
+                              this->solution,
+                              point);
+    point_found = true;
+  }
+  catch (const VectorTools::ExcPointNotAvailableHere &)
+  {
+    // ignore
+  }
+
+  // ensure that at least one processor found things
+  const int n_procs = Utilities::MPI::sum(point_found ? 1 : 0, this->mpi_communicator);
+  AssertThrow(n_procs > 0,
+              ExcMessage("While trying to evaluate the solution at point " +
+                         Utilities::to_string(point[0]) + ", " +
+                         Utilities::to_string(point[1]) +
+                         (dim == 3 ?
+                             ", " + Utilities::to_string(point[2]) :
+                             "") +
+                         "), " +
+                         "no processors reported that the point lies inside the " +
+                         "set of cells they own. Are you trying to evaluate the " +
+                         "solution at a point that lies outside of the domain?"));
+
+  // Reduce all collected values into local Vector
+  point_gradient = Utilities::MPI::sum(point_gradient,
+                                       this->mpi_communicator);
+
+  // Normalize in cases where points are claimed by multiple processors
+  if (n_procs > 1)
+    point_gradient /= n_procs;
+
+  return (point_gradient);
 }
 
 

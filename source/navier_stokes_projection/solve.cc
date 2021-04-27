@@ -1,4 +1,5 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/utility.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -8,7 +9,7 @@ namespace RMHD
 template <int dim>
 void NavierStokesProjection<dim>::solve()
 {
-  if (velocity->solution.size() != velocity_rhs.size())
+  if (velocity->solution.size() != diffusion_step_rhs.size())
   {
     setup();
 
@@ -17,11 +18,14 @@ void NavierStokesProjection<dim>::solve()
     projection_step(true);
 
     pressure_correction(true);
+
+    flag_matrices_were_updated = false;
   }
-  else 
+  else
   {
-    diffusion_step(time_stepping.get_step_number() % 
-                    parameters.solver_update_preconditioner == 0);
+    diffusion_step(time_stepping.get_step_number() %
+                   parameters.preconditioner_update_frequency == 0 ||
+                   time_stepping.get_step_number() == 1);
 
     projection_step(false);
 
@@ -32,12 +36,16 @@ void NavierStokesProjection<dim>::solve()
 }
 
 template <int dim>
+void NavierStokesProjection<dim>::perform_diffusion_step()
+{
+  diffusion_step(true);
+}
+
+template <int dim>
 void NavierStokesProjection<dim>::diffusion_step(const bool reinit_prec)
 {
   /* Assemble linear system */
   assemble_diffusion_step();
-
-  norm_diffusion_rhs = velocity_rhs.l2_norm();
 
   /* Solve linear system */
   solve_diffusion_step(reinit_prec);
@@ -48,8 +56,6 @@ void NavierStokesProjection<dim>::projection_step(const bool reinit_prec)
 {
   /* Assemble linear system */
   assemble_projection_step();
-
-  norm_projection_rhs = pressure_rhs.l2_norm();
 
   /* Solve linear system */
   solve_projection_step(reinit_prec);
@@ -63,18 +69,18 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Pressure correction step");
 
-  switch (parameters.projection_method)
+  switch (parameters.pressure_correction_scheme)
     {
-      case RunTimeParameters::ProjectionMethod::standard:
+      case RunTimeParameters::PressureCorrectionScheme::standard:
         {
         // In the following scope we create temporal non ghosted copies
         // of the pertinent vectors to be able to perform algebraic
         // operations.
-          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
-          LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
+          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure->distributed_vector);
+          LinearAlgebra::MPI::Vector distributed_phi(phi->distributed_vector);
 
           distributed_old_pressure  = pressure->old_solution;
-          distributed_phi           = phi->solution; 
+          distributed_phi           = phi->solution;
 
           distributed_old_pressure  += distributed_phi;
 
@@ -82,45 +88,58 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             VectorTools::subtract_mean_value(distributed_old_pressure);
 
           pressure->solution = distributed_old_pressure;
+
+          if (parameters.verbose)
+            *pcout << " done!" << std::endl << std::endl;
         }
         break;
-      case RunTimeParameters::ProjectionMethod::rotational:
+      case RunTimeParameters::PressureCorrectionScheme::rotational:
         // In the following scope we create temporal non ghosted copies
         // of the pertinent vectors to be able to perform the solve()
         // operation.
         {
-          LinearAlgebra::MPI::Vector distributed_pressure(pressure_rhs);
-          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure_rhs);
-          LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
+          LinearAlgebra::MPI::Vector distributed_pressure(pressure->distributed_vector);
+          LinearAlgebra::MPI::Vector distributed_old_pressure(pressure->distributed_vector);
+          LinearAlgebra::MPI::Vector distributed_phi(phi->distributed_vector);
 
           distributed_pressure      = pressure->solution;
           distributed_old_pressure  = pressure->old_solution;
-          distributed_phi           = phi->solution; 
+          distributed_phi           = phi->solution;
 
-          pressure_rhs /= time_stepping.get_alpha()[0] / 
-                          time_stepping.get_next_step_size();
-
-          SolverControl solver_control(parameters.n_maximum_iterations,
-                                       std::max(parameters.relative_tolerance * 
-                                                pressure_rhs.l2_norm(),
-                                       absolute_tolerance));
+          // The divergence of the velocity field is projected into a
+          // unconstrained pressure space through the following solve
+          // operation.
+          const typename RunTimeParameters::LinearSolverParameters
+          &solver_parameters = parameters.correction_step_solver_parameters;
+          SolverControl solver_control(
+              solver_parameters.n_maximum_iterations,
+            std::max(solver_parameters.relative_tolerance *correction_step_rhs.l2_norm(),
+                     solver_parameters.absolute_tolerance));
 
           if (reinit_prec)
-            correction_step_preconditioner.initialize(pressure_mass_matrix);
+          {
+            build_preconditioner(correction_step_preconditioner,
+                                 projection_mass_matrix,
+                                 solver_parameters.preconditioner_parameters_ptr,
+                                 (pressure->fe_degree > 1? true: false));
+          }
+
+          AssertThrow(correction_step_preconditioner != nullptr,
+                      ExcMessage("The pointer to the correction step's preconditioner has not being initialized."));
 
           #ifdef USE_PETSC_LA
             LinearAlgebra::SolverCG solver(solver_control,
-                                           MPI_COMM_WORLD);
+                                           mpi_communicator);
           #else
             LinearAlgebra::SolverCG solver(solver_control);
           #endif
 
           try
           {
-            solver.solve(pressure_mass_matrix,
+            solver.solve(projection_mass_matrix,
                          distributed_pressure,
-                         pressure_rhs,
-                         correction_step_preconditioner);
+                         correction_step_rhs,
+                         *correction_step_preconditioner);
           }
           catch (std::exception &exc)
           {
@@ -148,24 +167,52 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             std::abort();
           }
 
-          pressure->constraints.distribute(distributed_pressure);
+          // The projected divergence is scaled and the old pressure
+          // is added to it
+          distributed_pressure.sadd(parameters.C2 / parameters.C6,
+                                    1.,
+                                    distributed_old_pressure);
 
-          distributed_pressure.sadd(1.0 / parameters.Re, 1., distributed_old_pressure);
+          // Followed by the addition of pressure correction computed
+          // in the projection step
           distributed_pressure += distributed_phi;
 
-          if (flag_normalize_pressure)
-            VectorTools::subtract_mean_value(distributed_pressure);
+          // The pressure's constraints are distributed to the
+          // solution vector to consider the case of Dirichlet
+          // boundary conditions on the pressure field.
+          if (!pressure->boundary_conditions.dirichlet_bcs.empty())
+            pressure->constraints.distribute(distributed_pressure);
+          else
+            pressure->hanging_nodes.distribute(distributed_pressure);
 
+          // Pass the distributed vector to its ghost counterpart.
           pressure->solution = distributed_pressure;
-        }
 
+          // If the pressure field is defined only up to a constant,
+          // a zero mean value constraint is enforced
+          if (flag_normalize_pressure)
+          {
+            const LinearAlgebra::MPI::Vector::value_type mean_value
+              = VectorTools::compute_mean_value(*pressure->dof_handler,
+                                                QGauss<dim>(pressure->fe.degree + 1),
+                                                pressure->solution,
+                                                0);
+
+            distributed_pressure.add(-mean_value);
+            pressure->solution = distributed_pressure;
+          }
+
+          if (parameters.verbose)
+                  *pcout << " done!" << std::endl
+                         << "    Number of CG iterations: "
+                         << solver_control.last_step()
+                         << ", Final residual: " << solver_control.last_value() << "."
+                         << std::endl << std::endl;
+        }
         break;
       default:
         Assert(false, ExcNotImplemented());
     };
-
-  if (parameters.verbose)
-    *pcout << " done!" << std::endl << std::endl;
 }
 
 
@@ -174,6 +221,10 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::solve();
 template void RMHD::NavierStokesProjection<3>::solve();
+
+template void RMHD::NavierStokesProjection<2>::perform_diffusion_step();
+template void RMHD::NavierStokesProjection<3>::perform_diffusion_step();
+
 
 template void RMHD::NavierStokesProjection<2>::diffusion_step(const bool);
 template void RMHD::NavierStokesProjection<3>::diffusion_step(const bool);

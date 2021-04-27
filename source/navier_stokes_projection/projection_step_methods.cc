@@ -1,6 +1,6 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/utility.h>
 
-#include <deal.II/lac/solver_cg.h>
 #include <deal.II/numerics/vector_tools.h>
 
 namespace RMHD
@@ -15,13 +15,8 @@ void NavierStokesProjection<dim>::assemble_projection_step()
 
   /* Right hand side setup */
   assemble_projection_step_rhs();
-
-  /* Zeros out the DoFs on the boundary where Dirichlet
-     boundary conditions on the pressure or Neumann boundary
-     conditions on the stress tensor are given
-   */
-  pressure->constraints.set_zero(pressure_rhs);
 }
+
 
 template <int dim>
 void NavierStokesProjection<dim>::solve_projection_step
@@ -35,29 +30,40 @@ void NavierStokesProjection<dim>::solve_projection_step
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_phi(pressure_rhs);
+  LinearAlgebra::MPI::Vector distributed_phi(phi->distributed_vector);
   distributed_phi = phi->solution;
 
+  const typename RunTimeParameters::LinearSolverParameters &solver_parameters
+    = parameters.projection_step_solver_parameters;
   if (reinit_prec)
-    projection_step_preconditioner.initialize(pressure_laplace_matrix);
+  {
+    build_preconditioner(projection_step_preconditioner,
+                         phi_laplace_matrix,
+                         solver_parameters.preconditioner_parameters_ptr,
+                         (phi->fe_degree > 1? true: false));
+  }
 
-  SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * pressure_rhs.l2_norm(),
-                                        absolute_tolerance));
+  AssertThrow(projection_step_preconditioner != nullptr,
+              ExcMessage("The pointer to the projection step's preconditioner has not being initialized."));
+
+  SolverControl solver_control(
+    solver_parameters.n_maximum_iterations,
+    std::max(solver_parameters.relative_tolerance * projection_step_rhs.l2_norm(),
+             solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverCG solver(solver_control,
-                                   MPI_COMM_WORLD);
+                                   mpi_communicator);
   #else
     LinearAlgebra::SolverCG solver(solver_control);
   #endif
 
   try
   {
-    solver.solve(pressure_laplace_matrix,
+    solver.solve(phi_laplace_matrix,
                  distributed_phi,
-                 pressure_rhs,
-                 projection_step_preconditioner);
+                 projection_step_rhs,
+                 *projection_step_preconditioner);
   }
   catch (std::exception &exc)
   {
@@ -83,18 +89,25 @@ void NavierStokesProjection<dim>::solve_projection_step
     std::abort();
   }
 
-  pressure->constraints.distribute(distributed_phi);
-
-  if (flag_normalize_pressure)
-    VectorTools::subtract_mean_value(distributed_phi);
+  phi->constraints.distribute(distributed_phi);
 
   phi->solution = distributed_phi;
 
-  if (parameters.verbose)
-    *pcout << " done!" << std::endl;
+  if (flag_normalize_pressure)
+  {
+    const LinearAlgebra::MPI::Vector::value_type mean_value
+      = VectorTools::compute_mean_value(*phi->dof_handler,
+                                        QGauss<dim>(phi->fe.degree + 1),
+                                        phi->solution,
+                                        0);
+
+    distributed_phi.add(-mean_value);
+    phi->solution = distributed_phi;
+  }
 
   if (parameters.verbose)
-    *pcout << "    Number of GMRES iterations: " 
+    *pcout << " done!" << std::endl
+           << "    Number of CG iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
            << std::endl;

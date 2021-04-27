@@ -16,8 +16,9 @@
 
 #include <vector>
 #include <map>
-#include <memory.h>
+#include <memory>
 #include <set>
+
 namespace RMHD
 {
 
@@ -43,7 +44,8 @@ public:
   /*!
    * @brief Constructor.
    */
-  EntityBase(const unsigned int                               fe_degree,
+  EntityBase(const unsigned int                               n_components,
+             const unsigned int                               fe_degree,
              const parallel::distributed::Triangulation<dim> &triangulation,
              const std::string                               &name = "entity");
 
@@ -52,6 +54,11 @@ public:
    */
   EntityBase(const EntityBase<dim>  &entity,
              const std::string      &new_name = "entity");
+
+  /*!
+   * @brief Number of vector components.
+   */
+  const unsigned int                n_components;
 
   /*!
    * @brief The degree of the finite element.
@@ -74,13 +81,13 @@ public:
   const std::string                 name;
 
   /*!
-   * @brief The AffineConstraints<double> instance handling the 
+   * @brief The AffineConstraints<double> instance handling the
    * hanging nodes.
    */
   AffineConstraints<double>         hanging_nodes;
 
   /*!
-   * @brief The AffineConstraints<double> instance handling the 
+   * @brief The AffineConstraints<double> instance handling the
    * hanging nodes and the boundary conditions.
    */
   AffineConstraints<double>         constraints;
@@ -115,6 +122,7 @@ public:
 
   /*!
    * @brief The entity's distributed vector.
+   *
    * @details It is used to initiate the right hand sides of the
    * linear systems and the distributed instances of the
    * solution vectors needed to perform algebraic operations with them.
@@ -138,9 +146,10 @@ public:
   void update_solution_vectors();
 
   /*!
-   * @brief Sets all the entries of the solution vectors to zero.
+   * @brief Sets all entries of all solution vectors to zero.
    */
   void set_solution_vectors_to_zero();
+
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
    * and @ref VectorEntity in a vector and call
@@ -152,27 +161,54 @@ public:
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
    * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::apply_boundary_conditions and 
+   * @ref ScalarEntity::apply_boundary_conditions and
    * @ref VectorEntity::apply_boundary_conditions respectively.
    */
   virtual void apply_boundary_conditions() = 0;
 
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity as EntityBase instances and call
+   * @ref ScalarEntity::close_boundary_conditions and
+   * @ref VectorEntity::close_boundary_conditions respectively.
+   */
+  virtual void close_boundary_conditions() = 0;
+
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
    * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::update_boundary_conditions and 
+   * @ref ScalarEntity::update_boundary_conditions and
    * @ref VectorEntity::update_boundary_conditions respectively.
    */
   virtual void update_boundary_conditions() = 0;
 
+  /*!
+   * @brief Empty virtual method introduced to gather @ref ScalarEntity
+   * and @ref VectorEntity as EntityBase instances and call
+   * @ref ScalarEntity::clear_boundary_conditions and
+   * @ref VectorEntity::clear_boundary_conditions respectively.
+   */
+  virtual void clear_boundary_conditions() = 0;
+
+  /*!
+   * @brief Returns the value of @ref flag_child_entity.
+   */
+  bool is_child_entity() const;
+
 protected:
   /*!
-   * @brief A flag indicating wether the entity is a child. Here is
-   * meant, that the entity was instanced with the copy constructor.
-   * @details This flag is used to avoid a double distribution of
-   * degrees of freedom.
+   * @brief A flag indicating whether the entity is a child entity. This menas
+   * that the entity was instantiated using the copy constructor.
+   *
+   * @details This flag is used to avoid a double distribution of the degrees of
+   * freedom.
    */
-  const bool                                      flag_child_entity;
+  const bool  flag_child_entity;
+
+  /*!
+   * @brief A flag indicating whether @ref setup_dofs was called.
+   */
+  bool        flag_setup_dofs;
 
 private:
   /*!
@@ -180,6 +216,16 @@ private:
    */
   const parallel::distributed::Triangulation<dim> &triangulation;
 };
+
+
+
+template <int dim>
+inline bool EntityBase<dim>::is_child_entity() const
+{
+  return (flag_child_entity);
+}
+
+
 
 template <int dim>
 inline const parallel::distributed::Triangulation<dim> &EntityBase<dim>::get_triangulation() const
@@ -220,6 +266,7 @@ struct VectorEntity : EntityBase<dim>
 
   /*!
    * @brief Set ups the degrees of freedom of the vector field.
+   *
    * @details It distributes the degrees of freedom bases on @ref fe;
    * extracts the @ref locally_owned_dofs and the @ref locally_relevant_dofs;
    * and makes the hanging node constraints contained in @ref hanging_nodes.
@@ -227,22 +274,32 @@ struct VectorEntity : EntityBase<dim>
   virtual void setup_dofs() override;
 
   /*!
-   * @brief Applies all the boundary conditions into the @ref constraints
+   * @brief Applies all specified boundary conditions to the @ref constraints
    * of the vector field.
+   *
    * @details It loops over the elements stored in @ref boundary_conditions
    * and modifies @ref constraints accordingly.
+   *
    * @attention This method has to be called even if no boundary conditions
    * are applied as the method initiates @ref constraints, which is used
-   * througout the solver. 
+   * througout the solver.
    */
   virtual void apply_boundary_conditions() override;
 
   /*!
+   * @brief Closes the @ref boundary_conditions and prints a summary
+   * of the boundary conditions to the terminal.
+   */
+  virtual void close_boundary_conditions() override;
+
+  /*!
    * @brief Updates the time dependent boundary conditions.
-   * @details It loops over all boundary condition marked as time 
-   * dependent and reapplies the constraints into a temporary 
-   * AffineConstraints<double> instance which is then merge into @ref 
+   *
+   * @details It loops over all boundary condition marked as time
+   * dependent and reapplies the constraints into a temporary
+   * AffineConstraints<double> instance which is then merge into @ref
    * constraints.
+   *
    * @attention Make sure to advance the underlying function in time
    * using the @ref VectorBoundaryConditions::set_time method before
    * calling this method. Otherwise the method will just reapply the
@@ -251,17 +308,39 @@ struct VectorEntity : EntityBase<dim>
   virtual void update_boundary_conditions() override;
 
   /*!
-   * @brief This method evaluates the value of the continous vector 
+   * @brief Clears the @ref boundary_conditions and the @ref constraints.
+   */
+  virtual void clear_boundary_conditions() override;
+
+  /*!
+   * @brief This method evaluates the value of the continous vector
    * field at the given point.
-   * @details It catches the value obtained by the processor who owns 
+   *
+   * @details It catches the value obtained by the processor who owns
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
-  Tensor<1,dim> point_value(const Point<dim>  &point) const;
+  Tensor<1,dim> point_value(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
+
+  /*!
+   * @brief This method evaluates the gradient of the continous vector
+   * field at the given point.
+   *
+   * @details It catches the value obtained by the processor who owns
+   * the point while ignoring the rest. It also checks if the point
+   * is inside the domain.
+   */
+  Tensor<2,dim> point_gradient(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
 };
 
   /*!
-   * @struct VectorEntity
+   * @struct ScalarEntity
    * @brief Numerical representation of a scalar field.
    */
 template <int dim>
@@ -302,35 +381,67 @@ struct ScalarEntity : EntityBase<dim>
   /*!
    * @brief Applies all the boundary conditions into the @ref constraints
    * of the scalar field.
+   *
    * @details It loops over the elements stored in @ref boundary_conditions
    * and modifies @ref constraints accordingly.
+   *
    * @attention This method has to be called even if no boundary conditions
-   * are applied as the method initiates @ref constraints, which is used
-   * througout the solver. 
+   * are applied because the method initiates @ref constraints, which are used
+   * througout the solver.
    */
   virtual void apply_boundary_conditions() override;
 
   /*!
+   * @brief Closes the @ref boundary_conditions and prints a summary
+   * of the boundary conditions to the terminal.
+   */
+  virtual void close_boundary_conditions() override;
+
+  /*!
    * @brief Updates the time dependent boundary conditions.
-   * @details It loops over all boundary condition marked as time 
-   * dependent and reapplies the constraints into a temporary 
-   * AffineConstraints<double> instance which is then merge into @ref 
+   *
+   * @details It loops over all boundary condition marked as time
+   * dependent and reapplies the constraints into a temporary
+   * AffineConstraints<double> instance which is then merge into @ref
    * constraints.
+   *
    * @attention Make sure to advance the underlying function in time
    * using the @ref ScalarBoundaryConditions::set_time method before
-   * calling this method. Otherwise the method will just reapply the
+   * calling this method. Otherwise the method will just re-apply the
    * same boundary conditions.
    */
   virtual void update_boundary_conditions() override;
 
   /*!
-   * @brief This method evaluates the value of the continous scalar 
+   * @brief Clears the @ref boundary_conditions and the @ref constraints.
+   */
+  virtual void clear_boundary_conditions() override;
+
+  /*!
+   * @brief This method evaluates the value of the continous scalar
    * field at the given point.
-   * @details It catches the value obtained by the processor who owns 
+   *
+   * @details It catches the value obtained by the processor who owns
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
-  double point_value(const Point<dim> &point) const;
+  double point_value(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
+
+  /*!
+   * @brief This method evaluates the gradient of the continous scalar
+   * field at the given point.
+   *
+   * @details It catches the value obtained by the processor who owns
+   * the point while ignoring the rest. It also checks if the point
+   * is inside the domain.
+   */
+  Tensor<1,dim> point_gradient(
+    const Point<dim>                    &point,
+    const std::shared_ptr<Mapping<dim>> external_mapping =
+                                          std::shared_ptr<Mapping<dim>>()) const;
 };
 
 } // namespace Entities

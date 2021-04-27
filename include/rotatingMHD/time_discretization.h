@@ -44,24 +44,27 @@ enum class VSIMEXScheme
   CNLF
 };
 
+
+
 /*!
- * @struct TimeSteppingParameters
+ * @struct TimeDiscretizationParameters
+ *
  * @brief This structure manages the parameters of the time stepping scheme and
  * is used to control the behavior of VSIMEXMethod.
  */
-struct TimeSteppingParameters
+struct TimeDiscretizationParameters
 {
 
   /*!
    * @brief Constructor which sets up the parameters with default values.
    */
-  TimeSteppingParameters();
+  TimeDiscretizationParameters();
 
   /*!
    * @brief Constructor which sets up the parameters as specified in the
    * parameter file with the filename @p parameter_filename.
    */
-  TimeSteppingParameters(const std::string &parameter_filename);
+  TimeDiscretizationParameters(const std::string &parameter_filename);
 
   /*!
    * @brief Static method which declares the associated parameter to the
@@ -77,9 +80,12 @@ struct TimeSteppingParameters
 
   /*!
    * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
    */
   template<typename Stream>
-  void write(Stream &stream) const;
+  friend Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm);
 
   /*!
    * @brief Type of variable step-size IMEX scheme which is applied.
@@ -129,14 +135,29 @@ struct TimeSteppingParameters
   double        final_time;
 
   /*!
-   * @brief Boolean flag to enable verbose output of VSIMEXMethod.
+   * @brief Boolean flag to enable verbose output of @ref VSIMEXMethod.
    */
   bool          verbose;
 };
 
+
+
+/*!
+ * @brief Method forwarding the parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm);
+
+
+
 /*!
 * @class VSIMEXMethod
+*
 * @brief A time stepping class implementing the VSIMEX coefficients.
+*
 * @details Here goes a longer explanation with formulas of the VSIMEX
 * general scheme.
 */
@@ -148,7 +169,7 @@ public:
   /*!
   * @brief The constructor of the class.
   */
-  VSIMEXMethod(const TimeSteppingParameters &parameters);
+  VSIMEXMethod(const TimeDiscretizationParameters &parameters);
 
   /*!
   * @brief A method returning the order of the VSIMEX scheme.
@@ -255,7 +276,7 @@ private:
   /*!
    * @brief Parameter controlling the behavior of this class.
    */
-  const TimeSteppingParameters &parameters;
+  const TimeDiscretizationParameters &parameters;
 
   /*!
    * @brief Order of the VSIMEX scheme.
@@ -265,7 +286,7 @@ private:
   /*!
    * @brief Parameters of the VSIMEX scheme.
    * @attention This designation is very misleading w.r.t. the
-   * TimeSteppingParameters!
+   * TimeDiscretizationParameters!
    */
   std::vector<double> vsimex_parameters;
 
@@ -302,8 +323,8 @@ private:
   /*!
    * @brief A vector containing the \f$ \alpha_0 \f$ of the previous time steps.
    * @attention This member is only useful in the NavierStokesProjection
-   * class. 
-   */ 
+   * class.
+   */
   std::vector<double> old_alpha_zero;
 
   /*!
@@ -312,8 +333,8 @@ private:
    * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
    * is the order of the scheme.
    * @attention This member is only useful in the NavierStokesProjection
-   * class. 
-   */ 
+   * class.
+   */
   std::vector<double> old_step_size_values;
 
   /*!
@@ -326,8 +347,16 @@ private:
 
 };
 
+
+
+/*!
+ * @brief Output of the current step number, the current time and the size of
+ * the time step.
+ */
 template<typename Stream>
 Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex);
+
+
 
 // inline functions
 inline unsigned int VSIMEXMethod::get_order() const

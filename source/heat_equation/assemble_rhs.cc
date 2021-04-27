@@ -1,8 +1,10 @@
 #include <rotatingMHD/heat_equation.h>
+
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/grid/filtered_iterator.h>
 #include <deal.II/fe/fe_nothing.h>
+
 namespace RMHD
 {
 
@@ -12,7 +14,7 @@ void HeatEquation<dim>::assemble_rhs()
   if (parameters.verbose)
     *pcout << "  Heat Equation: Assembling right hand side...";
 
-  TimerOutput::Scope  t(*computing_timer, 
+  TimerOutput::Scope  t(*computing_timer,
                         "Heat equation: RHS assembly");
 
   // Reset data
@@ -22,7 +24,7 @@ void HeatEquation<dim>::assemble_rhs()
   const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(2), dim);
 
   // Create pointer to the pertinent finite element
-  const FESystem<dim>* const velocity_fe = 
+  const FESystem<dim>* const velocity_fe =
               (velocity != nullptr) ? &velocity->fe : &dummy_fe_system;
 
   // Set polynomial degree of the velocity. If the velicity is given
@@ -38,14 +40,14 @@ void HeatEquation<dim>::assemble_rhs()
   // Hardcoded to match that of the velocity.
   const int p_degree_neumann_function = temperature->fe_degree;
 
-  // Compute the highest polynomial degree from all the integrands 
+  // Compute the highest polynomial degree from all the integrands
   const int p_degree = std::max(temperature->fe_degree + p_degree_source_function,
                                 2 * temperature->fe_degree + velocity_fe_degree - 1);
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
-  // Compute the highest polynomial degree from all the boundary integrands 
+  // Compute the highest polynomial degree from all the boundary integrands
   const int face_p_degree = temperature->fe_degree + p_degree_neumann_function;
 
   // Initiate the quadrature formula for exact numerical integration
@@ -55,16 +57,16 @@ void HeatEquation<dim>::assemble_rhs()
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
            AssemblyData::HeatEquation::RightHandSide::Scratch<dim>  &scratch,
-           AssemblyData::HeatEquation::RightHandSide::Copy<dim>     &data)
+           AssemblyData::HeatEquation::RightHandSide::Copy          &data)
     {
-      this->assemble_local_rhs(cell, 
+      this->assemble_local_rhs(cell,
                                scratch,
                                data);
     };
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::HeatEquation::RightHandSide::Copy<dim> &data) 
+    [this](const AssemblyData::HeatEquation::RightHandSide::Copy    &data)
     {
       this->copy_local_to_global_rhs(data);
     };
@@ -94,27 +96,50 @@ void HeatEquation<dim>::assemble_rhs()
     update_quadrature_points,
     *velocity_fe,
     update_values),
-   AssemblyData::HeatEquation::RightHandSide::Copy<dim>(
-     temperature->fe.dofs_per_cell));
+   AssemblyData::HeatEquation::RightHandSide::Copy(temperature->fe.dofs_per_cell));
 
   // Compress global data
   rhs.compress(VectorOperation::add);
 
+  // Compute the L2 norm of the right hand side
+  rhs_norm = rhs.l2_norm();
+
   if (parameters.verbose)
-    *pcout << " done!" << std::endl;
+    *pcout << " done!" << std::endl
+           << "    Right-hand side's L2-norm = "
+           << std::scientific << std::setprecision(6)
+           << rhs_norm
+           << std::endl;
 }
 
 template <int dim>
 void HeatEquation<dim>::assemble_local_rhs(
-  const typename DoFHandler<dim>::active_cell_iterator    &cell,
-  AssemblyData::HeatEquation::RightHandSide::Scratch<dim> &scratch,
-  AssemblyData::HeatEquation::RightHandSide::Copy<dim>    &data)
+  const typename DoFHandler<dim>::active_cell_iterator      &cell,
+  AssemblyData::HeatEquation::RightHandSide::Scratch<dim>   &scratch,
+  AssemblyData::HeatEquation::RightHandSide::Copy           &data)
 {
   // Reset local data
   data.local_rhs                          = 0.;
   data.local_matrix_for_inhomogeneous_bc  = 0.;
 
-  // Temperature 
+  // VSIMEX coefficients
+  const std::vector<double> alpha = time_stepping.get_alpha();
+  const std::vector<double> beta  = time_stepping.get_beta();
+  const std::vector<double> gamma = time_stepping.get_gamma();
+
+  // Taylor extrapolation coefficients
+  const std::vector<double> eta   = time_stepping.get_eta();
+
+  // Local to global indices mapping
+  cell->get_dof_indices(data.local_dof_indices);
+
+  // Initialize weak forms of the right-hand side's terms
+  std::vector<double>         explicit_temperature_term(scratch.n_q_points);
+  std::vector<Tensor<1,dim>>  diffusion_term(scratch.n_q_points);
+  std::vector<double>         heat_source_term(scratch.n_q_points);
+  std::vector<double>         advection_term(scratch.n_q_points);
+
+  // Temperature
   scratch.temperature_fe_values.reinit(cell);
 
   scratch.temperature_fe_values.get_function_values(
@@ -124,7 +149,7 @@ void HeatEquation<dim>::assemble_local_rhs(
   scratch.temperature_fe_values.get_function_values(
     temperature->old_old_solution,
     scratch.old_old_temperature_values);
-  
+
   scratch.temperature_fe_values.get_function_gradients(
     temperature->old_solution,
     scratch.old_temperature_gradients);
@@ -132,39 +157,8 @@ void HeatEquation<dim>::assemble_local_rhs(
   scratch.temperature_fe_values.get_function_gradients(
     temperature->old_old_solution,
     scratch.old_old_temperature_gradients);
-  
-  // Velocity
-  if (velocity != nullptr)
-  {
-    typename DoFHandler<dim>::active_cell_iterator 
-      velocity_cell(&temperature->get_triangulation(),
-                    cell->level(),
-                    cell->index(),
-                    // Pointer to the velocity's DoFHandler
-                    velocity->dof_handler.get());
-    
-    scratch.velocity_fe_values.reinit(velocity_cell);
 
-    const FEValuesExtractors::Vector  vector_extractor(0);
-
-    scratch.velocity_fe_values[vector_extractor].get_function_values(
-      velocity->old_solution,
-      scratch.old_velocity_values);
-    
-    scratch.velocity_fe_values[vector_extractor].get_function_values(
-      velocity->old_old_solution,
-      scratch.old_old_velocity_values);
-  }
-  else if (velocity_function_ptr != nullptr)
-    velocity_function_ptr->value_list(
-      scratch.temperature_fe_values.get_quadrature_points(),
-      scratch.velocity_values);
-  else
-    ZeroTensorFunction<1,dim>().value_list(
-      scratch.temperature_fe_values.get_quadrature_points(),
-      scratch.velocity_values);
-  
-  // Source term
+  // Heat source
   if (source_term_ptr != nullptr)
   {
     source_term_ptr->set_time(time_stepping.get_previous_time());
@@ -181,31 +175,96 @@ void HeatEquation<dim>::assemble_local_rhs(
     source_term_ptr->value_list(
       scratch.temperature_fe_values.get_quadrature_points(),
       scratch.source_term_values);
+
+    // Loop over quadrature points
+    for (unsigned int q = 0; q < scratch.n_q_points; ++q)
+      heat_source_term[q] =
+        1.0 * /* parameters.C7 */
+        (gamma[0] *
+         scratch.source_term_values[q]
+         +
+         gamma[1] *
+         scratch.old_source_term_values[q]
+         +
+         gamma[2] *
+         scratch.old_old_source_term_values[q]);
   }
-  else
+
+  // Advection
+  if (velocity != nullptr)
   {
-    ZeroFunction<dim>().value_list(
-      scratch.temperature_fe_values.get_quadrature_points(),
-      scratch.source_term_values);
+    typename DoFHandler<dim>::active_cell_iterator
+      velocity_cell(&temperature->get_triangulation(),
+                    cell->level(),
+                    cell->index(),
+                    // Pointer to the velocity's DoFHandler
+                    velocity->dof_handler.get());
 
-    scratch.old_source_term_values      = scratch.source_term_values;
-    scratch.old_old_source_term_values  = scratch.source_term_values;
+    scratch.velocity_fe_values.reinit(velocity_cell);
+
+    const FEValuesExtractors::Vector  vector_extractor(0);
+
+    scratch.velocity_fe_values[vector_extractor].get_function_values(
+      velocity->old_solution,
+      scratch.old_velocity_values);
+
+    scratch.velocity_fe_values[vector_extractor].get_function_values(
+      velocity->old_old_solution,
+      scratch.old_old_velocity_values);
+
+    if (parameters.convective_term_time_discretization ==
+            RunTimeParameters::ConvectiveTermTimeDiscretization::fully_explicit &&
+          (velocity != nullptr || velocity_function_ptr != nullptr))
+      for (unsigned int q = 0; q < scratch.n_q_points; ++q)
+        advection_term[q] =
+          beta[0] *
+          scratch.old_velocity_values[q] *
+          scratch.old_temperature_gradients[q]
+          +
+          beta[1] *
+          scratch.old_old_velocity_values[q] *
+          scratch.old_old_temperature_gradients[q];
   }
+  else if (velocity_function_ptr != nullptr)
+  {
+    velocity_function_ptr->value_list(
+      scratch.temperature_fe_values.get_quadrature_points(),
+      scratch.velocity_values);
 
-  // VSIMEX coefficients
-  const std::vector<double> alpha = time_stepping.get_alpha();
-  const std::vector<double> beta  = time_stepping.get_beta();
-  const std::vector<double> gamma = time_stepping.get_gamma();
-
-  // Taylor extrapolation coefficients
-  const std::vector<double> eta   = time_stepping.get_eta();
-
-  // Local to global indices mapping
-  cell->get_dof_indices(data.local_dof_indices);
+    if (parameters.convective_term_time_discretization ==
+          RunTimeParameters::ConvectiveTermTimeDiscretization::fully_explicit &&
+            (velocity != nullptr || velocity_function_ptr != nullptr))
+      for (unsigned int q = 0; q < scratch.n_q_points; ++q)
+        advection_term[q] =
+          beta[0] *
+          scratch.velocity_values[q] *
+          scratch.old_temperature_gradients[q]
+          +
+          beta[1] *
+          scratch.velocity_values[q] *
+          scratch.old_old_temperature_gradients[q];
+  }
 
   // Loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
   {
+    // Evaluate the weak form of the right-hand side's terms at
+    // the quadrature point
+    explicit_temperature_term[q] =
+              alpha[1] / time_stepping.get_next_step_size() *
+              scratch.old_temperature_values[q]
+              +
+              alpha[2] / time_stepping.get_next_step_size() *
+              scratch.old_old_temperature_values[q];
+
+    diffusion_term[q] =
+              parameters.C4 *
+              (gamma[1] *
+               scratch.old_temperature_gradients[q]
+               +
+               gamma[2] *
+               scratch.old_old_temperature_gradients[q]);
+
     // Extract test function values at the quadrature points
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
@@ -217,81 +276,42 @@ void HeatEquation<dim>::assemble_local_rhs(
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
       // Local right hand side (Domain integrals)
-      data.local_rhs(i) -= 
-          (alpha[1] /
-           time_stepping.get_next_step_size() *
-           scratch.phi[i] *
-           scratch.old_temperature_values[q]
-           +
-           alpha[2] /
-           time_stepping.get_next_step_size() *
-           scratch.phi[i] *
-           scratch.old_old_temperature_values[q]
+      data.local_rhs(i) -=
+          (scratch.grad_phi[i] *
+           diffusion_term[q]
            -
-           gamma[0] *
            scratch.phi[i] *
-           scratch.source_term_values[q]
-           +
-           gamma[1] * (
-             1.0 /
-             parameters.Pe * 
-             scratch.grad_phi[i] *
-             scratch.old_temperature_gradients[q]
-             -
-             scratch.phi[i] *
-             scratch.old_source_term_values[q])
-           +
-           gamma[2] * (
-             1.0 /
-             parameters.Pe *
-             scratch.grad_phi[i] *
-             scratch.old_old_temperature_gradients[q]
-             -
-             scratch.phi[i] * 
-             scratch.old_old_source_term_values[q])) *
+           (heat_source_term[q]
+            -
+            explicit_temperature_term[q]
+            -
+            advection_term[q])) *
           scratch.temperature_fe_values.JxW(q);
 
-      if (!parameters.flag_semi_implicit_convection && 
-          !flag_ignore_advection)
-        data.local_rhs(i) -=
-          (beta[0] *
-           scratch.phi[i] * 
-           ((velocity != nullptr) 
-            ? scratch.old_velocity_values[q] 
-            : scratch.velocity_values[q]) *
-           scratch.old_temperature_gradients[q]
-           +
-           beta[1] *
-           scratch.phi[i] *
-           ((velocity != nullptr) 
-            ? scratch.old_old_velocity_values[q] 
-            : scratch.velocity_values[q]) *
-           scratch.old_old_temperature_gradients[q]) * 
-          scratch.temperature_fe_values.JxW(q);
-      
       // Loop over the i-th column's rows of the local matrix
       // for the case of inhomogeneous Dirichlet boundary conditions
       if (temperature->constraints.is_inhomogeneously_constrained(
             data.local_dof_indices[i]))
         for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
         {
-          data.local_matrix_for_inhomogeneous_bc(j,i) += 
-              (alpha[0] / 
-               time_stepping.get_next_step_size() * 
-               scratch.phi[j] * 
+          data.local_matrix_for_inhomogeneous_bc(j,i) +=
+              (alpha[0] /
+               time_stepping.get_next_step_size() *
+               scratch.phi[j] *
                scratch.phi[i]
                +
-               gamma[0] /
-               parameters.Pe *
+               gamma[0] *
+               parameters.C4 *
                scratch.grad_phi[j] *
                scratch.grad_phi[i]) *
               scratch.temperature_fe_values.JxW(q);
-          
-          if (parameters.flag_semi_implicit_convection && 
-              !flag_ignore_advection)
+
+          if (parameters.convective_term_time_discretization ==
+                RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit &&
+              (velocity != nullptr || velocity_function_ptr != nullptr))
             data.local_matrix_for_inhomogeneous_bc(j,i) +=
               (scratch.phi[j] * (
-                 (velocity != nullptr) 
+                 (velocity != nullptr)
                  ? (eta[0] *
                     scratch.old_velocity_values[q]
                     +
@@ -331,15 +351,15 @@ void HeatEquation<dim>::assemble_local_rhs(
         temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
           scratch.temperature_fe_face_values.get_quadrature_points(),
           scratch.old_neumann_bc_values);
-        
+
         // Loop over face quadrature points
         for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
         {
           // Extract the test function's values at the face quadrature points
           for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-            scratch.face_phi[i] = 
+            scratch.face_phi[i] =
               scratch.temperature_fe_face_values.shape_value(i,q);
-          
+
           // Loop over the degrees of freedom
           for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
             data.local_rhs(i) +=
@@ -359,7 +379,7 @@ void HeatEquation<dim>::assemble_local_rhs(
 
 template <int dim>
 void HeatEquation<dim>::copy_local_to_global_rhs
-(const AssemblyData::HeatEquation::RightHandSide::Copy<dim> &data)
+(const AssemblyData::HeatEquation::RightHandSide::Copy  &data)
 {
   temperature->constraints.distribute_local_to_global(
     data.local_rhs,
@@ -375,16 +395,16 @@ template void RMHD::HeatEquation<2>::assemble_rhs();
 template void RMHD::HeatEquation<3>::assemble_rhs();
 
 template void RMHD::HeatEquation<2>::assemble_local_rhs
-(const typename DoFHandler<2>::active_cell_iterator          &cell,
- RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<2> &scratch,
- RMHD::AssemblyData::HeatEquation::RightHandSide::Copy<2>    &data);
+(const typename DoFHandler<2>::active_cell_iterator         &,
+ RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<2>&,
+ RMHD::AssemblyData::HeatEquation::RightHandSide::Copy      &);
 
 template void RMHD::HeatEquation<3>::assemble_local_rhs
-(const typename DoFHandler<3>::active_cell_iterator          &cell,
- RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<3> &scratch,
- RMHD::AssemblyData::HeatEquation::RightHandSide::Copy<3>    &data);
+(const typename DoFHandler<3>::active_cell_iterator         &,
+ RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<3>&,
+ RMHD::AssemblyData::HeatEquation::RightHandSide::Copy      &);
 
 template void RMHD::HeatEquation<2>::copy_local_to_global_rhs
-(const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy<2> &);
+(const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy &);
 template void RMHD::HeatEquation<3>::copy_local_to_global_rhs
-(const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy<3> &);
+(const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy &);

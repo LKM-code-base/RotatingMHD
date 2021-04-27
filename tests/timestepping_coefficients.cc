@@ -13,7 +13,7 @@
 
 using namespace RMHD::TimeDiscretization;
 
-void checkTimeStepper(const TimeSteppingParameters &parameters)
+void checkTimeStepper(const TimeDiscretizationParameters &parameters)
 {
     VSIMEXMethod  timestepper(parameters);
 
@@ -75,7 +75,7 @@ int main(int /* argc */, char **/* argv[] */)
 {
   try
   {
-    TimeSteppingParameters parameters("timestepping_coefficients.prm");
+    TimeDiscretizationParameters parameters("timestepping_coefficients.prm");
 
     parameters.final_time = 3.0;
     parameters.initial_time_step = 1.0;

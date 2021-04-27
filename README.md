@@ -4,7 +4,7 @@ The repository is meant to act as a source code control and back up of the proje
 Milestones:
 - [x] Incompressible Navier-Stokes equations
 - [x] Convective flow (Incompressible Navier-Stokes equations with bouyancy term + heat equation)
-- [ ] Rotational convective flow (Incompressible Navier-Stokes equations with bouyancy term and coriolis term + heat equation)
+- [x] Rotational convective flow (Incompressible Navier-Stokes equations with bouyancy term and coriolis term + heat equation)
 - [ ] Rotational magnetohydrodynamic flow (Incompressible Navier-Stokes equations with bouyancy term and coriolis term + heat equation + induction equation )
 
 which are to be tested with the following benchmarks
@@ -22,12 +22,12 @@ To do list
 - [x] Restructure the assembly scratch and copy structs and instance the FEValues in the Navier-Stokes solver with a Mapping
 - [x] Reduce global communication and do not compute extrapolated values using vectors
 - [x] Neumann boundary conditions in the incremental pressure projection scheme (Navier-Stokes solver)
+- [x] Restructure the parameters of the solvers
+- [x] Algebraic multigrid preconditioning in both solvers
 - [ ] Python or bash script for running convergence tests
 - [ ] Adaptive timestepping
 - [ ] Initialization from analytical solution
 - [ ] Restart from numerical solution
-- [ ] Algebraic multigrid preconditioning in both solvers
-- [ ] Restructure the parameters of the solvers
 
 
 

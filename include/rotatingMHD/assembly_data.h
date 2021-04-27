@@ -15,25 +15,22 @@ using namespace dealii;
 namespace AssemblyData
 {
 
-template <int dim>  
 struct CopyBase
 {
   CopyBase(const unsigned int dofs_per_cell);
-
-  CopyBase(const CopyBase &data);
 
   unsigned int                          dofs_per_cell;
 
   std::vector<types::global_cell_index> local_dof_indices;
 };
 
-template <int dim>  
+template <int dim>
 struct ScratchBase
 {
   ScratchBase(const Quadrature<dim>     &quadrature_formula,
               const FiniteElement<dim>  &fe);
 
-  ScratchBase(const ScratchBase &data);
+  ScratchBase(const ScratchBase<dim>    &data);
 
   const unsigned int  n_q_points;
 
@@ -46,29 +43,23 @@ namespace Generic
 namespace Matrix
 {
 
-template <int dim>  
-struct Copy : CopyBase<dim>
+struct Copy : CopyBase
 {
   Copy(const unsigned int dofs_per_cell);
-
-  Copy(const Copy &data);
 
   FullMatrix<double>  local_matrix;
 };
 
-template <int dim>  
-struct MassStiffnessCopy : CopyBase<dim>
+struct MassStiffnessCopy : CopyBase
 {
   MassStiffnessCopy(const unsigned int dofs_per_cell);
-
-  MassStiffnessCopy(const MassStiffnessCopy &data);
 
   FullMatrix<double>  local_mass_matrix;
 
   FullMatrix<double>  local_stiffness_matrix;
 };
 
-template <int dim>  
+template <int dim>
 struct Scratch : ScratchBase<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -76,29 +67,26 @@ struct Scratch : ScratchBase<dim>
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
 
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>        &data);
 
   FEValues<dim> fe_values;
 };
 
 } // namespace Matrix
- 
+
 namespace RightHandSide
 {
 
-template <int dim>  
-struct Copy : CopyBase<dim>
+struct Copy : CopyBase
 {
   Copy(const unsigned int dofs_per_cell);
-
-  Copy(const Copy &data);
 
   Vector<double>      local_rhs;
 
   FullMatrix<double>  local_matrix_for_inhomogeneous_bc;
 };
 
-template <int dim>  
+template <int dim>
 struct Scratch : ScratchBase<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -106,7 +94,7 @@ struct Scratch : ScratchBase<dim>
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
 
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>        &data);
 
   FEValues<dim> fe_values;
 };
@@ -120,21 +108,21 @@ namespace NavierStokesProjection
 
 namespace VelocityConstantMatrices
 {
-template<int dim>
-using Copy = Generic::Matrix::MassStiffnessCopy<dim>;
 
-template <int dim>  
+using Copy = Generic::Matrix::MassStiffnessCopy;
+
+template <int dim>
 struct Scratch : Generic::Matrix::Scratch<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
           const Quadrature<dim>     &quadrature_formula,
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
-  
-  Scratch(const Scratch &data);
+
+  Scratch(const Scratch<dim>    &data);
 
   std::vector<Tensor<1, dim>> phi;
-  
+
   std::vector<Tensor<2, dim>> grad_phi;
 };
 
@@ -143,21 +131,20 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace PressureConstantMatrices
 {
 
-template<int dim>
-using Copy = Generic::Matrix::MassStiffnessCopy<dim>;
+using Copy = Generic::Matrix::MassStiffnessCopy;
 
-template <int dim>  
+template <int dim>
 struct Scratch : Generic::Matrix::Scratch<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
           const Quadrature<dim>     &quadrature_formula,
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
-  
-  Scratch(const Scratch &data);
+
+  Scratch(const Scratch<dim>        &data);
 
   std::vector<double>         phi;
-  
+
   std::vector<Tensor<1, dim>> grad_phi;
 };
 
@@ -166,10 +153,9 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace AdvectionMatrix
 {
 
-template<int dim>
-using Copy = Generic::Matrix::Copy<dim>;
+using Copy = Generic::Matrix::Copy;
 
-template <int dim>  
+template <int dim>
 struct Scratch : Generic::Matrix::Scratch<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -177,29 +163,29 @@ struct Scratch : Generic::Matrix::Scratch<dim>
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
 
-  Scratch(const Scratch &data);
+  Scratch(const Scratch<dim>    &data);
 
   /*! @note Should I make it global inside the AssemblyData namespace
       or leave it locally in each struct for readability? */
-  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
-    
+  using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
+
   std::vector<Tensor<1,dim>>  old_velocity_values;
 
   std::vector<Tensor<1,dim>>  old_old_velocity_values;
-  
+
   std::vector<double>         old_velocity_divergences;
 
   std::vector<double>         old_old_velocity_divergences;
-  
-  std::vector<CurlType>       old_velocity_curls;
 
-  std::vector<CurlType>       old_old_velocity_curls;
+  std::vector<curl_type>      old_velocity_curls;
+
+  std::vector<curl_type>      old_old_velocity_curls;
 
   std::vector<Tensor<1,dim>>  phi;
-  
+
   std::vector<Tensor<2,dim>>  grad_phi;
 
-  std::vector<CurlType>       curl_phi;
+  std::vector<curl_type>      curl_phi;
 };
 
 } // namespace AdvectionMatrix
@@ -207,10 +193,9 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace DiffusionStepRHS
 {
 
-template<int dim>
-using Copy = Generic::RightHandSide::Copy<dim>;
+using Copy = Generic::RightHandSide::Copy;
 
-template <int dim>  
+template <int dim>
 struct Scratch : ScratchBase<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -223,10 +208,10 @@ struct Scratch : ScratchBase<dim>
           const UpdateFlags         pressure_update_flags,
           const FiniteElement<dim>  &temperature_fe,
           const UpdateFlags         temperature_update_flags);
-  
-  Scratch(const Scratch &data);
 
-  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+  Scratch(const Scratch<dim>    &data);
+
+  using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
 
   FEValues<dim>               velocity_fe_values;
 
@@ -239,7 +224,7 @@ struct Scratch : ScratchBase<dim>
   const unsigned int          n_face_q_points;
 
   std::vector<double>         old_pressure_values;
-  
+
   std::vector<double>         old_phi_values;
 
   std::vector<double>         old_old_phi_values;
@@ -256,19 +241,19 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<double>         old_old_velocity_divergences;
 
-  std::vector<CurlType>       old_velocity_curls;
+  std::vector<curl_type>      old_velocity_curls;
 
-  std::vector<CurlType>       old_old_velocity_curls;
+  std::vector<curl_type>      old_old_velocity_curls;
 
-  std::vector<Tensor<1,dim>>  old_rotation_values;
+  curl_type                   old_angular_velocity_value;
 
-  std::vector<Tensor<1,dim>>  old_old_rotation_values;
+  curl_type                   old_old_angular_velocity_value;
 
   std::vector<double>         old_temperature_values;
 
   std::vector<double>         old_old_temperature_values;
 
-  std::vector<Tensor<1,dim>>  gravity_unit_vector_values;
+  std::vector<Tensor<1,dim>>  gravity_vector_values;
 
   std::vector<Tensor<1,dim>>  body_force_values;
 
@@ -276,9 +261,6 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  old_old_body_force_values;
 
-  /*! @note For the time being I will use the more general naming
-      convention of neumann_bc_values instead of traction_vector_values.
-      I would like to discuss a couple of aspects in this line*/
   std::vector<Tensor<1,dim>>  neumann_bc_values;
 
   std::vector<Tensor<1,dim>>  old_neumann_bc_values;
@@ -286,12 +268,12 @@ struct Scratch : ScratchBase<dim>
   std::vector<Tensor<1,dim>>  old_old_neumann_bc_values;
 
   std::vector<Tensor<1,dim>>  phi;
-  
+
   std::vector<Tensor<2,dim>>  grad_phi;
 
   std::vector<double>         div_phi;
 
-  std::vector<CurlType>       curl_phi;
+  std::vector<curl_type>      curl_phi;
 
   std::vector<Tensor<1,dim>>  face_phi;
 };
@@ -301,19 +283,16 @@ struct Scratch : ScratchBase<dim>
 namespace ProjectionStepRHS
 {
 
-template<int dim>
-struct Copy : CopyBase<dim>
+struct Copy : CopyBase
 {
   Copy(const unsigned int dofs_per_cell);
-
-  Copy(const Copy &data);
 
   Vector<double>      local_projection_step_rhs;
 
   Vector<double>      local_correction_step_rhs;
 };
 
-template <int dim>  
+template <int dim>
 struct Scratch : ScratchBase<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -322,8 +301,8 @@ struct Scratch : ScratchBase<dim>
           const UpdateFlags         velocity_update_flags,
           const FiniteElement<dim>  &pressure_fe,
           const UpdateFlags         pressure_update_flags);
-  
-  Scratch(const Scratch &data);
+
+  Scratch(const Scratch<dim>    &data);
 
   FEValues<dim>       velocity_fe_values;
 
@@ -339,10 +318,9 @@ struct Scratch : ScratchBase<dim>
 namespace PoissonStepRHS
 {
 
-template<int dim>
-using Copy = Generic::RightHandSide::Copy<dim>;
+using Copy = Generic::RightHandSide::Copy;
 
-template <int dim>  
+template <int dim>
 struct Scratch : ScratchBase<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -355,12 +333,11 @@ struct Scratch : ScratchBase<dim>
           const UpdateFlags         pressure_update_flags,
           const UpdateFlags         pressure_face_update_flags,
           const FiniteElement<dim>  &temperature_fe,
-          const UpdateFlags         temperature_update_flags,
-          const UpdateFlags         temperature_face_update_flags);
-  
-  Scratch(const Scratch &data);
+          const UpdateFlags         temperature_update_flags);
 
-  using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
+  Scratch(const Scratch<dim>    &data);
+
+  using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
 
   FEValues<dim>               velocity_fe_values;
 
@@ -372,44 +349,22 @@ struct Scratch : ScratchBase<dim>
 
   FEValues<dim>               temperature_fe_values;
 
-  FEFaceValues<dim>           temperature_fe_face_values;
-
   const unsigned int          n_face_q_points;
 
   std::vector<Tensor<1,dim>>  velocity_values;
 
-  std::vector<Tensor<1,dim>>  velocity_face_values;
-
-  std::vector<CurlType>       velocity_curls;
-
   std::vector<Tensor<1,dim>>  velocity_laplacians;
 
-  std::vector<Tensor<1,dim>>  rotation_values;
-
-  std::vector<Tensor<1,dim>>  rotation_face_values;
-
-  std::vector<CurlType>       rotation_curls;
+  curl_type                   angular_velocity_value;
 
   std::vector<double>         temperature_values;
 
-  std::vector<double>         temperature_face_values;
-
-  std::vector<Tensor<1,dim>>  temperature_gradients;
-
-  std::vector<Tensor<1,dim>>  gravity_unit_vector_values;
-
-  std::vector<Tensor<1,dim>>  gravity_unit_vector_face_values;
-
-  std::vector<double>         gravity_unit_vector_divergences;
+  std::vector<Tensor<1,dim>>  gravity_vector_values;
 
   std::vector<Tensor<1,dim>>  body_force_values;
 
-  std::vector<double>         body_force_divergences;
-
   std::vector<Tensor<1,dim>>  normal_vectors;
 
-  std::vector<double>         phi;
-  
   std::vector<Tensor<1,dim>>  grad_phi;
 
   std::vector<double>         face_phi;
@@ -425,21 +380,20 @@ namespace HeatEquation
 namespace ConstantMatrices
 {
 
-template<int dim>
-using Copy = Generic::Matrix::MassStiffnessCopy<dim>;
+using Copy = Generic::Matrix::MassStiffnessCopy;
 
-template <int dim>  
+template<int dim>
 struct Scratch : Generic::Matrix::Scratch<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
           const Quadrature<dim>     &quadrature_formula,
           const FiniteElement<dim>  &fe,
           const UpdateFlags         update_flags);
-  
-  Scratch(const Scratch &data);
+
+  Scratch(const Scratch<dim>    &data);
 
   std::vector<double>         phi;
-  
+
   std::vector<Tensor<1, dim>> grad_phi;
 };
 
@@ -448,10 +402,9 @@ struct Scratch : Generic::Matrix::Scratch<dim>
 namespace AdvectionMatrix
 {
 
-template<int dim>
-using Copy = Generic::Matrix::Copy<dim>;
+using Copy = Generic::Matrix::Copy;
 
-template <int dim>  
+template <int dim>
 struct Scratch : ScratchBase<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -460,21 +413,21 @@ struct Scratch : ScratchBase<dim>
           const UpdateFlags         temperature_update_flags,
           const FiniteElement<dim>  &velocity_fe,
           const UpdateFlags         velocity_update_flags);
-  
-  Scratch(const Scratch &data);
+
+  Scratch(const Scratch<dim>    &data);
 
   FEValues<dim>               temperature_fe_values;
 
   FEValues<dim>               velocity_fe_values;
-  
+
   std::vector<Tensor<1,dim>>  velocity_values;
-  
+
   std::vector<Tensor<1,dim>>  old_velocity_values;
 
   std::vector<Tensor<1,dim>>  old_old_velocity_values;
 
   std::vector<double>         phi;
-  
+
   std::vector<Tensor<1,dim>>  grad_phi;
 };
 
@@ -483,10 +436,9 @@ struct Scratch : ScratchBase<dim>
 namespace RightHandSide
 {
 
-template<int dim>
-using Copy = Generic::RightHandSide::Copy<dim>;
+using Copy = Generic::RightHandSide::Copy;
 
-template <int dim>  
+template <int dim>
 struct Scratch : ScratchBase<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
@@ -497,8 +449,8 @@ struct Scratch : ScratchBase<dim>
           const UpdateFlags         temperature_face_update_flags,
           const FiniteElement<dim>  &velocity_fe,
           const UpdateFlags         velocity_update_flags);
-  
-  Scratch(const Scratch &data);
+
+  Scratch(const Scratch<dim>    &data);
 
   FEValues<dim>               temperature_fe_values;
 
@@ -509,7 +461,7 @@ struct Scratch : ScratchBase<dim>
   const unsigned int          n_face_q_points;
 
   std::vector<double>         old_temperature_values;
-  
+
   std::vector<double>         old_old_temperature_values;
 
   std::vector<Tensor<1,dim>>  velocity_values;
@@ -535,7 +487,7 @@ struct Scratch : ScratchBase<dim>
   std::vector<double>         old_old_neumann_bc_values;
 
   std::vector<double>         phi;
-  
+
   std::vector<Tensor<1,dim>>  grad_phi;
 
   std::vector<double>         face_phi;
@@ -544,6 +496,58 @@ struct Scratch : ScratchBase<dim>
 } // namespace RightHandSide
 
 } // namespace HeatEquation
+
+
+
+namespace Benchmarks
+{
+namespace Christensen
+{
+
+
+
+template <int dim>
+struct Scratch
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags,
+          const FiniteElement<dim>  &magnetic_field_fe,
+          const UpdateFlags         magnetic_field_flags);
+
+  Scratch(const Scratch<dim>        &data);
+
+  const unsigned int          n_q_points;
+
+  const unsigned int          dofs_per_cell;
+
+  FEValues<dim>               velocity_fe_values;
+
+  FEValues<dim>               magnetic_field_fe_values;
+
+  std::vector<Tensor<1,dim>>  velocity_values;
+
+  std::vector<Tensor<1,dim>>  magnetic_field_values;
+};
+
+
+
+struct Copy
+{
+  Copy(const unsigned int dofs_per_cell);
+
+  double local_velocity_squared_norm;
+
+  double local_magnetic_field_squared_norm;
+
+  double local_discrete_volume;
+};
+
+
+
+} // namespace Christensen
+} // namespace Benchmarks
 
 } // namespace AssemblyData
 

@@ -1,4 +1,5 @@
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/utility.h>
 
 #include <deal.II/numerics/vector_tools.h>
 
@@ -9,6 +10,12 @@ template <int dim>
 void NavierStokesProjection<dim>::
 assemble_poisson_prestep()
 {
+  // Set external functions to their start time
+  if (body_force_ptr != nullptr)
+    body_force_ptr->set_time(time_stepping.get_start_time());
+  if (angular_velocity_vector_ptr != nullptr)
+    angular_velocity_vector_ptr->set_time(time_stepping.get_start_time());
+
   /* System matrix setup */
   // System matrix is constant and assembled in the
   // in the NavierStokesProjection::setup method.
@@ -16,6 +23,7 @@ assemble_poisson_prestep()
   /* Right hand side setup */
   assemble_poisson_prestep_rhs();
 }
+
 
 template <int dim>
 void
@@ -30,19 +38,28 @@ solve_poisson_prestep()
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
   // operation.
-  LinearAlgebra::MPI::Vector distributed_old_old_pressure(pressure_rhs);
-  distributed_old_old_pressure = pressure->old_old_solution;
+  LinearAlgebra::MPI::Vector distributed_old_pressure(pressure->distributed_vector);
+  distributed_old_pressure = pressure->old_solution;
 
-  projection_step_preconditioner.initialize(pressure_laplace_matrix);
+  const typename RunTimeParameters::LinearSolverParameters &solver_parameters
+    = parameters.poisson_prestep_solver_parameters;
 
-  SolverControl solver_control(parameters.n_maximum_iterations,
-                               std::max(parameters.relative_tolerance * 
-                                        poisson_prestep_rhs.l2_norm(),
-                                        absolute_tolerance));
+  build_preconditioner(poisson_prestep_preconditioner,
+                       pressure_laplace_matrix,
+                       solver_parameters.preconditioner_parameters_ptr,
+                       (pressure->fe_degree > 1? true: false));
+
+  AssertThrow(poisson_prestep_preconditioner != nullptr,
+              ExcMessage("The pointer to the Poisson pre-step's preconditioner has not being initialized."));
+
+  SolverControl solver_control(
+    solver_parameters.n_maximum_iterations,
+    std::max(solver_parameters.relative_tolerance * poisson_prestep_rhs.l2_norm(),
+             solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverCG solver(solver_control,
-                                   MPI_COMM_WORLD);
+                                   mpi_communicator);
   #else
     LinearAlgebra::SolverCG solver(solver_control);
   #endif
@@ -50,9 +67,9 @@ solve_poisson_prestep()
   try
   {
     solver.solve(pressure_laplace_matrix,
-                 distributed_old_old_pressure,
+                 distributed_old_pressure,
                  poisson_prestep_rhs,
-                 projection_step_preconditioner);
+                 *poisson_prestep_preconditioner);
   }
   catch (std::exception &exc)
   {
@@ -78,19 +95,28 @@ solve_poisson_prestep()
     std::abort();
   }
 
-  pressure->constraints.distribute(distributed_old_old_pressure);
+  pressure->constraints.distribute(distributed_old_pressure);
+
+  pressure->old_solution = distributed_old_pressure;
 
   if (flag_normalize_pressure)
-    VectorTools::subtract_mean_value(distributed_old_old_pressure);
+  {
+    const LinearAlgebra::MPI::Vector::value_type mean_value
+      = VectorTools::compute_mean_value(*pressure->dof_handler,
+                                        QGauss<dim>(pressure->fe.degree + 1),
+                                        pressure->old_solution,
+                                        0);
 
-  pressure->old_old_solution = distributed_old_old_pressure;
+    distributed_old_pressure.add(-mean_value);
+    pressure->old_solution = distributed_old_pressure;
+  }
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl
-           << "    Number of GMRES iterations: " 
+           << "    Number of CG iterations: "
            << solver_control.last_step()
            << ", Final residual: " << solver_control.last_value() << "."
-           << std::endl;
+           << std::endl << std::endl;
 }
 
 } // namespace RMHD

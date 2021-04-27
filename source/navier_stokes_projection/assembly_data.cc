@@ -37,7 +37,7 @@ grad_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 phi(data.dofs_per_cell),
@@ -65,7 +65,7 @@ grad_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 phi(data.dofs_per_cell),
@@ -100,7 +100,7 @@ curl_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 Generic::Matrix::Scratch<dim>(data),
 old_velocity_values(data.n_q_points),
@@ -166,11 +166,9 @@ old_velocity_divergences(this->n_q_points),
 old_old_velocity_divergences(this->n_q_points),
 old_velocity_curls(this->n_q_points),
 old_old_velocity_curls(this->n_q_points),
-old_rotation_values(this->n_q_points),
-old_old_rotation_values(this->n_q_points),
 old_temperature_values(this->n_q_points),
 old_old_temperature_values(this->n_q_points),
-gravity_unit_vector_values(this->n_q_points),
+gravity_vector_values(this->n_q_points),
 body_force_values(this->n_q_points),
 old_body_force_values(this->n_q_points),
 old_old_body_force_values(this->n_q_points),
@@ -185,7 +183,7 @@ face_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 velocity_fe_values(
@@ -220,11 +218,9 @@ old_velocity_divergences(this->n_q_points),
 old_old_velocity_divergences(this->n_q_points),
 old_velocity_curls(this->n_q_points),
 old_old_velocity_curls(this->n_q_points),
-old_rotation_values(this->n_q_points),
-old_old_rotation_values(this->n_q_points),
 old_temperature_values(this->n_q_points),
 old_old_temperature_values(this->n_q_points),
-gravity_unit_vector_values(this->n_q_points),
+gravity_vector_values(this->n_q_points),
 body_force_values(this->n_q_points),
 old_body_force_values(this->n_q_points),
 old_old_body_force_values(this->n_q_points),
@@ -243,20 +239,11 @@ face_phi(this->dofs_per_cell)
 namespace ProjectionStepRHS
 {
 
-template <int dim>
-Copy<dim>::Copy(const unsigned int dofs_per_cell)
+Copy::Copy(const unsigned int dofs_per_cell)
 :
-CopyBase<dim>(dofs_per_cell),
+CopyBase(dofs_per_cell),
 local_projection_step_rhs(dofs_per_cell),
 local_correction_step_rhs(dofs_per_cell)
-{}
-
-template <int dim>
-Copy<dim>::Copy(const Copy &data)
-:
-CopyBase<dim>(data),
-local_projection_step_rhs(data.local_projection_step_rhs),
-local_correction_step_rhs(data.local_correction_step_rhs)
 {}
 
 template <int dim>
@@ -285,7 +272,7 @@ phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 velocity_fe_values(
@@ -319,8 +306,7 @@ Scratch<dim>::Scratch
  const UpdateFlags         pressure_update_flags,
  const UpdateFlags         pressure_face_update_flags,
  const FiniteElement<dim>  &temperature_fe,
- const UpdateFlags         temperature_update_flags,
- const UpdateFlags         temperature_face_update_flags)
+ const UpdateFlags         temperature_update_flags)
 :
 ScratchBase<dim>(quadrature_formula,
                  pressure_fe),
@@ -349,35 +335,19 @@ temperature_fe_values(
   temperature_fe,
   quadrature_formula,
   temperature_update_flags),
-temperature_fe_face_values(
-  mapping,
-  temperature_fe,
-  face_quadrature_formula,
-  temperature_face_update_flags),
 n_face_q_points(face_quadrature_formula.size()),
 velocity_values(this->n_q_points),
-velocity_face_values(n_face_q_points),
-velocity_curls(this->n_q_points),
 velocity_laplacians(n_face_q_points),
-rotation_values(this->n_q_points),
-rotation_face_values(n_face_q_points),
-rotation_curls(this->n_q_points),
 temperature_values(this->n_q_points),
-temperature_face_values(n_face_q_points),
-temperature_gradients(this->n_q_points),
-gravity_unit_vector_values(this->n_q_points),
-gravity_unit_vector_face_values(n_face_q_points),
-gravity_unit_vector_divergences(this->n_q_points),
-body_force_values(n_face_q_points),
-body_force_divergences(this->n_q_points),
+gravity_vector_values(this->n_q_points),
+body_force_values(this->n_q_points),
 normal_vectors(n_face_q_points),
-phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell),
 face_phi(this->dofs_per_cell)
 {}
 
 template <int dim>
-Scratch<dim>::Scratch(const Scratch &data)
+Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
 ScratchBase<dim>(data),
 velocity_fe_values(
@@ -405,29 +375,13 @@ temperature_fe_values(
   data.temperature_fe_values.get_fe(),
   data.temperature_fe_values.get_quadrature(),
   data.temperature_fe_values.get_update_flags()),
-temperature_fe_face_values(
-  data.temperature_fe_face_values.get_mapping(),
-  data.temperature_fe_face_values.get_fe(),
-  data.temperature_fe_face_values.get_quadrature(),
-  data.temperature_fe_face_values.get_update_flags()),
 n_face_q_points(data.n_face_q_points),
 velocity_values(this->n_q_points),
-velocity_face_values(n_face_q_points),
-velocity_curls(this->n_q_points),
 velocity_laplacians(n_face_q_points),
-rotation_values(this->n_q_points),
-rotation_face_values(n_face_q_points),
-rotation_curls(this->n_q_points),
 temperature_values(this->n_q_points),
-temperature_face_values(n_face_q_points),
-temperature_gradients(this->n_q_points),
-gravity_unit_vector_values(this->n_q_points),
-gravity_unit_vector_face_values(n_face_q_points),
-gravity_unit_vector_divergences(this->n_q_points),
-body_force_values(n_face_q_points),
-body_force_divergences(this->n_q_points),
+gravity_vector_values(this->n_q_points),
+body_force_values(this->n_q_points),
 normal_vectors(n_face_q_points),
-phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell),
 face_phi(this->dofs_per_cell)
 {}
@@ -452,9 +406,6 @@ template struct RMHD::AssemblyData::NavierStokesProjection::AdvectionMatrix::Scr
 
 template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<3>;
-
-template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<2>;
-template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy<3>;
 
 template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<2>;
 template struct RMHD::AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<3>;

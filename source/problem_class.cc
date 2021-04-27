@@ -5,6 +5,10 @@
 #include <deal.II/fe/mapping_manifold.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <exception>
+#include <filesystem>
+#include <string>
+
 namespace RMHD
 {
 
@@ -26,7 +30,7 @@ std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
 }
 
 template<int dim>
-Problem<dim>::Problem(const RunTimeParameters::ParameterSet &prm)
+Problem<dim>::Problem(const RunTimeParameters::ProblemParameters &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
 prm(prm),
@@ -34,10 +38,8 @@ triangulation(mpi_communicator,
               typename Triangulation<dim>::MeshSmoothing(
               Triangulation<dim>::smoothing_on_refinement |
               Triangulation<dim>::smoothing_on_coarsening)),
-/*! @todo Include a the mapping's polynomial degree as a parameter in 
-    the parameter struct overhaul. For the time being, this will be 
-    hardcoded to linear mappings. */
-mapping(std::make_shared<MappingQ<dim>>(1, false)),
+mapping(std::make_shared<MappingQ<dim>>(prm.mapping_degree,
+                                        prm.mapping_interior_cells)),
 pcout(std::make_shared<ConditionalOStream>(std::cout,
       (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))),
 computing_timer(
@@ -45,75 +47,95 @@ computing_timer(
                                 *pcout,
                                 TimerOutput::summary,
                                 TimerOutput::wall_times))
-{}
+{
+  if (!std::filesystem::exists(prm.graphical_output_directory) &&
+      Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+  {
+    try
+    {
+      std::filesystem::create_directories(prm.graphical_output_directory);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output directory: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output directory!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
+}
+
+
 
 template <int dim>
 void Problem<dim>::set_initial_conditions
 (std::shared_ptr<Entities::EntityBase<dim>> entity,
  Function<dim>                              &function,
- const TimeDiscretization::VSIMEXMethod     &time_stepping)
+ const TimeDiscretization::VSIMEXMethod     &time_stepping,
+ const bool                                 boolean)
 {
-  switch (time_stepping.get_order())
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_old_solution(entity->locally_owned_dofs);
+  #endif
+
+  function.set_time(time_stepping.get_start_time());
+
+  if (!boolean)
   {
-    case 1 :
-      {
-        #ifdef USE_PETSC_LA
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
-        #else
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs);
-        #endif
+    VectorTools::project(*entity->dof_handler,
+                          entity->constraints,
+                          QGauss<dim>(entity->fe_degree + 2),
+                          function,
+                          tmp_old_solution);
 
-        function.set_time(time_stepping.get_start_time());
+    entity->old_solution = tmp_old_solution;
+  }
+  else
+  {
+    LinearAlgebra::MPI::Vector tmp_old_old_solution(tmp_old_solution);
 
-        VectorTools::project(*entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_solution);
+    VectorTools::project(*entity->dof_handler,
+                          entity->constraints,
+                          QGauss<dim>(entity->fe_degree + 2),
+                          function,
+                          tmp_old_old_solution);
 
-        entity->old_solution = tmp_old_solution;
-        break;
-      }
-    case 2 :
+    function.advance_time(time_stepping.get_next_step_size());
 
-      {
-        #ifdef USE_PETSC_LA
-          LinearAlgebra::MPI::Vector
-          tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
-          LinearAlgebra::MPI::Vector
-          tmp_old_old_solution(entity->locally_owned_dofs, mpi_communicator);
-        #else
-          LinearAlgebra::MPI::Vector tmp_old_old_solution(entity->locally_owned_dofs);
-          LinearAlgebra::MPI::Vector tmp_old_solution(entity->locally_owned_dofs);
-        #endif
+    VectorTools::project(*entity->dof_handler,
+                          entity->constraints,
+                          QGauss<dim>(entity->fe_degree + 2),
+                          function,
+                          tmp_old_solution);
 
-        function.set_time(time_stepping.get_start_time());
-
-        VectorTools::project(*entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_old_solution);
-
-        function.advance_time(time_stepping.get_next_step_size());
-
-        VectorTools::project(*entity->dof_handler,
-                             entity->constraints,
-                             QGauss<dim>(entity->fe_degree + 2),
-                             function,
-                             tmp_old_solution);
-
-        entity->old_old_solution = tmp_old_old_solution;
-        entity->old_solution     = tmp_old_solution;
-        break;
-      }
-    default:
-      Assert(false, ExcNotImplemented());
-  };
-
+    entity->old_old_solution = tmp_old_old_solution;
+    entity->old_solution     = tmp_old_solution;
+  }
 }
+
+
 
 template <int dim>
 void Problem<dim>::compute_error(
@@ -121,41 +143,26 @@ void Problem<dim>::compute_error(
   std::shared_ptr<Entities::EntityBase<dim>>  entity,
   Function<dim>                               &exact_solution)
 {
-  #ifdef USE_PETSC_LA
-    LinearAlgebra::MPI::Vector
-    tmp_error_vector(entity->locally_owned_dofs, mpi_communicator);
-  #else
-    LinearAlgebra::MPI::Vector
-    tmp_error_vector(entity->locally_owned_dofs);
-  #endif
-  VectorTools::project(*entity->dof_handler,
-                       entity->constraints,
-                       QGauss<dim>(entity->fe_degree + 2),
-                       exact_solution,
-                       tmp_error_vector);
+  AssertThrow(error_vector.local_size() ==
+                entity->solution.local_size(),
+              ExcMessage("The vectors do not match in size"));
 
-  error_vector = tmp_error_vector;
+  LinearAlgebra::MPI::Vector  distributed_solution_vector;
+  LinearAlgebra::MPI::Vector  distributed_error_vector;
 
-  LinearAlgebra::MPI::Vector distributed_error_vector;
-  LinearAlgebra::MPI::Vector distributed_solution;
+  distributed_solution_vector.reinit(entity->distributed_vector);
+  distributed_error_vector.reinit(entity->distributed_vector);
 
-  #ifdef USE_PETSC_LA
-    distributed_error_vector.reinit(entity->locally_owned_dofs,
-                                    mpi_communicator);
-  #else
-    distributed_error_vector.reinit(entity->locally_owned_dofs,
-                                    entity->locally_relevant_dofs,
-                                    mpi_communicator,
-                                    true);
-  #endif
-  distributed_solution.reinit(distributed_error_vector);
+  distributed_solution_vector = entity->solution;
+  VectorTools::interpolate(*mapping,
+                           *entity->dof_handler,
+                           exact_solution,
+                           distributed_error_vector);
+  entity->hanging_nodes.distribute(distributed_error_vector);
 
-  distributed_error_vector  = error_vector;
-  distributed_solution      = entity->solution;
+  distributed_error_vector.add(-1.0, distributed_solution_vector);
 
-  distributed_error_vector.add(-1.0, distributed_solution);
-  
-  for (unsigned int i = distributed_error_vector.local_range().first; 
+  for (unsigned int i = distributed_error_vector.local_range().first;
        i < distributed_error_vector.local_range().second; ++i)
     if (distributed_error_vector(i) < 0)
       distributed_error_vector(i) *= -1.0;
@@ -169,38 +176,38 @@ double Problem<dim>::compute_next_time_step
  const double                           cfl_number,
  const double                           max_cfl_number) const
 {
-  if (!prm.time_stepping_parameters.adaptive_time_stepping ||
+  if (!prm.time_discretization_parameters.adaptive_time_stepping ||
       time_stepping.get_step_number() == 0)
     return time_stepping.get_next_step_size();
 
-  return max_cfl_number / cfl_number * 
+  return max_cfl_number / cfl_number *
          time_stepping.get_next_step_size();
 }
 
 template <int dim>
 void Problem<dim>::adaptive_mesh_refinement()
 {
-  Assert(!container.empty(), 
+  Assert(!container.empty(),
          ExcMessage("The entities container is empty."))
 
-  using SolutionTransferType = 
+  using SolutionTransferType =
   parallel::distributed::SolutionTransfer<dim, LinearAlgebra::MPI::Vector>;
 
-  using TransferVectorType = 
+  using TransferVectorType =
   std::vector<const LinearAlgebra::MPI::Vector *>;
 
   std::vector<SolutionTransferType> solution_transfers;
-  
+
   /*! Initiates the objects responsible for the solution transfer */
   for (auto const &entity: container.entities)
     solution_transfers.emplace_back(*(entity.first->dof_handler));
 
   {
-    TimerOutput::Scope t(*computing_timer, 
+    TimerOutput::Scope t(*computing_timer,
                          "Problem: Adaptive mesh refinement Pt. 1");
 
     *pcout << std::endl
-           << "Preparing coarsening and refining..." << std::endl;
+           << " Preparing coarsening and refining..." << std::endl;
 
     // Initiates the estimated error per cell of each entity, which
     // is to be considered
@@ -210,12 +217,12 @@ void Problem<dim>::adaptive_mesh_refinement()
 
     // Initiates the estimated error per cell used in the refinement.
     // It is composed by the equally weighted sum of the estimated
-    // error per cell of each entity to be considered 
+    // error per cell of each entity to be considered
     Vector<float> estimated_error_per_cell(triangulation.n_active_cells());
 
     unsigned int j = 0;
 
-    // Computes the estimated error per cell of all the pertinent 
+    // Computes the estimated error per cell of all the pertinent
     // entities
     for (unsigned int i = 0; i < container.entities.size(); ++i)
     {
@@ -231,7 +238,7 @@ void Problem<dim>::adaptive_mesh_refinement()
           nullptr,
           0,
           triangulation.locally_owned_subdomain());
-        
+
         j += 1;
       }
       else
@@ -240,31 +247,30 @@ void Problem<dim>::adaptive_mesh_refinement()
 
     // Reset the estimated error per cell and fills it with the
     // equally weighted sum of the estimated error per cell of each
-    // entity to be considered 
+    // entity to be considered
     estimated_error_per_cell = 0.;
 
     for (auto const &error_vector: estimated_errors_per_cell)
       estimated_error_per_cell.add(1.0 / container.get_error_vector_size(),
                                    error_vector);
 
-    // Indicates which cells are to be refine/coarsen 
+    // Indicates which cells are to be refine/coarsen
     parallel::distributed::
     GridRefinement::refine_and_coarsen_fixed_fraction(
       triangulation,
       estimated_error_per_cell,
-      0.3,
-      0.1);
-
+      prm.spatial_discretization_parameters.cell_fraction_to_coarsen,
+      prm.spatial_discretization_parameters.cell_fraction_to_refine);
 
     // Clear refinement flags if refinement level exceeds maximum
-    if (triangulation.n_levels() > prm.refinement_and_coarsening_max_level)
+    if (triangulation.n_global_levels() > prm.spatial_discretization_parameters.n_maximum_levels)
       for (auto cell: triangulation.active_cell_iterators_on_level(
-                        prm.refinement_and_coarsening_max_level))
+                        prm.spatial_discretization_parameters.n_maximum_levels))
         cell->clear_refine_flag();
 
     // Clear coarsen flags if level decreases minimum
     for (auto cell: triangulation.active_cell_iterators_on_level(
-                      prm.refinement_and_coarsening_min_level))
+                      prm.spatial_discretization_parameters.n_minimum_levels))
         cell->clear_coarsen_flag();
 
     // Count number of cells to be refined and coarsened
@@ -300,11 +306,11 @@ void Problem<dim>::adaptive_mesh_refinement()
         x_solutions[i]);
 
     // Execute the mesh refinement/coarsening
-    *pcout << "Executing coarsening and refining..." << std::endl;
+    *pcout << " Executing coarsening and refining..." << std::endl;
     triangulation.execute_coarsening_and_refinement();
   }
 
-  *pcout << "   Number of global active cells:      " 
+  *pcout << "   Number of global active cells:      "
          << triangulation.n_global_active_cells() << std::endl;
 
   std::vector<unsigned int> locally_active_cells(triangulation.n_global_levels());
@@ -315,27 +321,47 @@ void Problem<dim>::adaptive_mesh_refinement()
   *pcout << "   Number of cells on each (level):    ";
   for (unsigned int level=0; level < triangulation.n_global_levels(); ++level)
   {
-      *pcout << Utilities::MPI::sum(locally_active_cells[level], mpi_communicator) 
+      *pcout << Utilities::MPI::sum(locally_active_cells[level], mpi_communicator)
              << " (" << level << ")" << ", ";
   }
   *pcout << "\b\b \n" << std::endl;
+
+  int n_total_dofs = 0;
 
   // Reinitiate the entities to accomodate to the new mesh
   for (auto &entity: container.entities)
   {
     (entity.first)->setup_dofs();
+
+    if (!entity.first->is_child_entity())
+    {
+      *pcout << std::setw(60)
+             << (" Number of degrees of freedom of the \""
+                + (entity.first)->name + "\" entity")
+             << " = "
+             << (entity.first)->dof_handler->n_dofs()
+             << std::endl;
+
+      n_total_dofs += (entity.first)->dof_handler->n_dofs();
+    }
+
     (entity.first)->apply_boundary_conditions();
     (entity.first)->reinit();
   }
 
+  *pcout << std::setw(60)
+         << " Number of total degrees of freedom"
+         << " = "
+         << n_total_dofs << std::endl << std::endl;
+
   {
-    TimerOutput::Scope t(*computing_timer, 
+    TimerOutput::Scope t(*computing_timer,
                          "Problem: Adaptive mesh refinement Pt. 2");
 
   for (unsigned int i = 0; i < container.entities.size(); ++i)
   {
     // Temporary vectors to extract the interpolated solutions back
-    //  into the entities
+    // into the entities
     LinearAlgebra::MPI::Vector  distributed_tmp_solution;
     LinearAlgebra::MPI::Vector  distributed_tmp_old_solution;
     LinearAlgebra::MPI::Vector  distributed_tmp_old_old_solution;
@@ -359,8 +385,8 @@ void Problem<dim>::adaptive_mesh_refinement()
     tmp[0] = &(distributed_tmp_solution);
     tmp[1] = &(distributed_tmp_old_solution);
     tmp[2] = &(distributed_tmp_old_old_solution);
-    
-    // Interpolates and apply constraines to the temporary vectors 
+
+    // Interpolates and apply constraines to the temporary vectors
     solution_transfers[i].interpolate(tmp);
 
     (container.entities[i].first)->constraints.distribute(distributed_tmp_solution);

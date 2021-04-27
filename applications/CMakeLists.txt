@@ -10,8 +10,11 @@ SET(SOURCE_FILES
     step-35.cc
     TGV.cc
     Guermond.cc
+    GuermondNeumannBC.cc
+    Couette.cc
     ThermalTGV.cc
     MIT.cc
+    Christensen.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})
@@ -19,5 +22,5 @@ FOREACH(sourcefile ${SOURCE_FILES})
     STRING(REPLACE ".cc" "" testname ${sourcefile} )
     ADD_EXECUTABLE( ${testname} ${sourcefile})
     DEAL_II_SETUP_TARGET(${testname})
-    TARGET_LINK_LIBRARIES(${testname} rotatingMHD)
+    TARGET_LINK_LIBRARIES(${testname} rotatingMHD stdc++fs)
 ENDFOREACH( sourcefile ${APP_SOURCES} )
