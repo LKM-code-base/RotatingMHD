@@ -478,10 +478,28 @@ flag_coefficients_changed(true)
   reinit();
 }
 
+VSIMEXMethod::VSIMEXMethod(const VSIMEXMethod &vsimex)
+:
+DiscreteTime(vsimex.get_current_time(),
+             vsimex.parameters.final_time,
+             vsimex.get_next_step_size()),
+parameters(vsimex.parameters),
+order(vsimex.order),
+vsimex_parameters(vsimex.vsimex_parameters),
+alpha(vsimex.alpha),
+beta(vsimex.beta),
+gamma(vsimex.gamma),
+eta(vsimex.eta),
+omega(vsimex.omega),
+old_alpha_zero(vsimex.old_step_size_values),
+old_step_size_values(vsimex.old_step_size_values),
+flag_coefficients_changed(vsimex.flag_coefficients_changed)
+{}
+
 void VSIMEXMethod::reinit()
 {
   // Resize all coefficient vectors according to the scheme's order
-  // and initializing their values to zero excepct of those acting as
+  // and initializing their values to zero except of those acting as
   // divisor.
   alpha.resize(order+1, 0.0);
   beta.resize(order, 0.0);

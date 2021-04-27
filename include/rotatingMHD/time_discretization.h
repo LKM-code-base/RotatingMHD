@@ -2,7 +2,8 @@
 #ifndef INCLUDE_ROTATINGMHD_TIME_DISCRETIZATION_H_
 #define INCLUDE_ROTATINGMHD_TIME_DISCRETIZATION_H_
 
-#include <deal.II/base/discrete_time.h>
+#include <rotatingMHD/discrete_time.h>
+
 #include <deal.II/base/parameter_handler.h>
 
 #include <iostream>
@@ -10,8 +11,6 @@
 
 namespace RMHD
 {
-
-using namespace dealii;
 
 namespace TimeDiscretization
 {
@@ -70,13 +69,13 @@ struct TimeDiscretizationParameters
    * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
    */
-  static void declare_parameters(ParameterHandler &prm);
+  static void declare_parameters(dealii::ParameterHandler &prm);
 
   /*!
    * @brief Method which parses the parameters of the time stepping scheme from
    * the ParameterHandler object @p prm.
    */
-  void parse_parameters(ParameterHandler &prm);
+  void parse_parameters(dealii::ParameterHandler &prm);
 
   /*!
    * @brief Method forwarding parameters to a stream object.
@@ -170,6 +169,11 @@ public:
   * @brief The constructor of the class.
   */
   VSIMEXMethod(const TimeDiscretizationParameters &parameters);
+
+  /*!
+  * @brief Copy constructor.
+  */
+  VSIMEXMethod(const VSIMEXMethod &vsimex);
 
   /*!
   * @brief A method returning the order of the VSIMEX scheme.
