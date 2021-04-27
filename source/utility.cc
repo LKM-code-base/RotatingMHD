@@ -1,5 +1,7 @@
 #include <rotatingMHD/utility.h>
 
+#include <deal.II/base/mpi.h>
+
 namespace RMHD
 {
 
