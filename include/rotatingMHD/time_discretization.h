@@ -173,7 +173,7 @@ public:
   /*!
   * @brief Copy constructor.
   */
-  VSIMEXMethod(const VSIMEXMethod &vsimex);
+  VSIMEXMethod(const VSIMEXMethod &other);
 
   /*!
    * @brief Release all memory and reset all objects.
@@ -215,13 +215,39 @@ public:
    * @brief A method returning the coefficients \f$ \alpha_0 \f$ of the previous
    * time steps.
    */
-  const std::vector<double>& get_old_alpha_zero() const;
+  const std::vector<double>& get_previous_alpha_zeros() const;
 
   /*!
    * @brief A method returning the sizes \f$ \Delta_t \f$ of the previous time
    * steps.
    */
-  const std::vector<double>& get_old_step_size() const;
+  const std::vector<double>& get_previous_step_sizes() const;
+
+  /*!
+   * @brief A method returning the minimum size of the time step.
+   */
+  double get_minimum_step_size() const;
+
+  /*!
+   * @brief A method returning the maximum size of the time step.
+   */
+  double get_maximum_step_size() const;
+
+  /*!
+  * @brief A method setting the *desired* minimum size of the time step.
+  *
+  * @details This method assigns @p step_size to @ref mininum_step_size.
+  *
+  */
+  void set_minimum_step_size(const double step_size);
+
+  /*!
+  * @brief A method setting the *desired* maximum size of the time step.
+  *
+  * @details This method assigns @p step_size to @ref maximum_step_size.
+  *
+  */
+  void set_maximum_step_size(const double step_size);
 
   /*!
   * @brief A method passing the *desired* size of the next time step to the
@@ -276,21 +302,20 @@ public:
   bool coefficients_changed() const;
 
 private:
+  /*!
+   * @brief Order of the VSIMEX scheme.
+   */
+  constexpr static unsigned int order{2};
 
   /*!
    * @brief Method which updates the sizes of the coefficient vectors .
    */
   void reinit();
 
-  /*!
-   * @brief Parameter controlling the behavior of this class.
+  /*
+   * @brief Type of the VSIMEX scheme.
    */
-  const TimeDiscretizationParameters &parameters;
-
-  /*!
-   * @brief Order of the VSIMEX scheme.
-   */
-  unsigned int        order;
+  const VSIMEXScheme  type;
 
   /*!
    * @brief Parameters of the VSIMEX scheme.
@@ -334,7 +359,7 @@ private:
    * @attention This member is only useful in the NavierStokesProjection
    * class.
    */
-  std::vector<double> old_alpha_zero;
+  std::vector<double> previous_alpha_zeros;
 
   /*!
    * @brief A vector containing the sizes of the previous time steps.
@@ -344,7 +369,17 @@ private:
    * @attention This member is only useful in the NavierStokesProjection
    * class.
    */
-  std::vector<double> old_step_size_values;
+  std::vector<double> previous_step_sizes;
+
+  /*!
+   * @brief The minimum size of the time step.
+   */
+  double  minimum_step_size;
+
+  /*!
+   * @brief The maximum size of the time step.
+   */
+  double  maximum_step_size;
 
   /*!
    * @brief A flag indicating if the VSIMEX coefficients changed from
@@ -393,14 +428,14 @@ inline const std::vector<double>& VSIMEXMethod::get_eta() const
   return (eta);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_old_alpha_zero() const
+inline const std::vector<double>& VSIMEXMethod::get_previous_alpha_zeros() const
 {
-  return (old_alpha_zero);
+  return (previous_alpha_zeros);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_old_step_size() const
+inline const std::vector<double>& VSIMEXMethod::get_previous_step_sizes() const
 {
-  return (old_step_size_values);
+  return (previous_step_sizes);
 }
 
 inline bool VSIMEXMethod::coefficients_changed() const
@@ -408,6 +443,45 @@ inline bool VSIMEXMethod::coefficients_changed() const
   return (flag_coefficients_changed);
 }
 
+inline double VSIMEXMethod::get_minimum_step_size() const
+{
+  return (minimum_step_size);
+}
+
+inline double VSIMEXMethod::get_maximum_step_size() const
+{
+  return (maximum_step_size);
+}
+
+inline void VSIMEXMethod::set_minimum_step_size(const double step_size)
+{
+  if (is_at_end())
+    return;
+
+  using namespace dealii;
+
+  AssertThrow(maximum_step_size >= step_size,
+              ExcLowerRangeType<double>(maximum_step_size, step_size));
+  AssertThrow(get_next_step_size() >= step_size,
+              ExcLowerRangeType<double>(get_next_step_size(), step_size));
+
+  minimum_step_size = step_size;
+}
+
+inline void VSIMEXMethod::set_maximum_step_size(const double step_size)
+{
+  if (is_at_end())
+    return;
+
+  using namespace dealii;
+
+  AssertThrow(step_size >= get_next_step_size(),
+              ExcLowerRangeType<double>(step_size, get_next_step_size()));
+  AssertThrow(step_size >= minimum_step_size,
+              ExcLowerRangeType<double>(step_size, minimum_step_size));
+
+  maximum_step_size = step_size;
+}
 } // namespace TimeDiscretization
 
 } // namespace RMHD
