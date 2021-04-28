@@ -37,7 +37,7 @@ jobs:
           echo "pulling docker image for branch"
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
-          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://github.com/j507/RotatingMHD && cd RotatingMHD && git checkout ${GITHUB_REF#refs/heads/} && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Release && make -j2 ";
+          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://$GITHUB\_TOKEN@github.com/j507/RotatingMHD.git && cd RotatingMHD && git checkout ${GITHUB_REF#refs/heads/} && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Release && make -j2 ";
           
       - name: sanity master
         if: github.event_name == 'pull_request'
@@ -49,7 +49,7 @@ jobs:
           echo "pulling docker image for master"
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
-          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://github.com/j507/RotatingMHD && cd RotatingMHD && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Release && make -j2 ";
+          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://$GITHUB\_TOKEN@github.com/j507/RotatingMHD.git && cd RotatingMHD && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Release && make -j2 ";
   build-debug:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -72,7 +72,7 @@ jobs:
           echo "pulling docker image for branch"
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
-          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://github.com/j507/RotatingMHD && cd RotatingMHD && git checkout ${GITHUB_REF#refs/heads/} && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Debug && make -j2 ";
+          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://$GITHUB\_TOKEN@github.com/j507/RotatingMHD.git && cd RotatingMHD && git checkout ${GITHUB_REF#refs/heads/} && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Debug && make -j2 ";
           
       - name: sanity master
         if: github.event_name == 'pull_request'
@@ -84,6 +84,6 @@ jobs:
           echo "pulling docker image for master"
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
-          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://github.com/j507/RotatingMHD && cd RotatingMHD && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Debug && make -j2 ";
+          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://$GITHUB\_TOKEN@github.com/j507/RotatingMHD.git && cd RotatingMHD && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Debug && make -j2 ";
           #formatting:
           #runs-on: ubuntu-latest
