@@ -37,9 +37,7 @@ jobs:
           echo "pulling docker image for branch"
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
-          ls -l
-          pwd
-          docker run --workdir=/home/dealii/workspace --volume $(pwd):/home/dealii/workspace dealii/dealii:master-focal /bin/sh -c "echo Hello World && pwd && ls -l && ls -l ~ && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Release && cd build/ && make -j2 ";
+          docker run --workdir=/home/dealii/workspace --volume $(pwd):/home/dealii/workspace dealii/dealii:master-focal /bin/sh -c "mkdir build && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Release && cd build/ && make -j2 ";
       - name: sanity master
         if: github.event_name == 'pull_request'
         run: |
@@ -52,7 +50,7 @@ jobs:
           echo "Docker image is good, ready for action!"
           ls -l
           pwd
-          docker run --workdir=/home/dealii/workspace --volume $(pwd):/home/dealii/workspace dealii/dealii:master-focal /bin/sh -c "echo Hello World && pwd && ls -l && ls -l ~ && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Release && cd build/ && make -j2 ";
+          docker run --workdir=/home/dealii/workspace --volume $(pwd):/home/dealii/workspace dealii/dealii:master-focal /bin/sh -c "mkdir build && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Release && cd build/ && make -j2 ";
   build-debug:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -75,7 +73,7 @@ jobs:
           echo "Docker image is good, ready for action!"
           pwd
           ls -l
-          docker run --workdir=/home/dealii/workspace --volume $pwd:/home/dealii/workspace dealii/dealii:master-focal /bin/sh -c "echo Hello World && pwd && ls -l && ls -l ~ && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Debug && cd build/ && make -j2 ";
+          docker run --workdir=/home/dealii/workspace --volume $pwd:/home/dealii/workspace dealii/dealii:master-focal /bin/sh -c "mkdir build && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Debug && cd build/ && make -j2 ";
           
       - name: sanity master
         if: github.event_name == 'pull_request'
@@ -89,4 +87,4 @@ jobs:
           echo "Docker image is good, ready for action!"
           pwd
           ls -l
-          docker run --workdir=/home/dealii/workspace --volume $(pwd):/home/dealii/workspace dealii/dealii:master-focal /bin/sh -c "echo Hello World && pwd && ls -l && ls -l ~ && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Debug && cd build/ && make -j2 ";
+          docker run --workdir=/home/dealii/workspace --volume $(pwd):/home/dealii/workspace dealii/dealii:master-focal /bin/sh -c "mkdir build && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Debug && cd build/ && make -j2 ";
