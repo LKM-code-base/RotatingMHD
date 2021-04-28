@@ -48,6 +48,8 @@ jobs:
           echo "pulling docker image for master"
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
+          ls -l
+          pwd
           docker run --workdir=/home/dealii/workspace --volume $pwd:/home/dealii/workspace dealii/dealii:master-focal /bin/sh -c "echo Hello World && pwd && ls -l && ls -l ~ && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Release && cd build/ && make -j2 ";
   build-debug:
     # The type of runner that the job will run on
