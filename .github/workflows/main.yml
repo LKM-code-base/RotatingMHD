@@ -65,21 +65,26 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: compile and test pull-request
         if: github.event_name != 'pull_request'
+        env:
+          WORKSPACE: ${{ github.workspace }}
         run: |
           echo "pulling docker image for branch"
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
-          echo "${{ secrets.GITHUB_TOKEN }}"
-          docker run --workdir=/home/dealii/workspace --volume ${{ github.workspace }}:/home/dealii/workspace /bin/sh -c "git checkout ${GITHUB_REF#refs/heads/} && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Debug && cd build/ && make -j2 ";
+          echo $WORKSPACE
+          docker run --workdir=/home/dealii/workspace --volume $WORKSPACE:/home/dealii/workspace /bin/sh -c "git checkout ${GITHUB_REF#refs/heads/} && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Debug && cd build/ && make -j2 ";
           
       - name: sanity master
         if: github.event_name == 'pull_request'
         run: |
           echo "Github actions is sane, running for master"
       - name: compile and test master
+        env:
+          WORKSPACE: ${{ github.workspace }}
         if: github.event_name == 'pull_request'
         run: |
           echo "pulling docker image for master"
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
-          docker run --workdir=/home/dealii/workspace --volume ${{ github.workspace }}:/home/dealii/workspace /bin/sh -c "git checkout ${GITHUB_REF#refs/heads/} && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Debug && cd build/ && make -j2 ";
+          echo $WORKSPACE
+          docker run --workdir=/home/dealii/workspace --volume $WORKSPACE:/home/dealii/workspace /bin/sh -c "git checkout ${GITHUB_REF#refs/heads/} && cmake -B $(pwd)/build -DCMAKE_BUILD_TYPE=Debug && cd build/ && make -j2 ";
