@@ -25,7 +25,9 @@ namespace RMHD
 
 /*!
  * @class Guermond
+ *
  * @todo Add documentation
+ *
  */
 template <int dim>
 class Guermond : public Problem<dim>
@@ -173,19 +175,35 @@ void Guermond<dim>::setup_constraints()
 
   velocity_exact_solution->set_time(time_stepping.get_start_time());
 
+  // left boundary
   velocity->boundary_conditions.set_neumann_bcs(0);
+  // right boundary
   velocity->boundary_conditions.set_dirichlet_bcs(
     1,
     velocity_exact_solution,
     true);
+  pressure->boundary_conditions.set_dirichlet_bcs(
+  	1,
+		pressure_exact_solution,
+		true);
+  // bottom boundary
   velocity->boundary_conditions.set_dirichlet_bcs(
     2,
     velocity_exact_solution,
     true);
+  pressure->boundary_conditions.set_dirichlet_bcs(
+  	2,
+		pressure_exact_solution,
+		true);
+  // top boundary
   velocity->boundary_conditions.set_dirichlet_bcs(
     3,
     velocity_exact_solution,
     true);
+  pressure->boundary_conditions.set_dirichlet_bcs(
+  	3,
+		pressure_exact_solution,
+		true);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
