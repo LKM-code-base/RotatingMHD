@@ -158,8 +158,6 @@ void VectorEntity<dim>::clear()
 template <int dim>
 void VectorEntity<dim>::setup_dofs()
 {
-  if (!this->flag_child_entity)
-    (this->dof_handler)->distribute_dofs(this->fe);
   if (this->flag_child_entity)
   {
     AssertThrow(this->dof_handler != nullptr,
@@ -641,8 +639,6 @@ void ScalarEntity<dim>::clear()
 template <int dim>
 void ScalarEntity<dim>::setup_dofs()
 {
-  if (!this->flag_child_entity)
-    (this->dof_handler)->distribute_dofs(this->fe);
   if (this->flag_child_entity)
   {
     AssertThrow(this->dof_handler != nullptr,

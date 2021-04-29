@@ -156,6 +156,7 @@ void BoundaryConditionsBase<dim>::clear()
   flag_extract_boundary_ids = true;
   flag_datum_at_boundary = false;
   flag_regularity_guaranteed = false;
+  flag_boundary_conditions_closed = false;
 }
 
 template <int dim>
