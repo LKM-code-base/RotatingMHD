@@ -403,12 +403,12 @@ void Guermond<dim>::solve(const unsigned int &level)
   velocity_convergence_table.update_table(
     level,
     time_stepping.get_previous_step_size(),
-    this->prm.convergence_test_parameters.convergence_test_type ==
-      RunTimeParameters::ConvergenceTestType::spatial);
+    this->prm.convergence_test_parameters.test_type ==
+    		ConvergenceTest::ConvergenceTestType::spatial);
   pressure_convergence_table.update_table(
     level, time_stepping.get_previous_step_size(),
-    this->prm.convergence_test_parameters.convergence_test_type ==
-      RunTimeParameters::ConvergenceTestType::spatial);
+    this->prm.convergence_test_parameters.test_type ==
+    		ConvergenceTest::ConvergenceTestType::spatial);
 
   log_file << "\n";
 
@@ -418,14 +418,14 @@ void Guermond<dim>::solve(const unsigned int &level)
 template <int dim>
 void Guermond<dim>::run()
 {
-  make_grid(this->prm.convergence_test_parameters.n_global_initial_refinements);
+  make_grid(this->prm.spatial_discretization_parameters.n_initial_global_refinements);
 
-  switch (this->prm.convergence_test_parameters.convergence_test_type)
+  switch (this->prm.convergence_test_parameters.test_type)
   {
-  case RunTimeParameters::ConvergenceTestType::spatial:
-    for (unsigned int level = this->prm.convergence_test_parameters.n_global_initial_refinements;
-         level < (this->prm.convergence_test_parameters.n_global_initial_refinements +
-                  this->prm.convergence_test_parameters.n_spatial_convergence_cycles);
+  case ConvergenceTest::ConvergenceTestType::spatial:
+    for (unsigned int level = this->prm.spatial_discretization_parameters.n_initial_global_refinements;
+         level < (this->prm.spatial_discretization_parameters.n_initial_global_refinements +
+                  this->prm.convergence_test_parameters.n_spatial_cycles);
          ++level)
     {
       *this->pcout  << std::setprecision(1)
@@ -443,27 +443,27 @@ void Guermond<dim>::run()
       navier_stokes.reset_phi();
     }
     break;
-  case RunTimeParameters::ConvergenceTestType::temporal:
+  case ConvergenceTest::ConvergenceTestType::temporal:
     for (unsigned int cycle = 0;
-         cycle < this->prm.convergence_test_parameters.n_temporal_convergence_cycles;
+         cycle < this->prm.convergence_test_parameters.n_temporal_cycles;
          ++cycle)
     {
       double time_step = this->prm.time_discretization_parameters.initial_time_step *
-                         pow(this->prm.convergence_test_parameters.timestep_reduction_factor,
+                         pow(this->prm.convergence_test_parameters.step_size_reduction_factor,
                              cycle);
 
       *this->pcout  << std::setprecision(1)
                     << "Solving until t = "
                     << std::fixed << time_stepping.get_end_time()
                     << " with a refinement level of "
-                    << this->prm.convergence_test_parameters.n_global_initial_refinements
+                    << this->prm.spatial_discretization_parameters.n_initial_global_refinements
                     << std::endl;
 
       time_stepping.restart();
 
       time_stepping.set_desired_next_step_size(time_step);
 
-      solve(this->prm.convergence_test_parameters.n_global_initial_refinements);
+      solve(this->prm.spatial_discretization_parameters.n_initial_global_refinements);
 
       navier_stokes.reset_phi();
     }
@@ -476,10 +476,10 @@ void Guermond<dim>::run()
   *this->pcout << pressure_convergence_table;
 
   std::ostringstream tablefilename;
-  tablefilename << ((this->prm.convergence_test_parameters.convergence_test_type ==
-                      RunTimeParameters::ConvergenceTestType::spatial)
+  tablefilename << ((this->prm.convergence_test_parameters.test_type ==
+  									 ConvergenceTest::ConvergenceTestType::spatial)
                      ? "Guermond_SpatialTest"
-                     : ("Guermond_TemporalTest_Level" + std::to_string(this->prm.convergence_test_parameters.n_global_initial_refinements)))
+                     : ("Guermond_TemporalTest_Level" + std::to_string(this->prm.spatial_discretization_parameters.n_initial_global_refinements)))
                 << "_Re"
                 << this->prm.Re;
 

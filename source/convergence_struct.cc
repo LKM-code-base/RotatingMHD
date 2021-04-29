@@ -392,3 +392,8 @@ template dealii::ConditionalOStream& RMHD::operator<<
 (dealii::ConditionalOStream &, const RMHD::ConvergenceAnalysisData<2> &);
 template dealii::ConditionalOStream& RMHD::operator<<
 (dealii::ConditionalOStream &, const RMHD::ConvergenceAnalysisData<3> &);
+
+template std::ostream& RMHD::ConvergenceTest::operator<<
+(std::ostream &, const RMHD::ConvergenceTest::ConvergenceTestParameters &);
+template dealii::ConditionalOStream& RMHD::ConvergenceTest::operator<<
+(dealii::ConditionalOStream &, const RMHD::ConvergenceTest::ConvergenceTestParameters &);
