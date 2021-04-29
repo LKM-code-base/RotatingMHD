@@ -5,6 +5,7 @@
 
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
+#include <deal.II/base/parameter_handler.h>
 
 #include <fstream>
 #include <string>
