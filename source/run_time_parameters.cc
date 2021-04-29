@@ -2083,8 +2083,8 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 
   if (flag_convergence_test)
     convergence_test_parameters.parse_parameters(prm);
-  else
-    spatial_discretization_parameters.parse_parameters(prm);
+
+  spatial_discretization_parameters.parse_parameters(prm);
 
   time_discretization_parameters.parse_parameters(prm);
 
