@@ -181,7 +181,7 @@ public:
    * @ref ScalarEntity::close_boundary_conditions and
    * @ref VectorEntity::close_boundary_conditions respectively.
    */
-  virtual void close_boundary_conditions() = 0;
+  virtual void close_boundary_conditions(const bool print_summary = true) = 0;
 
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
@@ -304,7 +304,7 @@ struct VectorEntity : EntityBase<dim>
    * @brief Closes the @ref boundary_conditions and prints a summary
    * of the boundary conditions to the terminal.
    */
-  virtual void close_boundary_conditions() override;
+  virtual void close_boundary_conditions(const bool print_summary = true) override;
 
   /*!
    * @brief Updates the time dependent boundary conditions.
@@ -416,7 +416,7 @@ struct ScalarEntity : EntityBase<dim>
    * @brief Closes the @ref boundary_conditions and prints a summary
    * of the boundary conditions to the terminal.
    */
-  virtual void close_boundary_conditions() override;
+  virtual void close_boundary_conditions(const bool print_summary = true) override;
 
   /*!
    * @brief Updates the time dependent boundary conditions.
