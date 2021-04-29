@@ -202,6 +202,180 @@ void ConvergenceAnalysisData<dim>::write_text(std::string filename) const
   }
 }
 
+namespace ConvergenceTest
+{
+
+namespace internal
+{
+  constexpr char header[] = "+------------------------------------------+"
+                        "----------------------+";
+
+  constexpr size_t column_width[2] ={ 40, 20 };
+
+  constexpr size_t line_width = 63;
+
+  template<typename Stream, typename A>
+  void add_line(Stream  &stream,
+                const A &line)
+  {
+    stream << "| "
+           << std::setw(line_width)
+           << line
+           << " |"
+           << std::endl;
+  }
+
+  template<typename Stream, typename A, typename B>
+  void add_line(Stream  &stream,
+                const A &first_column,
+                const B &second_column)
+  {
+    stream << "| "
+           << std::setw(column_width[0]) << first_column
+           << " | "
+           << std::setw(column_width[1]) << second_column
+           << " |"
+           << std::endl;
+  }
+
+  template<typename Stream>
+  void add_header(Stream  &stream)
+  {
+    stream << std::left << header << std::endl;
+  }
+
+} // internal
+
+
+ConvergenceTestParameters::ConvergenceTestParameters()
+:
+test_type(ConvergenceTestType::temporal),
+n_spatial_cycles(2),
+step_size_reduction_factor(0.5),
+n_temporal_cycles(2)
+{}
+
+
+
+void ConvergenceTestParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.enter_subsection("Convergence test parameters");
+  {
+    prm.declare_entry("Convergence test type",
+                      "temporal",
+                      Patterns::Selection("spatial|temporal|both"));
+
+    prm.declare_entry("Number of spatial convergence cycles",
+                      "2",
+                      Patterns::Integer(1));
+
+    prm.declare_entry("Time-step reduction factor",
+                      "0.5",
+                      Patterns::Double());
+
+    prm.declare_entry("Number of temporal convergence cycles",
+                      "2",
+                      Patterns::Integer(1));
+  }
+  prm.leave_subsection();
+}
+
+
+
+void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
+{
+  prm.enter_subsection("Convergence test parameters");
+  {
+    if (prm.get("Convergence test type") == std::string("spatial"))
+    {
+      test_type = ConvergenceTestType::spatial;
+
+      n_spatial_cycles = prm.get_integer("Number of spatial convergence cycles");
+      AssertThrow(n_spatial_cycles > 0,
+                  ExcLowerRange(n_spatial_cycles, 0));
+    }
+    else if (prm.get("Convergence test type") == std::string("temporal"))
+    {
+      test_type = ConvergenceTestType::temporal;
+
+      step_size_reduction_factor = prm.get_double("Time-step reduction factor");
+      AssertThrow(step_size_reduction_factor > 0.0,
+                  ExcLowerRangeType<double>(step_size_reduction_factor, 0.0));
+      AssertThrow(step_size_reduction_factor < 1.0,
+                  ExcLowerRangeType<double>(1.0, step_size_reduction_factor));
+
+      n_temporal_cycles = prm.get_integer("Number of temporal convergence cycles");
+      AssertThrow(n_temporal_cycles > 0,
+                  ExcLowerRange(n_temporal_cycles, 0));
+    }
+    else if (prm.get("Convergence test type") == std::string("both"))
+    {
+        test_type = ConvergenceTestType::spatio_temporal;
+
+        step_size_reduction_factor = prm.get_double("Time-step reduction factor");
+        AssertThrow(step_size_reduction_factor > 0.0,
+                    ExcLowerRangeType<double>(step_size_reduction_factor, 0.0));
+        AssertThrow(step_size_reduction_factor < 1.0,
+                    ExcLowerRangeType<double>(1.0, step_size_reduction_factor));
+
+        n_temporal_cycles = prm.get_integer("Number of temporal convergence cycles");
+        AssertThrow(n_temporal_cycles > 0,
+                    ExcLowerRange(n_temporal_cycles, 0));
+
+        n_spatial_cycles = prm.get_integer("Number of spatial convergence cycles");
+        AssertThrow(n_spatial_cycles > 0,
+                    ExcLowerRange(n_spatial_cycles, 0));
+    }
+    else
+      AssertThrow(false,
+                  ExcMessage("Unexpected identifier for the type of"
+                             " of convergence test."));
+  }
+  prm.leave_subsection();
+}
+
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
+{
+  internal::add_header(stream);
+  internal::add_line(stream, "Convergence test parameters");
+  internal::add_header(stream);
+
+  switch (prm.test_type)
+  {
+    case ConvergenceTestType::spatial:
+      internal::add_line(stream, "Convergence test type", "spatial");
+      break;
+    case ConvergenceTestType::temporal:
+      internal::add_line(stream, "Convergence test type", "temporal");
+      break;
+    default:
+      AssertThrow(false, ExcMessage("Unexpected identifier for the type of"
+                               " of convergence test."));
+      break;
+  }
+
+  internal::add_line(stream,
+                     "Number of spatial convergence cycles",
+                     prm.n_spatial_cycles);
+
+  internal::add_line(stream,
+                     "Number of temporal convergence cycles",
+                     prm.n_temporal_cycles);
+
+  internal::add_line(stream,
+                     "Time-step reduction factor",
+                     prm.step_size_reduction_factor);
+
+  internal::add_header(stream);
+
+  return (stream);
+}
+
+} // namespace ConvergenceTest
+
 } // namespace RMHD
 
 
