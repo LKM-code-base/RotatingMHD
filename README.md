@@ -1,6 +1,8 @@
 # Rotating magnetohydrodynamic flow solver
 The repository is meant to act as a source code control and back up of the project.
 
+[![CI](https://github.com/j507/RotatingMHD/actions/workflows/main.yml/badge.svg)](https://github.com/j507/RotatingMHD/actions/workflows/main.yml)
+
 Milestones:
 - [x] Incompressible Navier-Stokes equations
 - [x] Convective flow (Incompressible Navier-Stokes equations with bouyancy term + heat equation)
