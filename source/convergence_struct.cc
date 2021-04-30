@@ -256,6 +256,40 @@ n_temporal_cycles(2)
 {}
 
 
+ConvergenceTestParameters::ConvergenceTestParameters
+(const std::string &parameter_filename)
+:
+ConvergenceTestParameters()
+{
+  ParameterHandler prm;
+
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
 
 void ConvergenceTestParameters::declare_parameters(ParameterHandler &prm)
 {

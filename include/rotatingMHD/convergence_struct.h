@@ -89,6 +89,12 @@ struct ConvergenceTestParameters
   ConvergenceTestParameters();
 
   /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  ConvergenceTestParameters(const std::string &parameter_filename);
+
+  /*!
    * @brief Static method which declares the associated parameter to the
    * ParameterHandler object @p prm.
    */
