@@ -49,7 +49,8 @@ jobs:
           echo "pulling docker image for master"
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
-          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://github.com/j507/RotatingMHD && cd RotatingMHD && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Release && make -j2 ";
+          docker run dealii/dealii:master-focal /bin/sh -c "git clone https://github.com/j507/RotatingMHD && cd RotatingMHD && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Debug && make -j2 ";
+          
   build-debug:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -58,8 +59,6 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-
-
       # Runs a single command using the runners shell
       - name: sanity pull-request
         if: github.event_name != 'pull_request'
@@ -73,7 +72,6 @@ jobs:
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
           docker run dealii/dealii:master-focal /bin/sh -c "git clone https://github.com/j507/RotatingMHD && cd RotatingMHD && git checkout ${GITHUB_REF#refs/heads/} && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Debug && make -j2 ";
-          
       - name: sanity master
         if: github.event_name == 'pull_request'
         run: |
@@ -85,5 +83,3 @@ jobs:
           docker pull dealii/dealii:master-focal
           echo "Docker image is good, ready for action!"
           docker run dealii/dealii:master-focal /bin/sh -c "git clone https://github.com/j507/RotatingMHD && cd RotatingMHD && mkdir build && cd build && cmake ../ -DCMAKE_BUILD_TYPE=Debug && make -j2 ";
-          #formatting:
-          #runs-on: ubuntu-latest
