@@ -1,11 +1,13 @@
-#ifndef INCLUDE_ROTATINGMHD_CONVERGENCE_STRUCT_H_
-#define INCLUDE_ROTATINGMHD_CONVERGENCE_STRUCT_H_
+#ifndef INCLUDE_ROTATINGMHD_CONVERGENCE_TEST_H_
+#define INCLUDE_ROTATINGMHD_CONVERGENCE_TEST_H_
 
 #include <rotatingMHD/entities_structs.h>
 
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/parameter_handler.h>
+
+#include <deal.II/numerics/vector_tools.h>
 
 #include <fstream>
 #include <string>
@@ -147,8 +149,62 @@ struct ConvergenceTestParameters
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm);
 
+
+/*!
+ * @class ConvergenceTestData
+ *
+ * @brief @ref ConvergenceTestData is a book-keeping class for the errors of a convergence test.
+ *
+ */
+class ConvergenceTestData
+{
+
+public:
+
+  ConvergenceTestData(const ConvergenceTestType &type = ConvergenceTestType::temporal);
+
+  template <int dim, int spacedim>
+  void update_table
+  (const DoFHandler<dim, spacedim>  &dof_handler,
+   const double           time_step,
+   const std::map<typename VectorTools::NormType, double> &error_map);
+
+  template <int dim, int spacedim>
+  void update_table
+  (const DoFHandler<dim, spacedim>  &dof_handler,
+   const std::map<typename VectorTools::NormType, double> &error_map);
+
+  void update_table
+  (const double time_step,
+   const std::map<typename VectorTools::NormType, double> &error_map);
+
+  /*!
+   * @brief Output of the convergence table to a stream object,
+   */
+  template<typename Stream>
+  void print_data(Stream &stream);
+
+  bool save(const std::string &file_name);
+
+private:
+
+  const ConvergenceTestType type;
+
+  unsigned int level;
+
+  ConvergenceTable  table;
+
+  bool step_size_specified{false};
+  bool h_max_specified{false};
+  bool L2_error_specified{false};
+  bool H1_error_specified{false};
+  bool Linfty_error_specified{false};
+
+  void format_columns();
+};
+
 }  // namespace ConvergenceTest
 
 } // namespace RMHD
 
-#endif /*INCLUDE_ROTATINGMHD_CONVERGENCE_STRUCT_H_*/
+#endif /*INCLUDE_ROTATINGMHD_CONVERGENCE_TEST_H_*/

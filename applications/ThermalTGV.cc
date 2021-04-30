@@ -1,4 +1,3 @@
-#include <rotatingMHD/convergence_struct.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/heat_equation.h>
@@ -14,6 +13,7 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/convergence_test.h>
 
 #include <memory>
 

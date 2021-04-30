@@ -1,5 +1,3 @@
-#include <rotatingMHD/convergence_struct.h>
-
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/quadrature_lib.h>
 
@@ -8,6 +6,7 @@
 #include <deal.II/lac/vector.h>
 
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/convergence_test.h>
 
 #include <string.h>
 
@@ -406,6 +405,258 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
   internal::add_header(stream);
 
   return (stream);
+}
+
+
+ConvergenceTestData::ConvergenceTestData(const ConvergenceTestType &type)
+:
+type(type),
+level(0)
+{}
+
+template<int dim, int spacedim>
+void ConvergenceTestData::update_table
+(const DoFHandler<dim, spacedim> &dof_handler,
+ const double step_size,
+ const std::map<typename VectorTools::NormType, double> &error_map)
+{
+  table.add_value("step size", step_size);
+  step_size_specified = true;
+
+  update_table(dof_handler, error_map);
+}
+
+
+template<int dim, int spacedim>
+void ConvergenceTestData::update_table
+(const DoFHandler<dim, spacedim> &dof_handler,
+ const std::map<typename VectorTools::NormType, double> &error_map)
+{
+  table.add_value("level", level);
+  level += 1;
+
+  const types::global_dof_index n_dofs{dof_handler.n_dofs()};
+  table.add_value("n_dofs", n_dofs);
+
+  const Triangulation<dim, spacedim> &tria{dof_handler.get_triangulation()};
+  const types::global_cell_index n_cells{tria.n_global_active_cells()};
+  table.add_value("n_cells", n_cells);
+
+  const double h_max{GridTools::maximal_cell_diameter(tria)};
+  table.add_value("h_max", h_max);
+  h_max_specified = true;
+
+  std::string column;
+  unsigned int dimension{spacedim};
+  bool evaluate_convergence{false};
+
+  switch (type)
+  {
+    case ConvergenceTestType::spatial:
+      column.assign("h_max");
+      evaluate_convergence = true;
+      break;
+    case ConvergenceTestType::temporal:
+      column.assign("step size");
+      dimension = 1;
+      evaluate_convergence = true;
+      break;
+    case ConvergenceTestType::spatio_temporal:
+      break;
+
+    default:
+      Assert(false,
+             ExcMessage("Unexpected value for the ConvergenceTestType."));
+      break;
+  }
+
+  std::map<typename VectorTools::NormType, double>::const_iterator it;
+
+  it = error_map.find(VectorTools::NormType::L2_norm);
+  if (it != error_map.end())
+  {
+    table.add_value("L2", it->second);
+    L2_error_specified = true;
+
+    if (evaluate_convergence)
+      table.evaluate_convergence_rates("L2",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       dimension);
+  }
+
+  it = error_map.find(VectorTools::NormType::Linfty_norm);
+  if (it != error_map.end())
+  {
+    table.add_value("Linfty", it->second);
+    Linfty_error_specified = true;
+
+    if (evaluate_convergence)
+      table.evaluate_convergence_rates("Linfty",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       dimension);
+  }
+
+  it = error_map.find(VectorTools::NormType::H1_norm);
+  if (it != error_map.end())
+  {
+    table.add_value("H1", it->second);
+    H1_error_specified = true;
+
+    if (evaluate_convergence)
+      table.evaluate_convergence_rates("H1",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       dimension);
+  }
+
+}
+
+void ConvergenceTestData::update_table
+(const double step_size,
+ const std::map<typename VectorTools::NormType, double> &error_map)
+{
+  table.add_value("level", level);
+  level += 1;
+
+  table.add_value("step size", step_size);
+  step_size_specified = true;
+
+  std::string column;
+  switch (type)
+  {
+    case ConvergenceTestType::temporal:
+      column.assign("step size");
+      break;
+    default:
+      Assert(false,
+             ExcMessage("Wrong case to update_table for the current type of the "
+                        "convergence test."));
+      break;
+  }
+
+  std::map<typename VectorTools::NormType, double>::const_iterator it;
+
+  it = error_map.find(VectorTools::NormType::L2_norm);
+  if (it != error_map.end())
+  {
+    table.add_value("L2", it->second);
+    L2_error_specified = true;
+
+    table.evaluate_convergence_rates("L2",
+                                     column,
+                                     ConvergenceTable::reduction_rate_log2);
+  }
+
+  it = error_map.find(VectorTools::NormType::Linfty_norm);
+  if (it != error_map.end())
+  {
+    table.add_value("Linfty", it->second);
+    Linfty_error_specified = true;
+
+    table.evaluate_convergence_rates("Linfty",
+                                     column,
+                                     ConvergenceTable::reduction_rate_log2);
+  }
+
+  it = error_map.find(VectorTools::NormType::H1_norm);
+  if (it != error_map.end())
+  {
+    table.add_value("H1", it->second);
+    H1_error_specified = true;
+
+    table.evaluate_convergence_rates("H1",
+                                     column,
+                                     ConvergenceTable::reduction_rate_log2);
+  }
+}
+
+void ConvergenceTestData::format_columns()
+{
+  constexpr unsigned int precision{6};
+
+  if (step_size_specified)
+  {
+      table.set_scientific("step size", true);
+      table.set_precision("step size", 2);
+  }
+
+  if (h_max_specified)
+  {
+    table.set_scientific("h_max", true);
+    table.set_precision("h_max", 2);
+  }
+
+  if (L2_error_specified)
+  {
+    table.set_scientific("L2", true);
+    table.set_precision("L2", precision);
+    table.add_column_to_supercolumn("L2", "error norms");
+  }
+
+  if (H1_error_specified)
+  {
+    table.set_scientific("H1", true);
+    table.set_precision("H1", precision);
+    table.add_column_to_supercolumn("L2", "error norms");
+  }
+
+  if (Linfty_error_specified)
+  {
+    table.set_scientific("Linfty", true);
+    table.set_precision("Linfty", precision);
+    table.add_column_to_supercolumn("Linfty", "error norms");
+  }
+
+}
+
+/*!
+ * @brief Output of the convergence table to a stream object,
+ */
+template<typename Stream>
+void ConvergenceTestData::print_data(Stream &stream)
+{
+  if (level == 0)
+    return;
+
+  format_columns();
+
+  table.write_text(stream, TableHandler::org_mode_table);
+}
+
+/*!
+ * @brief Output of the convergence table to a stream object,
+ */
+template <>
+void ConvergenceTestData::print_data(ConditionalOStream &stream)
+{
+  if (level == 0)
+    return;
+
+  format_columns();
+
+  if (stream.is_active())
+    table.write_text(stream.get_stream(), TableHandler::org_mode_table);
+}
+
+
+bool ConvergenceTestData::save(const std::string &file_name)
+{
+  if (level == 0)
+    return (false);
+
+  format_columns();
+
+  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+  {
+    std::ofstream file(file_name.c_str());
+    Assert(file, ExcFileNotOpen(file_name));
+    table.write_text(file,
+                     TableHandler::TextOutputFormat::org_mode_table);
+    file.close();
+  }
+  return (true);
 }
 
 } // namespace ConvergenceTest

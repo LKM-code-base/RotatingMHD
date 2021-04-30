@@ -2,10 +2,9 @@
 #define INCLUDE_ROTATINGMHD_RUN_TIME_PARAMETERS_H_
 
 #include <deal.II/base/parameter_handler.h>
+#include <rotatingMHD/convergence_test.h>
 
 #include <rotatingMHD/time_discretization.h>
-#include <rotatingMHD/convergence_struct.h>
-
 #include <memory>
 
 namespace RMHD
