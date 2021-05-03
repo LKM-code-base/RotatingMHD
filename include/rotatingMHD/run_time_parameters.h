@@ -10,13 +10,15 @@
 namespace RMHD
 {
 
-
 /*!
  * @brief Namespace containing all the structs and enum classes related
  * to the run time parameters.
  */
 namespace RunTimeParameters
 {
+
+using namespace dealii;
+
 /*!
  * @brief Enumeration for the different types of problems.
  *
