@@ -1,11 +1,13 @@
-#ifndef INCLUDE_ROTATINGMHD_CONVERGENCE_STRUCT_H_
-#define INCLUDE_ROTATINGMHD_CONVERGENCE_STRUCT_H_
+#ifndef INCLUDE_ROTATINGMHD_CONVERGENCE_TEST_H_
+#define INCLUDE_ROTATINGMHD_CONVERGENCE_TEST_H_
 
 #include <rotatingMHD/entities_structs.h>
 
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/parameter_handler.h>
+
+#include <deal.II/numerics/vector_tools.h>
 
 #include <fstream>
 #include <string>
@@ -56,8 +58,10 @@ enum class ConvergenceTestType
 {
   /*!
    * @brief Spatial convergence test.
+   *
    * @details Test to study the spatial discretization dependence of
    * convergence for a given problem.
+   *
    * @note Spatial convergence tests should be performed with a fine
    * time discretization, *i. e.*, a small enough time step.
    */
@@ -65,13 +69,23 @@ enum class ConvergenceTestType
 
   /*!
    * @brief Temporal convergence test.
+   *
    * @details Test to study the temporal discretization dependence of
    * convergence for a given problem.
+   *
    * @note Temporal convergence tests should be performed with a fine
    * spatial discretization, *i. e.*, a triangulation with small enough cells.
    */
   temporal = 0x0002,
 
+  /*!
+   * @brief Spatio-temporal convergence test.
+   *
+   * @details Test to study the dependency on the temporal and the spatial
+   * discretization for a given problem.
+   *
+   * @note Convergence rates are not computed.
+   */
   spatio_temporal = spatial|temporal
 };
 
@@ -147,8 +161,77 @@ struct ConvergenceTestParameters
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm);
 
+
+/*!
+ * @class ConvergenceTestData
+ *
+ * @brief @ref ConvergenceTestData is a book-keeping class for the errors of a convergence test.
+ *
+ */
+class ConvergenceTestData
+{
+
+public:
+
+  ConvergenceTestData(const ConvergenceTestType &type = ConvergenceTestType::temporal);
+
+  /*!
+   * @brief Add errors in @p error_map to the convergence table. This variant adds the number of DoFs, the
+   * cell diameter and the size of the timestep to the convergence table.
+   */
+  template <int dim, int spacedim>
+  void update_table
+  (const DoFHandler<dim, spacedim>  &dof_handler,
+   const double           time_step,
+   const std::map<typename VectorTools::NormType, double> &error_map);
+
+  /*!
+   * @brief Add errors in @p error_map to the convergence table. This variant adds the number of DoFs and
+   * the cell diameter to the convergence table but not the size of the timestep.
+   */
+  template <int dim, int spacedim>
+  void update_table
+  (const DoFHandler<dim, spacedim>  &dof_handler,
+   const std::map<typename VectorTools::NormType, double> &error_map);
+
+  /*!
+   * @brief Add errors in @p error_map to the convergence table. This variant adds the size of the timestep
+   * but not the number of DoFs and the cell diameter.
+   */
+  void update_table
+  (const double time_step,
+   const std::map<typename VectorTools::NormType, double> &error_map);
+
+  /*!
+   * @brief Output of the convergence table to a stream object,
+   */
+  template<typename Stream>
+  void print_data(Stream &stream);
+
+  /*!
+   * @brief Save results of convergence test to a text file using Org-mode formatting.
+   */
+  bool save(const std::string &file_name);
+
+private:
+
+  const ConvergenceTestType type;
+
+  unsigned int level;
+
+  ConvergenceTable  table;
+
+  bool step_size_specified{false};
+  bool h_max_specified{false};
+  bool L2_error_specified{false};
+  bool H1_error_specified{false};
+  bool Linfty_error_specified{false};
+
+  void format_columns();
+};
+
 }  // namespace ConvergenceTest
 
 } // namespace RMHD
 
-#endif /*INCLUDE_ROTATINGMHD_CONVERGENCE_STRUCT_H_*/
+#endif /*INCLUDE_ROTATINGMHD_CONVERGENCE_TEST_H_*/
