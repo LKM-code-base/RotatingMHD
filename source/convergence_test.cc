@@ -53,7 +53,7 @@ void ConvergenceAnalysisData<dim>::update_table
  const bool         flag_spatial_convergence)
 {
   /*
-   * Add new entries to the columns describing the spation-temporal
+   * Add new entries to the columns describing the spatio-temporal
    * discretization.
    */
   convergence_table.add_value("level", level);
@@ -106,7 +106,7 @@ void ConvergenceAnalysisData<dim>::update_table
      * quadrature points coincide with the support points. For a polynomial degree
      * less than three, the approach pursued here works, because the support
      * points of the finite element discretization are equidistantly spaced on
-     * the reference element. Otherwise, the quadrature might in appropriate.
+     * the reference element. Otherwise, the quadrature might be inappropriate.
      *
      * In other words, we simply sample the solution at the support points, i.e.,
      * the nodes.
