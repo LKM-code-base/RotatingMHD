@@ -359,6 +359,8 @@ void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
         n_spatial_cycles = prm.get_integer("Number of spatial convergence cycles");
         AssertThrow(n_spatial_cycles > 0,
                     ExcLowerRange(n_spatial_cycles, 0));
+
+        AssertThrow(false, ExcNotImplemented());
     }
     else
       AssertThrow(false,
