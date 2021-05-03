@@ -1,9 +1,7 @@
-
 #ifndef INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
 #define INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
 
 #include <rotatingMHD/global.h>
-#include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/boundary_conditions.h>
 
 #include <deal.II/base/index_set.h>

@@ -299,134 +299,6 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
 }
 
 
-
-ConvergenceTestParameters::ConvergenceTestParameters()
-:
-convergence_test_type(ConvergenceTestType::temporal),
-n_global_initial_refinements(5),
-n_spatial_convergence_cycles(2),
-timestep_reduction_factor(0.5),
-n_temporal_convergence_cycles(2)
-{}
-
-
-
-void ConvergenceTestParameters::declare_parameters(ParameterHandler &prm)
-{
-  prm.enter_subsection("Convergence test parameters");
-  {
-    prm.declare_entry("Convergence test type",
-                      "temporal",
-                      Patterns::Selection("spatial|temporal"));
-
-    prm.declare_entry("Number of initial global refinements",
-                      "5",
-                      Patterns::Integer(1));
-
-    prm.declare_entry("Number of spatial convergence cycles",
-                      "2",
-                      Patterns::Integer(1));
-
-    prm.declare_entry("Time-step reduction factor",
-                      "0.5",
-                      Patterns::Double());
-
-    prm.declare_entry("Number of temporal convergence cycles",
-                      "2",
-                      Patterns::Integer(1));
-  }
-  prm.leave_subsection();
-}
-
-
-
-void ConvergenceTestParameters::parse_parameters(ParameterHandler &prm)
-{
-  prm.enter_subsection("Convergence test parameters");
-  {
-    if (prm.get("Convergence test type") == std::string("spatial"))
-    {
-      convergence_test_type = ConvergenceTestType::spatial;
-
-      n_spatial_convergence_cycles =
-                  prm.get_integer("Number of spatial convergence cycles");
-      AssertThrow(n_spatial_convergence_cycles > 0,
-                  ExcLowerRange(n_spatial_convergence_cycles, 0));
-    }
-    else if (prm.get("Convergence test type") == std::string("temporal"))
-    {
-      convergence_test_type = ConvergenceTestType::temporal;
-
-      timestep_reduction_factor =
-                  prm.get_double("Time-step reduction factor");
-      AssertThrow(timestep_reduction_factor > 0.0,
-                  ExcLowerRange(timestep_reduction_factor, 0.0));
-      AssertThrow(timestep_reduction_factor < 1.0,
-                  ExcLowerRange(1.0, timestep_reduction_factor));
-
-      n_temporal_convergence_cycles =
-                  prm.get_integer("Number of temporal convergence cycles");
-      AssertThrow(n_temporal_convergence_cycles > 0,
-                  ExcLowerRange(n_temporal_convergence_cycles, 0));
-    }
-    else
-      AssertThrow(false,
-                  ExcMessage("Unexpected identifier for the type of"
-                             " of convergence test."));
-
-    n_global_initial_refinements =
-                prm.get_integer("Number of initial global refinements");
-    AssertThrow(n_global_initial_refinements > 0,
-                ExcLowerRange(n_global_initial_refinements, 0));
-  }
-  prm.leave_subsection();
-}
-
-
-
-template<typename Stream>
-Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
-{
-  internal::add_header(stream);
-  internal::add_line(stream, "Convergence test parameters");
-  internal::add_header(stream);
-
-  switch (prm.convergence_test_type)
-  {
-    case ConvergenceTestType::spatial:
-      internal::add_line(stream, "Convergence test type", "spatial");
-      break;
-    case ConvergenceTestType::temporal:
-      internal::add_line(stream, "Convergence test type", "temporal");
-      break;
-    default:
-      AssertThrow(false, ExcMessage("Unexpected identifier for the type of"
-                               " of convergence test."));
-      break;
-  }
-
-  internal::add_line(stream,
-                     "Number of spatial convergence cycles",
-                     prm.n_spatial_convergence_cycles);
-
-  internal::add_line(stream,
-                     "Number of initial global refinements",
-                     prm.n_global_initial_refinements);
-
-  internal::add_line(stream,
-                     "Number of temporal convergence cycles",
-                     prm.n_temporal_convergence_cycles);
-
-  internal::add_line(stream,
-                     "Time-step reduction factor",
-                     prm.timestep_reduction_factor);
-
-  internal::add_header(stream);
-
-  return (stream);
-}
-
-
 PreconditionBaseParameters::PreconditionBaseParameters
 (const std::string        &name,
  const PreconditionerType &type)
@@ -2150,7 +2022,7 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
 
   DimensionlessNumbers::declare_parameters(prm);
 
-  ConvergenceTestParameters::declare_parameters(prm);
+  ConvergenceTest::ConvergenceTestParameters::declare_parameters(prm);
 
   SpatialDiscretizationParameters::declare_parameters(prm);
 
@@ -2211,8 +2083,8 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 
   if (flag_convergence_test)
     convergence_test_parameters.parse_parameters(prm);
-  else
-    spatial_discretization_parameters.parse_parameters(prm);
+
+  spatial_discretization_parameters.parse_parameters(prm);
 
   time_discretization_parameters.parse_parameters(prm);
 
@@ -2362,11 +2234,6 @@ template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::OutputControlParameters &);
 template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::OutputControlParameters &);
-
-template std::ostream & RMHD::RunTimeParameters::operator<<
-(std::ostream &, const RMHD::RunTimeParameters::ConvergenceTestParameters &);
-template dealii::ConditionalOStream  & RMHD::RunTimeParameters::operator<<
-(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::ConvergenceTestParameters &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::PreconditionRelaxationParameters &);
