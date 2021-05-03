@@ -64,6 +64,7 @@ SET(TARGET_SRC
     source/benchmark_data.cc
     source/boundary_conditions.cc
     source/convergence_test.cc
+    source/discrete_time.cc
     source/entities_structs.cc
     source/equation_data.cc
     source/heat_equation.cc

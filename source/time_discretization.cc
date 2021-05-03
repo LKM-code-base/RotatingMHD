@@ -1,8 +1,12 @@
+#include <rotatingMHD/global.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/mpi.h>
+#include <deal.II/base/tensor.h>
+#include <deal.II/fe/fe_values.h>
+#include <deal.II/lac/vector.h>
 
 #include <iomanip>
 #include <functional>
@@ -278,21 +282,21 @@ Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
 }
 
 template<typename Stream>
-void VSIMEXMethod::print_coefficients(Stream &stream) const
+void VSIMEXMethod::print_coefficients(Stream &stream, const std::string prefix) const
 {
   switch (beta.size())
   {
     case 1:
-      stream << "+-------------+------------+------------+\n"
-             << "|    Index    |     n      |    n-1     |\n"
-             << "+-------------+------------+------------+\n"
-             << "|    alpha    | ";
+      stream << prefix.c_str() << "+-------------+------------+------------+\n"
+             << prefix.c_str() << "|    Index    |     n      |    n-1     |\n"
+             << prefix.c_str() << "+-------------+------------+------------+\n"
+             << prefix.c_str() << "|    alpha    | ";
       break;
     case 2:
-      stream << "+-------------+------------+------------+------------+\n"
-             << "|    Index    |     n      |    n-1     |     n-2    |\n"
-             << "+-------------+------------+------------+------------+\n"
-             << "|    alpha    | ";
+      stream << prefix.c_str() << "+-------------+------------+------------+------------+\n"
+             << prefix.c_str() << "|    Index    |     n      |    n-1     |     n-2    |\n"
+             << prefix.c_str() << "+-------------+------------+------------+------------+\n"
+             << prefix.c_str() << "|    alpha    | ";
       break;
     default:
       Assert(false,
@@ -311,7 +315,8 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|    beta     |     -      | ";
+  stream << std::endl
+         << prefix.c_str() << "|    beta     |     -      | ";
   for (const auto it: beta)
   {
     stream << std::setw(10)
@@ -322,7 +327,8 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|    gamma    | ";
+  stream << std::endl
+         << prefix.c_str() << "|    gamma    | ";
   for (const auto it: gamma)
   {
     stream << std::setw(10)
@@ -333,7 +339,8 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|  extra_pol  |     -      | ";
+  stream << std::endl
+         << prefix.c_str() << "|  extra_pol  |     -      | ";
   for (const auto it: eta)
   {
     stream << std::setw(10)
@@ -344,8 +351,9 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|  alpha_zero |     -      | ";
-  for (const auto it: old_alpha_zero)
+  stream << std::endl
+         << prefix.c_str() << "|  alpha_zero |     -      | ";
+  for (const auto it: previous_alpha_zeros)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -355,8 +363,9 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
     stream << " | ";
   }
 
-  stream << std::endl << "|old_step_size|     -      | ";
-  for (const auto it: old_step_size_values)
+  stream << std::endl
+         << prefix.c_str() << "|old_step_size|     -      | ";
+  for (const auto it: previous_step_sizes)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -370,10 +379,10 @@ void VSIMEXMethod::print_coefficients(Stream &stream) const
   switch (beta.size())
   {
     case 1:
-      stream << "+-------------+------------+------------+\n";
+      stream << prefix.c_str() << "+-------------+------------+------------+\n";
       break;
     case 2:
-      stream << "+-------------+------------+------------+------------+\n";
+      stream << prefix.c_str() << "+-------------+------------+------------+------------+\n";
       break;
 
     default:
@@ -390,7 +399,7 @@ std::string VSIMEXMethod::get_name() const
 {
   std::string name;
 
-  switch (parameters.vsimex_scheme)
+  switch (type)
   {
     case VSIMEXScheme::CNAB:
       name.assign("Crank-Nicolson-Adams-Bashforth");
@@ -418,37 +427,42 @@ VSIMEXMethod::VSIMEXMethod(const TimeDiscretizationParameters &params)
 DiscreteTime(params.start_time,
              params.final_time,
              params.initial_time_step),
-parameters(params),
+type(params.vsimex_scheme),
+vsimex_parameters(order, 0.0),
+alpha(order+1, 0.0),
+beta(order, 0.0),
+gamma(order+1, 0.0),
+eta(order, 0.0),
 omega(1.0),
+previous_alpha_zeros(order, 1.0),
+previous_step_sizes(order, 0.0),
+minimum_step_size(params.minimum_time_step),
+maximum_step_size(params.maximum_time_step),
 flag_coefficients_changed(true)
 {
 
-  Assert(((parameters.initial_time_step <= parameters.maximum_time_step) &&
-          (parameters.initial_time_step >= parameters.minimum_time_step)),
+  Assert(((this->get_next_step_size() <= maximum_step_size) &&
+          (this->get_next_step_size() >= minimum_step_size)),
          ExcMessage("The desired start step is not inside the given bonded range."));
 
-  switch (parameters.vsimex_scheme)
+  switch (type)
   {
     case VSIMEXScheme::BDF2 :
-      order = 2;
       vsimex_parameters.resize(order);
       vsimex_parameters[0] = 1.0;
       vsimex_parameters[1] = 0.0;
       break;
     case VSIMEXScheme::CNAB :
-      order = 2;
       vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.5;
       vsimex_parameters[1] = 0.0;
       break;
     case VSIMEXScheme::mCNAB :
-      order = 2;
       vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.5;
       vsimex_parameters[1] = 1.0/8.0;
       break;
     case VSIMEXScheme::CNLF :
-      order = 2;
       vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.0;
       vsimex_parameters[1] = 1.0;
@@ -459,28 +473,67 @@ flag_coefficients_changed(true)
      break;
   };
 
-  reinit();
+}
+
+VSIMEXMethod::VSIMEXMethod(const VSIMEXMethod &other)
+:
+DiscreteTime(other.get_current_time(),
+						 other.get_end_time(),
+						 other.get_next_step_size()),
+type(other.type),
+vsimex_parameters(other.vsimex_parameters),
+alpha(other.alpha),
+beta(other.beta),
+gamma(other.gamma),
+eta(other.eta),
+omega(other.omega),
+previous_alpha_zeros(other.previous_alpha_zeros),
+previous_step_sizes(other.previous_step_sizes),
+minimum_step_size(other.get_minimum_step_size()),
+maximum_step_size(other.get_maximum_step_size()),
+flag_coefficients_changed(true)
+{}
+
+void VSIMEXMethod::clear()
+{
+  for (unsigned int i=0; i<order+1; ++i)
+  {
+    alpha[i] = 0.0;
+    beta[i] = 0.0;
+    gamma[i] = 0.0;
+  }
+
+  for (unsigned int i=0; i<order; ++i)
+  {
+    eta[i] = 0.0;
+    previous_alpha_zeros[i] = 0.0;
+    previous_step_sizes[i] = 0.0;
+  }
+
+  omega = 1.0;
+
+  this->restart();
 }
 
 void VSIMEXMethod::reinit()
 {
   // Resize all coefficient vectors according to the scheme's order
-  // and initializing their values to zero excepct of those acting as
+  // and initializing their values to zero except of those acting as
   // divisor.
   alpha.resize(order+1, 0.0);
   beta.resize(order, 0.0);
   gamma.resize(order+1, 0.0);
   eta.resize(order, 0.0);
-  old_step_size_values.resize(order, 0.0);
-  old_alpha_zero.resize(order, 1.0);
+  previous_step_sizes.resize(order, 0.0);
+  previous_alpha_zeros.resize(order, 1.0);
 }
 
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 {
-  if (time_step_size < parameters.minimum_time_step)
-    DiscreteTime::set_desired_next_step_size(parameters.minimum_time_step);
-  else if (time_step_size > parameters.maximum_time_step)
-    DiscreteTime::set_desired_next_step_size(parameters.maximum_time_step);
+  if (time_step_size < minimum_step_size)
+    DiscreteTime::set_desired_next_step_size(minimum_step_size);
+  else if (time_step_size > maximum_step_size)
+    DiscreteTime::set_desired_next_step_size(maximum_step_size);
   else
     DiscreteTime::set_desired_next_step_size(time_step_size);
 }
@@ -502,17 +555,17 @@ void VSIMEXMethod::update_coefficients()
   // the std::vectors storing those values
   for (unsigned int i = order-1; i > 0; --i)
   {
-    old_alpha_zero[i]       = old_alpha_zero[i-1];
-    old_step_size_values[i] = old_step_size_values[i-1];
+    previous_alpha_zeros[i]       = previous_alpha_zeros[i-1];
+    previous_step_sizes[i] = previous_step_sizes[i-1];
   }
 
   // and stores their previous values. The inline if considers the
   // change from a first to second order scheme between the first and
   // second time steps.
-  old_alpha_zero[0]       = (get_step_number() > 1)
+  previous_alpha_zeros[0]       = (get_step_number() > 1)
                             ? alpha[0]
                             : (1.0 + 2.0 * vsimex_parameters[0])/2.0;
-  old_step_size_values[0] = get_previous_step_size();
+  previous_step_sizes[0] = get_previous_step_size();
 
   // Checks if the time step size changes. If not, exit the method.
   // The second boolean, i.e. get_step_number() <= (get_order() - 1),
@@ -581,6 +634,63 @@ void VSIMEXMethod::update_coefficients()
   AssertIsFinite(eta[1]);
 }
 
+template<>
+void VSIMEXMethod::extrapolate<Vector<double>>
+(const Vector<double> &old_values,
+ const Vector<double> &old_old_values,
+ Vector<double>       &extrapolated_values) const
+{
+  Assert(old_values.size() == old_old_values.size(),
+         ExcDimensionMismatch(old_values.size(), old_old_values.size()));
+  Assert(extrapolated_values.size() == old_values.size(),
+         ExcDimensionMismatch(extrapolated_values.size(), old_values.size()));
+
+  extrapolated_values = old_values;
+  extrapolated_values.sadd(eta[0], eta[1], old_old_values);
+}
+
+template<>
+void VSIMEXMethod::extrapolate<LinearAlgebra::MPI::Vector>
+(const LinearAlgebra::MPI::Vector &old_values,
+ const LinearAlgebra::MPI::Vector &old_old_values,
+ LinearAlgebra::MPI::Vector       &extrapolated_values) const
+{
+  Assert(old_values.size() == old_old_values.size(),
+         ExcDimensionMismatch(old_values.size(), old_old_values.size()));
+  Assert(extrapolated_values.size() == old_values.size(),
+         ExcDimensionMismatch(extrapolated_values.size(), old_values.size()));
+
+  extrapolated_values = old_values;
+  extrapolated_values.sadd(eta[0], eta[1], old_old_values);
+}
+
+template<typename DataType>
+void VSIMEXMethod::extrapolate
+(const DataType &old_values,
+ const DataType &old_old_values,
+ DataType       &extrapolated_values) const
+{
+  extrapolated_values = eta[0] * old_values + eta[1] * old_old_values;
+}
+
+template<typename DataType>
+void VSIMEXMethod::extrapolate_list
+(const std::vector<DataType>  &old_values,
+ const std::vector<DataType>  &old_old_values,
+ std::vector<DataType>        &extrapolated_values) const
+{
+  Assert(old_values.size() == old_old_values.size(),
+         ExcDimensionMismatch(old_values.size(), old_old_values.size()));
+  Assert(extrapolated_values.size() == old_values.size(),
+         ExcDimensionMismatch(extrapolated_values.size(), old_values.size()));
+
+  const std::size_t n = extrapolated_values.size();
+
+  for (std::size_t i=0; i<n; ++i)
+    extrapolated_values[i] = extrapolate(old_values[i],
+                                         old_old_values[i]);
+}
+
 } // namespace TimeDiscretiation
 
 } // namespace RMHD
@@ -589,7 +699,7 @@ void VSIMEXMethod::update_coefficients()
 template std::ostream & RMHD::TimeDiscretization::operator<<
 (std::ostream &, const RMHD::TimeDiscretization::TimeDiscretizationParameters &);
 template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
-(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::TimeDiscretizationParameters &);
+(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::TimeDiscretizationParameters  &);
 
 template std::ostream & RMHD::TimeDiscretization::operator<<
 (std::ostream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
@@ -597,6 +707,36 @@ template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
 (dealii::ConditionalOStream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
 
 template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
-(std::ostream &) const;
+(std::ostream &, const std::string prefix) const;
 template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
-(dealii::ConditionalOStream &) const;
+(dealii::ConditionalOStream &, const std::string prefix) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const double &,
+ const double &,
+ double &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const Tensor<1,2> &,
+ const Tensor<1,2> &,
+ Tensor<1,2> &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const Tensor<1,3> &,
+ const Tensor<1,3> &,
+ Tensor<1,3> &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const FEValuesViews::Vector<2>::curl_type &,
+ const FEValuesViews::Vector<2>::curl_type &,
+ FEValuesViews::Vector<2>::curl_type &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const Tensor<2,2> &,
+ const Tensor<2,2> &,
+ Tensor<2,2> &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
+(const Tensor<2,3> &,
+ const Tensor<2,3> &,
+ Tensor<2,3> &) const;
