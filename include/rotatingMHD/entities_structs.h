@@ -23,8 +23,10 @@ namespace RMHD
 {
 
 using namespace dealii;
+
 /*!
  * @namespace Entities
+ *
  * @brief The namescape encompasses the numerical representation
  * of scalar and vector fields.
  */
@@ -33,6 +35,7 @@ namespace Entities
 
 /*!
  * @struct EntityBase
+ *
  * @brief This struct gathers all the numerical attributes that are
  * independent of the rank of the tensor.
  */
@@ -84,13 +87,13 @@ public:
    * @brief The AffineConstraints<double> instance handling the
    * hanging nodes.
    */
-  AffineConstraints<double>         hanging_nodes;
+  AffineConstraints<LinearAlgebra::MPI::Vector::value_type>         hanging_nodes;
 
   /*!
    * @brief The AffineConstraints<double> instance handling the
    * hanging nodes and the boundary conditions.
    */
-  AffineConstraints<double>         constraints;
+  AffineConstraints<LinearAlgebra::MPI::Vector::value_type>         constraints;
 
   /*!
    * @brief The set of the degrees of freedom owned by the processor.
@@ -133,6 +136,12 @@ public:
    * @brief Method returning a reference to the triangulation.
    */
   const parallel::distributed::Triangulation<dim> &get_triangulation() const;
+
+  /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear();
 
   /*!
    * @brief Initializes the solution vectors by calling their respective
@@ -210,7 +219,6 @@ protected:
    */
   bool        flag_setup_dofs;
 
-private:
   /*!
    * @brief Reference to the underlying triangulation.
    */
@@ -263,6 +271,12 @@ struct VectorEntity : EntityBase<dim>
    * boundary conditions of the vector field.
    */
   VectorBoundaryConditions<dim> boundary_conditions;
+
+  /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear() override;
 
   /*!
    * @brief Set ups the degrees of freedom of the vector field.
@@ -339,10 +353,11 @@ struct VectorEntity : EntityBase<dim>
                                           std::shared_ptr<Mapping<dim>>()) const;
 };
 
-  /*!
-   * @struct ScalarEntity
-   * @brief Numerical representation of a scalar field.
-   */
+/*!
+ * @struct ScalarEntity
+ *
+ * @brief Numerical representation of a scalar field.
+ */
 template <int dim>
 struct ScalarEntity : EntityBase<dim>
 {
@@ -369,6 +384,12 @@ struct ScalarEntity : EntityBase<dim>
    * boundary conditions of the scalar field.
    */
   ScalarBoundaryConditions<dim>       boundary_conditions;
+
+  /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  virtual void clear() override;
 
   /*!
    * @brief Set ups the degrees of freedom of the scalar field.

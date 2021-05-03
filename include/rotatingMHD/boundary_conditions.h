@@ -144,10 +144,11 @@ public:
 
   /*!
    * @brief This method clears all boundary conditions.
+   *
    * @details This is a pure virtual method. Its implementation is
    * overriden in the child structs
    */
-  virtual void                    clear() = 0;
+  virtual void                    clear();
 
   /*!
    * @brief A method which prints a summary of the boundary conditions which are
