@@ -302,14 +302,16 @@ void VectorEntity<dim>::apply_boundary_conditions()
 
 
 template <int dim>
-void VectorEntity<dim>::close_boundary_conditions()
+void VectorEntity<dim>::close_boundary_conditions(const bool print_summary)
 {
   boundary_conditions.close();
 
-  ConditionalOStream  pcout(std::cout,
-                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
-
-  boundary_conditions.print_summary(pcout, this->name);
+  if (print_summary)
+  {
+      ConditionalOStream  pcout(std::cout,
+                                Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+      boundary_conditions.print_summary(pcout, this->name);
+  }
 }
 
 
@@ -770,20 +772,18 @@ void ScalarEntity<dim>::apply_boundary_conditions()
   this->constraints.close();
 }
 
-
-
 template <int dim>
-void ScalarEntity<dim>::close_boundary_conditions()
+void ScalarEntity<dim>::close_boundary_conditions(const bool print_summary)
 {
   boundary_conditions.close();
 
-  ConditionalOStream  pcout(std::cout,
-                              Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
-
-  boundary_conditions.print_summary(pcout, this->name);
+  if (print_summary)
+  {
+      ConditionalOStream  pcout(std::cout,
+                                Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0);
+      boundary_conditions.print_summary(pcout, this->name);
+  }
 }
-
-
 
 template <int dim>
 void ScalarEntity<dim>::update_boundary_conditions()
