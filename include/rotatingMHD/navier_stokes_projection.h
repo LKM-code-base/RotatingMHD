@@ -95,7 +95,7 @@ public:
 
   /*!
    * @brief The constructor of the Navier-Stokes projection class where
-   * the bouyancy term is considered.
+   * the buoyancy term is considered.
    *
    * @details Stores local references to the input parameters and
    * pointers for the mapping and terminal output entities.
@@ -120,6 +120,12 @@ public:
    */
   std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
 
+
+  /*!
+   *  @brief Reset all internal objects to the initial state and release memory.
+   *
+   *  @details @ref body_force_ptr and @ref gravity_vector_ptr are also reset.
+   */
   void clear();
 
   /*!
