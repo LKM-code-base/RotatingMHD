@@ -165,7 +165,8 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm);
 /*!
  * @class ConvergenceTestData
  *
- * @brief @ref ConvergenceTestData is a book-keeping class for the errors of a convergence test.
+ * @brief @ref ConvergenceTestData is a book-keeping class for the errors of a
+ * convergence test.
  *
  */
 class ConvergenceTestData
@@ -176,8 +177,9 @@ public:
   ConvergenceTestData(const ConvergenceTestType &type = ConvergenceTestType::temporal);
 
   /*!
-   * @brief Add errors in @p error_map to the convergence table. This variant adds the number of DoFs, the
-   * cell diameter and the size of the timestep to the convergence table.
+   * @brief Add errors in @p error_map to the convergence table. This variant adds
+   * the number of DoFs, the cell diameter and the size of the timestep to the
+   * convergence table.
    */
   template <int dim, int spacedim>
   void update_table
@@ -186,8 +188,9 @@ public:
    const std::map<typename VectorTools::NormType, double> &error_map);
 
   /*!
-   * @brief Add errors in @p error_map to the convergence table. This variant adds the number of DoFs and
-   * the cell diameter to the convergence table but not the size of the timestep.
+   * @brief Add errors in @p error_map to the convergence table. This variant adds
+   * the number of DoFs and the cell diameter to the convergence table but not the
+   * size of the timestep.
    */
   template <int dim, int spacedim>
   void update_table
@@ -195,8 +198,8 @@ public:
    const std::map<typename VectorTools::NormType, double> &error_map);
 
   /*!
-   * @brief Add errors in @p error_map to the convergence table. This variant adds the size of the timestep
-   * but not the number of DoFs and the cell diameter.
+   * @brief Add errors in @p error_map to the convergence table. This variant adds
+   * the size of the timestep but not the number of DoFs and the cell diameter.
    */
   void update_table
   (const double time_step,
@@ -219,19 +222,24 @@ private:
   /*!
    * @brief Method which formats the columns of the convergence table.
    *
-   * @details The column are printed in scientific notation with a precision of two. The convergence
-   * rates are also evaluated.
+   * @details The column are printed in scientific notation with a precision of
+   * two digits. The convergence rates are also evaluated.
    *
    */
   void format_columns();
 
+  /*!
+   * @brief Type of convergence test which is performed.
+   *
+   * @details The column for computing the convergence rates is selected according
+   * to this variable.
+   */
   const ConvergenceTestType type;
 
   /*!
-   * @brief Number of cycles performed in the convergence test. This number is equal to
-   * the number of lines in the convergence table.
+   * @brief Number of rows added to the convergence table..
    */
-  unsigned int level;
+  unsigned int n_rows;
 
   /*!
    * @brief Convergence table which stores the error norms and related data.
@@ -239,27 +247,32 @@ private:
   ConvergenceTable  table;
 
   /*!
-   * @brief Flag indicating whether the size of the timestep was specified in the last cycle.
+   * @brief Flag indicating whether the size of the timestep was specified in
+   * the last cycle.
    */
   bool step_size_specified{false};
 
   /*!
-   * @brief Flag indicating whether the characteristic cell diameter was specified in the last cycle.
+   * @brief Flag indicating whether the characteristic cell diameter was specified
+   * in the last cycle.
    */
   bool h_max_specified{false};
 
   /*!
-   * @brief Flag indicating whether the L2 error norm was specified in the last cycle.
+   * @brief Flag indicating whether the L2 error norm was specified in the last
+   * cycle.
    */
   bool L2_error_specified{false};
 
   /*!
-   * @brief Flag indicating whether the H1 error norm was specified in the last cycle.
+   * @brief Flag indicating whether the H1 error norm was specified in the last
+   * cycle.
    */
   bool H1_error_specified{false};
 
   /*!
-   * @brief Flag indicating whether the infinity error norm was specified in the last cycle.
+   * @brief Flag indicating whether the infinity error norm was specified in the
+   * last cycle.
    */
   bool Linfty_error_specified{false};
 

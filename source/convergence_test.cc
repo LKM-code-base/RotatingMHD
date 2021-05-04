@@ -413,9 +413,9 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
 ConvergenceTestData::ConvergenceTestData(const ConvergenceTestType &type)
 :
 type(type),
-level(0)
+n_rows(0)
 {
-  table.declare_column("level");
+  table.declare_column("refinement level");
 }
 
 template<int dim, int spacedim>
@@ -436,16 +436,14 @@ void ConvergenceTestData::update_table
 (const DoFHandler<dim, spacedim> &dof_handler,
  const std::map<typename VectorTools::NormType, double> &error_map)
 {
-  table.add_value("level", level);
-  level += 1;
+  n_rows += 1;
 
   const types::global_dof_index n_dofs{dof_handler.n_dofs()};
   table.add_value("n_dofs", n_dofs);
 
   const Triangulation<dim, spacedim> &tria{dof_handler.get_triangulation()};
-  const types::global_cell_index n_cells{tria.n_global_active_cells()};
-  table.add_value("n_cells", n_cells);
-
+  const unsigned int n_levels{tria.n_global_levels()};
+  table.add_value("refinement level", n_levels);
 
   const double h_max{GridTools::maximal_cell_diameter(tria)};
   table.add_value("h_max", h_max);
@@ -480,8 +478,7 @@ void ConvergenceTestData::update_table
 (const double step_size,
  const std::map<typename VectorTools::NormType, double> &error_map)
 {
-  table.add_value("level", level);
-  level += 1;
+  n_rows += 1;
 
   table.add_value("step size", step_size);
   step_size_specified = true;
@@ -512,7 +509,7 @@ void ConvergenceTestData::update_table
 
 void ConvergenceTestData::format_columns()
 {
-  constexpr unsigned int precision{6  };
+  constexpr unsigned int precision{6};
 
   if (step_size_specified)
   {
@@ -590,7 +587,7 @@ void ConvergenceTestData::format_columns()
 template<typename Stream>
 Stream& operator<<(Stream &stream, ConvergenceTestData &data)
 {
-  if (data.level == 0)
+  if (data.n_rows == 0)
     return (stream);
 
   data.format_columns();
@@ -603,7 +600,7 @@ Stream& operator<<(Stream &stream, ConvergenceTestData &data)
 template <>
 ConditionalOStream& operator<<(ConditionalOStream &stream, ConvergenceTestData &data)
 {
-  if (data.level == 0)
+  if (data.n_rows == 0)
     return (stream);
 
   data.format_columns();
@@ -617,7 +614,7 @@ ConditionalOStream& operator<<(ConditionalOStream &stream, ConvergenceTestData &
 
 bool ConvergenceTestData::save(const std::string &file_name)
 {
-  if (level == 0)
+  if (n_rows == 0)
     return (false);
 
   format_columns();
