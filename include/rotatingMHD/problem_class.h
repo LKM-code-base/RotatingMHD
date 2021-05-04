@@ -54,6 +54,12 @@ struct SolutionTransferContainer
   SolutionTransferContainer();
 
   /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  void clear();
+
+  /*!
    * @brief Inline returning the number of entities to be considered
    * by the error estimation.
    */
@@ -145,7 +151,11 @@ protected:
    */
   SolutionTransferContainer<dim>              container;
 
-protected:
+  /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  void clear();
 
   /*!
    * @brief Loads the initial conditions to the pertinent solution
@@ -203,6 +213,13 @@ protected:
    */
   void adaptive_mesh_refinement();
 };
+
+// inline functions
+template<int dim>
+inline void SolutionTransferContainer<dim>::clear()
+{
+  entities.clear();
+}
 
 } // namespace RMHD
 

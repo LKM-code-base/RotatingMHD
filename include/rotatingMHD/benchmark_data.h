@@ -6,7 +6,6 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/assembly_data.h>
 
-#include <deal.II/base/discrete_time.h>
 #include <deal.II/base/point.h>
 #include <deal.II/base/table_handler.h>
 #include <deal.II/base/timer.h>
@@ -184,14 +183,14 @@ struct DFGBechmarkRequest
    * the current dimensionless time, @ref pressure_difference,
    * @ref drag_coefficient and the @ref lift_coefficient.
    */
-  void update_table(DiscreteTime  &time);
+  void update_table(TimeDiscretization::DiscreteTime  &time);
 
   /*!
    * @brief A method that prints @ref data_table with the step number,
    * the current dimensionless time, @ref pressure_difference,
    * @ref drag_coefficient and the @ref lift_coefficient.
    */
-  void print_step_data(DiscreteTime &time);
+  void print_step_data(TimeDiscretization::DiscreteTime &time);
 
   /*!
    * @brief A method that outputs the @ref data_table into a file.

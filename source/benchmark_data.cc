@@ -1,18 +1,21 @@
+
 #include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/exceptions.h>
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/exceptions.h>
-#include <deal.II/fe/mapping_q1.h>
+#include <deal.II/base/geometric_utilities.h>
+#include <deal.II/base/work_stream.h>
+
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_nothing.h>
+
 #include <deal.II/grid/grid_tools.h>
-#include <deal.II/numerics/vector_tools.h>
-#include <deal.II/base/work_stream.h>
 #include <deal.II/grid/filtered_iterator.h>
-#include <deal.II/base/geometric_utilities.h>
-#include <deal.II/base/exceptions.h>
+
+#include <deal.II/numerics/vector_tools.h>
+
 DeclException0(ExcBoostNoConvergence);
 
 #include <boost/math/tools/roots.hpp>
@@ -169,7 +172,7 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
 }
 
 template <int dim>
-void DFGBechmarkRequest<dim>::update_table(DiscreteTime  &time)
+void DFGBechmarkRequest<dim>::update_table(TimeDiscretization::DiscreteTime  &time)
 {
   data_table.add_value("n",   time.get_step_number());
   data_table.add_value("t",   time.get_current_time());
@@ -181,7 +184,7 @@ void DFGBechmarkRequest<dim>::update_table(DiscreteTime  &time)
 }
 
 template <int dim>
-void DFGBechmarkRequest<dim>::print_step_data(DiscreteTime &time)
+void DFGBechmarkRequest<dim>::print_step_data(TimeDiscretization::DiscreteTime &time)
 {
   ConditionalOStream  pcout(std::cout,
                             (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
