@@ -121,7 +121,66 @@ void EntityBase<dim>::set_solution_vectors_to_zero()
   old_old_solution  = 0.;
 }
 
+template<int dim>
+std::map<typename VectorTools::NormType, double>
+EntityBase<dim>::compute_error
+(const Function<dim>	&exact_solution,
+ const std::shared_ptr<Mapping<dim>> external_mapping) const
+{
+  const Triangulation<dim> &tria{this->triangulation};
 
+  Vector<double>  cellwise_error(tria.n_active_cells());
+
+  auto compute_error
+  = [external_mapping, &tria, &cellwise_error, this]
+     (const Quadrature<dim>          &quadrature,
+      const Function<dim>            &exact_solution,
+      const VectorTools::NormType     norm_type)
+  ->
+  double
+  {
+    VectorTools::integrate_difference(*external_mapping,
+                                      *this->dof_handler,
+                                      this->solution,
+                                      exact_solution,
+                                      cellwise_error,
+                                      quadrature,
+                                      norm_type);
+    return (VectorTools::compute_global_error(tria,
+                                              cellwise_error,
+                                              norm_type));
+  };
+
+  typename VectorTools::NormType norm_type;
+
+  std::map<typename VectorTools::NormType, double> error_map;
+
+	const QGauss<dim> quadrature_formula(fe_degree + 2);
+
+	norm_type = VectorTools::NormType::L2_norm;
+	double error = compute_error(quadrature_formula,
+                               exact_solution,
+                               norm_type);
+  error_map[norm_type] = error;
+
+	norm_type = VectorTools::NormType::H1_norm;
+	error = compute_error(quadrature_formula,
+                        exact_solution,
+                        norm_type);
+	error_map[norm_type] = error;
+
+	const QTrapez<1>     trapezoidal_rule;
+	const QIterated<dim> linfty_quadrature_formula(trapezoidal_rule,
+                                                 fe_degree);
+
+	norm_type = VectorTools::NormType::Linfty_norm;
+	error = compute_error(linfty_quadrature_formula,
+                        exact_solution,
+                        norm_type);
+	error_map[norm_type] = error;
+
+	return (error_map);
+}
 
 template <int dim>
 VectorEntity<dim>::VectorEntity
