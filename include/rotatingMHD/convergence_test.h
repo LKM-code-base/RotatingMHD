@@ -214,24 +214,53 @@ public:
    */
   bool save(const std::string &file_name);
 
-
-
 private:
 
+  /*!
+   * @brief Method which formats the columns of the convergence table.
+   *
+   * @details The column are printed in scientific notation with a precision of two. The convergence
+   * rates are also evaluated.
+   *
+   */
   void format_columns();
 
   const ConvergenceTestType type;
 
+  /*!
+   * @brief Number of cycles performed in the convergence test. This number is equal to
+   * the number of lines in the convergence table.
+   */
   unsigned int level;
 
-  unsigned int dimension;
-
+  /*!
+   * @brief Convergence table which stores the error norms and related data.
+   */
   ConvergenceTable  table;
 
+  /*!
+   * @brief Flag indicating whether the size of the timestep was specified in the last cycle.
+   */
   bool step_size_specified{false};
+
+  /*!
+   * @brief Flag indicating whether the characteristic cell diameter was specified in the last cycle.
+   */
   bool h_max_specified{false};
+
+  /*!
+   * @brief Flag indicating whether the L2 error norm was specified in the last cycle.
+   */
   bool L2_error_specified{false};
+
+  /*!
+   * @brief Flag indicating whether the H1 error norm was specified in the last cycle.
+   */
   bool H1_error_specified{false};
+
+  /*!
+   * @brief Flag indicating whether the infinity error norm was specified in the last cycle.
+   */
   bool Linfty_error_specified{false};
 
 };

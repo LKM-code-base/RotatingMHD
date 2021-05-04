@@ -413,13 +413,9 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
 ConvergenceTestData::ConvergenceTestData(const ConvergenceTestType &type)
 :
 type(type),
-level(0),
-dimension(0)
+level(0)
 {
   table.declare_column("level");
-  table.declare_column("L2");
-  table.declare_column("H1");
-  table.declare_column("Linfty");
 }
 
 template<int dim, int spacedim>
@@ -440,8 +436,6 @@ void ConvergenceTestData::update_table
 (const DoFHandler<dim, spacedim> &dof_handler,
  const std::map<typename VectorTools::NormType, double> &error_map)
 {
-	dimension = spacedim;
-
   table.add_value("level", level);
   level += 1;
 
@@ -518,7 +512,7 @@ void ConvergenceTestData::update_table
 
 void ConvergenceTestData::format_columns()
 {
-  constexpr unsigned int precision{6};
+  constexpr unsigned int precision{6  };
 
   if (step_size_specified)
   {
@@ -559,14 +553,14 @@ void ConvergenceTestData::format_columns()
     case ConvergenceTestType::spatial:
       column.assign("h_max");
       evaluate_convergence = true;
-      Assert(dimension > 0, ExcLowerRange(dimension, 0));
       break;
     case ConvergenceTestType::temporal:
       column.assign("step size");
-      dimension = 1;
       evaluate_convergence = true;
       break;
     case ConvergenceTestType::spatio_temporal:
+      // Do not evaluate convergence rates for a spatio-temporal test,
+      // leaving switch-case to avoid throwing an exception.
       break;
     default:
       Assert(false,
@@ -579,17 +573,17 @@ void ConvergenceTestData::format_columns()
       table.evaluate_convergence_rates("L2",
                                        column,
                                        ConvergenceTable::reduction_rate_log2,
-                                       dimension);
+                                       1);
     if (Linfty_error_specified)
       table.evaluate_convergence_rates("Linfty",
                                        column,
                                        ConvergenceTable::reduction_rate_log2,
-                                       dimension);
+                                       1);
     if (H1_error_specified)
       table.evaluate_convergence_rates("H1",
                                        column,
                                        ConvergenceTable::reduction_rate_log2,
-                                       dimension);
+                                       1);
 	}
 }
 
@@ -601,7 +595,7 @@ Stream& operator<<(Stream &stream, ConvergenceTestData &data)
 
   data.format_columns();
 
-  data.table.write_text(stream, TableHandler::org_mode_table);
+  data.table.write_text(stream);
 
   return (stream);
 }
@@ -615,7 +609,7 @@ ConditionalOStream& operator<<(ConditionalOStream &stream, ConvergenceTestData &
   data.format_columns();
 
   if (stream.is_active())
-  	data.table.write_text(stream.get_stream(), TableHandler::org_mode_table);
+  	data.table.write_text(stream.get_stream());
 
   return (stream);
 }
