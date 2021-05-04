@@ -206,18 +206,25 @@ public:
    * @brief Output of the convergence table to a stream object,
    */
   template<typename Stream>
-  void print_data(Stream &stream);
+  friend Stream& operator<<(Stream &stream,
+                            ConvergenceTestData &data);
 
   /*!
    * @brief Save results of convergence test to a text file using Org-mode formatting.
    */
   bool save(const std::string &file_name);
 
+
+
 private:
+
+  void format_columns();
 
   const ConvergenceTestType type;
 
   unsigned int level;
+
+  unsigned int dimension;
 
   ConvergenceTable  table;
 
@@ -227,7 +234,6 @@ private:
   bool H1_error_specified{false};
   bool Linfty_error_specified{false};
 
-  void format_columns();
 };
 
 }  // namespace ConvergenceTest

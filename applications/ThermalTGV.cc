@@ -43,15 +43,14 @@ private:
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  std::shared_ptr<EquationData::ThermalTGV::TemperatureExactSolution<dim>>
-                                                temperature_exact_solution;
+  std::shared_ptr<Function<dim>>								temperature_exact_solution;
 
-  std::shared_ptr<TensorFunction<1,dim>>
-                                                velocity_exact_solution;
+  std::shared_ptr<TensorFunction<1,dim>> 				velocity_exact_solution;
 
   HeatEquation<dim>                             heat_equation;
 
   ConvergenceAnalysisData<dim>                  convergence_table;
+  ConvergenceTest::ConvergenceTestData					convergence_data;
 
   double                                        cfl_number;
 
@@ -290,6 +289,13 @@ void ThermalTGV<dim>::solve(const unsigned int &level)
   Assert(time_stepping.get_current_time() == temperature_exact_solution->get_time(),
     ExcMessage("Time mismatch between the time stepping class and the temperature function"));
 
+  {
+    auto error_map = temperature->compute_error(*temperature_exact_solution, this->mapping);
+
+    convergence_data.update_table(*this->temperature->dof_handler,
+                                  time_stepping.get_previous_step_size(),
+                                  error_map);
+  }
   convergence_table.update_table(
     level,
     time_stepping.get_previous_step_size(),
@@ -365,6 +371,9 @@ void ThermalTGV<dim>::run()
                 << this->prm.Pe;
 
   convergence_table.write_text(tablefilename.str());
+
+  *this->pcout << convergence_data;
+  convergence_data.save("ThermalTGV_DumpTest.txt");
 }
 
 } // namespace RMHD

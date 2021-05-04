@@ -11,6 +11,7 @@
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/lac/affine_constraints.h>
+#include <deal.II/numerics/vector_tools.h>
 
 #include <vector>
 #include <map>
@@ -201,6 +202,16 @@ public:
    * @brief Returns the value of @ref flag_child_entity.
    */
   bool is_child_entity() const;
+
+
+  /*!
+   * @brief Computes the error of the discrete solution w.r.t. to the exact solution
+   * specified by the function @p exact_solution. The error is computed in the L2 norm, the H1 norm
+   * and the infinity norm and return as mapping.
+   */
+  std::map<typename VectorTools::NormType, double> compute_error
+	(const Function<dim>							&exact_solution,
+	 const std::shared_ptr<Mapping<dim>> external_mapping) const;
 
 protected:
   /*!

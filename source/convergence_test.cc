@@ -413,8 +413,14 @@ Stream& operator<<(Stream &stream, const ConvergenceTestParameters &prm)
 ConvergenceTestData::ConvergenceTestData(const ConvergenceTestType &type)
 :
 type(type),
-level(0)
-{}
+level(0),
+dimension(0)
+{
+  table.declare_column("level");
+  table.declare_column("L2");
+  table.declare_column("H1");
+  table.declare_column("Linfty");
+}
 
 template<int dim, int spacedim>
 void ConvergenceTestData::update_table
@@ -434,6 +440,8 @@ void ConvergenceTestData::update_table
 (const DoFHandler<dim, spacedim> &dof_handler,
  const std::map<typename VectorTools::NormType, double> &error_map)
 {
+	dimension = spacedim;
+
   table.add_value("level", level);
   level += 1;
 
@@ -444,33 +452,10 @@ void ConvergenceTestData::update_table
   const types::global_cell_index n_cells{tria.n_global_active_cells()};
   table.add_value("n_cells", n_cells);
 
+
   const double h_max{GridTools::maximal_cell_diameter(tria)};
   table.add_value("h_max", h_max);
   h_max_specified = true;
-
-  std::string column;
-  unsigned int dimension{spacedim};
-  bool evaluate_convergence{false};
-
-  switch (type)
-  {
-    case ConvergenceTestType::spatial:
-      column.assign("h_max");
-      evaluate_convergence = true;
-      break;
-    case ConvergenceTestType::temporal:
-      column.assign("step size");
-      dimension = 1;
-      evaluate_convergence = true;
-      break;
-    case ConvergenceTestType::spatio_temporal:
-      break;
-
-    default:
-      Assert(false,
-             ExcMessage("Unexpected value for the ConvergenceTestType."));
-      break;
-  }
 
   std::map<typename VectorTools::NormType, double>::const_iterator it;
 
@@ -479,12 +464,6 @@ void ConvergenceTestData::update_table
   {
     table.add_value("L2", it->second);
     L2_error_specified = true;
-
-    if (evaluate_convergence)
-      table.evaluate_convergence_rates("L2",
-                                       column,
-                                       ConvergenceTable::reduction_rate_log2,
-                                       dimension);
   }
 
   it = error_map.find(VectorTools::NormType::Linfty_norm);
@@ -492,12 +471,6 @@ void ConvergenceTestData::update_table
   {
     table.add_value("Linfty", it->second);
     Linfty_error_specified = true;
-
-    if (evaluate_convergence)
-      table.evaluate_convergence_rates("Linfty",
-                                       column,
-                                       ConvergenceTable::reduction_rate_log2,
-                                       dimension);
   }
 
   it = error_map.find(VectorTools::NormType::H1_norm);
@@ -505,12 +478,6 @@ void ConvergenceTestData::update_table
   {
     table.add_value("H1", it->second);
     H1_error_specified = true;
-
-    if (evaluate_convergence)
-      table.evaluate_convergence_rates("H1",
-                                       column,
-                                       ConvergenceTable::reduction_rate_log2,
-                                       dimension);
   }
 
 }
@@ -525,19 +492,6 @@ void ConvergenceTestData::update_table
   table.add_value("step size", step_size);
   step_size_specified = true;
 
-  std::string column;
-  switch (type)
-  {
-    case ConvergenceTestType::temporal:
-      column.assign("step size");
-      break;
-    default:
-      Assert(false,
-             ExcMessage("Wrong case to update_table for the current type of the "
-                        "convergence test."));
-      break;
-  }
-
   std::map<typename VectorTools::NormType, double>::const_iterator it;
 
   it = error_map.find(VectorTools::NormType::L2_norm);
@@ -545,10 +499,6 @@ void ConvergenceTestData::update_table
   {
     table.add_value("L2", it->second);
     L2_error_specified = true;
-
-    table.evaluate_convergence_rates("L2",
-                                     column,
-                                     ConvergenceTable::reduction_rate_log2);
   }
 
   it = error_map.find(VectorTools::NormType::Linfty_norm);
@@ -556,10 +506,6 @@ void ConvergenceTestData::update_table
   {
     table.add_value("Linfty", it->second);
     Linfty_error_specified = true;
-
-    table.evaluate_convergence_rates("Linfty",
-                                     column,
-                                     ConvergenceTable::reduction_rate_log2);
   }
 
   it = error_map.find(VectorTools::NormType::H1_norm);
@@ -567,10 +513,6 @@ void ConvergenceTestData::update_table
   {
     table.add_value("H1", it->second);
     H1_error_specified = true;
-
-    table.evaluate_convergence_rates("H1",
-                                     column,
-                                     ConvergenceTable::reduction_rate_log2);
   }
 }
 
@@ -594,52 +536,88 @@ void ConvergenceTestData::format_columns()
   {
     table.set_scientific("L2", true);
     table.set_precision("L2", precision);
-    table.add_column_to_supercolumn("L2", "error norms");
   }
 
   if (H1_error_specified)
   {
     table.set_scientific("H1", true);
     table.set_precision("H1", precision);
-    table.add_column_to_supercolumn("L2", "error norms");
   }
 
   if (Linfty_error_specified)
   {
     table.set_scientific("Linfty", true);
     table.set_precision("Linfty", precision);
-    table.add_column_to_supercolumn("Linfty", "error norms");
   }
 
+
+  std::string column;
+  bool evaluate_convergence{false};
+
+  switch (type)
+  {
+    case ConvergenceTestType::spatial:
+      column.assign("h_max");
+      evaluate_convergence = true;
+      Assert(dimension > 0, ExcLowerRange(dimension, 0));
+      break;
+    case ConvergenceTestType::temporal:
+      column.assign("step size");
+      dimension = 1;
+      evaluate_convergence = true;
+      break;
+    case ConvergenceTestType::spatio_temporal:
+      break;
+    default:
+      Assert(false,
+             ExcMessage("Unexpected value for the ConvergenceTestType."));
+      break;
+  }
+  if (evaluate_convergence)
+	{
+    if (L2_error_specified)
+      table.evaluate_convergence_rates("L2",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       dimension);
+    if (Linfty_error_specified)
+      table.evaluate_convergence_rates("Linfty",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       dimension);
+    if (H1_error_specified)
+      table.evaluate_convergence_rates("H1",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       dimension);
+	}
 }
 
-/*!
- * @brief Output of the convergence table to a stream object,
- */
 template<typename Stream>
-void ConvergenceTestData::print_data(Stream &stream)
+Stream& operator<<(Stream &stream, ConvergenceTestData &data)
 {
-  if (level == 0)
-    return;
+  if (data.level == 0)
+    return (stream);
 
-  format_columns();
+  data.format_columns();
 
-  table.write_text(stream, TableHandler::org_mode_table);
+  data.table.write_text(stream, TableHandler::org_mode_table);
+
+  return (stream);
 }
 
-/*!
- * @brief Output of the convergence table to a stream object,
- */
 template <>
-void ConvergenceTestData::print_data(ConditionalOStream &stream)
+ConditionalOStream& operator<<(ConditionalOStream &stream, ConvergenceTestData &data)
 {
-  if (level == 0)
-    return;
+  if (data.level == 0)
+    return (stream);
 
-  format_columns();
+  data.format_columns();
 
   if (stream.is_active())
-    table.write_text(stream.get_stream(), TableHandler::org_mode_table);
+  	data.table.write_text(stream.get_stream(), TableHandler::org_mode_table);
+
+  return (stream);
 }
 
 
@@ -684,3 +662,62 @@ template std::ostream& RMHD::ConvergenceTest::operator<<
 (std::ostream &, const RMHD::ConvergenceTest::ConvergenceTestParameters &);
 template dealii::ConditionalOStream& RMHD::ConvergenceTest::operator<<
 (dealii::ConditionalOStream &, const RMHD::ConvergenceTest::ConvergenceTestParameters &);
+
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<1, 1> &,
+ const double ,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<1, 2> &,
+ const double ,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<2, 2> &,
+ const double ,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<1, 3> &,
+ const double ,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<2, 3> &,
+ const double ,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<3, 3> &,
+ const double ,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<1, 1> &,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<1, 2> &,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<2, 2> &,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<1, 3> &,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<2, 3> &,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+template
+void RMHD::ConvergenceTest::ConvergenceTestData::update_table
+(const dealii::DoFHandler<3, 3> &,
+ const std::map<typename dealii::VectorTools::NormType, double> &);
+
+template std::ostream& RMHD::ConvergenceTest::operator<<
+(std::ostream &, RMHD::ConvergenceTest::ConvergenceTestData &);
