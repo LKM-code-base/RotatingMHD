@@ -171,7 +171,7 @@ public:
    * @ref ScalarEntity::apply_boundary_conditions and
    * @ref VectorEntity::apply_boundary_conditions respectively.
    */
-  virtual void apply_boundary_conditions() = 0;
+  virtual void apply_boundary_conditions(const bool check_regularity = true) = 0;
 
   /*!
    * @brief Empty virtual method introduced to gather @ref ScalarEntity
@@ -296,7 +296,7 @@ struct VectorEntity : EntityBase<dim>
    * are applied as the method initiates @ref constraints, which is used
    * througout the solver.
    */
-  virtual void apply_boundary_conditions() override;
+  virtual void apply_boundary_conditions(const bool check_regularity = true) override;
 
   /*!
    * @brief Closes the @ref boundary_conditions and prints a summary
@@ -408,7 +408,7 @@ struct ScalarEntity : EntityBase<dim>
    * are applied because the method initiates @ref constraints, which are used
    * througout the solver.
    */
-  virtual void apply_boundary_conditions() override;
+  virtual void apply_boundary_conditions(const bool check_regularity = true) override;
 
   /*!
    * @brief Closes the @ref boundary_conditions and prints a summary

@@ -183,34 +183,22 @@ void Guermond<dim>::setup_constraints()
     1,
     velocity_exact_solution,
     true);
-  pressure->boundary_conditions.set_dirichlet_bcs(
-  	1,
-		pressure_exact_solution,
-		true);
   // bottom boundary
   velocity->boundary_conditions.set_dirichlet_bcs(
     2,
     velocity_exact_solution,
     true);
-  pressure->boundary_conditions.set_dirichlet_bcs(
-  	2,
-		pressure_exact_solution,
-		true);
   // top boundary
   velocity->boundary_conditions.set_dirichlet_bcs(
     3,
     velocity_exact_solution,
     true);
-  pressure->boundary_conditions.set_dirichlet_bcs(
-  	3,
-		pressure_exact_solution,
-		true);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
 
   velocity->apply_boundary_conditions();
-  pressure->apply_boundary_conditions();
+  pressure->apply_boundary_conditions(/*check regularity? */ false);
 }
 
 template <int dim>
