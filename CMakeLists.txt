@@ -61,6 +61,7 @@ ENDIF()
 # Set the source files to be compiled
 SET(TARGET_SRC
     source/assembly_data.cc
+    source/basic_parameters.cc
     source/benchmark_data.cc
     source/boundary_conditions.cc
     source/convergence_test.cc
@@ -68,6 +69,7 @@ SET(TARGET_SRC
     source/entities_structs.cc
     source/equation_data.cc
     source/heat_equation.cc
+    source/linear_solver_parameters.cc
     source/problem_class.cc
     source/run_time_parameters.cc
     source/time_discretization.cc
