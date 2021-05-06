@@ -32,7 +32,7 @@ public:
 
   void run();
 private:
-  const RunTimeParameters::ProblemParameters    &params;
+  const RunTimeParameters::ProblemParameters   &parameters;
 
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
@@ -76,7 +76,7 @@ template <int dim>
 Step35<dim>::Step35(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-params(parameters),
+parameters(parameters),
 velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
                                                        "velocity")),

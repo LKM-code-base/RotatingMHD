@@ -62,6 +62,9 @@ public:
   void run();
 
 private:
+
+  const RunTimeParameters::ProblemParameters   &parameters;
+
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
@@ -105,6 +108,7 @@ template <int dim>
 Couette<dim>::Couette(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
+parameters(parameters),
 velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
                                                        "Velocity")),
@@ -358,7 +362,7 @@ void Couette<dim>::solve(const unsigned int &level)
 
   convergence_table.update_table(
     level, time_stepping.get_previous_step_size(),
-    this->prm.convergence_test_parameters.test_type ==
+    parameters.convergence_test_parameters.test_type ==
     		ConvergenceTest::ConvergenceTestType::spatial);
 
   *this->pcout << std::endl << std::endl;
@@ -368,17 +372,17 @@ template <int dim>
 void Couette<dim>::run()
 {
   // Set ups the initial triangulation
-  make_grid(this->prm.spatial_discretization_parameters.n_initial_global_refinements);
+  make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
   // The following if allows to perform either spatial or temporal
   // convergence tests, depending on the settings described in the
   // parameter file.
-  switch (this->prm.convergence_test_parameters.test_type)
+  switch (parameters.convergence_test_parameters.test_type)
   {
   case ConvergenceTest::ConvergenceTestType::spatial:
-    for (unsigned int level = this->prm.spatial_discretization_parameters.n_initial_global_refinements;
-         level < (this->prm.spatial_discretization_parameters.n_initial_global_refinements +
-                  this->prm.convergence_test_parameters.n_spatial_cycles);
+    for (unsigned int level = parameters.spatial_discretization_parameters.n_initial_global_refinements;
+         level < (parameters.spatial_discretization_parameters.n_initial_global_refinements +
+                  parameters.convergence_test_parameters.n_spatial_cycles);
          ++level)
     {
       *this->pcout  << std::setprecision(1)
@@ -398,25 +402,25 @@ void Couette<dim>::run()
     break;
   case ConvergenceTest::ConvergenceTestType::temporal:
     for (unsigned int cycle = 0;
-         cycle < this->prm.convergence_test_parameters.n_temporal_cycles;
+         cycle < parameters.convergence_test_parameters.n_temporal_cycles;
          ++cycle)
     {
-      double time_step = this->prm.time_discretization_parameters.initial_time_step *
-                         pow(this->prm.convergence_test_parameters.step_size_reduction_factor,
+      double time_step = parameters.time_discretization_parameters.initial_time_step *
+                         pow(parameters.convergence_test_parameters.step_size_reduction_factor,
                              cycle);
 
       *this->pcout  << std::setprecision(1)
                     << "Solving until t = "
                     << std::fixed << time_stepping.get_end_time()
                     << " with a refinement level of "
-                    << this->prm.spatial_discretization_parameters.n_initial_global_refinements
+                    << parameters.spatial_discretization_parameters.n_initial_global_refinements
                     << std::endl;
 
       time_stepping.restart();
 
       time_stepping.set_desired_next_step_size(time_step);
 
-      solve(this->prm.spatial_discretization_parameters.n_initial_global_refinements);
+      solve(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
       navier_stokes.reset_phi();
     }
@@ -428,12 +432,12 @@ void Couette<dim>::run()
   *(this->pcout) << convergence_table;
 
   std::ostringstream tablefilename;
-  tablefilename << ((this->prm.convergence_test_parameters.test_type ==
+  tablefilename << ((parameters.convergence_test_parameters.test_type ==
                       ConvergenceTest::ConvergenceTestType::spatial)
                      ? "Couette_SpatialTest"
-                     : ("Couette_TemporalTest_Level" + std::to_string(this->prm.spatial_discretization_parameters.n_initial_global_refinements)))
+                     : ("Couette_TemporalTest_Level" + std::to_string(parameters.spatial_discretization_parameters.n_initial_global_refinements)))
                 << "_Re"
-                << this->prm.Re;
+                << parameters.Re;
 
   convergence_table.write_text(tablefilename.str() + "_Velocity");
 }

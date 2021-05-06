@@ -1352,7 +1352,7 @@ Stream& operator<<(Stream &stream, const BoussinesqProblemParameters &prm)
 
 ProblemParameters::ProblemParameters()
 :
-OutputControlParameters(),
+ProblemBaseParameters(),
 DimensionlessNumbers(),
 problem_type(ProblemType::boussinesq),
 dim(2),

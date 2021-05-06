@@ -279,6 +279,9 @@ public:
 
   void run();
 private:
+
+  const RunTimeParameters::ProblemParameters   &parameters;
+
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
@@ -316,6 +319,7 @@ template <int dim>
 DFG<dim>::DFG(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
+parameters(parameters),
 velocity(std::make_shared<Entities::VectorEntity<dim>>
          (parameters.fe_degree_velocity,
           this->triangulation,
@@ -405,7 +409,7 @@ void DFG<dim>::setup_constraints()
   velocity->boundary_conditions.set_dirichlet_bcs
   (0,
    std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>(
-     this->prm.time_discretization_parameters.start_time));
+     parameters.time_discretization_parameters.start_time));
 
   velocity->boundary_conditions.set_dirichlet_bcs(2);
   velocity->boundary_conditions.set_dirichlet_bcs(3);
