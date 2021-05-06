@@ -1,14 +1,13 @@
-#include <rotatingMHD/convection_diffusion_solver.h>
-
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/grid/filtered_iterator.h>
+#include <rotatingMHD/convection_diffusion_solver.h>
 
 namespace RMHD
 {
 
 template <int dim>
-void HeatEquation<dim>::assemble_constant_matrices()
+void ConvectionDiffusionSolver<dim>::assemble_constant_matrices()
 {
   if (parameters.verbose)
     *pcout << "  Heat Equation: Assembling constant matrices...";
@@ -72,7 +71,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
 }
 
 template <int dim>
-void HeatEquation<dim>::assemble_local_constant_matrices
+void ConvectionDiffusionSolver<dim>::assemble_local_constant_matrices
 (const typename DoFHandler<dim>::active_cell_iterator       &cell,
  AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim> &scratch,
  AssemblyData::HeatEquation::ConstantMatrices::Copy         &data)
@@ -126,7 +125,7 @@ void HeatEquation<dim>::assemble_local_constant_matrices
 }
 
 template <int dim>
-void HeatEquation<dim>::copy_local_to_global_constant_matrices
+void ConvectionDiffusionSolver<dim>::copy_local_to_global_constant_matrices
 (const AssemblyData::HeatEquation::ConstantMatrices::Copy   &data)
 {
   temperature->constraints.distribute_local_to_global(
@@ -143,19 +142,19 @@ void HeatEquation<dim>::copy_local_to_global_constant_matrices
 } // namespace RMHD
 
 // explicit instantiations
-template void RMHD::HeatEquation<2>::assemble_constant_matrices();
-template void RMHD::HeatEquation<3>::assemble_constant_matrices();
+template void RMHD::ConvectionDiffusionSolver<2>::assemble_constant_matrices();
+template void RMHD::ConvectionDiffusionSolver<3>::assemble_constant_matrices();
 
-template void RMHD::HeatEquation<2>::assemble_local_constant_matrices
+template void RMHD::ConvectionDiffusionSolver<2>::assemble_local_constant_matrices
 (const typename DoFHandler<2>::active_cell_iterator             &,
  RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<2> &,
  RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy       &);
-template void RMHD::HeatEquation<3>::assemble_local_constant_matrices
+template void RMHD::ConvectionDiffusionSolver<3>::assemble_local_constant_matrices
 (const typename DoFHandler<3>::active_cell_iterator             &,
  RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<3> &,
  RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy       &);
 
-template void RMHD::HeatEquation<2>::copy_local_to_global_constant_matrices
+template void RMHD::ConvectionDiffusionSolver<2>::copy_local_to_global_constant_matrices
 (const RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy &);
-template void RMHD::HeatEquation<3>::copy_local_to_global_constant_matrices
+template void RMHD::ConvectionDiffusionSolver<3>::copy_local_to_global_constant_matrices
 (const RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy &);

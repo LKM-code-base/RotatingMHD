@@ -1,15 +1,16 @@
-#ifndef INCLUDE_ROTATINGMHD_HEAT_EQUATION_H_
-#define INCLUDE_ROTATINGMHD_HEAT_EQUATION_H_
+#ifndef INCLUDE_ROTATINGMHD_CONVECTION_DIFFUSION_SOLVER_H_
+#define INCLUDE_ROTATINGMHD_CONVECTION_DIFFUSION_SOLVER_H_
 
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/timer.h>
 #include <deal.II/base/tensor_function.h>
 
 #include <rotatingMHD/assembly_data.h>
+#include <rotatingMHD/basic_parameters.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/global.h>
-#include <rotatingMHD/run_time_parameters.h>
+#include <rotatingMHD/linear_solver_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <memory>
@@ -21,10 +22,96 @@ namespace RMHD
 
 using namespace dealii;
 
+
 /*!
- * @class HeatEquation
+ * @struct HeatEquationParameters
  *
- * @brief Solves the heat equation.
+ * @brief A structure containing all the parameters of the heat
+ * equation solver.
+ */
+struct ConvectionDiffusionParameters
+{
+  /*!
+   * Constructor which sets up the parameters with default values.
+   */
+  ConvectionDiffusionParameters();
+
+  /*!
+   * @brief Constructor which sets up the parameters as specified in the
+   * parameter file with the filename @p parameter_filename.
+   */
+  ConvectionDiffusionParameters(const std::string &parameter_filename);
+
+  /*!
+   * @brief Static method which declares the associated parameter to the
+   * ParameterHandler object @p prm.
+   */
+  static void declare_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method which parses the parameters from the ParameterHandler
+   * object @p prm.
+   */
+  void parse_parameters(ParameterHandler &prm);
+
+  /*!
+   * @brief Method forwarding parameters to a stream object.
+   *
+   * @details This method does not add a `std::endl` to the stream at the end.
+   *
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const ConvectionDiffusionParameters &prm);
+
+  /*!
+   * @brief Enumerator controlling which weak form of the convective
+   * term is to be implemented
+   * @attention This needs further work as the weak forms are note
+   * one to one in the Navier Stokes and heat equations
+   */
+  RunTimeParameters::ConvectiveTermWeakForm            convective_term_weak_form;
+
+  /*!
+   * @brief Enumerator controlling which time discretization of the
+   * convective term is to be implemented
+   */
+  RunTimeParameters::ConvectiveTermTimeDiscretization  convective_term_time_discretization;
+
+    /*!
+   * @brief The factor multiplying the diffusion term.
+   */
+  double  equation_coefficient;
+
+  /*!
+   * @brief The parameters for the linear solver.
+   */
+  RunTimeParameters::LinearSolverParameters solver_parameters;
+
+  /*!
+   * @brief Specifies the frequency of the update of the solver's
+   * preconditioner.
+   */
+  unsigned int  preconditioner_update_frequency;
+
+  /*!
+   * @brief Boolean flag to enable verbose output on the terminal.
+   */
+  bool  verbose;
+};
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ *
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const ConvectionDiffusionParameters &prm);
+
+/*!
+ * @class ConvectionDiffusionSolver
+ *
+ * @brief Solves a convection-diffusion problem.
  *
  * @details This version is parallelized using deal.ii's MPI facilities and
  * relies either on the Trilinos or the PETSc library. Moreover, for the time
@@ -55,13 +142,16 @@ using namespace dealii;
  * where \f$ \vartheta \f$ and \f$ \mathit{Pe} \f$ are the dimensionless
  * temperature and the Peclet number respectively. Do note that we
  * reuse the variables names to denote their adimensional counterpart.
+ *
  * @todo Documentation
+ *
  * @todo Add dissipation term.
+ *
  * @todo Add consistent forms of the advection term.
+ *
  */
-
 template <int dim>
-class HeatEquation
+class ConvectionDiffusionSolver
 {
 
 public:
@@ -72,8 +162,8 @@ public:
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
-  HeatEquation
-  (const RunTimeParameters::HeatEquationParameters  &parameters,
+  ConvectionDiffusionSolver
+  (const ConvectionDiffusionParameters              &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
    std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
@@ -90,8 +180,8 @@ public:
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
-  HeatEquation
-  (const RunTimeParameters::HeatEquationParameters  &parameters,
+  ConvectionDiffusionSolver
+  (const ConvectionDiffusionParameters              &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
    std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
    std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
@@ -109,8 +199,8 @@ public:
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
-  HeatEquation
-  (const RunTimeParameters::HeatEquationParameters  &parameters,
+  ConvectionDiffusionSolver
+  (const ConvectionDiffusionParameters              &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
    std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
    std::shared_ptr<TensorFunction<1, dim>>          &velocity,
@@ -120,6 +210,7 @@ public:
        std::shared_ptr<ConditionalOStream>(),
    const std::shared_ptr<TimerOutput>               external_timer =
        std::shared_ptr<TimerOutput>());
+
   /*!
    *  @brief Setups and initializes all the internal entities for
    *  the heat equation problem.
@@ -149,17 +240,11 @@ public:
    */
   void solve();
 
-  /*!
-   *  @brief Returns the norm of the right hand side for the last solved
-   * step.
-   */
-  double get_rhs_norm() const;
-
 private:
   /*!
    * @brief A reference to the parameters which control the solution process.
    */
-  const RunTimeParameters::HeatEquationParameters &parameters;
+  const ConvectionDiffusionParameters           &parameters;
 
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
@@ -217,6 +302,7 @@ private:
    * @details This matrix does not change in every timestep. It is stored in
    * memory because otherwise an assembly would be required if the timestep
    * changes.
+   *
    * @todo Add formulas
    */
   LinearAlgebra::MPI::SparseMatrix              mass_matrix;
@@ -226,6 +312,7 @@ private:
    * @details This matrix does not change in every timestep. It is stored in
    * memory because otherwise an assembly would be required if the timestep
    * changes.
+   *
    * @todo Add formulas
    */
   LinearAlgebra::MPI::SparseMatrix              stiffness_matrix;
@@ -234,6 +321,7 @@ private:
    * @brief Sum of the mass and stiffness matrix of the temperature.
    * @details If the time step size is constant, this matrix does not
    * change each step.
+   *
    * @todo Add formulas
    */
   LinearAlgebra::MPI::SparseMatrix              mass_plus_stiffness_matrix;
@@ -242,20 +330,17 @@ private:
    * @brief Advection matrix of the temperature.
    * @details This matrix changes in every timestep and is therefore also
    * assembled in every timestep.
+   *
    * @todo Add formulas
    */
   LinearAlgebra::MPI::SparseMatrix              advection_matrix;
 
   /*!
    * @brief Vector representing the right-hand side of the linear system.
+   *
    * @todo Add formulas
    */
   LinearAlgebra::MPI::Vector                    rhs;
-
-  /*!
-   * @brief The \f$ L_2 \f$ norm of the right hand side
-   */
-  double                                        rhs_norm;
 
   /*!
    * @brief The preconditioner.
@@ -355,12 +440,6 @@ private:
     const AssemblyData::HeatEquation::RightHandSide::Copy   &data);
 };
 
-template <int dim>
-inline double HeatEquation<dim>::get_rhs_norm() const
-{
-  return (rhs_norm);
-}
-
 } // namespace RMHD
 
-#endif /* INCLUDE_ROTATINGMHD_HEAT_EQUATION_H_ */
+#endif /* INCLUDE_ROTATINGMHD_CONVECTION_DIFFUSION_SOLVER_H_ */

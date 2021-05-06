@@ -18,6 +18,7 @@
 #include <rotatingMHD/convergence_test.h>
 
 #include <memory>
+#include <sstream>
 
 namespace RMHD
 {
@@ -476,11 +477,15 @@ void Guermond<dim>::run()
   *this->pcout << pressure_convergence_table;
 
   std::ostringstream tablefilename;
-  tablefilename << ((this->prm.convergence_test_parameters.test_type ==
-  									 ConvergenceTest::ConvergenceTestType::spatial)
-                     ? "Guermond_SpatialTest"
-                     : ("Guermond_TemporalTest_Level" + std::to_string(this->prm.spatial_discretization_parameters.n_initial_global_refinements)))
-                << "_Re"
+  if (this->prm.convergence_test_parameters.test_type == ConvergenceTest::ConvergenceTestType::spatial)
+    tablefilename << "Guermond_SpatialTest";
+  else
+  {
+    tablefilename << "Guermond_TemporalTest_Level";
+    const unsigned int n_initial_global_refinements{this->prm.spatial_discretization_parameters.n_initial_global_refinements};
+    tablefilename << n_initial_global_refinements;
+  }
+  tablefilename << "_Re"
                 << this->prm.Re;
 
   velocity_convergence_table.write_text(tablefilename.str() + "_Velocity");

@@ -1,9 +1,10 @@
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
-#include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/convection_diffusion_solver.h>
+#include <rotatingMHD/convergence_test.h>
 
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
@@ -13,9 +14,9 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <rotatingMHD/convergence_test.h>
 
 #include <memory>
+#include <sstream>
 
 namespace RMHD
 {
@@ -24,7 +25,9 @@ using namespace dealii;
 
 /*!
  * @class ThermalTGV
+ *
  * @todo Add documentation
+ *
  */
 template <int dim>
 class ThermalTGV : public Problem<dim>
@@ -47,7 +50,7 @@ private:
 
   std::shared_ptr<TensorFunction<1,dim>> 				velocity_exact_solution;
 
-  HeatEquation<dim>                             heat_equation;
+  ConvectionDiffusionSolver<dim>                heat_equation;
 
   ConvergenceAnalysisData<dim>                  convergence_table;
   ConvergenceTest::ConvergenceTestData					convergence_data;
@@ -183,9 +186,6 @@ void ThermalTGV<dim>::postprocessing()
 
   std::cout.precision(1);
   *this->pcout  << time_stepping
-                << " Norm = "
-                << std::noshowpos << std::scientific
-                << heat_equation.get_rhs_norm()
                 << " Progress ["
                 << std::setw(5)
                 << std::fixed
@@ -194,7 +194,6 @@ void ThermalTGV<dim>::postprocessing()
 
   log_file << time_stepping.get_step_number()     << ","
            << time_stepping.get_current_time()    << ","
-           << heat_equation.get_rhs_norm()        << ","
            << time_stepping.get_next_step_size()  << std::endl;
 }
 
@@ -363,11 +362,15 @@ void ThermalTGV<dim>::run()
   *this->pcout << convergence_table;
 
   std::ostringstream tablefilename;
-  tablefilename << ((this->prm.convergence_test_parameters.test_type ==
-  									 ConvergenceTest::ConvergenceTestType::spatial)
-                     ? "ThermalTGV_SpatialTest"
-                     : ("ThermalTGV_TemporalTest_Level" + std::to_string(this->prm.spatial_discretization_parameters.n_initial_global_refinements)))
-                << "_Pe"
+  if (this->prm.convergence_test_parameters.test_type == ConvergenceTest::ConvergenceTestType::spatial)
+    tablefilename << "ThermalTGV_SpatialTest";
+  else
+  {
+    tablefilename << "ThermalTGV_TemporalTest_Level";
+    const unsigned int n_initial_global_refinements{this->prm.spatial_discretization_parameters.n_initial_global_refinements};
+    tablefilename << n_initial_global_refinements;
+  }
+  tablefilename << "_Re"
                 << this->prm.Pe;
 
   convergence_table.write_text(tablefilename.str());

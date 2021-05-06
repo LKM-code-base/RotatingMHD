@@ -2,7 +2,6 @@
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
-#include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
@@ -16,6 +15,7 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/convection_diffusion_solver.h>
 
 #include <iostream>
 #include <fstream>
@@ -124,7 +124,7 @@ private:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  HeatEquation<dim>                             heat_equation;
+  ConvectionDiffusionSolver<dim>                heat_equation;
 
   BenchmarkData::ChristensenBenchmark<dim>      christensen_benchmark;
 
@@ -378,8 +378,6 @@ void Christensen<dim>::postprocessing()
                << navier_stokes.get_diffusion_step_rhs_norm()
                << ", "
                << navier_stokes.get_projection_step_rhs_norm()
-               << ", "
-               << heat_equation.get_rhs_norm()
                << ")\n";
   // Outputs the benchmark's data to the terminal
   *this->pcout << christensen_benchmark << std::endl << std::endl;
@@ -390,7 +388,6 @@ void Christensen<dim>::postprocessing()
            << cfl_number << ","
            << navier_stokes.get_diffusion_step_rhs_norm() << ","
            << navier_stokes.get_projection_step_rhs_norm() << ","
-           << heat_equation.get_rhs_norm()
            << std::endl;
 
   christensen_benchmark.print_data_to_file("Christensen_Benchmark");

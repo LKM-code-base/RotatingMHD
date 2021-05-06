@@ -3,6 +3,7 @@
 
 #include <rotatingMHD/basic_parameters.h>
 #include <rotatingMHD/linear_solver_parameters.h>
+#include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/convergence_test.h>
 #include <rotatingMHD/time_discretization.h>
 
@@ -447,95 +448,6 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const NavierStokesParameters &prm);
 
 
-/*!
- * @struct HeatEquationParameters
- *
- * @brief A structure containing all the parameters of the heat
- * equation solver.
- */
-struct HeatEquationParameters
-{
-  /*!
-   * Constructor which sets up the parameters with default values.
-   */
-  HeatEquationParameters();
-
-  /*!
-   * @brief Constructor which sets up the parameters as specified in the
-   * parameter file with the filename @p parameter_filename.
-   */
-  HeatEquationParameters(const std::string &parameter_filename);
-
-  /*!
-   * @brief Static method which declares the associated parameter to the
-   * ParameterHandler object @p prm.
-   */
-  static void declare_parameters(ParameterHandler &prm);
-
-  /*!
-   * @brief Method which parses the parameters from the ParameterHandler
-   * object @p prm.
-   */
-  void parse_parameters(ParameterHandler &prm);
-
-  /*!
-   * @brief Method forwarding parameters to a stream object.
-   *
-   * @details This method does not add a `std::endl` to the stream at the end.
-   *
-   */
-  template<typename Stream>
-  friend Stream& operator<<(Stream &stream, const HeatEquationParameters &prm);
-
-  /*!
-   * @brief Enumerator controlling which weak form of the convective
-   * term is to be implemented
-   * @attention This needs further work as the weak forms are note
-   * one to one in the Navier Stokes and heat equations
-   */
-  ConvectiveTermWeakForm            convective_term_weak_form;
-
-  /*!
-   * @brief Enumerator controlling which time discretization of the
-   * convective term is to be implemented
-   */
-  ConvectiveTermTimeDiscretization  convective_term_time_discretization;
-
-    /*!
-   * @brief The factor multiplying the temperature's laplacian.
-   */
-  double                            C4;
-
-  /*!
-   * @brief The parameters for the linear solver.
-   */
-  LinearSolverParameters            solver_parameters;
-
-  /*!
-   * @brief Specifies the frequency of the update of the solver's
-   * preconditioner.
-   */
-  unsigned int                      preconditioner_update_frequency;
-
-  /*!
-   * @brief Boolean flag to enable verbose output on the terminal.
-   */
-  bool                              verbose;
-};
-
-
-
-/*!
- * @brief Method forwarding parameters to a stream object.
- *
- * @details This method does not add a `std::endl` to the stream at the end.
- *
- */
-template<typename Stream>
-Stream& operator<<(Stream &stream, const HeatEquationParameters &prm);
-
-
-
 
 /*!
  * @struct HydrodynamicProblemParameters
@@ -739,7 +651,7 @@ struct BoussinesqProblemParameters
   /*!
    * @brief Parameters of the heat equation solver.
    */
-  HeatEquationParameters                      heat_equation_parameters;
+  ConvectionDiffusionParameters               heat_equation_parameters;
 
 };
 
@@ -856,7 +768,7 @@ struct ProblemParameters
   /*!
    * @brief Parameters of the heat equation solver.
    */
-  HeatEquationParameters                      heat_equation_parameters;
+  ConvectionDiffusionParameters               heat_equation_parameters;
 
 private:
 

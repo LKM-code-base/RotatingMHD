@@ -770,186 +770,6 @@ Stream& operator<<(Stream &stream, const NavierStokesParameters &prm)
 }
 
 
-HeatEquationParameters::HeatEquationParameters()
-:
-convective_term_weak_form(ConvectiveTermWeakForm::skewsymmetric),
-convective_term_time_discretization(ConvectiveTermTimeDiscretization::semi_implicit),
-C4(1.0),
-solver_parameters("Heat equation"),
-preconditioner_update_frequency(10),
-verbose(false)
-{}
-
-
-
-HeatEquationParameters::HeatEquationParameters
-(const std::string &parameter_filename)
-:
-HeatEquationParameters()
-{
-  ParameterHandler prm;
-  declare_parameters(prm);
-
-  std::ifstream parameter_file(parameter_filename.c_str());
-
-  if (!parameter_file)
-  {
-    parameter_file.close();
-
-    std::ostringstream message;
-    message << "Input parameter file <"
-            << parameter_filename << "> not found. Creating a"
-            << std::endl
-            << "template file of the same name."
-            << std::endl;
-
-    std::ofstream parameter_out(parameter_filename.c_str());
-    prm.print_parameters(parameter_out,
-                         ParameterHandler::OutputStyle::Text);
-
-    AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  prm.parse_input(parameter_file);
-
-  parse_parameters(prm);
-}
-
-
-
-void HeatEquationParameters::declare_parameters(ParameterHandler &prm)
-{
-  prm.enter_subsection("Heat equation solver parameters");
-  {
-    prm.declare_entry("Convective term weak form",
-                      "skew-symmetric",
-                      Patterns::Selection("standard|skew-symmetric|divergence|rotational"));
-
-    prm.declare_entry("Convective term time discretization",
-                      "semi-implicit",
-                      Patterns::Selection("semi-implicit|explicit"));
-
-    prm.declare_entry("Preconditioner update frequency",
-                      "10",
-                      Patterns::Integer(1));
-
-    prm.declare_entry("Verbose",
-                      "false",
-                      Patterns::Bool());
-
-    prm.enter_subsection("Linear solver parameters");
-    {
-      LinearSolverParameters::declare_parameters(prm);
-    }
-    prm.leave_subsection();
-  }
-  prm.leave_subsection();
-}
-
-
-
-void HeatEquationParameters::parse_parameters(ParameterHandler &prm)
-{
-  prm.enter_subsection("Heat equation solver parameters");
-  {
-    const std::string str_convective_term_weak_form(prm.get("Convective term weak form"));
-
-    if (str_convective_term_weak_form == std::string("standard"))
-      convective_term_weak_form = ConvectiveTermWeakForm::standard;
-    else if (str_convective_term_weak_form == std::string("skew-symmetric"))
-      convective_term_weak_form = ConvectiveTermWeakForm::skewsymmetric;
-    else if (str_convective_term_weak_form == std::string("divergence"))
-      convective_term_weak_form = ConvectiveTermWeakForm::divergence;
-    else if (str_convective_term_weak_form == std::string("rotational"))
-      convective_term_weak_form = ConvectiveTermWeakForm::rotational;
-    else
-      AssertThrow(false,
-                  ExcMessage("Unexpected identifier for the weak form "
-                             "of the convective term."));
-
-    const std::string str_convective_term_time_discretization(prm.get("Convective term time discretization"));
-
-    if (str_convective_term_time_discretization == std::string("semi-implicit"))
-      convective_term_time_discretization = ConvectiveTermTimeDiscretization::semi_implicit;
-    else if (str_convective_term_time_discretization == std::string("explicit"))
-      convective_term_time_discretization = ConvectiveTermTimeDiscretization::fully_explicit;
-    else
-      AssertThrow(false,
-                  ExcMessage("Unexpected identifier for the time discretization "
-                             "of the convective term."));
-
-    preconditioner_update_frequency = prm.get_integer("Preconditioner update frequency");
-    AssertThrow(preconditioner_update_frequency > 0,
-           ExcLowerRange(preconditioner_update_frequency, 0));
-
-    verbose = prm.get_bool("Verbose");
-
-    prm.enter_subsection("Linear solver parameters");
-    {
-      solver_parameters.parse_parameters(prm);
-    }
-    prm.leave_subsection();
-  }
-  prm.leave_subsection();
-}
-
-
-
-template<typename Stream>
-Stream& operator<<(Stream &stream, const HeatEquationParameters &prm)
-{
-  internal::add_header(stream);
-  internal::add_line(stream, "Heat equation solver parameters");
-  internal::add_header(stream);
-
-  switch (prm.convective_term_weak_form) {
-    case ConvectiveTermWeakForm::standard:
-      internal::add_line(stream, "Convective term weak form", "standard");
-      break;
-    case ConvectiveTermWeakForm::rotational:
-      internal::add_line(stream, "Convective term weak form", "rotational");
-      break;
-    case ConvectiveTermWeakForm::divergence:
-      internal::add_line(stream, "Convective term weak form", "divergence");
-      break;
-    case ConvectiveTermWeakForm::skewsymmetric:
-      internal::add_line(stream, "Convective term weak form", "skew-symmetric");
-      break;
-    default:
-      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
-                               "weak form of the convective term."));
-      break;
-  }
-
-  switch (prm.convective_term_time_discretization) {
-    case ConvectiveTermTimeDiscretization::semi_implicit:
-      internal::add_line(stream, "Convective temporal form", "semi-implicit");
-      break;
-    case ConvectiveTermTimeDiscretization::fully_explicit:
-      internal::add_line(stream, "Convective temporal form", "explicit");
-      break;
-    default:
-      AssertThrow(false, ExcMessage("Unexpected type identifier for the "
-                               "time discretization of the convective term."));
-      break;
-  }
-
-  internal::add_line(stream,
-                     "Preconditioner update frequency",
-                     prm.preconditioner_update_frequency);
-
-  stream << prm.solver_parameters;
-
-  stream << "\r";
-
-  internal::add_header(stream);
-
-  return (stream);
-}
-
-
-
-
 
 ProblemBaseParameters::ProblemBaseParameters()
 :
@@ -1245,7 +1065,7 @@ BoussinesqProblemParameters()
       navier_stokes_parameters.C1 = 0.0;
       navier_stokes_parameters.C2 = std::sqrt(Pr/Ra);
       navier_stokes_parameters.C3 = 1.0;
-      heat_equation_parameters.C4 = 1.0/std::sqrt(Ra*Pr);
+      heat_equation_parameters.equation_coefficient = 1.0/std::sqrt(Ra*Pr);
       navier_stokes_parameters.C5 = 0.0;
       break;
     default:
@@ -1257,7 +1077,7 @@ BoussinesqProblemParameters()
   AssertIsFinite(navier_stokes_parameters.C1);
   AssertIsFinite(navier_stokes_parameters.C2);
   AssertIsFinite(navier_stokes_parameters.C3);
-  AssertIsFinite(heat_equation_parameters.C4);
+  AssertIsFinite(heat_equation_parameters.equation_coefficient);
   AssertIsFinite(navier_stokes_parameters.C5);
 }
 
@@ -1280,7 +1100,7 @@ void BoussinesqProblemParameters::declare_parameters(ParameterHandler &prm)
 
   NavierStokesParameters::declare_parameters(prm);
 
-  HeatEquationParameters::declare_parameters(prm);
+  ConvectionDiffusionParameters::declare_parameters(prm);
 }
 
 
@@ -1414,7 +1234,7 @@ ProblemParameters()
       navier_stokes_parameters.C1 = 0.0;
       navier_stokes_parameters.C2 = 1.0/Re;
       navier_stokes_parameters.C3 = 0.0;
-      heat_equation_parameters.C4 = 0.0;
+      heat_equation_parameters.equation_coefficient = 0.0;
       navier_stokes_parameters.C5 = 0.0;
       navier_stokes_parameters.C6 = 1.0;
       break;
@@ -1422,7 +1242,7 @@ ProblemParameters()
       navier_stokes_parameters.C1 = 0.0;
       navier_stokes_parameters.C2 = 0.0;
       navier_stokes_parameters.C3 = 0.0;
-      heat_equation_parameters.C4 = 1.0/Pe;
+      heat_equation_parameters.equation_coefficient = 1.0/Pe;
       navier_stokes_parameters.C5 = 0.0;
       navier_stokes_parameters.C6 = 1.0;
       break;
@@ -1430,7 +1250,7 @@ ProblemParameters()
       navier_stokes_parameters.C1 = 0.0;
       navier_stokes_parameters.C2 = std::sqrt(Pr/Ra);
       navier_stokes_parameters.C3 = 1.0;
-      heat_equation_parameters.C4 = 1.0/std::sqrt(Ra*Pr);
+      heat_equation_parameters.equation_coefficient = 1.0/std::sqrt(Ra*Pr);
       navier_stokes_parameters.C5 = 0.0;
       navier_stokes_parameters.C6 = 1.0;
       break;
@@ -1438,7 +1258,7 @@ ProblemParameters()
       navier_stokes_parameters.C1 = 2.0/Ek;
       navier_stokes_parameters.C2 = 1.0;
       navier_stokes_parameters.C3 = Ra/Pr;
-      heat_equation_parameters.C4 = 1.0/Pr;
+      heat_equation_parameters.equation_coefficient = 1.0/Pr;
       navier_stokes_parameters.C5 = 0.0;
       navier_stokes_parameters.C6 = 1.0/Ek;
       break;
@@ -1446,7 +1266,7 @@ ProblemParameters()
       navier_stokes_parameters.C1 = 2.0/Ek;
       navier_stokes_parameters.C2 = 1.0;
       navier_stokes_parameters.C3 = Ra/Pr;
-      heat_equation_parameters.C4 = 1.0/Pr;
+      heat_equation_parameters.equation_coefficient = 1.0/Pr;
       navier_stokes_parameters.C5 = 1.0/Pm;
       navier_stokes_parameters.C6 = 1.0;
       break;
@@ -1460,7 +1280,7 @@ ProblemParameters()
   AssertIsFinite(navier_stokes_parameters.C1);
   AssertIsFinite(navier_stokes_parameters.C2);
   AssertIsFinite(navier_stokes_parameters.C3);
-  AssertIsFinite(heat_equation_parameters.C4);
+  AssertIsFinite(heat_equation_parameters.equation_coefficient);
   AssertIsFinite(navier_stokes_parameters.C5);
 
 }
@@ -1514,7 +1334,7 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
 
   NavierStokesParameters::declare_parameters(prm);
 
-  HeatEquationParameters::declare_parameters(prm);
+  ConvectionDiffusionParameters::declare_parameters(prm);
 }
 
 
@@ -1690,7 +1510,7 @@ Stream& operator<<(Stream &stream, const ProblemParameters &prm)
   stream << " | ";
   stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C3;
   stream << " | ";
-  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.heat_equation_parameters.C4;
+  stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.heat_equation_parameters.equation_coefficient;
   stream << " | ";
   stream << std::setw(8) << std::setprecision(1) << std::scientific << std::right << prm.navier_stokes_parameters.C5;
   stream << " | ";
@@ -1728,11 +1548,6 @@ template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::NavierStokesParameters &);
 template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::NavierStokesParameters &);
-
-template std::ostream & RMHD::RunTimeParameters::operator<<
-(std::ostream &, const RMHD::RunTimeParameters::HeatEquationParameters &);
-template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
-(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::HeatEquationParameters &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::ProblemBaseParameters &);
