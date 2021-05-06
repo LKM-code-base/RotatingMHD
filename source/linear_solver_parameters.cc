@@ -12,10 +12,6 @@
 namespace RMHD
 {
 
-/*!
- * @brief Namespace containing all the structs and enum classes related
- * to the run time parameters.
- */
 namespace RunTimeParameters
 {
 

@@ -14,13 +14,23 @@ namespace RunTimeParameters
 
 namespace internal
 {
-
+  /*!
+   * @brief Prints a table row consisting of a single column with a fixed width
+   * and `|` delimiters.
+   */
   template<typename Stream, typename A>
   void add_line(Stream  &stream, const A line);
 
+  /*!
+   * @brief Prints a table row consisting of a two columns with a fixed width
+   * and `|` delimiters.
+   */
   template<typename Stream, typename A, typename B>
   void add_line(Stream  &stream, const A first_column, const B second_column);
 
+  /*!
+   * @brief Prints a table header with a fixed width and `|` delimiters.
+   */
   template<typename Stream>
   void add_header(Stream  &stream);
 
