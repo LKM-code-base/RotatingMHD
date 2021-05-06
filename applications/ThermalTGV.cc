@@ -76,7 +76,7 @@ top_bndry_id(3)
   AssertDimension(dim, 2);
 }
 
-template
+template <>
 void ThermalTGV<2>::make_grid()
 {
   constexpr int dim{2};
