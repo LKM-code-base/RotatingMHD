@@ -1,4 +1,4 @@
-#include <rotatingMHD/heat_equation.h>
+#include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/fe/mapping_q.h>

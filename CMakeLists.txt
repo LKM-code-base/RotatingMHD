@@ -60,16 +60,16 @@ ENDIF()
 
 # Set the source files to be compiled
 SET(TARGET_SRC
-    source/assembly_data.cc
     source/basic_parameters.cc
+    source/linear_solver_parameters.cc
+    source/assembly_data.cc
     source/benchmark_data.cc
     source/boundary_conditions.cc
     source/convergence_test.cc
+    source/convection_diffusion.cc
     source/discrete_time.cc
     source/entities_structs.cc
     source/equation_data.cc
-    source/heat_equation.cc
-    source/linear_solver_parameters.cc
     source/problem_class.cc
     source/run_time_parameters.cc
     source/time_discretization.cc
@@ -87,12 +87,13 @@ SET(TARGET_SRC
     source/navier_stokes_projection/setup.cc
     source/navier_stokes_projection/solve.cc
     source/navier_stokes_projection/timestep_update.cc
-    source/heat_equation/assemble_advection_matrix.cc
-    source/heat_equation/assemble_constant_matrices.cc
-    source/heat_equation/assemble_rhs.cc
-    source/heat_equation/assembly_data.cc
-    source/heat_equation/setup.cc
-    source/heat_equation/solve.cc
+    source/convection_diffusion.cc
+    source/convection_diffusion/assemble_advection_matrix.cc
+    source/convection_diffusion/assemble_constant_matrices.cc
+    source/convection_diffusion/assemble_rhs.cc
+    source/convection_diffusion/assembly_data.cc
+    source/convection_diffusion/setup.cc
+    source/convection_diffusion/solve.cc
 )
 
 # Set the include directory and the name of the project
