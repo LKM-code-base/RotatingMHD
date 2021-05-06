@@ -33,21 +33,21 @@ void ConvectionDiffusionSolver<dim>::assemble_rhs()
 
   // Set polynomial degree of the source function.
   // Hardcoded to match that of the velocity.
-  const int p_degree_source_function = temperature->fe_degree;
+  const int p_degree_source_function = phi->fe_degree;
 
   // Set polynomial degree of the Neumann boundary condition function.
   // Hardcoded to match that of the velocity.
-  const int p_degree_neumann_function = temperature->fe_degree;
+  const int p_degree_neumann_function = phi->fe_degree;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = std::max(temperature->fe_degree + p_degree_source_function,
-                                2 * temperature->fe_degree + velocity_fe_degree - 1);
+  const int p_degree = std::max(phi->fe_degree + p_degree_source_function,
+                                2 * phi->fe_degree + velocity_fe_degree - 1);
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = temperature->fe_degree + p_degree_neumann_function;
+  const int face_p_degree = phi->fe_degree + p_degree_neumann_function;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
@@ -76,16 +76,16 @@ void ConvectionDiffusionSolver<dim>::assemble_rhs()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->begin_active()),
+              (phi->dof_handler)->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->end()),
+              (phi->dof_handler)->end()),
    worker,
    copier,
    AssemblyData::HeatEquation::RightHandSide::Scratch<dim>(
     *mapping,
     quadrature_formula,
     face_quadrature_formula,
-    temperature->fe,
+    phi->fe,
     update_JxW_values |
     update_values|
     update_gradients|
@@ -95,7 +95,7 @@ void ConvectionDiffusionSolver<dim>::assemble_rhs()
     update_quadrature_points,
     *velocity_fe,
     update_values),
-   AssemblyData::HeatEquation::RightHandSide::Copy(temperature->fe.dofs_per_cell));
+   AssemblyData::HeatEquation::RightHandSide::Copy(phi->fe.dofs_per_cell));
 
   // Compress global data
   rhs.compress(VectorOperation::add);
@@ -139,19 +139,19 @@ void ConvectionDiffusionSolver<dim>::assemble_local_rhs(
   scratch.temperature_fe_values.reinit(cell);
 
   scratch.temperature_fe_values.get_function_values(
-    temperature->old_solution,
+    phi->old_solution,
     scratch.old_temperature_values);
 
   scratch.temperature_fe_values.get_function_values(
-    temperature->old_old_solution,
+    phi->old_old_solution,
     scratch.old_old_temperature_values);
 
   scratch.temperature_fe_values.get_function_gradients(
-    temperature->old_solution,
+    phi->old_solution,
     scratch.old_temperature_gradients);
 
   scratch.temperature_fe_values.get_function_gradients(
-    temperature->old_old_solution,
+    phi->old_old_solution,
     scratch.old_old_temperature_gradients);
 
   // Heat source
@@ -190,7 +190,7 @@ void ConvectionDiffusionSolver<dim>::assemble_local_rhs(
   if (velocity != nullptr)
   {
     typename DoFHandler<dim>::active_cell_iterator
-      velocity_cell(&temperature->get_triangulation(),
+      velocity_cell(&phi->get_triangulation(),
                     cell->level(),
                     cell->index(),
                     // Pointer to the velocity's DoFHandler
@@ -286,7 +286,7 @@ void ConvectionDiffusionSolver<dim>::assemble_local_rhs(
 
       // Loop over the i-th column's rows of the local matrix
       // for the case of inhomogeneous Dirichlet boundary conditions
-      if (temperature->constraints.is_inhomogeneously_constrained(
+      if (phi->constraints.is_inhomogeneously_constrained(
             data.local_dof_indices[i]))
         for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
         {
@@ -324,27 +324,27 @@ void ConvectionDiffusionSolver<dim>::assemble_local_rhs(
   if (cell->at_boundary())
     for (const auto &face : cell->face_iterators())
       if (face->at_boundary() &&
-          temperature->boundary_conditions.neumann_bcs.find(face->boundary_id())
-          != temperature->boundary_conditions.neumann_bcs.end())
+          phi->boundary_conditions.neumann_bcs.find(face->boundary_id())
+          != phi->boundary_conditions.neumann_bcs.end())
       {
         // Neumann boundary condition
         scratch.temperature_fe_face_values.reinit(cell, face);
 
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
+        phi->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
           time_stepping.get_current_time() - time_stepping.get_previous_step_size());
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
+        phi->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
           scratch.temperature_fe_face_values.get_quadrature_points(),
           scratch.old_old_neumann_bc_values);
 
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
+        phi->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
           time_stepping.get_current_time() + time_stepping.get_next_step_size());
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
+        phi->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
           scratch.temperature_fe_face_values.get_quadrature_points(),
           scratch.neumann_bc_values);
 
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
+        phi->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
           time_stepping.get_current_time());
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
+        phi->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
           scratch.temperature_fe_face_values.get_quadrature_points(),
           scratch.old_neumann_bc_values);
 
@@ -377,7 +377,7 @@ template <int dim>
 void ConvectionDiffusionSolver<dim>::copy_local_to_global_rhs
 (const AssemblyData::HeatEquation::RightHandSide::Copy  &data)
 {
-  temperature->constraints.distribute_local_to_global(
+  phi->constraints.distribute_local_to_global(
     data.local_rhs,
     data.local_dof_indices,
     rhs,

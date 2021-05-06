@@ -210,8 +210,8 @@ public:
    * and the infinity norm and return as mapping.
    */
   std::map<typename VectorTools::NormType, double> compute_error
-	(const Function<dim>							&exact_solution,
-	 const std::shared_ptr<Mapping<dim>> external_mapping) const;
+	(const Function<dim>  &exact_solution,
+	 const Mapping<dim>   &external_mapping) const;
 
 protected:
   /*!

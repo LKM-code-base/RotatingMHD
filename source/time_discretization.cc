@@ -515,6 +515,12 @@ void VSIMEXMethod::clear()
   this->restart();
 }
 
+
+void VSIMEXMethod::initialize(const double previous_step_size)
+{
+  AssertThrow(false, ExcNotImplemented());
+}
+
 void VSIMEXMethod::reinit()
 {
   // Resize all coefficient vectors according to the scheme's order

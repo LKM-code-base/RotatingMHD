@@ -157,15 +157,15 @@ class ConvectionDiffusionSolver
 public:
   /*!
    * @brief The constructor of the HeatEquation class for the case
-   * where there is no advection.
+   * when there is no advection.
    *
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   ConvectionDiffusionSolver
   (const ConvectionDiffusionParameters              &parameters,
-   TimeDiscretization::VSIMEXMethod                 &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   const TimeDiscretization::VSIMEXMethod           &time_stepping,
+   std::shared_ptr<Entities::ScalarEntity<dim>>     &phi,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>        external_pcout =
@@ -175,15 +175,15 @@ public:
 
   /*!
    * @brief The constructor of the HeatEquation class for the case
-   * where the velocity field is given by a VectorEntity instance.
+   * when the velocity field is given by a VectorEntity instance.
    *
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
   ConvectionDiffusionSolver
   (const ConvectionDiffusionParameters              &parameters,
-   TimeDiscretization::VSIMEXMethod                 &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   const TimeDiscretization::VSIMEXMethod           &time_stepping,
+   std::shared_ptr<Entities::ScalarEntity<dim>>     &phi,
    std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
@@ -201,8 +201,8 @@ public:
    */
   ConvectionDiffusionSolver
   (const ConvectionDiffusionParameters              &parameters,
-   TimeDiscretization::VSIMEXMethod                 &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   const TimeDiscretization::VSIMEXMethod           &time_stepping,
+   std::shared_ptr<Entities::ScalarEntity<dim>>     &phi,
    std::shared_ptr<TensorFunction<1, dim>>          &velocity,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
@@ -240,6 +240,12 @@ public:
    */
   void solve();
 
+  /*!
+   * @details Release all memory and return all objects to a state just like
+   * after having called the default constructor.
+   */
+  void clear();
+
 private:
   /*!
    * @brief A reference to the parameters which control the solution process.
@@ -272,9 +278,9 @@ private:
   std::shared_ptr<Mapping<dim>>                 mapping;
 
   /*!
-   * @brief A shared pointer to the entity of the temperature field.
+   * @brief A shared pointer to the entity of the scalar field.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::ScalarEntity<dim>>        phi;
 
   /*!
    * @brief A shared pointer to the entity of velocity field.
@@ -343,14 +349,14 @@ private:
   LinearAlgebra::MPI::Vector                    rhs;
 
   /*!
-   * @brief The preconditioner.
+   * @brief The preconditioner of the linear system.
    */
   std::shared_ptr<LinearAlgebra::PreconditionBase> preconditioner;
 
   /*!
    * @brief A flag indicating if the matrices were updated.
    */
-  bool                                          flag_matrices_were_updated;
+  bool  flag_matrices_were_updated;
 
   /*!
    * @brief Setup of the sparsity spatterns of the matrices.

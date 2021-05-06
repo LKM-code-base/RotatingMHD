@@ -7,7 +7,7 @@ namespace RMHD
 template <int dim>
 void ConvectionDiffusionSolver<dim>::solve()
 {
-  if (temperature->solution.size() != mass_matrix.m())
+  if (phi->solution.size() != mass_matrix.m())
   {
     setup();
     flag_matrices_were_updated = true;
@@ -68,7 +68,7 @@ void ConvectionDiffusionSolver<dim>::solve_linear_system(const bool reinit_preco
   // of the pertinent vectors to be able to perform the solve()
   // operation.
   LinearAlgebra::MPI::Vector distributed_temperature(rhs);
-  distributed_temperature = temperature->solution;
+  distributed_temperature = phi->solution;
 
   /* The following pointer holds the address to the correct matrix
   depending on if the semi-implicit scheme is chosen or not */
@@ -89,7 +89,7 @@ void ConvectionDiffusionSolver<dim>::solve_linear_system(const bool reinit_preco
     build_preconditioner(preconditioner,
                          *system_matrix_ptr,
                          solver_parameters.preconditioner_parameters_ptr,
-                         (temperature->fe_degree > 1? true: false));
+                         (phi->fe_degree > 1? true: false));
   }
 
   AssertThrow(preconditioner != nullptr,
@@ -137,9 +137,9 @@ void ConvectionDiffusionSolver<dim>::solve_linear_system(const bool reinit_preco
     std::abort();
   }
 
-  temperature->constraints.distribute(distributed_temperature);
+  phi->constraints.distribute(distributed_temperature);
 
-  temperature->solution = distributed_temperature;
+  phi->solution = distributed_temperature;
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl

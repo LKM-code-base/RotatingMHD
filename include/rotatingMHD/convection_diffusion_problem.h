@@ -3,9 +3,9 @@
 
 #include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/problem_class.h>
-#include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <string>
 
 namespace RMHD
 {
@@ -51,9 +51,9 @@ struct ConvectionDiffusionProblemParameters: public RunTimeParameters::ProblemBa
   unsigned int  fe_degree;
 
   /*!
-   * @brief Parameters of the Navier-Stokes solver.
+   * @brief Parameters of the convection diffusion solver.
    */
-  RunTimeParameters::HeatEquationParameters navier_stokes_parameters;
+  ConvectionDiffusionParameters parameters;
 };
 
 /*!
@@ -67,7 +67,9 @@ class ConvectionDiffusionProblem : public Problem<dim>
 {
 
 public:
-  ConvectionDiffusionProblem(ConvectionDiffusionProblemParameters &parameters);
+  ConvectionDiffusionProblem
+  (ConvectionDiffusionProblemParameters &parameters,
+   const std::string  &field_name = "temperature");
 
   /*
    * @brief This methods starts a simulation.
@@ -85,12 +87,24 @@ public:
 
 protected:
 
+  /*!
+   * @brief Reference to the parameters of the problem.
+   */
   ConvectionDiffusionProblemParameters         &parameters;
 
+  /*!
+   * @brief The solution variable.
+   */
   std::shared_ptr<Entities::ScalarEntity<dim>>  scalar_field;
 
+  /*!
+   * @brief The class controlling the time stepping.
+   */
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
+  /*!
+   * @brief The solver class of the convection-diffusion equation.
+   */
   ConvectionDiffusionSolver<dim>                solver;
 
   /*!
@@ -160,6 +174,14 @@ protected:
    */
   virtual void setup_initial_conditions() = 0;
 
+  /*!
+   * @brief Purely virtual method to setup the initial conditions of the @ref
+   * velocity and, possibly, the @ref pressure.
+   *
+   * @details This method is only called at the beginning of a simulation.
+   */
+  virtual void setup_velocity_field() = 0;
+
 private:
   /*!
    * @brief This method loads a checkpoint of a previous simulation from the
@@ -182,6 +204,9 @@ private:
    */
   void setup_dofs();
 
+  /*!
+   * @brief Perform @p n_steps time integration steps.
+   */
   void time_loop(const unsigned int n_steps);
 
   /*!

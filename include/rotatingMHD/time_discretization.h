@@ -181,6 +181,11 @@ public:
   void clear();
 
   /*!
+   * @brief Initialize all coefficients of the schemes based on the value of @p previous_step_size.
+   */
+  void initialize(const double previous_step_size);
+
+  /*!
   * @brief A method returning the order of the VSIMEX scheme.
   */
   unsigned int get_order() const;

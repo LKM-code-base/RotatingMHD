@@ -125,21 +125,21 @@ template<int dim>
 std::map<typename VectorTools::NormType, double>
 EntityBase<dim>::compute_error
 (const Function<dim>	&exact_solution,
- const std::shared_ptr<Mapping<dim>> external_mapping) const
+ const Mapping<dim>   &external_mapping) const
 {
   const Triangulation<dim> &tria{this->triangulation};
 
   Vector<double>  cellwise_error(tria.n_active_cells());
 
   auto compute_error
-  = [external_mapping, &tria, &cellwise_error, this]
+  = [&external_mapping, &tria, &cellwise_error, this]
      (const Quadrature<dim>          &quadrature,
       const Function<dim>            &exact_solution,
       const VectorTools::NormType     norm_type)
   ->
   double
   {
-    VectorTools::integrate_difference(*external_mapping,
+    VectorTools::integrate_difference(external_mapping,
                                       *this->dof_handler,
                                       this->solution,
                                       exact_solution,

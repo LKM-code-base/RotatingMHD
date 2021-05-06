@@ -19,7 +19,7 @@ void ConvectionDiffusionSolver<dim>::assemble_constant_matrices()
   stiffness_matrix  = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * temperature->fe_degree;
+  const int p_degree = 2 * phi->fe_degree;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -48,19 +48,19 @@ void ConvectionDiffusionSolver<dim>::assemble_constant_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->begin_active()),
+              (phi->dof_handler)->begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->end()),
+              (phi->dof_handler)->end()),
    worker,
    copier,
    AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>(
     *mapping,
     quadrature_formula,
-    temperature->fe,
+    phi->fe,
     update_values|
     update_gradients|
     update_JxW_values),
-   AssemblyData::HeatEquation::ConstantMatrices::Copy(temperature->fe.dofs_per_cell));
+   AssemblyData::HeatEquation::ConstantMatrices::Copy(phi->fe.dofs_per_cell));
 
   // Compress global data
   mass_matrix.compress(VectorOperation::add);
@@ -128,11 +128,11 @@ template <int dim>
 void ConvectionDiffusionSolver<dim>::copy_local_to_global_constant_matrices
 (const AssemblyData::HeatEquation::ConstantMatrices::Copy   &data)
 {
-  temperature->constraints.distribute_local_to_global(
+  phi->constraints.distribute_local_to_global(
                                       data.local_mass_matrix,
                                       data.local_dof_indices,
                                       mass_matrix);
-  temperature->constraints.distribute_local_to_global(
+  phi->constraints.distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       stiffness_matrix);

@@ -1,5 +1,4 @@
 #include <rotatingMHD/convection_diffusion_solver.h>
-#include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/fe/mapping_q.h>
 
@@ -194,11 +193,10 @@ Stream& operator<<(Stream &stream, const ConvectionDiffusionParameters &prm)
 
 
 
-
 template <int dim>
 ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 (const ConvectionDiffusionParameters              &parameters,
- TimeDiscretization::VSIMEXMethod                 &time_stepping,
+ const TimeDiscretization::VSIMEXMethod           &time_stepping,
  std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
  const std::shared_ptr<Mapping<dim>>              external_mapping,
  const std::shared_ptr<ConditionalOStream>        external_pcout,
@@ -207,10 +205,10 @@ ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 parameters(parameters),
 mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
-temperature(temperature),
+phi(temperature),
 flag_matrices_were_updated(true)
 {
-  Assert(temperature.get() != nullptr,
+  Assert(phi.get() != nullptr,
          ExcMessage("The temperature's shared pointer has not be"
                     " initialized."));
 
@@ -247,10 +245,12 @@ flag_matrices_were_updated(true)
   this->velocity        = nullptr;
 }
 
+
+
 template <int dim>
 ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 (const ConvectionDiffusionParameters              &parameters,
- TimeDiscretization::VSIMEXMethod                 &time_stepping,
+ const TimeDiscretization::VSIMEXMethod           &time_stepping,
  std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
  std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
  const std::shared_ptr<Mapping<dim>>              external_mapping,
@@ -260,11 +260,11 @@ ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 parameters(parameters),
 mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
-temperature(temperature),
+phi(temperature),
 velocity(velocity),
 flag_matrices_were_updated(true)
 {
-  Assert(temperature.get() != nullptr,
+  Assert(phi.get() != nullptr,
          ExcMessage("The temperature's shared pointer has not be"
                     " initialized."));
   Assert(velocity.get() != nullptr,
@@ -303,10 +303,12 @@ flag_matrices_were_updated(true)
   velocity_function_ptr = nullptr;
 }
 
+
+
 template <int dim>
 ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 (const ConvectionDiffusionParameters              &parameters,
- TimeDiscretization::VSIMEXMethod                 &time_stepping,
+ const TimeDiscretization::VSIMEXMethod           &time_stepping,
  std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
  std::shared_ptr<TensorFunction<1, dim>>          &velocity,
  const std::shared_ptr<Mapping<dim>>              external_mapping,
@@ -316,11 +318,11 @@ ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 parameters(parameters),
 mpi_communicator(temperature->mpi_communicator),
 time_stepping(time_stepping),
-temperature(temperature),
+phi(temperature),
 velocity_function_ptr(velocity),
 flag_matrices_were_updated(true)
 {
-  Assert(temperature.get() != nullptr,
+  Assert(phi.get() != nullptr,
          ExcMessage("The temperature's shared pointer has not be"
                     " initialized."));
   Assert(velocity.get() != nullptr,
@@ -357,6 +359,31 @@ flag_matrices_were_updated(true)
   // Explicitly set the shared_ptr's to zero.
   source_term_ptr = nullptr;
   this->velocity  = nullptr;
+}
+
+template <int dim>
+void ConvectionDiffusionSolver<dim>::clear()
+{
+  velocity_function_ptr = nullptr;
+  source_term_ptr = nullptr;
+
+  // preconditioners
+  preconditioner.reset();
+
+  // velocity matrices
+  system_matrix.clear();
+  mass_plus_stiffness_matrix.clear();
+  stiffness_matrix.clear();
+  advection_matrix.clear();
+  mass_matrix.clear();
+
+  // velocity vectors
+  rhs.clear();
+
+  // internal entity
+  phi->clear();
+  flag_matrices_were_updated = true;
+
 }
 
 }  // namespace RMHD
