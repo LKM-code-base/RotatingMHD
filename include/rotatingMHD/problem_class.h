@@ -111,29 +111,29 @@ public:
   /*!
    * @brief Default constructor which initializes the member variables.
    */
-  Problem(const RunTimeParameters::ProblemParameters &prm);
+  Problem(const RunTimeParameters::ProblemBaseParameters &prm);
 
 protected:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const MPI_Comm                              mpi_communicator;
+  const MPI_Comm  mpi_communicator;
 
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const RunTimeParameters::ProblemParameters  &prm;
+  const RunTimeParameters::ProblemBaseParameters  &prm;
 
   /*!
    * @brief Triangulation object of the problem.
    */
-  parallel::distributed::Triangulation<dim>   triangulation;
+  parallel::distributed::Triangulation<dim> triangulation;
 
   /*!
    * @brief The shared pointer to the class describing the mapping from
    * the reference cell to the real cell.
    */
-  std::shared_ptr<Mapping<dim>>               mapping;
+  std::shared_ptr<Mapping<dim>> mapping;
 
   /*!
    * @brief Stream object which only prints output for one MPI process.
@@ -155,7 +155,25 @@ protected:
    * @details Release all memory and return all objects to a state just like
    * after having called the default constructor.
    */
-  void clear();
+  virtual void clear();
+
+  /*!
+   * @brief Projects the @p function on the finite element space contained
+   * in the @p entity and saves the result in the @p vector.
+   */
+  void project_function
+  (const Function<dim>                             &function,
+   const std::shared_ptr<Entities::EntityBase<dim>> entity,
+   LinearAlgebra::MPI::Vector                      &vector);
+
+  /*!
+   * @brief Interpolates the @p function on the finite element space contained
+   * in the @p entity and saves the result in the @p vector.
+   */
+  void interpolate_function
+  (const Function<dim>                             &function,
+   const std::shared_ptr<Entities::EntityBase<dim>> entity,
+   LinearAlgebra::MPI::Vector                      &vector);
 
   /*!
    * @brief Loads the initial conditions to the pertinent solution

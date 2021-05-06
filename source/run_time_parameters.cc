@@ -188,6 +188,7 @@ OutputControlParameters::OutputControlParameters()
 :
 graphical_output_frequency(100),
 terminal_output_frequency(100),
+postprocessing_frequency(100),
 graphical_output_directory("./")
 {}
 
@@ -204,6 +205,10 @@ void OutputControlParameters::declare_parameters(ParameterHandler &prm)
                       "100",
                       Patterns::Integer(1));
 
+    prm.declare_entry("Postprocessing frequency",
+                      "100",
+                      Patterns::Integer(0));
+
     prm.declare_entry("Graphical output directory",
                       "./",
                       Patterns::DirectoryName());
@@ -218,13 +223,19 @@ void OutputControlParameters::parse_parameters(ParameterHandler &prm)
   prm.enter_subsection("Output control parameters");
   {
     graphical_output_frequency = prm.get_integer("Graphical output frequency");
-    Assert(graphical_output_frequency > 0,
-           ExcMessage("The graphical output frequency must larger than zero."));
+    //    Removing this assertion because a value of zero means that no
+    //    graphical output is written.
+    // Assert(graphical_output_frequency > 0,
+    //        ExcMessage("The graphical output frequency must larger than zero."));
 
 
     terminal_output_frequency = prm.get_integer("Terminal output frequency");
-    Assert(terminal_output_frequency > 0,
-           ExcMessage("The terminal output frequency must larger than zero."));
+    //    Removing this assertion because a value of zero means that no
+    //    terminal output is written.
+    // Assert(terminal_output_frequency > 0,
+    //        ExcMessage("The terminal output frequency must larger than zero."));
+
+    postprocessing_frequency = prm.get_integer("Postprocessing frequency");
 
     graphical_output_directory = prm.get("Graphical output directory");
   }
@@ -246,6 +257,9 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
   internal::add_line(stream,
                      "Terminal output frequency",
                      prm.terminal_output_frequency);
+  internal::add_line(stream,
+                     "Postprocessing frequency",
+                     prm.postprocessing_frequency);
   internal::add_line(stream,
                      "Graphical output directory",
                      prm.graphical_output_directory);
@@ -1172,7 +1186,7 @@ Stream& operator<<(Stream &stream, const BoussinesqProblemParameters &prm)
 
 ProblemParameters::ProblemParameters()
 :
-OutputControlParameters(),
+ProblemBaseParameters(),
 DimensionlessNumbers(),
 problem_type(ProblemType::boussinesq),
 dim(2),

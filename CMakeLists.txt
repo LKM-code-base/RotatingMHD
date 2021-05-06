@@ -66,7 +66,6 @@ SET(TARGET_SRC
     source/benchmark_data.cc
     source/boundary_conditions.cc
     source/convergence_test.cc
-    source/convection_diffusion.cc
     source/discrete_time.cc
     source/entities_structs.cc
     source/equation_data.cc
@@ -87,13 +86,14 @@ SET(TARGET_SRC
     source/navier_stokes_projection/setup.cc
     source/navier_stokes_projection/solve.cc
     source/navier_stokes_projection/timestep_update.cc
-    source/convection_diffusion.cc
-    source/convection_diffusion/assemble_advection_matrix.cc
-    source/convection_diffusion/assemble_constant_matrices.cc
-    source/convection_diffusion/assemble_rhs.cc
-    source/convection_diffusion/assembly_data.cc
-    source/convection_diffusion/setup.cc
-    source/convection_diffusion/solve.cc
+    source/convection_diffusion_problem.cc
+    source/convection_diffusion_solver.cc
+    source/convection_diffusion_solver/assemble_advection_matrix.cc
+    source/convection_diffusion_solver/assemble_constant_matrices.cc
+    source/convection_diffusion_solver/assemble_rhs.cc
+    source/convection_diffusion_solver/assembly_data.cc
+    source/convection_diffusion_solver/setup.cc
+    source/convection_diffusion_solver/solve.cc
 )
 
 # Set the include directory and the name of the project
