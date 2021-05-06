@@ -1,9 +1,5 @@
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
-#include <rotatingMHD/problem_class.h>
-#include <rotatingMHD/run_time_parameters.h>
-#include <rotatingMHD/time_discretization.h>
-#include <rotatingMHD/convection_diffusion_solver.h>
+#include <rotatingMHD/convection_diffusion_problem.h>
 #include <rotatingMHD/convergence_test.h>
 
 #include <deal.II/base/convergence_table.h>
@@ -30,88 +26,61 @@ using namespace dealii;
  *
  */
 template <int dim>
-class ThermalTGV : public Problem<dim>
+class ThermalTGV : public ConvectionDiffusionProblem<dim>
 {
 public:
-  ThermalTGV(const RunTimeParameters::ProblemParameters &parameters);
-
-  void run();
+  ThermalTGV(ConvectionDiffusionProblemParameters &parameters,
+             const ConvergenceTest::ConvergenceTestParameters &convergence_parameters);
 
 private:
-  std::ofstream                                 log_file;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  virtual void make_grid() override;
 
-  LinearAlgebra::MPI::Vector                    error;
+  virtual void postprocess_solution() override;
 
-  TimeDiscretization::VSIMEXMethod              time_stepping;
+  virtual void save_postprocessing_results() override;
 
-  std::shared_ptr<Function<dim>>								temperature_exact_solution;
+  virtual void setup_boundary_conditions() override;
 
-  std::shared_ptr<TensorFunction<1,dim>> 				velocity_exact_solution;
+  virtual void setup_initial_conditions() override;
 
-  ConvectionDiffusionSolver<dim>                heat_equation;
+  const ConvergenceTest::ConvergenceTestType  test_type;
 
-  ConvergenceAnalysisData<dim>                  convergence_table;
-  ConvergenceTest::ConvergenceTestData					convergence_data;
+  ConvergenceTest::ConvergenceTestData				convergence_data;
 
-  double                                        cfl_number;
+  std::map<typename VectorTools::NormType, double>  error_map;
 
-  void make_grid(const unsigned int &n_global_refinements);
+  const types::boundary_id  left_bndry_id;
 
-  void setup_dofs();
+  const types::boundary_id  right_bndry_id;
 
-  void setup_constraints();
+  const types::boundary_id  bottom_bndry_id;
 
-  void initialize();
+  const types::boundary_id  top_bndry_id;
 
-  void postprocessing();
-
-  void output();
-
-  void update_entities();
-
-  void solve(const unsigned int &level);
 };
 
 template <int dim>
-ThermalTGV<dim>::ThermalTGV(
-  const RunTimeParameters::ProblemParameters &parameters)
+ThermalTGV<dim>::ThermalTGV
+(ConvectionDiffusionProblemParameters &parameters,
+ const ConvergenceTest::ConvergenceTestParameters &convergence_parameters)
 :
-Problem<dim>(parameters),
-log_file("ThermalTGV_Log.csv"),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_temperature,
-                                                          this->triangulation,
-                                                          "Temperature")),
-time_stepping(parameters.time_discretization_parameters),
-temperature_exact_solution(
-  std::make_shared<EquationData::ThermalTGV::TemperatureExactSolution<dim>>(
-    parameters.Pe,
-    parameters.time_discretization_parameters.start_time)),
-velocity_exact_solution(
-  std::make_shared<EquationData::ThermalTGV::VelocityExactSolution<dim>>(
-    parameters.time_discretization_parameters.start_time)),
-heat_equation(parameters.heat_equation_parameters,
-              time_stepping,
-              temperature,
-              velocity_exact_solution,
-              this->mapping,
-              this->pcout,
-              this->computing_timer),
-convergence_table(temperature, *temperature_exact_solution)
+ConvectionDiffusionProblem<dim>(parameters),
+test_type(convergence_parameters.test_type),
+convergence_data(test_type),
+left_bndry_id(0),
+right_bndry_id(1),
+bottom_bndry_id(2),
+top_bndry_id(3)
 {
-  *this->pcout << parameters << std::endl << std::endl;
-
-  log_file << "Step" << ","
-           << "Time" << ","
-           << "Norm" << ","
-           << "dt"   << std::endl;
+  AssertDimension(dim, 2);
 }
 
-template <int dim>
-void ThermalTGV<dim>::
-make_grid(const unsigned int &n_global_refinements)
+template
+void ThermalTGV<2>::make_grid()
 {
+  constexpr int dim{2};
+
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
   GridGenerator::hyper_cube(this->triangulation,
@@ -124,77 +93,67 @@ make_grid(const unsigned int &n_global_refinements)
     periodicity_vector;
 
   GridTools::collect_periodic_faces(this->triangulation,
-                                    0,
-                                    1,
+                                    left_bndry_id,
+                                    right_bndry_id,
                                     0,
                                     periodicity_vector);
   GridTools::collect_periodic_faces(this->triangulation,
-                                    2,
-                                    3,
+                                    bottom_bndry_id,
+                                    top_bndry_id,
                                     1,
                                     periodicity_vector);
 
   this->triangulation.add_periodicity(periodicity_vector);
 
-  this->triangulation.refine_global(n_global_refinements);
+  this->triangulation.refine_global(this->parameters.spatial_discretization_parameters.n_initial_global_refinements);
 }
 
-template <int dim>
-void ThermalTGV<dim>::setup_dofs()
-{
-  TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
-  temperature->setup_dofs();
-  *this->pcout  << "  Number of active cells                   = "
-                << this->triangulation.n_global_active_cells()
-                << std::endl
-                << "  Number of temperature degrees of freedom = "
-                << (temperature->dof_handler)->n_dofs()
-                << std::endl;
-}
 
 template <int dim>
-void ThermalTGV<dim>::setup_constraints()
+void ThermalTGV<dim>::setup_boundary_conditions()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  temperature->clear_boundary_conditions();
+  this->scalar_field->clear_boundary_conditions();
 
-  temperature_exact_solution->set_time(time_stepping.get_start_time());
-
-  temperature->boundary_conditions.set_periodic_bcs(0, 1, 0);
-  temperature->boundary_conditions.set_periodic_bcs(2, 3, 1);
+  this->scalar_field->boundary_conditions.set_periodic_bcs(left_bndry_id, right_bndry_id, 0);
+  this->scalar_field->boundary_conditions.set_periodic_bcs(bottom_bndry_id, top_bndry_id, 1);
 
   temperature->close_boundary_conditions();
   temperature->apply_boundary_conditions();
 }
 
 template <int dim>
-void ThermalTGV<dim>::initialize()
+void ThermalTGV<dim>::setup_initial_conditions()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
-  this->set_initial_conditions(temperature,
-                               *temperature_exact_solution,
-                               time_stepping);
+  const double current_time{this->time_stepping.get_current_time()};
+  Assert(current_time == this->time_stepping.get_start_time(),
+         ExcMessage("Initial conditions are not setup at the start time."));
+
+  using namespace EquationData::ThermalTGV;
+  TemperatureExactSolution<dim> temperature_function(current_time);
+
+  const double step_size{this->time_stepping.get_next_step_size()};
+  Assert(step_size > 0.0, ExcLowerRangeType<double>(step_size, 0.0));
+
+  this->initialize_from_function(temperature_function,
+                                 step_size);
 }
 
 template <int dim>
-void ThermalTGV<dim>::postprocessing()
+void ThermalTGV<dim>::save_postprocessing_results()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  std::cout.precision(1);
-  *this->pcout  << time_stepping
-                << " Progress ["
-                << std::setw(5)
-                << std::fixed
-                << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-                << "%] \r";
+  const double current_time{this->time_stepping.get_current_time()};
 
-  log_file << time_stepping.get_step_number()     << ","
-           << time_stepping.get_current_time()    << ","
-           << time_stepping.get_next_step_size()  << std::endl;
+  using namespace EquationData::ThermalTGV;
+  TemperatureExactSolution<dim> temperature_function(current_time);
+
+  this->scalar_field->compute_error(temperature_function, this->mapping)
 }
 
 template <int dim>
