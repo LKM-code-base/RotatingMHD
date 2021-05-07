@@ -1,4 +1,4 @@
-#include <rotatingMHD/heat_equation.h>
+#include <rotatingMHD/convection_diffusion_solver.h>
 
 #include <deal.II/base/work_stream.h>
 #include <deal.II/numerics/matrix_tools.h>
