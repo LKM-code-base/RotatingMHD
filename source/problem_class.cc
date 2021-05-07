@@ -28,7 +28,7 @@ std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
 }
 
 template<int dim>
-Problem<dim>::Problem(const RunTimeParameters::ProblemParameters &prm)
+Problem<dim>::Problem(const RunTimeParameters::ProblemBaseParameters &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
 prm(prm),
@@ -81,12 +81,69 @@ computing_timer(
   }
 }
 
+
+
 template <int dim>
 void Problem<dim>::clear()
 {
   container.clear();
 
   triangulation.clear();
+}
+
+
+
+template <int dim>
+void Problem<dim>::project_function
+(const Function<dim>                             &function,
+ const std::shared_ptr<Entities::EntityBase<dim>> entity,
+ LinearAlgebra::MPI::Vector                      &vector)
+{
+  Assert(function.n_components == entity->n_components,
+         ExcMessage("The number of components of the function does not those "
+                    "of the entity"));
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs, mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs);
+  #endif
+
+  VectorTools::project(*(this->mapping),
+                      *(entity->dof_handler),
+                       entity->constraints,
+                       QGauss<dim>(entity->fe_degree + 2),
+                       function,
+                       tmp_vector);
+
+  vector = tmp_vector;
+}
+
+
+
+template <int dim>
+void Problem<dim>::interpolate_function
+(const Function<dim>                             &function,
+ const std::shared_ptr<Entities::EntityBase<dim>> entity,
+ LinearAlgebra::MPI::Vector                      &vector)
+{
+  Assert(function.n_components == entity->n_components,
+         ExcMessage("The number of components of the function does not those "
+                    "of the entity"));
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs, mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs);
+  #endif
+
+  VectorTools::interpolate(*entity->dof_handler,
+                           function,
+                           tmp_vector);
+
+  vector = tmp_vector;
 }
 
 
