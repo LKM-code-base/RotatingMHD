@@ -12,7 +12,7 @@ SET(SOURCE_FILES
     Guermond.cc
     GuermondNeumannBC.cc
     Couette.cc
-#    ThermalTGV.cc
+    ThermalTGV.cc
     MIT.cc
     Christensen.cc
     )

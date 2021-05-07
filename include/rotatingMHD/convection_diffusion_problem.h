@@ -176,7 +176,7 @@ protected:
 
   /*!
    * @brief Purely virtual method to setup the initial conditions of the @ref
-   * velocity and, possibly, the @ref pressure.
+   * velocity.
    *
    * @details This method is only called at the beginning of a simulation.
    */

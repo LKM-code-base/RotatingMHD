@@ -230,6 +230,22 @@ public:
   void set_source_term(Function<dim> &source_term);
 
   /*!
+   *  @brief Sets the source term of the problem.
+   *
+   *  @details Stores the memory address of the source term function in
+   *  the pointer @ref suppler_term_ptr.
+   */
+  void set_velocity(const std::shared_ptr<TensorFunction<1,dim>> &velocity);
+
+  /*!
+   *  @brief Sets the velocity field field of the problem.
+   *
+   *  @details Stores the memory address of the velocity in
+   *  the pointer @ref velocity_function_ptr.
+   */
+  void set_velocity(const std::shared_ptr<Entities::VectorEntity<dim>> &velocity);
+
+  /*!
    * @brief Computes the temperature field at \f$ t = t_1 \f$ using a
    * first order time discretization scheme.
    */

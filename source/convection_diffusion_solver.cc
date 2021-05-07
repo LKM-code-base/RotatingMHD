@@ -386,6 +386,20 @@ void ConvectionDiffusionSolver<dim>::clear()
 
 }
 
+template<int dim>
+void ConvectionDiffusionSolver<dim>::set_velocity
+(const std::shared_ptr<Entities::VectorEntity<dim>> &velocity_)
+{
+  velocity = velocity_;
+}
+
+template<int dim>
+void ConvectionDiffusionSolver<dim>::set_velocity
+(const std::shared_ptr<TensorFunction<1,dim>> &velocity_function)
+{
+  velocity_function_ptr = velocity_function;
+}
+
 }  // namespace RMHD
 
 // explicit instantiations
