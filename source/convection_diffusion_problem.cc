@@ -7,19 +7,132 @@
 namespace RMHD
 {
 
+ConvectionDiffusionProblemParameters::ConvectionDiffusionProblemParameters()
+:
+ProblemBaseParameters(),
+fe_degree(1),
+peclet_number(1.0),
+solver_parameters()
+{}
+
+
+
+ConvectionDiffusionProblemParameters::ConvectionDiffusionProblemParameters
+(const std::string &parameter_filename)
+:
+ConvectionDiffusionProblemParameters()
+{
+  ParameterHandler prm;
+
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+
+}
+
+
+
+void ConvectionDiffusionProblemParameters::declare_parameters(ParameterHandler &prm)
+{
+  prm.declare_entry("FE's polynomial degree",
+                    "1",
+                    Patterns::Integer(1));
+
+  prm.declare_entry("Peclet number",
+                    "1.0",
+                    Patterns::Double());
+
+  ProblemBaseParameters::declare_parameters(prm);
+
+  ConvectionDiffusionParameters::declare_parameters(prm);
+}
+
+
+
+void ConvectionDiffusionProblemParameters::parse_parameters(ParameterHandler &prm)
+{
+  ProblemBaseParameters::parse_parameters(prm);
+
+
+  fe_degree = prm.get_integer("FE's polynomial degree");
+  AssertThrow(fe_degree > 0, ExcLowerRange(fe_degree, 0));
+
+  peclet_number = prm.get_double("Peclet number");
+  Assert(peclet_number > 0.0, ExcLowerRangeType<double>(peclet_number, 0.0));
+  AssertIsFinite(peclet_number)
+  AssertIsFinite(1.0 / peclet_number);
+
+  solver_parameters.equation_coefficient = 1.0 / peclet_number;
+
+  solver_parameters.parse_parameters(prm);
+}
+
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const ConvectionDiffusionProblemParameters &prm)
+{
+  using namespace RunTimeParameters::internal;
+
+  add_header(stream);
+  add_line(stream, "Convection-diffusion problem parameters");
+  add_header(stream);
+
+  add_line(stream, "Problem type", "convection-diffusion");
+
+  {
+    std::string fe = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree) + ")";
+    add_line(stream, "Finite Element", fe);
+  }
+
+  add_line(stream, "Peclet number", prm.peclet_number);
+
+  stream << prm.solver_parameters;
+
+  stream << static_cast<const RunTimeParameters::ProblemBaseParameters &>(prm);
+
+  add_header(stream);
+
+  return (stream);
+}
+
+
+
 template<int dim>
 ConvectionDiffusionProblem<dim>::ConvectionDiffusionProblem
 (ConvectionDiffusionProblemParameters &prm,
  const std::string  &field_name)
 :
-Problem<dim>(static_cast<RunTimeParameters::ProblemBaseParameters>(prm)),
+Problem<dim>(prm),
 parameters(prm),
 scalar_field(std::make_shared<Entities::ScalarEntity<dim>>
             (prm.fe_degree,
              this->triangulation,
              field_name)),
 time_stepping(prm.time_discretization_parameters),
-solver(prm.parameters,
+solver(prm.solver_parameters,
        time_stepping,
        scalar_field,
        this->mapping,
@@ -265,5 +378,10 @@ void ConvectionDiffusionProblem<dim>::output_results() const
 } // namespace RMHD
 
 // explicit instantiations
+template std::ostream & RMHD::operator<<
+(std::ostream &, const RMHD::ConvectionDiffusionProblemParameters &);
+template dealii::ConditionalOStream & RMHD::operator<<
+(dealii::ConditionalOStream &, const RMHD::ConvectionDiffusionProblemParameters &);
+
 template class RMHD::ConvectionDiffusionProblem<2>;
 template class RMHD::ConvectionDiffusionProblem<3>;

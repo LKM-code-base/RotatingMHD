@@ -12,7 +12,7 @@ ConvectionDiffusionParameters::ConvectionDiffusionParameters()
 convective_term_weak_form(RunTimeParameters::ConvectiveTermWeakForm::skewsymmetric),
 convective_term_time_discretization(RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit),
 equation_coefficient(1.0),
-solver_parameters("Heat equation"),
+solver_parameters("Convection-diffusion equation"),
 preconditioner_update_frequency(10),
 verbose(false)
 {}
@@ -56,7 +56,7 @@ ConvectionDiffusionParameters()
 
 void ConvectionDiffusionParameters::declare_parameters(ParameterHandler &prm)
 {
-  prm.enter_subsection("Heat equation solver parameters");
+  prm.enter_subsection("Convection-diffusion solver parameters");
   {
     prm.declare_entry("Convective term weak form",
                       "skew-symmetric",
@@ -87,7 +87,7 @@ void ConvectionDiffusionParameters::declare_parameters(ParameterHandler &prm)
 
 void ConvectionDiffusionParameters::parse_parameters(ParameterHandler &prm)
 {
-  prm.enter_subsection("Heat equation solver parameters");
+  prm.enter_subsection("Convection-diffusion solver parameters");
   {
     const std::string str_convective_term_weak_form(prm.get("Convective term weak form"));
 
@@ -142,8 +142,9 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const ConvectionDiffusionParameters &prm)
 {
   using namespace RunTimeParameters::internal;
+
   add_header(stream);
-  add_line(stream, "Heat equation solver parameters");
+  add_line(stream, "Convection-diffusion solver parameters");
   add_header(stream);
 
   switch (prm.convective_term_weak_form) {
@@ -184,10 +185,6 @@ Stream& operator<<(Stream &stream, const ConvectionDiffusionParameters &prm)
 
   stream << prm.solver_parameters;
 
-  stream << "\r";
-
-  add_header(stream);
-
   return (stream);
 }
 
@@ -215,6 +212,7 @@ flag_matrices_were_updated(true)
   Assert(parameters.equation_coefficient > 0.0,
          ExcLowerRangeType<double>(parameters.equation_coefficient, 0.0));
   AssertIsFinite(parameters.equation_coefficient);
+  AssertIsFinite(1.0 / parameters.equation_coefficient);
 
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)

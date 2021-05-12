@@ -1,27 +1,14 @@
 # Listing of Parameters
 # ---------------------
-set FE's polynomial degree - Temperature            = 1
-set Mapping - Apply to interior cells               = false
-set Mapping - Polynomial degree                     = 1
-set Problem type                                    = heat_convection_diffusion
-set Spatial dimension                               = 2
-set Verbose                                         = false
+set FE's polynomial degree            = 1
+set Mapping - Apply to interior cells = false
+set Mapping - Polynomial degree       = 1
+set Peclet number                     = 100.0
+set Spatial dimension                 = 2
+set Verbose                           = true
 
 
-subsection Convergence test parameters
-  set Convergence test type                 = temporal
-  set Number of spatial convergence cycles  = 2
-  set Number of temporal convergence cycles = 2
-  set Time-step reduction factor            = 0.5
-end
-
-
-subsection Dimensionless numbers
-  set Peclet number           = 100.0
-end
-
-
-subsection Heat equation solver parameters
+subsection Convection-diffusion solver parameters
   set Convective term time discretization = semi-implicit
   set Convective term weak form           = skew-symmetric
   set Preconditioner update frequency     = 10
@@ -45,6 +32,7 @@ subsection Heat equation solver parameters
   end
 
 end
+
 
 subsection Output control parameters
   set Graphical output directory = ThermalTGVResults/
