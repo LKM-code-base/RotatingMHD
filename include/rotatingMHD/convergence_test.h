@@ -278,6 +278,14 @@ private:
 
 };
 
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, ConvergenceTestData &data);
+
 }  // namespace ConvergenceTest
 
 } // namespace RMHD

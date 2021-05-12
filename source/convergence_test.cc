@@ -414,9 +414,7 @@ ConvergenceTestData::ConvergenceTestData(const ConvergenceTestType &type)
 :
 type(type),
 n_rows(0)
-{
-  table.declare_column("refinement level");
-}
+{}
 
 template<int dim, int spacedim>
 void ConvergenceTestData::update_table
@@ -584,6 +582,7 @@ void ConvergenceTestData::format_columns()
 	}
 }
 
+
 template<typename Stream>
 Stream& operator<<(Stream &stream, ConvergenceTestData &data)
 {
@@ -597,6 +596,7 @@ Stream& operator<<(Stream &stream, ConvergenceTestData &data)
   return (stream);
 }
 
+
 template <>
 ConditionalOStream& operator<<(ConditionalOStream &stream, ConvergenceTestData &data)
 {
@@ -607,6 +607,21 @@ ConditionalOStream& operator<<(ConditionalOStream &stream, ConvergenceTestData &
 
   if (stream.is_active())
   	data.table.write_text(stream.get_stream());
+
+  return (stream);
+}
+
+
+template <>
+const ConditionalOStream& operator<<(const ConditionalOStream &stream, ConvergenceTestData &data)
+{
+  if (data.n_rows == 0)
+    return (stream);
+
+  data.format_columns();
+
+  if (stream.is_active())
+    data.table.write_text(stream.get_stream());
 
   return (stream);
 }
