@@ -177,8 +177,6 @@ Stream& operator<<(Stream &stream, const SpatialDiscretizationParameters &prm)
                      "Number of initial boundary refinements",
                      prm.n_initial_boundary_refinements);
 
-  internal::add_header(stream);
-
   return (stream);
 }
 
@@ -263,8 +261,6 @@ Stream& operator<<(Stream &stream, const OutputControlParameters &prm)
   internal::add_line(stream,
                      "Graphical output directory",
                      prm.graphical_output_directory);
-
-  internal::add_header(stream);
 
   return (stream);
 }
@@ -853,7 +849,7 @@ template<typename Stream>
 Stream& operator<<(Stream &stream, const ProblemBaseParameters &prm)
 {
   internal::add_header(stream);
-  internal::add_line(stream, "Problem parameters");
+  internal::add_line(stream, "Basic parameters");
   internal::add_header(stream);
 
   internal::add_line(stream, "Spatial dimension", prm.dim);
@@ -875,15 +871,9 @@ Stream& operator<<(Stream &stream, const ProblemBaseParameters &prm)
 
   stream << static_cast<const OutputControlParameters &>(prm);
 
-  stream << "\r";
-
   stream << prm.spatial_discretization_parameters;
 
-  stream << "\r";
-
   stream << prm.time_discretization_parameters;
-
-  stream << "\r";
 
   return (stream);
 }

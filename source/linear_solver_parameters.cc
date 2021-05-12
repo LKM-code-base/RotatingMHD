@@ -507,8 +507,6 @@ Stream& operator<<(Stream &stream, const LinearSolverParameters &prm)
       break;
   }
 
-  stream << "\r";
-
   return (stream);
 }
 
