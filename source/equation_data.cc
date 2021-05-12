@@ -158,12 +158,14 @@ namespace TGV
 
 template <int dim>
 VelocityExactSolution<dim>::VelocityExactSolution
-(const double Re,
+(const double Re_,
  const double time)
 :
 Function<dim>(dim, time),
-Re(Re)
-{}
+Re(Re_)
+{
+  AssertIsFinite(1.0 / Re);
+}
 
 template <int dim>
 void VelocityExactSolution<dim>::vector_value
@@ -331,12 +333,14 @@ Tensor<1, dim> PressureExactSolution<dim>::gradient
 
 template <int dim>
 BodyForce<dim>::BodyForce
-(const double Re,
+(const double Re_,
  const double time)
 :
 RMHD::EquationData::VectorFunction<dim>(time),
-Re(Re)
-{}
+Re(Re_)
+{
+  AssertIsFinite(1.0 / Re);
+}
 
 template <int dim>
 Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
@@ -464,12 +468,14 @@ Tensor<1, dim> PressureExactSolution<dim>::gradient
 
 template <int dim>
 BodyForce<dim>::BodyForce
-(const double Re,
+(const double Re_,
  const double time)
 :
 RMHD::EquationData::VectorFunction<dim>(time),
-Re(Re)
-{}
+Re(Re_)
+{
+  AssertIsFinite(1.0 / Re);
+}
 
 template <int dim>
 Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
@@ -518,20 +524,22 @@ namespace Couette
 template <int dim>
 VelocityExactSolution<dim>::VelocityExactSolution
 (const double t_0,
- const double Re,
+ const double Re_,
  const double H,
  const double time)
 :
 Function<dim>(dim, time),
 t_0(t_0),
-Re(Re),
+Re(Re_),
 H(H)
-{}
+{
+  AssertIsFinite(1.0 / Re);
+}
 
 template <int dim>
-void VelocityExactSolution<dim>::vector_value(
-  const Point<dim>  &point,
-  Vector<double>    &values) const
+void VelocityExactSolution<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
 {
   const double y = point(1);
 
@@ -609,12 +617,14 @@ Tensor<1, dim> VelocityExactSolution<dim>::value
 
 template <int dim>
 TemperatureExactSolution<dim>::TemperatureExactSolution
-(const double Pe,
+(const double Pe_,
  const double time)
 :
 Function<dim>(1, time),
-Pe(Pe)
-{}
+Pe(Pe_)
+{
+  AssertIsFinite(1.0 / Pe);
+}
 
 template<int dim>
 double TemperatureExactSolution<dim>::value
