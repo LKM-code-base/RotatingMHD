@@ -387,12 +387,21 @@ private:
   double  maximum_step_size;
 
   /*!
-   * @brief A flag indicating if the VSIMEX coefficients changed from
+   * @brief A flag indicating whether the VSIMEX coefficients changed in
    * the last step.
+   *
    * @details The flag is set as true if @ref omega is anything other
-   * than 1.0 and is set as false if @ref is equal to 1.0.
+   * than unity and is set as false if @ref is equal to unity.
    */
-  bool                flag_coefficients_changed;
+  bool    flag_coefficients_changed;
+
+  /*!
+   * @brief A flag indicating whether the VSIMEX scheme is restarted.
+   *
+   * @details The flag is set in @ref initialize and prevents a modification
+   * of the coefficients in the next call to @ref update_coefficients.
+   */
+  bool    flag_restart;
 
 };
 

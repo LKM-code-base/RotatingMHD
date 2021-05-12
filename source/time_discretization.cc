@@ -1,5 +1,6 @@
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/basic_parameters.h>
 
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/conditional_ostream.h>
@@ -190,34 +191,12 @@ void TimeDiscretizationParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm)
 {
-  const size_t column_width[2] ={ 40, 20 };
 
-  constexpr size_t line_width = 63;
+  using namespace RunTimeParameters;
 
-  const char header[] = "+------------------------------------------+"
-                        "----------------------+";
-
-  auto add_line = [&]
-                  (const char first_column[],
-                   const auto second_column)->void
-    {
-      stream << "| "
-             << std::setw(column_width[0]) << first_column
-             << " | "
-             << std::setw(column_width[1]) << second_column
-             << " |"
-             << std::endl;
-    };
-
-  stream << std::left << header << std::endl;
-
-  stream << "| "
-         << std::setw(line_width)
-         << "Timestepping parameters"
-         << " |"
-         << std::endl;
-
-  stream << header << std::endl;
+  internal::add_header(stream);
+  internal::add_line(stream, "Time discretization parameters");
+  internal::add_header(stream);
 
   std::string vsimex_scheme;
   switch (prm.vsimex_scheme)
@@ -240,23 +219,21 @@ Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm)
                              "interpreted."));
     break;
   }
-  add_line("IMEX scheme", vsimex_scheme);
+  internal::add_line(stream, "IMEX scheme", vsimex_scheme);
 
-  add_line("Maximum number of time steps", prm.n_maximum_steps);
-  add_line("Adaptive timestepping", (prm.adaptive_time_stepping? "true": "false"));
+  internal::add_line(stream, "Maximum number of time steps", prm.n_maximum_steps);
+  internal::add_line(stream, "Adaptive timestepping", (prm.adaptive_time_stepping? "true": "false"));
   if (prm.adaptive_time_stepping)
-    add_line("Adaptive timestepping barrier", prm.adaptive_time_step_barrier);
-  add_line("Initial time step", prm.initial_time_step);
+    internal::add_line(stream, "Adaptive timestepping barrier", prm.adaptive_time_step_barrier);
+  internal::add_line(stream, "Initial time step", prm.initial_time_step);
   if (prm.adaptive_time_stepping)
   {
-    add_line("Minimum time step", prm.minimum_time_step);
-    add_line("Maximum time step", prm.maximum_time_step);
+    internal::add_line(stream, "Minimum time step", prm.minimum_time_step);
+    internal::add_line(stream, "Maximum time step", prm.maximum_time_step);
   }
-    add_line("Start time", prm.start_time);
-  add_line("Final time", prm.final_time);
-  add_line("Verbose", (prm.verbose? "true": "false"));
-
-  stream << header;
+  internal::add_line(stream, "Start time", prm.start_time);
+  internal::add_line(stream, "Final time", prm.final_time);
+  internal::add_line(stream, "Verbose", (prm.verbose? "true": "false"));
 
   return (stream);
 }
@@ -518,7 +495,56 @@ void VSIMEXMethod::clear()
 
 void VSIMEXMethod::initialize(const double previous_step_size)
 {
-  AssertThrow(false, ExcNotImplemented());
+  AssertIsFinite(previous_step_size);
+  Assert(previous_step_size > 0.0, ExcLowerRangeType<double>(previous_step_size, 0.0));
+  previous_step_sizes[0] = previous_step_size;
+
+  // Compute the ratio of the next and previous time step sizes.
+  omega = get_next_step_size() / previous_step_size;
+  AssertIsFinite(omega);
+
+  // It is supposed that the previous time step was an Euler step. The previous
+  // \f$ \alpha_0 \f$ value is, thus, harded-coded.
+  previous_alpha_zeros[0] = 1.0;
+  // For safety reasons, this value is set to unity.
+  previous_alpha_zeros[1] = 1.0;
+
+  flag_coefficients_changed = true;
+
+  // Update the VSIMEX coefficients
+  {
+    // VSIMEX coefficient's formulas
+    const double &a{vsimex_parameters[0]};
+    const double &b{vsimex_parameters[1]};
+
+    alpha[0] = (1.0 + 2.0 * a * omega) / (1.0 + omega);
+    alpha[1] = ((1.0 - 2.0 * a) * omega - 1.0);
+    alpha[2] = (2.0 * a - 1.0) * omega * omega / (1.0 + omega);
+
+    beta[0]  = 1.0 + a * omega;
+    beta[1]  = - a * omega;
+
+    gamma[0] = a + b / (2.0 * omega);
+    gamma[1] = 1.0 - a - (1.0 + 1.0 / omega) * b / 2.0;
+    gamma[2] = b / 2.0;
+
+    // Second order Taylor extrapolation coefficients
+    eta[0] = 1.0 + omega;
+    eta[1] = - omega;
+  }
+
+  AssertIsFinite(alpha[0]);
+  AssertIsFinite(alpha[1]);
+  AssertIsFinite(alpha[2]);
+  AssertIsFinite(beta[0]);
+  AssertIsFinite(beta[1]);
+  AssertIsFinite(gamma[0]);
+  AssertIsFinite(gamma[1]);
+  AssertIsFinite(gamma[2]);
+  AssertIsFinite(eta[0]);
+  AssertIsFinite(eta[1]);
+
+  flag_restart = true;
 }
 
 void VSIMEXMethod::reinit()
@@ -546,7 +572,13 @@ void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 
 void VSIMEXMethod::update_coefficients()
 {
-  // Computes the ration of the next and previous time step sizes.
+  if (flag_restart)
+  {
+    flag_restart = false;
+    return;
+  }
+
+  // Computes the ratio of the next and previous time step sizes.
   // It is nested in an if as get_previous_step_size() returns zero
   // at the start time.
   if (get_step_number() > 0)
