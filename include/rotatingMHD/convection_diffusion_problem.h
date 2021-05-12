@@ -13,7 +13,8 @@ namespace RMHD
 /*!
  * @struct ConvectionDiffusionProblemParameters
  */
-struct ConvectionDiffusionProblemParameters: public RunTimeParameters::ProblemBaseParameters
+struct ConvectionDiffusionProblemParameters
+    : public RunTimeParameters::ProblemBaseParameters
 {
   /*!
    * @brief Constructor which sets up the parameters with default values.
@@ -51,10 +52,27 @@ struct ConvectionDiffusionProblemParameters: public RunTimeParameters::ProblemBa
   unsigned int  fe_degree;
 
   /*!
+   * @brief The Peclet number of the problem.
+   */
+  double        peclet_number;
+
+  /*!
    * @brief Parameters of the convection diffusion solver.
    */
-  ConvectionDiffusionParameters parameters;
+  ConvectionDiffusionParameters solver_parameters;
 };
+
+
+
+/*!
+ * @brief Method forwarding parameters to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const ConvectionDiffusionProblemParameters &prm);
+
+
 
 /*!
  * @class ConvectionDiffusionProblem
