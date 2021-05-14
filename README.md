@@ -26,6 +26,7 @@ To do list
 - [x] Neumann boundary conditions in the incremental pressure projection scheme (Navier-Stokes solver)
 - [x] Restructure the parameters of the solvers
 - [x] Algebraic multigrid preconditioning in both solvers
+- [ ] Implement a proper reset method in the `NavierStokesProjection` solver to make sure that the Poisson pre-step is done on each cycle of a temporal test 
 - [ ] Python or bash script for running convergence tests
 - [ ] Adaptive timestepping
 - [ ] Initialization from analytical solution
