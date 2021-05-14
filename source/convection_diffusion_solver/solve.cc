@@ -30,7 +30,7 @@ void ConvectionDiffusionSolver<dim>::assemble_linear_system()
   if (time_stepping.coefficients_changed() == true ||
       flag_matrices_were_updated)
   {
-      TimerOutput::Scope  t(*computing_timer, "Heat Equation: Matrix summation");
+      TimerOutput::Scope  t(*computing_timer, "CD: Matrix summation");
 
     mass_plus_stiffness_matrix = 0.;
 
@@ -60,9 +60,9 @@ template <int dim>
 void ConvectionDiffusionSolver<dim>::solve_linear_system(const bool reinit_preconditioner)
 {
   if (parameters.verbose)
-  *pcout << "  Heat Equation: Solving linear system...";
+  *pcout << "  CD: Solving linear system...";
 
-  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Solve");
+  TimerOutput::Scope  t(*computing_timer, "CD: Solve");
 
   // In this method we create temporal non ghosted copies
   // of the pertinent vectors to be able to perform the solve()
@@ -93,7 +93,7 @@ void ConvectionDiffusionSolver<dim>::solve_linear_system(const bool reinit_preco
   }
 
   AssertThrow(preconditioner != nullptr,
-              ExcMessage("The pointer to the heat equation solver's preconditioner has not being initialized."));
+              ExcMessage("The pointer to the convection-diffusion solver's preconditioner has not being initialized."));
 
   SolverControl solver_control(solver_parameters.n_maximum_iterations,
                                std::max(solver_parameters.relative_tolerance * rhs.l2_norm(),
@@ -118,7 +118,8 @@ void ConvectionDiffusionSolver<dim>::solve_linear_system(const bool reinit_preco
     std::cerr << std::endl << std::endl
               << "----------------------------------------------------"
               << std::endl;
-    std::cerr << "Exception in the solve method of heat equation: " << std::endl
+    std::cerr << "Exception in the solve method of the convection-" << std::endl
+              << "diffusion equation: " << std::endl
               << exc.what() << std::endl
               << "Aborting!" << std::endl
               << "----------------------------------------------------"
@@ -130,7 +131,8 @@ void ConvectionDiffusionSolver<dim>::solve_linear_system(const bool reinit_preco
     std::cerr << std::endl << std::endl
               << "----------------------------------------------------"
               << std::endl;
-    std::cerr << "Unknown exception in the solve method of the heat equation!" << std::endl
+    std::cerr << "Unknown exception in the solve method of the" << std::endl
+              << "convection-diffusion equation!" << std::endl
               << "Aborting!" << std::endl
               << "----------------------------------------------------"
               << std::endl;

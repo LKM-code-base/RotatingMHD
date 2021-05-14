@@ -30,9 +30,9 @@ template <int dim>
 void ConvectionDiffusionSolver<dim>::setup_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Heat Equation: Setting up matrices...";
+    *pcout << "  CD: Setting up matrices...";
 
-  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Setup - Matrices");
+  TimerOutput::Scope  t(*computing_timer, "CD: Setup - Matrices");
 
   mass_matrix.clear();
   stiffness_matrix.clear();
@@ -117,9 +117,9 @@ template <int dim>
 void ConvectionDiffusionSolver<dim>::setup_vectors()
 {
   if (parameters.verbose)
-    *pcout << "  Heat Equation: Setting up vectors...";
+    *pcout << "  CD: Setting up vectors...";
 
-  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Setup - Vectors");
+  TimerOutput::Scope  t(*computing_timer, "CD: Setup - Vectors");
 
   // Initializing the temperature related vectors
   rhs.reinit(phi->distributed_vector);

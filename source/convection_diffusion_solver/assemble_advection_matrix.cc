@@ -11,9 +11,9 @@ template <int dim>
 void ConvectionDiffusionSolver<dim>::assemble_advection_matrix()
 {
   if (parameters.verbose)
-    *pcout << "  Heat Equation: Assembling advection matrix...";
+    *pcout << "  CD: Assembling advection matrix...";
 
-  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Advection matrix assembly");
+  TimerOutput::Scope  t(*computing_timer, "CD: Advection matrix assembly");
 
   // Reset data
   advection_matrix = 0.;

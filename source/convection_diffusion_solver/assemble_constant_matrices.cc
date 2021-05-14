@@ -10,9 +10,9 @@ template <int dim>
 void ConvectionDiffusionSolver<dim>::assemble_constant_matrices()
 {
   if (parameters.verbose)
-    *pcout << "  Heat Equation: Assembling constant matrices...";
+    *pcout << "  CD: Assembling constant matrices...";
 
-  TimerOutput::Scope  t(*computing_timer, "Heat Equation: Constant matrices assembly");
+  TimerOutput::Scope  t(*computing_timer, "CD: Constant matrices assembly");
 
   // Reset data
   mass_matrix       = 0.;

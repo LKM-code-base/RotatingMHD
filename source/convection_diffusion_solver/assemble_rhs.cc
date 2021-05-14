@@ -11,10 +11,10 @@ template <int dim>
 void ConvectionDiffusionSolver<dim>::assemble_rhs()
 {
   if (parameters.verbose)
-    *pcout << "  Heat Equation: Assembling right hand side...";
+    *pcout << "  CD: Assembling right hand side...";
 
   TimerOutput::Scope  t(*computing_timer,
-                        "Heat equation: RHS assembly");
+                        "CD: RHS assembly");
 
   // Reset data
   rhs = 0.;

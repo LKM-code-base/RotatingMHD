@@ -294,7 +294,7 @@ void ConvectionDiffusionProblem<dim>::initialize_from_function
          ExcMessage("Initialization is not performed at the start of the simulation."));
   const double current_time{this->time_stepping.get_current_time()};
 
-  // compute two fictitious previous times
+  // compute fictitious previous time
   const double previous_time{current_time - previous_step_size};
 
   // initialize previous solutions of the velocity
@@ -308,6 +308,8 @@ void ConvectionDiffusionProblem<dim>::initialize_from_function
     this->project_function(function,
                            this->scalar_field,
                            this->scalar_field->old_solution);
+
+    this->scalar_field->solution = this->scalar_field->old_solution;
   }
 
   // initialize the coefficients of the IMEX scheme
