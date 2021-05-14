@@ -848,10 +848,6 @@ void ProblemBaseParameters::parse_parameters(ParameterHandler &prm)
 template<typename Stream>
 Stream& operator<<(Stream &stream, const ProblemBaseParameters &prm)
 {
-  internal::add_header(stream);
-  internal::add_line(stream, "Basic parameters");
-  internal::add_header(stream);
-
   internal::add_line(stream, "Spatial dimension", prm.dim);
 
   {

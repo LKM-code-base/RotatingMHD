@@ -100,8 +100,6 @@ Stream& operator<<(Stream &stream, const ConvectionDiffusionProblemParameters &p
   add_line(stream, "Convection-diffusion problem parameters");
   add_header(stream);
 
-  add_line(stream, "Problem type", "convection-diffusion");
-
   {
     std::string fe = "FE_Q<" + std::to_string(prm.dim) + ">(" + std::to_string(prm.fe_degree) + ")";
     add_line(stream, "Finite Element", fe);
@@ -109,9 +107,9 @@ Stream& operator<<(Stream &stream, const ConvectionDiffusionProblemParameters &p
 
   add_line(stream, "Peclet number", prm.peclet_number);
 
-  stream << prm.solver_parameters;
-
   stream << static_cast<const RunTimeParameters::ProblemBaseParameters &>(prm);
+
+  stream << prm.solver_parameters;
 
   add_header(stream);
 
