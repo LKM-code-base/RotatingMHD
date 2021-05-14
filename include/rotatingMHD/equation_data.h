@@ -408,22 +408,6 @@ private:
   const double k = 2. * M_PI;
 };
 
-template <int dim>
-class VelocityField : public Function<dim>
-{
-public:
-  VelocityField(const double time = 0);
-
-  virtual void vector_value(const Point<dim>  &p,
-                            Vector<double>    &values) const override;
-private:
-
-  /*!
-   * @brief The wave number.
-   */
-  const double k = 2. * M_PI;
-};
-
 } // namespace ThermalTGV
 
 

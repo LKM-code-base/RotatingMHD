@@ -658,25 +658,6 @@ Tensor<1, dim> TemperatureExactSolution<dim>::gradient
   return return_value;
 }
 
-template <int dim>
-VelocityField<dim>::VelocityField
-(const double time)
-:
-Function<dim>(dim, time)
-{}
-
-template <int dim>
-void VelocityField<dim>::vector_value
-(const Point<dim>  &point,
- Vector<double>    &values) const
-{
-  const double x = point(0);
-  const double y = point(1);
-
-  values[0] = cos(k * x) * cos(k * y);
-  values[1] = sin(k * x) * sin(k * y);
-}
-
 } // namespace ThermalTGV
 
 namespace MIT
@@ -919,9 +900,6 @@ template class RMHD::EquationData::ThermalTGV::VelocityExactSolution<3>;
 
 template class RMHD::EquationData::ThermalTGV::TemperatureExactSolution<2>;
 template class RMHD::EquationData::ThermalTGV::TemperatureExactSolution<3>;
-
-template class RMHD::EquationData::ThermalTGV::VelocityField<2>;
-template class RMHD::EquationData::ThermalTGV::VelocityField<3>;
 
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<2>;
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<3>;
