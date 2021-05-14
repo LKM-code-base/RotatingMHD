@@ -45,7 +45,9 @@ private:
 
   const ConvergenceTest::ConvergenceTestType  test_type;
 
-  ConvergenceTest::ConvergenceTestData				convergence_data;
+  ConvergenceTest::ConvergenceTestData		    convergence_data;
+
+  std::shared_ptr<TensorFunction<1,dim>>      velocity_function_ptr;
 
   const unsigned int n_spatial_cycles;
 
@@ -77,6 +79,8 @@ ThermalTGV<dim>::ThermalTGV
 ConvectionDiffusionProblem<dim>(parameters),
 test_type(convergence_parameters.test_type),
 convergence_data(test_type),
+velocity_function_ptr
+(std::make_shared<EquationData::ThermalTGV::VelocityExactSolution<dim>>()),
 n_spatial_cycles(convergence_parameters.n_spatial_cycles),
 n_temporal_cycles(convergence_parameters.n_temporal_cycles),
 step_size_reduction_factor(convergence_parameters.step_size_reduction_factor),
@@ -175,6 +179,9 @@ void ThermalTGV<dim>::save_postprocessing_results()
   EquationData::ThermalTGV::TemperatureExactSolution<dim>
   temperature_function(this->parameters.peclet_number, current_time);
 
+  Assert(this->time_stepping.get_current_time() == temperature_function.get_time(),
+         ExcMessage("Time mismatch between the time stepping class and the temperature function"));
+
   error_map = this->scalar_field->compute_error(temperature_function,
                                                 *this->mapping);
 }
@@ -184,9 +191,6 @@ void ThermalTGV<dim>::save_postprocessing_results()
 template <int dim>
 void ThermalTGV<dim>::setup_velocity_field()
 {
-  std::shared_ptr<TensorFunction<1,dim>> velocity_function_ptr
-  = std::make_shared<EquationData::ThermalTGV::VelocityExactSolution<dim>>();
-
   this->solver.set_velocity(velocity_function_ptr);
 }
 
@@ -216,11 +220,12 @@ void ThermalTGV<dim>::run()
                        << Utilities::int_to_string(n_refinements)
                        << std::endl;
         }
+        this->setup_velocity_field();
 
         ConvectionDiffusionProblem<dim>::run();
 
         convergence_data.update_table(*this->scalar_field->dof_handler,
-                                       error_map);
+                                      error_map);
         error_map.clear();
 
         this->clear();
@@ -266,10 +271,11 @@ void ThermalTGV<dim>::run()
             << std::endl;
           }
 
+          this->setup_velocity_field();
+
           ConvectionDiffusionProblem<dim>::run();
 
-          convergence_data.update_table(time_step,
-                                         error_map);
+          convergence_data.update_table(time_step, error_map);
           error_map.clear();
 
           this->clear();
@@ -310,6 +316,8 @@ void ThermalTGV<dim>::run()
                            << Utilities::int_to_string(n_refinements)
                            << std::endl;
             }
+
+            this->setup_velocity_field();
 
             ConvectionDiffusionProblem<dim>::run();
 

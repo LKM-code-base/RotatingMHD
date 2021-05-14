@@ -227,12 +227,6 @@ public:
   void set_velocity(const std::shared_ptr<Entities::VectorEntity<dim>> &velocity);
 
   /*!
-   * @brief Computes the temperature field at \f$ t = t_1 \f$ using a
-   * first order time discretization scheme.
-   */
-  void initialize();
-
-  /*!
    *  @brief Solves the heat equation problem for one single timestep.
    */
   void solve();

@@ -169,6 +169,18 @@ void ConvectionDiffusionProblem<dim>::run()
                << std::endl;
 
   time_loop(n_maximum_steps);
+
+  this->save_postprocessing_results();
+
+  if (time_stepping.get_current_time() == time_stepping.get_end_time())
+    *this->pcout << "This run completed successfully!" << std::endl << std::endl;
+  else if (time_stepping.get_step_number() >= n_maximum_steps)
+    *this->pcout << std::setw(80)
+                 << "This run terminated because the maximum number of steps was "
+                    "reached! The current\n time is not equal to the desired "
+                    "final time." << std::endl << std::endl;
+
+  *(this->pcout) << std::fixed;
 }
 
 
@@ -229,11 +241,15 @@ void ConvectionDiffusionProblem<dim>::time_loop(const unsigned int n_steps)
     const double desired_next_step_size{this->compute_next_time_step(time_stepping, cfl_number)};
     time_stepping.set_desired_next_step_size(desired_next_step_size);
 
-    if (this->prm.verbose)
+    if (time_stepping.get_step_number() % terminal_output_frequency == 0 )
       *this->pcout << time_stepping << std::endl;
 
     // Update the coefficients to their k-th value
     time_stepping.update_coefficients();
+
+    // Updates the functions and the constraints to t^{k}
+    scalar_field->boundary_conditions.set_time(time_stepping.get_next_time());
+    scalar_field->update_boundary_conditions();
 
     // Solves the system, i.e., computes the fields at t^{k}
     solver.solve();
@@ -262,18 +278,6 @@ void ConvectionDiffusionProblem<dim>::time_loop(const unsigned int n_steps)
   }
 
   *this->pcout << time_stepping << std::endl;
-
-  this->save_postprocessing_results();
-
-  if (time_stepping.get_current_time() == time_stepping.get_end_time())
-    *this->pcout << "This run completed successfully!" << std::endl << std::endl;
-  else if (time_stepping.get_step_number() >= n_steps)
-    *this->pcout << std::setw(80)
-                 << "This run terminated because the maximum number of steps was "
-                    "reached! The current\n time is not equal to the desired "
-                    "final time." << std::endl << std::endl;
-
-  *(this->pcout) << std::fixed;
 }
 
 template<int dim>
