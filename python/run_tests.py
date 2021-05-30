@@ -23,6 +23,11 @@ class ConvergenceTableExtractionError(Exception):
     pass
 
 
+class ConvergenceTableComparisonError(Exception):
+    """Raised when executing the test failed"""
+    pass
+
+
 class TestType(Enum):
     spatial = auto()
     temporal = auto()
@@ -106,17 +111,21 @@ class ConvergenceTest:
     def _check_convergence_table(self, correct_table, other_table):
         assert isinstance(correct_table, pd.DataFrame)
         assert isinstance(other_table, pd.DataFrame)
-        assert len(correct_table) == len(other_table)
+        if len(correct_table) != len(other_table):
+            raise ConvergenceTableComparisonError()
         assert hasattr(self, "_exactly_equal_columns")
         assert hasattr(self, "_closely_equal_columns")
 
         mandatory_columns = self._exactly_equal_columns.union(self._closely_equal_columns)
         for col in mandatory_columns:
-            assert col in correct_table
-            assert col in other_table
+            if col not in correct_table:
+                raise ConvergenceTableComparisonError()
+            if col not in other_table:
+                raise ConvergenceTableComparisonError()
 
         for col in self._exactly_equal_columns:
-            assert all(correct_table[col] == other_table[col])
+            if not all(correct_table[col] == other_table[col]):
+                raise ConvergenceTableComparisonError()
 
         matching_error_norms = True
         for col in self._closely_equal_columns:
@@ -452,7 +461,7 @@ def check_branches(n_processes):
     branches.remove("  origin/HEAD -> origin/master")
     branches = list(map(lambda x: x.strip(), branches))
     branches.remove("")
-#    branches = [reference_branch, "origin/basic_parameters"]
+    print(*branches)
 
     not_compilable_branches = []
     non_existing_application_branches = dict()
@@ -493,6 +502,8 @@ def check_branches(n_processes):
                 test_result = test.run(n_processes)
             except ApplicationNotExistingError:
                 non_existing_application_branches[test.name].append(branch)
+            except ConvergenceTableComparisonError:
+                incompatible_table_branches[test.name].append(branch)
             except ConvergenceTableExtractionError:
                 incompatible_table_branches[test.name].append(branch)
             except subprocess.SubprocessError:
@@ -523,10 +534,9 @@ def check_branches(n_processes):
     print("Non-infected branches")
     print(non_infected_branches)
     print()
-    print("Compatible table branches")
+    print("Incompatible table branches")
     print(incompatible_table_branches)
     print()
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
