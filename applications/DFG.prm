@@ -22,9 +22,9 @@ subsection Navier-Stokes solver parameters
 
 
   subsection Linear solver parameters - Correction step
-    set Absolute tolerance           = 1e-9
+    set Absolute tolerance           = 1e-11
     set Maximum number of iterations = 60
-    set Relative tolerance           = 1e-6
+    set Relative tolerance           = 1e-10
 
 
     subsection Preconditioner parameters
@@ -38,9 +38,9 @@ subsection Navier-Stokes solver parameters
   end
 
   subsection Linear solver parameters - Diffusion step
-    set Absolute tolerance           = 1e-9
+    set Absolute tolerance           = 1e-11
     set Maximum number of iterations = 60
-    set Relative tolerance           = 1e-6
+    set Relative tolerance           = 1e-10
 
 
     subsection Preconditioner parameters
@@ -54,9 +54,9 @@ subsection Navier-Stokes solver parameters
   end
 
   subsection Linear solver parameters - Poisson pre-step
-    set Absolute tolerance           = 1e-9
+    set Absolute tolerance           = 1e-11
     set Maximum number of iterations = 100
-    set Relative tolerance           = 1e-6
+    set Relative tolerance           = 1e-10
 
 
     subsection Preconditioner parameters
@@ -70,9 +70,9 @@ subsection Navier-Stokes solver parameters
   end
 
   subsection Linear solver parameters - Projection step
-    set Absolute tolerance           = 1e-9
+    set Absolute tolerance           = 1e-11
     set Maximum number of iterations = 100
-    set Relative tolerance           = 1e-6
+    set Relative tolerance           = 1e-10
 
 
     subsection Preconditioner parameters
@@ -90,7 +90,7 @@ end
 
 subsection Output control parameters
   set Graphical output directory = DFGResults/
-  set Graphical output frequency = 100
+  set Graphical output frequency = 10
   set Terminal output frequency  = 1
 end
 
