@@ -364,10 +364,6 @@ void Guermond<dim>::solve(const unsigned int &level)
     // Compute CFL number
     cfl_number = navier_stokes.get_cfl_number();
 
-    // Updates the time step, i.e sets the value of t^{k}
-    time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(time_stepping, cfl_number));
-
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
@@ -454,7 +450,6 @@ void Guermond<dim>::run()
       double time_step = parameters.time_discretization_parameters.initial_time_step *
                          pow(parameters.convergence_test_parameters.step_size_reduction_factor,
                              cycle);
-
       *this->pcout  << std::setprecision(1)
                     << "Solving until t = "
                     << std::fixed << time_stepping.get_end_time()
