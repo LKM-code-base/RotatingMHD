@@ -13,7 +13,12 @@ void build_preconditioner
  const MatrixType                                 &matrix,
  const std::shared_ptr<PreconditionBaseParameters>&parameters,
  const bool                                        higher_order_elements,
- const bool                                        symmetric)
+#ifdef USE_PETSC_LA
+ const bool                                        symmetric
+#else
+ const bool                                        /* symmetric */
+#endif
+ )
 {
   preconditioner.reset();
 
