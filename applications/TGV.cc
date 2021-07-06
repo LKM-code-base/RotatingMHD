@@ -416,7 +416,7 @@ void TGV<dim>::run()
 
       this->triangulation.refine_global();
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   case ConvergenceTest::ConvergenceTestType::temporal:
@@ -441,7 +441,7 @@ void TGV<dim>::run()
 
       solve(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   default:

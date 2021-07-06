@@ -527,7 +527,7 @@ void DFG<dim>::run()
 
   time_stepping.restart();
   velocity->old_old_solution = velocity->solution;
-  navier_stokes.reset_phi();
+  navier_stokes.clear();
 
   *this->pcout << "Solving until t = "
                << time_stepping.get_end_time()
