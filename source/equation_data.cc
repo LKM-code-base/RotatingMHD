@@ -852,6 +852,107 @@ curl_type<dim> AngularVelocity<dim>::rotation() const
 } // namespace Christensen
 
 
+
+namespace AdvectionDiffusion
+{
+
+
+
+template <int dim>
+TemperatureExactSolution<dim>::TemperatureExactSolution
+(const double time)
+:
+Function<dim>(1, time)
+{}
+
+
+
+template<int dim>
+double TemperatureExactSolution<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  return (std::sin(k * x) * std::sin(k * y) * std::sin(k * t));
+}
+
+
+
+template<int dim>
+Tensor<1, dim> TemperatureExactSolution<dim>::gradient
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  Tensor<1, dim>  return_value;
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  return_value[0] = k * std::cos(k * x) * std::sin(k * y) * std::sin(k * t);
+  return_value[1] = k * std::sin(k * x) * std::cos(k * y) * std::sin(k * t);
+
+  return return_value;
+}
+
+
+
+template <int dim>
+VelocityExactSolution<dim>::VelocityExactSolution
+(const double time)
+:
+TensorFunction<1, dim>(time)
+{}
+
+
+
+template <int dim>
+Tensor<1, dim> VelocityExactSolution<dim>::value
+(const Point<dim>  &point) const
+{
+  (void)point;
+
+  Tensor<1, dim>  return_value;
+
+  return_value[0] = 1.0;
+  return_value[1] = 0.0;
+
+  return return_value;
+}
+
+
+
+template <int dim>
+SourceTerm<dim>::SourceTerm(const double Pe,
+                            const double time)
+:
+Function<dim>(1, time),
+Pe(Pe)
+{}
+
+
+
+template <int dim>
+double SourceTerm<dim>::value(const Point<dim> &point,
+                              const unsigned int /* component */) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  return (M_PI*std::cos(M_PI*x)*std::sin(M_PI*t)*std::sin(M_PI*y) //
+          + M_PI*std::cos(M_PI*t)*std::sin(M_PI*x)*std::sin(M_PI*y)  //
+          + (2*std::pow(M_PI,2)*std::sin(M_PI*t)*std::sin(M_PI*x)*std::sin(M_PI*y))/Pe);
+}
+
+
+
+} // namespace AdvectionDiffusion
+
+
+
 } // namespace EquationData
 
 } // namespace RMHD
@@ -931,3 +1032,11 @@ template class RMHD::EquationData::Christensen::GravityVector<3>;
 template class RMHD::EquationData::Christensen::AngularVelocity<2>;
 template class RMHD::EquationData::Christensen::AngularVelocity<3>;
 
+template class RMHD::EquationData::AdvectionDiffusion::VelocityExactSolution<2>;
+template class RMHD::EquationData::AdvectionDiffusion::VelocityExactSolution<3>;
+
+template class RMHD::EquationData::AdvectionDiffusion::TemperatureExactSolution<2>;
+template class RMHD::EquationData::AdvectionDiffusion::TemperatureExactSolution<3>;
+
+template class RMHD::EquationData::AdvectionDiffusion::SourceTerm<2>;
+template class RMHD::EquationData::AdvectionDiffusion::SourceTerm<3>;

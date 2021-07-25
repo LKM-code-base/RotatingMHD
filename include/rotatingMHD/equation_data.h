@@ -597,6 +597,63 @@ public:
 
 } // namespace Christensen
 
+
+
+namespace AdvectionDiffusion
+{
+
+
+
+template <int dim>
+class TemperatureExactSolution : public Function<dim>
+{
+public:
+  TemperatureExactSolution(const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int = 0) const override;
+
+private:
+  /*!
+   * @brief The wave number.
+   */
+  const double k = M_PI;
+};
+
+
+template <int dim>
+class VelocityExactSolution : public TensorFunction<1, dim>
+{
+public:
+  VelocityExactSolution(const double time = 0);
+
+  virtual Tensor<1, dim> value(const Point<dim>  &p) const override;
+};
+
+
+
+template <int dim>
+class SourceTerm : public Function<dim>
+{
+public:
+  SourceTerm(const double Pe,
+             const double time = 0);
+
+  virtual double value(const Point<dim> &point,
+                       const unsigned int component = 0) const override;
+
+private:
+  const double Pe;
+};
+
+
+
+} // namespace AdvectionDiffusion
+
+
 } // namespace EquationData
 
 } // namespace RMHD
