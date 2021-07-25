@@ -15,6 +15,7 @@ SET(SOURCE_FILES
     ThermalTGV.cc
     MIT.cc
     Christensen.cc
+    AdvectionDiffusion.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})
