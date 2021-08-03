@@ -29,10 +29,6 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-
-    steps:
       - name: Setup
         run: |
           # Github action require containers to run as root. We can't do this without breaking the mpi tests.
