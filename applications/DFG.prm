@@ -18,7 +18,7 @@ subsection Navier-Stokes solver parameters
   set Convective term weak form              = skew-symmetric
   set Incremental pressure-correction scheme = rotational
   set Preconditioner update frequency        = 15
-  set Verbose                                = true
+  set Verbose                                = false
 
 
   subsection Linear solver parameters - Correction step
