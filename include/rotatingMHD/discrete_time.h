@@ -56,6 +56,13 @@ public:
   void
   set_end_time(const double new_end_time);
 
+  /*!
+   * @brief Output of the current step number, the current time and the size of
+   * the time step.
+   */
+  template<typename Stream>
+  friend Stream& operator<<(Stream &stream, const DiscreteTime &time);
+
   private:
   double start_time;
 
@@ -71,6 +78,13 @@ public:
 
   unsigned int step_number;
 };
+
+/*!
+ * @brief Output of the current step number, the current time and the size of
+ * the time step.
+ */
+template<typename Stream>
+Stream& operator<<(Stream &stream, const DiscreteTime &time);
 
 
 /*---------------------- Inline functions ------------------------------*/
@@ -154,9 +168,9 @@ DiscreteTime::get_step_number() const
  return (step_number);
 }
 
-} // namespace RMHD
-
 } // namespace TimeDiscretization
+
+} // namespace RMHD
 
 
 #endif /* INCLUDE_ROTATINGMHD_DISCRETE_TIME_H_ */

@@ -493,7 +493,8 @@ void DFG<dim>::run()
 
   *this->pcout << "Solving until t = 350..." << std::endl;
 
-  *this->pcout << time_stepping << std::endl;
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+               << std::endl;
   while (time_stepping.get_current_time() <= 350.0 &&
          time_stepping.get_step_number() < n_steps)
   {
@@ -515,7 +516,8 @@ void DFG<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
-    *this->pcout << time_stepping << std::endl;
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
 
     // Snapshot stage, all time calls should be done with get_current_time()
     if ((time_stepping.get_step_number() %
@@ -536,7 +538,8 @@ void DFG<dim>::run()
                << time_stepping.get_end_time()
                << "..." << std::endl;
 
-  *this->pcout << time_stepping << std::endl;
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+               << std::endl;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
          time_stepping.get_step_number() < n_remaining_steps)
@@ -559,7 +562,8 @@ void DFG<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
-    *this->pcout << time_stepping << std::endl;
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
 
     // Snapshot stage, all time calls should be done with get_current_time()
     if ((time_stepping.get_step_number() %

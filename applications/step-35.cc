@@ -265,7 +265,8 @@ void Step35<dim>::run()
 {
   const unsigned int n_steps = this->parameters.time_discretization_parameters.n_maximum_steps;
 
-  *this->pcout << time_stepping << std::endl;
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+               << std::endl;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
          time_stepping.get_step_number() < n_steps)
@@ -287,7 +288,8 @@ void Step35<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
-    *this->pcout << time_stepping << std::endl;
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
 
     // Snapshot stage
     if (time_stepping.get_step_number() %

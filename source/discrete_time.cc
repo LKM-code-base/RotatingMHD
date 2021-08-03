@@ -1,6 +1,8 @@
 #include <rotatingMHD/discrete_time.h>
 
+#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/exceptions.h>
+
 
 namespace RMHD
 {
@@ -44,6 +46,30 @@ namespace
    , start_step_size{next_time - start_time}
    , step_number{0}
  {}
+
+
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const DiscreteTime &time)
+{
+  stream << "Step = "
+         << std::right
+         << std::setw(6)
+         << time.get_step_number()
+         << ","
+         << std::left
+         << " Current time = "
+         << std::scientific
+         << time.get_current_time()
+         << ","
+         << " Next time step = "
+         << std::scientific
+         << time.get_next_step_size();
+
+  return (stream);
+}
+
 
 
 
@@ -97,6 +123,13 @@ namespace
                                      end_time);
  }
 
+} // namespace TimeDiscretization
+
 } // namespace RMHD
 
-} // namespace TimeDiscretization
+
+template std::ostream & RMHD::TimeDiscretization::operator<<
+(std::ostream &, const RMHD::TimeDiscretization::DiscreteTime &);
+template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
+(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::DiscreteTime &);
+
