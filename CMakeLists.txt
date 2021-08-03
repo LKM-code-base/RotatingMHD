@@ -78,5 +78,7 @@ ADD_SUBDIRECTORY(source)
 ADD_SUBDIRECTORY(applications)
 ADD_SUBDIRECTORY(documentation)
 ADD_SUBDIRECTORY(tests/rotatingMHD)
+ADD_SUBDIRECTORY(tests/applications/DFG)
+ADD_SUBDIRECTORY(tests/applications/MIT)
 
 MESSAGE("====================================================")

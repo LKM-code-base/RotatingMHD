@@ -2,6 +2,7 @@
 *.d
 
 # Applications
+applications/Christensen
 applications/Couette
 applications/DFG
 applications/Guermond
@@ -68,6 +69,8 @@ applications/step-35
 
 # CMake
 Bytes
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
@@ -80,6 +83,9 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 /build/
+tests/applications/*/*.debug/
+tests/rotatingMHD/*.debug/
+tests/rotatingMHD/*/*.debug/
 
 # Eclipse
 .cproject

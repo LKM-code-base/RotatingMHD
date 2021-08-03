@@ -498,10 +498,15 @@ int main(int argc, char *argv[])
       using namespace dealii;
       using namespace RMHD;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 2);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-      RunTimeParameters::ProblemParameters parameter_set("MIT.prm");
+      std::string parameter_filename;
+      if (argc >= 2)
+        parameter_filename = argv[1];
+      else
+        parameter_filename = "MIT.prm";
+
+      RunTimeParameters::ProblemParameters parameter_set(parameter_filename);
 
       MITBenchmark<2> simulation(parameter_set);
 
