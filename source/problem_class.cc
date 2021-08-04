@@ -2,8 +2,6 @@
 #include <rotatingMHD/problem_class.h>
 
 #include <deal.II/base/quadrature_lib.h>
-#include <deal.II/fe/mapping_manifold.h>
-#include <deal.II/numerics/vector_tools.h>
 
 #include <exception>
 #include <filesystem>
@@ -236,8 +234,6 @@ void Problem<dim>::set_initial_conditions
     entity->old_solution     = tmp_old_solution;
   }
 }
-
-
 
 template <int dim>
 void Problem<dim>::compute_error(
