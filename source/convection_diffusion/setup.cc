@@ -1,4 +1,4 @@
-#include <rotatingMHD/heat_equation.h>
+#include <rotatingMHD/convection_diffusion_solver.h>
 
 #include <deal.II/dofs/dof_tools.h>
 #ifdef USE_PETSC_LA

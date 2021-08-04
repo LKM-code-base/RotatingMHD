@@ -24,7 +24,7 @@ using namespace dealii;
 /*!
  * @class HeatEquation
  *
- * @brief Solves the heat equation.
+ * @brief Solves a convection-diffusion problem.
  *
  * @details This version is parallelized using deal.ii's MPI facilities and
  * relies either on the Trilinos or the PETSc library. Moreover, for the time
@@ -33,30 +33,15 @@ using namespace dealii;
  * The heat equation solved is derived from the balance of internal
  * energy
  * \f[
- *  \rho \dfrac{\d u}{\d t} = - \nabla \cdot \bs{q} + \rho r +
- *  \bs{T} \cdott (\nabla \otimes \bs{v}),
+ *  \pd{u}{\d t} + \bs{u}\cdot\nabla u = - C \nabla^2 u + s\,,
  *  \quad \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
  * \f]
- * where \f$ u \f$, \f$ \, \bs{q} \f$, \f$ \, r \f$, \f$ \, \bs{T} \f$,
- * \f$ \, \bs{v} \f$, \f$ \, \bs{x} \f$, \f$ \, t \f$, \f$ \,\Omega \f$ and
- * \f$ \, T \f$ are the
- * specific internal energy, heat flux vector, specific heat source,
- * stress tensor, velocity, position vector, time, domain and final
- * time respectively. Considering an isotropic and incompressible fluid,
- * whose heat flux vector is given by the Fourier law; whose
- * specific heat capacity and thermal conductivity coefficient do not
- * depend on the temperature; and neglecting the internal dissipation,
- * the adimensional heat equation reduces to
- * \f[
- *  \pd{\vartheta}{t} + \bs{v} \cdot \nabla \vartheta = \dfrac{1}{\mathit{Pe}}
- *  \nabla^2 \vartheta + r,
- *  \quad \forall (\bs{x}, t) \in \Omega \times \left[0, T \right]
- * \f]
- * where \f$ \vartheta \f$ and \f$ \mathit{Pe} \f$ are the dimensionless
- * temperature and the Peclet number respectively. Do note that we
- * reuse the variables names to denote their adimensional counterpart.
+ * where \f$ u \f$ is a scalar field, for example, the temperature or a
+ * compositional variable, \f$ C \f$ is dimensionless number,
+ * \f$ s \f$ a source term. Moreover, \f$ \bs{v} \f$ denotes the velocity.
+ *
  * @todo Documentation
- * @todo Add dissipation term.
+ *
  * @todo Add consistent forms of the advection term.
  */
 
@@ -139,7 +124,7 @@ public:
   void set_source_term(Function<dim> &source_term);
 
   /*!
-   * @brief Computes the temperature field at \f$ t = t_1 \f$ using a
+   * @brief Computes the scalar field \f$ u \f$ at \f$ t = t_1 \f$ using a
    * first order time discretization scheme.
    */
   void initialize();
@@ -187,7 +172,7 @@ private:
   std::shared_ptr<Mapping<dim>>                 mapping;
 
   /*!
-   * @brief A shared pointer to the entity of the temperature field.
+   * @brief A shared pointer to the entity of the scalar field.
    */
   std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
 
@@ -213,16 +198,19 @@ private:
   LinearAlgebra::MPI::SparseMatrix              system_matrix;
 
   /*!
-   * @brief Mass matrix of the temperature.
+   * @brief Mass matrix
+   *
    * @details This matrix does not change in every timestep. It is stored in
    * memory because otherwise an assembly would be required if the timestep
    * changes.
+   *
    * @todo Add formulas
    */
   LinearAlgebra::MPI::SparseMatrix              mass_matrix;
 
   /*!
-   * @brief Stiffness matrix of the temperature.
+   * @brief Stiffness matrix.
+   *
    * @details This matrix does not change in every timestep. It is stored in
    * memory because otherwise an assembly would be required if the timestep
    * changes.
@@ -231,23 +219,28 @@ private:
   LinearAlgebra::MPI::SparseMatrix              stiffness_matrix;
 
   /*!
-   * @brief Sum of the mass and stiffness matrix of the temperature.
+   * @brief Sum of the mass and stiffness matrix.
+   *
    * @details If the time step size is constant, this matrix does not
    * change each step.
+   *
    * @todo Add formulas
    */
   LinearAlgebra::MPI::SparseMatrix              mass_plus_stiffness_matrix;
 
   /*!
-   * @brief Advection matrix of the temperature.
+   * @brief Advection matrix.
+   *
    * @details This matrix changes in every timestep and is therefore also
    * assembled in every timestep.
+   *
    * @todo Add formulas
    */
   LinearAlgebra::MPI::SparseMatrix              advection_matrix;
 
   /*!
    * @brief Vector representing the right-hand side of the linear system.
+   *
    * @todo Add formulas
    */
   LinearAlgebra::MPI::Vector                    rhs;

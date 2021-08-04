@@ -1,4 +1,4 @@
-#include <rotatingMHD/heat_equation.h>
+#include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/utility.h>
 
 namespace RMHD
