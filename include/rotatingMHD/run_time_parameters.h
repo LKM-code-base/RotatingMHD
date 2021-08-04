@@ -385,7 +385,7 @@ struct NavierStokesParameters
   double                            C2;
 
     /*!
-   * @brief The factor multiplying the bouyancy term.
+   * @brief The factor multiplying the buoyancy term.
    */
   double                            C3;
 
@@ -758,7 +758,7 @@ Stream& operator<<(Stream &stream, const BoussinesqProblemParameters &prm);
  * @struct ProblemParameters
  */
 struct ProblemParameters
-    : public OutputControlParameters,
+    : public ProblemBaseParameters,
       public DimensionlessNumbers
 {
   /*!
@@ -817,7 +817,7 @@ struct ProblemParameters
   unsigned int                                mapping_degree;
 
   /*!
-   * @brief Boolean indicating if the mapping is to be asigned to
+   * @brief Boolean indicating if the mapping is to be assigned to
    * the interior cells too.
    */
   bool                                        mapping_interior_cells;

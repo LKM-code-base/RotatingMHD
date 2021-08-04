@@ -33,7 +33,7 @@ std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
  *
  */
 template<int dim>
-Problem<dim>::Problem(const RunTimeParameters::ProblemParameters &prm)
+Problem<dim>::Problem(const RunTimeParameters::ProblemBaseParameters &prm)
 :
 mpi_communicator(MPI_COMM_WORLD),
 prm(prm),
@@ -86,69 +86,6 @@ computing_timer(
   }
 }
 
-/*!
- * @brief Default constructor which initializes the member variables.
- */
-template<int dim>
-Problem<dim>::Problem(const RunTimeParameters::ProblemBaseParameters &prm_base)
-:
-mpi_communicator(MPI_COMM_WORLD),
-prm(prm_base),
-triangulation(mpi_communicator,
-              typename Triangulation<dim>::MeshSmoothing(
-              Triangulation<dim>::smoothing_on_refinement |
-              Triangulation<dim>::smoothing_on_coarsening)),
-mapping(std::make_shared<MappingQ<dim>>(prm.mapping_degree,
-                                        prm.mapping_interior_cells)),
-pcout(std::make_shared<ConditionalOStream>(std::cout,
-      (Utilities::MPI::this_mpi_process(mpi_communicator) == 0))),
-computing_timer(std::make_shared<TimerOutput>(mpi_communicator,
-																							*pcout,
-																							TimerOutput::summary,
-																							TimerOutput::wall_times))
-{
-	if (!std::filesystem::exists(prm.graphical_output_directory) &&
-			Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
-	{
-		try
-		{
-			std::filesystem::create_directories(prm.graphical_output_directory);
-		}
-		catch (std::exception &exc)
-		{
-			std::cerr << std::endl << std::endl
-								<< "----------------------------------------------------"
-								<< std::endl;
-			std::cerr << "Exception in the creation of the output directory: "
-								<< std::endl
-								<< exc.what() << std::endl
-								<< "Aborting!" << std::endl
-								<< "----------------------------------------------------"
-								<< std::endl;
-			std::abort();
-		}
-		catch (...)
-		{
-			std::cerr << std::endl << std::endl
-								<< "----------------------------------------------------"
-									<< std::endl;
-			std::cerr << "Unknown exception in the creation of the output directory!"
-								<< std::endl
-								<< "Aborting!" << std::endl
-								<< "----------------------------------------------------"
-								<< std::endl;
-			std::abort();
-		}
-	}
-
-	// This constructor does not really work because the prm is not initialized...
-	/*
-	 *
-	 * @attention Delete this once the problem solver is working
-	 *
-	 */
-	AssertThrow(false, ExcNotImplemented());
-}
 
 
 template <int dim>
@@ -158,6 +95,8 @@ void Problem<dim>::clear()
 
   triangulation.clear();
 }
+
+
 
 template <int dim>
 void Problem<dim>::project_function
@@ -176,14 +115,43 @@ void Problem<dim>::project_function
     tmp_vector(entity->locally_owned_dofs);
   #endif
 
-  VectorTools::project(*entity->dof_handler,
-                        entity->constraints,
-                        QGauss<dim>(entity->fe_degree + 2),
-                        function,
-                        tmp_vector);
+  VectorTools::project(*(this->mapping),
+                      *(entity->dof_handler),
+                       entity->constraints,
+                       QGauss<dim>(entity->fe_degree + 2),
+                       function,
+                       tmp_vector);
 
   vector = tmp_vector;
 }
+
+
+
+template <int dim>
+void Problem<dim>::interpolate_function
+(const Function<dim>                             &function,
+ const std::shared_ptr<Entities::EntityBase<dim>> entity,
+ LinearAlgebra::MPI::Vector                      &vector)
+{
+  Assert(function.n_components == entity->n_components,
+         ExcMessage("The number of components of the function does not those "
+                    "of the entity"));
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs, mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->locally_owned_dofs);
+  #endif
+
+  VectorTools::interpolate(*entity->dof_handler,
+                           function,
+                           tmp_vector);
+
+  vector = tmp_vector;
+}
+
+
 
 template <int dim>
 void Problem<dim>::set_initial_conditions
