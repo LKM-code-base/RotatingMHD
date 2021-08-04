@@ -242,7 +242,7 @@ void ConvectionDiffusionProblem<dim>::time_loop(const unsigned int n_steps)
     time_stepping.set_desired_next_step_size(desired_next_step_size);
 
     if (time_stepping.get_step_number() % terminal_output_frequency == 0 )
-      *this->pcout << time_stepping << std::endl;
+      *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping) << std::endl;
 
     // Update the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -277,7 +277,7 @@ void ConvectionDiffusionProblem<dim>::time_loop(const unsigned int n_steps)
       break;
   }
 
-  *this->pcout << time_stepping << std::endl;
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping) << std::endl;
 }
 
 template<int dim>

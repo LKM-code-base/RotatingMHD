@@ -241,7 +241,7 @@ void Couette<dim>::postprocessing()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
   std::cout.precision(1);
-  *this->pcout << time_stepping
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
                << " Norms = ("
                << std::noshowpos << std::scientific
                << navier_stokes.get_diffusion_step_rhs_norm()
