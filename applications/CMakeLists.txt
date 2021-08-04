@@ -16,6 +16,7 @@ SET(SOURCE_FILES
     MIT.cc
     Christensen.cc
     AdvectionDiffusion.cc
+    Diffusion.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})
