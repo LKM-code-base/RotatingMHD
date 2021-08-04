@@ -121,8 +121,6 @@ pressure_convergence_table(pressure, *pressure_exact_solution),
 flag_set_exact_pressure_constant(true),
 flag_square_domain(true)
 {
-  navier_stokes.set_body_force(body_force);
-
   *this->pcout << parameters << std::endl << std::endl;
 
   log_file << "Step" << ","
@@ -341,6 +339,7 @@ void Guermond<dim>::update_entities()
 template <int dim>
 void Guermond<dim>::solve(const unsigned int &level)
 {
+  navier_stokes.set_body_force(body_force);
   setup_dofs();
   setup_constraints();
   velocity->reinit();
@@ -364,10 +363,6 @@ void Guermond<dim>::solve(const unsigned int &level)
 
     // Compute CFL number
     cfl_number = navier_stokes.get_cfl_number();
-
-    // Updates the time step, i.e sets the value of t^{k}
-    time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -444,7 +439,7 @@ void Guermond<dim>::run()
 
       this->triangulation.refine_global();
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   case ConvergenceTest::ConvergenceTestType::temporal:
@@ -455,7 +450,6 @@ void Guermond<dim>::run()
       double time_step = parameters.time_discretization_parameters.initial_time_step *
                          pow(parameters.convergence_test_parameters.step_size_reduction_factor,
                              cycle);
-
       *this->pcout  << std::setprecision(1)
                     << "Solving until t = "
                     << std::fixed << time_stepping.get_end_time()
@@ -469,7 +463,7 @@ void Guermond<dim>::run()
 
       solve(this->prm.spatial_discretization_parameters.n_initial_global_refinements);
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   default:

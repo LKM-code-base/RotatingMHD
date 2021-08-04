@@ -27,7 +27,9 @@ namespace RMHD
 
 /*!
  * @class Guermond
+ *
  * @todo Add documentation
+ *
  */
 template <int dim>
 class Guermond : public Problem<dim>
@@ -121,8 +123,6 @@ velocity_convergence_table(velocity, *velocity_exact_solution),
 pressure_convergence_table(pressure, *pressure_exact_solution),
 flag_set_exact_pressure_constant(false)
 {
-  navier_stokes.set_body_force(body_force);
-
   *this->pcout << parameters << std::endl << std::endl;
 
   log_file << "Step" << ","
@@ -179,15 +179,19 @@ void Guermond<dim>::setup_constraints()
 
   velocity_exact_solution->set_time(time_stepping.get_start_time());
 
+  // left boundary
   velocity->boundary_conditions.set_neumann_bcs(0);
+  // right boundary
   velocity->boundary_conditions.set_dirichlet_bcs(
     1,
     velocity_exact_solution,
     true);
+  // bottom boundary
   velocity->boundary_conditions.set_dirichlet_bcs(
     2,
     velocity_exact_solution,
     true);
+  // top boundary
   velocity->boundary_conditions.set_dirichlet_bcs(
     3,
     velocity_exact_solution,
@@ -197,7 +201,7 @@ void Guermond<dim>::setup_constraints()
   pressure->close_boundary_conditions();
 
   velocity->apply_boundary_conditions();
-  pressure->apply_boundary_conditions();
+  pressure->apply_boundary_conditions(/*check regularity? */ false);
 }
 
 template <int dim>
@@ -353,6 +357,7 @@ void Guermond<dim>::update_entities()
 template <int dim>
 void Guermond<dim>::solve(const unsigned int &level)
 {
+  navier_stokes.set_body_force(body_force);
   setup_dofs();
   setup_constraints();
   velocity->reinit();
@@ -385,10 +390,6 @@ void Guermond<dim>::solve(const unsigned int &level)
 
     // Compute CFL number
     cfl_number = navier_stokes.get_cfl_number();
-
-    // Updates the time step, i.e sets the value of t^{k}
-    time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -465,7 +466,7 @@ void Guermond<dim>::run()
 
       this->triangulation.refine_global();
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   case ConvergenceTest::ConvergenceTestType::temporal:
@@ -490,7 +491,7 @@ void Guermond<dim>::run()
 
       solve(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   default:

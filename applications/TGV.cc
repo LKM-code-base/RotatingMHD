@@ -338,10 +338,6 @@ void TGV<dim>::solve(const unsigned int &level)
     // Compute CFL number
     cfl_number = navier_stokes.get_cfl_number();
 
-    // Updates the time step, i.e sets the value of t^{k}
-    time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(time_stepping, cfl_number));
-
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
 
@@ -421,7 +417,7 @@ void TGV<dim>::run()
 
       this->triangulation.refine_global();
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   case ConvergenceTest::ConvergenceTestType::temporal:
@@ -446,7 +442,7 @@ void TGV<dim>::run()
 
       solve(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   default:

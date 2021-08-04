@@ -16,9 +16,9 @@ subsection Convection-diffusion solver parameters
 
 
   subsection Linear solver parameters
-    set Absolute tolerance           = 1e-9
+    set Absolute tolerance           = 1e-11
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-6
+    set Relative tolerance           = 1e-10
 
 
     subsection Preconditioner parameters
@@ -33,11 +33,10 @@ subsection Convection-diffusion solver parameters
 
 end
 
-
 subsection Output control parameters
   set Graphical output directory = ThermalTGVResults/
-  set Graphical output frequency = 100
-  set Terminal output frequency  = 5
+  set Graphical output frequency = 10000
+  set Terminal output frequency  = 1
 end
 
 

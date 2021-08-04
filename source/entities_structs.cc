@@ -255,11 +255,12 @@ void VectorEntity<dim>::setup_dofs()
 
 
 template <int dim>
-void VectorEntity<dim>::apply_boundary_conditions()
+void VectorEntity<dim>::apply_boundary_conditions(const bool check_regularity)
 {
-  AssertThrow(boundary_conditions.regularity_guaranteed(),
-              ExcMessage("No boundary conditions were set for the \""
-                          + this->name + "\" entity"));
+  if (check_regularity == true)
+    AssertThrow(boundary_conditions.regularity_guaranteed(),
+                ExcMessage("No boundary conditions were set for the \""
+                            + this->name + "\" entity"));
 
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
@@ -736,11 +737,12 @@ void ScalarEntity<dim>::setup_dofs()
 }
 
 template <int dim>
-void ScalarEntity<dim>::apply_boundary_conditions()
+void ScalarEntity<dim>::apply_boundary_conditions(const bool check_regularity)
 {
-  AssertThrow(boundary_conditions.regularity_guaranteed(),
-              ExcMessage("No boundary conditions were set for the \""
-                          + this->name + "\" entity"));
+  if (check_regularity == true)
+    AssertThrow(boundary_conditions.regularity_guaranteed(),
+                ExcMessage("No boundary conditions were set for the \""
+                            + this->name + "\" entity"));
 
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
