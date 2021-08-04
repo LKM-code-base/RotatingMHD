@@ -756,16 +756,6 @@ struct ProblemParameters
   ConvergenceTest::ConvergenceTestParameters  convergence_test_parameters;
 
   /*!
-   * @brief Parameters of the adaptive mesh refinement.
-   */
-  SpatialDiscretizationParameters             spatial_discretization_parameters;
-
-  /*!
-   * @brief Parameters of the time stepping scheme.
-   */
-  TimeDiscretization::TimeDiscretizationParameters  time_discretization_parameters;
-
-  /*!
    * @brief Parameters of the Navier-Stokes solver.
    */
   NavierStokesParameters                      navier_stokes_parameters;

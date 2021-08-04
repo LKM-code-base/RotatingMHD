@@ -89,8 +89,6 @@ public:
   void run();
 
 private:
-  const RunTimeParameters::ProblemParameters    &params;
-
   std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
@@ -135,7 +133,6 @@ template <int dim>
 MITBenchmark<dim>::MITBenchmark(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-params(parameters),
 velocity(std::make_shared<Entities::VectorEntity<dim>>(
               parameters.fe_degree_velocity,
               this->triangulation,

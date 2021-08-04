@@ -1183,8 +1183,6 @@ fe_degree_velocity(2),
 fe_degree_temperature(2),
 verbose(false),
 convergence_test_parameters(),
-spatial_discretization_parameters(),
-time_discretization_parameters(),
 navier_stokes_parameters(),
 heat_equation_parameters(),
 flag_convergence_test(false)
@@ -1322,15 +1320,11 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
                     "false",
                     Patterns::Bool());
 
-  OutputControlParameters::declare_parameters(prm);
+  ProblemBaseParameters::declare_parameters(prm);
 
   DimensionlessNumbers::declare_parameters(prm);
 
   ConvergenceTest::ConvergenceTestParameters::declare_parameters(prm);
-
-  SpatialDiscretizationParameters::declare_parameters(prm);
-
-  TimeDiscretization::TimeDiscretizationParameters::declare_parameters(prm);
 
   NavierStokesParameters::declare_parameters(prm);
 
@@ -1342,6 +1336,10 @@ void ProblemParameters::declare_parameters(ParameterHandler &prm)
 
 void ProblemParameters::parse_parameters(ParameterHandler &prm)
 {
+  ProblemBaseParameters::parse_parameters(prm);
+
+  DimensionlessNumbers::parse_parameters(prm);
+
   const std::string str_problem_type(prm.get("Problem type"));
 
   if (str_problem_type == std::string("hydrodynamic"))
@@ -1381,16 +1379,8 @@ void ProblemParameters::parse_parameters(ParameterHandler &prm)
 
   verbose = prm.get_bool("Verbose");
 
-  OutputControlParameters::parse_parameters(prm);
-
-  DimensionlessNumbers::parse_parameters(prm);
-
   if (flag_convergence_test)
     convergence_test_parameters.parse_parameters(prm);
-
-  spatial_discretization_parameters.parse_parameters(prm);
-
-  time_discretization_parameters.parse_parameters(prm);
 
   if (str_problem_type != std::string("heat_convection_diffusion"))
     navier_stokes_parameters.parse_parameters(prm);
