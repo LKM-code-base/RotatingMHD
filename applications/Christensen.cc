@@ -364,12 +364,6 @@ void Christensen<dim>::postprocessing()
   // class for further information.
   christensen_benchmark.compute_benchmark_data();
 
-  // Time stepping output
-  *this->pcout << time_stepping << " ["
-               << std::setw(5)
-               << std::fixed << std::setprecision(1)
-               << time_stepping.get_current_time()/time_stepping.get_end_time() * 100.
-               << "%] \n";
   // Outputs CFL number and norms of the right-hand sides
   *this->pcout << "CFL = " << std::scientific << std::setprecision(2)
                << cfl_number
@@ -457,7 +451,10 @@ void Christensen<dim>::run()
   temperature->solution = temperature->old_solution;
   output();
 
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
+
+  while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
+         time_stepping.get_step_number() < n_steps)
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -478,6 +475,7 @@ void Christensen<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << time_stepping << std::endl;
 
     // Performs post-processing
     if ((time_stepping.get_step_number() %

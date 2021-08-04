@@ -2,6 +2,7 @@
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
+#include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
@@ -15,7 +16,6 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <rotatingMHD/convection_diffusion_solver.h>
 
 #include <iostream>
 #include <fstream>
@@ -338,23 +338,21 @@ void MITBenchmark<dim>::postprocessing()
   // class for further information.
   mit_benchmark.compute_benchmark_data();
 
-  std::cout.precision(1);
   /*! @attention For some reason, a run time error happens when I try
       to only use one pcout */
-  *this->pcout << time_stepping << ", ";
-  *this->pcout << mit_benchmark
-               << ", CFL = "
+  *this->pcout << "    ";
+  *this->pcout << mit_benchmark << std::endl;
+  *this->pcout << "    CFL = "
                << cfl_number
                << ", Norms: ("
                << std::noshowpos << std::scientific
                << navier_stokes.get_diffusion_step_rhs_norm()
                << ", "
                << navier_stokes.get_projection_step_rhs_norm()
-               << ") ["
-               << std::setw(5)
-               << std::fixed
-               << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-               << "%] \r";
+               << ", "
+               << heat_equation.get_rhs_norm()
+               << ")"
+               << std::endl;
 
   if (time_stepping.get_step_number() % 10 == 0)
     cfl_output_file << time_stepping.get_current_time() << ","
@@ -415,7 +413,11 @@ void MITBenchmark<dim>::update_solution_vectors()
 template <int dim>
 void MITBenchmark<dim>::run()
 {
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
+
+  *this->pcout << time_stepping << std::endl;
+  while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
+         time_stepping.get_step_number() < n_steps)
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -440,6 +442,7 @@ void MITBenchmark<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << time_stepping << std::endl;
 
     // Performs post-processing
     postprocessing();
