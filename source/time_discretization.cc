@@ -353,7 +353,7 @@ void VSIMEXMethod::print_coefficients(Stream &stream, const std::string prefix) 
 
   stream << std::endl
          << prefix.c_str() << "|  alpha_zero |     -      | ";
-  for (const auto it: old_alpha_zero)
+  for (const auto it: previous_alpha_zeros)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -365,7 +365,7 @@ void VSIMEXMethod::print_coefficients(Stream &stream, const std::string prefix) 
 
   stream << std::endl
          << prefix.c_str() << "|old_step_size|     -      | ";
-  for (const auto it: old_step_size_values)
+  for (const auto it: previous_step_sizes)
   {
     stream << std::setw(10)
            << std::setprecision(2)
@@ -399,7 +399,7 @@ std::string VSIMEXMethod::get_name() const
 {
   std::string name;
 
-  switch (parameters.vsimex_scheme)
+  switch (type)
   {
     case VSIMEXScheme::CNAB:
       name.assign("Crank-Nicolson-Adams-Bashforth");
@@ -427,44 +427,42 @@ VSIMEXMethod::VSIMEXMethod(const TimeDiscretizationParameters &params)
 DiscreteTime(params.start_time,
              params.final_time,
              params.initial_time_step),
-parameters(params),
+type(params.vsimex_scheme),
+vsimex_parameters(order, 0.0),
+alpha(order+1, 0.0),
+beta(order, 0.0),
+gamma(order+1, 0.0),
+eta(order, 0.0),
 omega(1.0),
+previous_alpha_zeros(order, 1.0),
+previous_step_sizes(order, 0.0),
+minimum_step_size(params.minimum_time_step),
+maximum_step_size(params.maximum_time_step),
 flag_coefficients_changed(true)
 {
 
-  if ((parameters.initial_time_step > parameters.maximum_time_step) ||
-      (parameters.initial_time_step < parameters.minimum_time_step))
-  {
-      std::ostringstream message;
-      message << "The desired start step of " << parameters.initial_time_step
-              << " is not inside the given bonded range (" << parameters.minimum_time_step
-              << ", " << parameters.maximum_time_step << ").";
+  Assert(((this->get_next_step_size() <= maximum_step_size) &&
+          (this->get_next_step_size() >= minimum_step_size)),
+         ExcMessage("The desired start step is not inside the given bonded range."));
 
-      AssertThrow(false, ExcMessage(message.str().c_str()));
-  }
-
-  switch (parameters.vsimex_scheme)
+  switch (type)
   {
     case VSIMEXScheme::BDF2 :
-      order = 2;
       vsimex_parameters.resize(order);
       vsimex_parameters[0] = 1.0;
       vsimex_parameters[1] = 0.0;
       break;
     case VSIMEXScheme::CNAB :
-      order = 2;
       vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.5;
       vsimex_parameters[1] = 0.0;
       break;
     case VSIMEXScheme::mCNAB :
-      order = 2;
       vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.5;
       vsimex_parameters[1] = 1.0/8.0;
       break;
     case VSIMEXScheme::CNLF :
-      order = 2;
       vsimex_parameters.resize(order);
       vsimex_parameters[0] = 0.0;
       vsimex_parameters[1] = 1.0;
@@ -475,25 +473,25 @@ flag_coefficients_changed(true)
      break;
   };
 
-  reinit();
 }
 
-VSIMEXMethod::VSIMEXMethod(const VSIMEXMethod &vsimex)
+VSIMEXMethod::VSIMEXMethod(const VSIMEXMethod &other)
 :
-DiscreteTime(vsimex.get_current_time(),
-             vsimex.parameters.final_time,
-             vsimex.get_next_step_size()),
-parameters(vsimex.parameters),
-order(vsimex.order),
-vsimex_parameters(vsimex.vsimex_parameters),
-alpha(vsimex.alpha),
-beta(vsimex.beta),
-gamma(vsimex.gamma),
-eta(vsimex.eta),
-omega(vsimex.omega),
-old_alpha_zero(vsimex.old_step_size_values),
-old_step_size_values(vsimex.old_step_size_values),
-flag_coefficients_changed(vsimex.flag_coefficients_changed)
+DiscreteTime(other.get_current_time(),
+						 other.get_end_time(),
+						 other.get_next_step_size()),
+type(other.type),
+vsimex_parameters(other.vsimex_parameters),
+alpha(other.alpha),
+beta(other.beta),
+gamma(other.gamma),
+eta(other.eta),
+omega(other.omega),
+previous_alpha_zeros(other.previous_alpha_zeros),
+previous_step_sizes(other.previous_step_sizes),
+minimum_step_size(other.get_minimum_step_size()),
+maximum_step_size(other.get_maximum_step_size()),
+flag_coefficients_changed(true)
 {}
 
 void VSIMEXMethod::clear()
@@ -508,8 +506,8 @@ void VSIMEXMethod::clear()
   for (unsigned int i=0; i<order; ++i)
   {
     eta[i] = 0.0;
-    old_alpha_zero[i] = 0.0;
-    old_step_size_values[i] = 0.0;
+    previous_alpha_zeros[i] = 0.0;
+    previous_step_sizes[i] = 0.0;
   }
 
   omega = 1.0;
@@ -526,16 +524,16 @@ void VSIMEXMethod::reinit()
   beta.resize(order, 0.0);
   gamma.resize(order+1, 0.0);
   eta.resize(order, 0.0);
-  old_step_size_values.resize(order, 0.0);
-  old_alpha_zero.resize(order, 1.0);
+  previous_step_sizes.resize(order, 0.0);
+  previous_alpha_zeros.resize(order, 1.0);
 }
 
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
 {
-  if (time_step_size < parameters.minimum_time_step)
-    DiscreteTime::set_desired_next_step_size(parameters.minimum_time_step);
-  else if (time_step_size > parameters.maximum_time_step)
-    DiscreteTime::set_desired_next_step_size(parameters.maximum_time_step);
+  if (time_step_size < minimum_step_size)
+    DiscreteTime::set_desired_next_step_size(minimum_step_size);
+  else if (time_step_size > maximum_step_size)
+    DiscreteTime::set_desired_next_step_size(maximum_step_size);
   else
     DiscreteTime::set_desired_next_step_size(time_step_size);
 }
@@ -557,17 +555,17 @@ void VSIMEXMethod::update_coefficients()
   // the std::vectors storing those values
   for (unsigned int i = order-1; i > 0; --i)
   {
-    old_alpha_zero[i]       = old_alpha_zero[i-1];
-    old_step_size_values[i] = old_step_size_values[i-1];
+    previous_alpha_zeros[i]       = previous_alpha_zeros[i-1];
+    previous_step_sizes[i] = previous_step_sizes[i-1];
   }
 
   // and stores their previous values. The inline if considers the
   // change from a first to second order scheme between the first and
   // second time steps.
-  old_alpha_zero[0]       = (get_step_number() > 1)
+  previous_alpha_zeros[0]       = (get_step_number() > 1)
                             ? alpha[0]
                             : (1.0 + 2.0 * vsimex_parameters[0])/2.0;
-  old_step_size_values[0] = get_previous_step_size();
+  previous_step_sizes[0] = get_previous_step_size();
 
   // Checks if the time step size changes. If not, exit the method.
   // The second boolean, i.e. get_step_number() <= (get_order() - 1),
