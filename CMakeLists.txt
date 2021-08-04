@@ -63,7 +63,7 @@ SET(TARGET_SRC
     source/assembly_data.cc
     source/benchmark_data.cc
     source/boundary_conditions.cc
-    source/convergence_struct.cc
+    source/convergence_test.cc
     source/discrete_time.cc
     source/entities_structs.cc
     source/equation_data.cc
