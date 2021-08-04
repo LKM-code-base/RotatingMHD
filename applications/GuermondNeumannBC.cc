@@ -122,8 +122,6 @@ velocity_convergence_table(velocity, *velocity_exact_solution),
 pressure_convergence_table(pressure, *pressure_exact_solution),
 flag_set_exact_pressure_constant(false)
 {
-  navier_stokes.set_body_force(body_force);
-
   *this->pcout << parameters << std::endl << std::endl;
 
   log_file << "Step" << ","
@@ -358,6 +356,7 @@ void Guermond<dim>::update_entities()
 template <int dim>
 void Guermond<dim>::solve(const unsigned int &level)
 {
+  navier_stokes.set_body_force(body_force);
   setup_dofs();
   setup_constraints();
   velocity->reinit();
@@ -466,7 +465,7 @@ void Guermond<dim>::run()
 
       this->triangulation.refine_global();
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   case ConvergenceTest::ConvergenceTestType::temporal:
@@ -491,7 +490,7 @@ void Guermond<dim>::run()
 
       solve(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
-      navier_stokes.reset_phi();
+      navier_stokes.clear();
     }
     break;
   default:

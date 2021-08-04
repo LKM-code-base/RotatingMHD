@@ -52,6 +52,9 @@ void NavierStokesProjection<dim>::setup_phi()
   // Initiate the solution vectors
   phi->reinit();
 
+  // Clears the boundary conditions
+  phi->clear_boundary_conditions();
+
   // Copy the pressure boundary conditions
   phi->boundary_conditions.copy(pressure->boundary_conditions);
 
@@ -383,6 +386,57 @@ void NavierStokesProjection<dim>::set_angular_velocity_vector(
   angular_velocity_vector_ptr = &angular_velocity_vector;
 }
 
+
+
+template <int dim>
+void NavierStokesProjection<dim>::clear()
+{
+  // Body force density pointers
+  body_force_ptr              = nullptr;
+  gravity_vector_ptr          = nullptr;
+  angular_velocity_vector_ptr = nullptr;
+
+  // Preconditioners
+  correction_step_preconditioner.reset();
+  diffusion_step_preconditioner.reset();
+  projection_step_preconditioner.reset();
+  poisson_prestep_preconditioner.reset();
+
+  // Velocity matrices
+  velocity_system_matrix.clear();
+  velocity_mass_plus_laplace_matrix.clear();
+  velocity_laplace_matrix.clear();
+  velocity_advection_matrix.clear();
+  velocity_mass_matrix.clear();
+
+  // Velocity vectors
+  diffusion_step_rhs.clear();
+
+  // Pressure matrices
+  pressure_laplace_matrix.clear();
+  projection_mass_matrix.clear();
+  phi_laplace_matrix.clear();
+
+  // Pressure vectors
+  correction_step_rhs.clear();
+  poisson_prestep_rhs.clear();
+  projection_step_rhs.clear();
+
+  // Internal entity
+  phi->clear();
+
+  // Norms
+  norm_diffusion_rhs  = std::numeric_limits<double>::min();
+  norm_projection_rhs = std::numeric_limits<double>::min();
+
+  // Internal flags
+  flag_setup_phi              = true;
+  flag_matrices_were_updated  = true;
+  flag_normalize_pressure     = false;
+}
+
+
+
 template <int dim>
 void NavierStokesProjection<dim>::reset_phi()
 {
@@ -419,10 +473,14 @@ template <int dim>
 void NavierStokesProjection<dim>::
 poisson_prestep()
 {
-  /* Assemble linear system */
+  // Sets the body force's internal time to the simulation's start time
+  if (body_force_ptr != nullptr)
+    body_force_ptr->set_time(time_stepping.get_start_time());
+
+  // Assemble linear system
   assemble_poisson_prestep();
 
-  /* Solve linear system */
+  // Solve linear system
   solve_poisson_prestep();
 }
 
@@ -450,6 +508,9 @@ template void RMHD::NavierStokesProjection<3>::set_gravity_vector(RMHD::Equation
 
 template void RMHD::NavierStokesProjection<2>::set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<2> &);
 template void RMHD::NavierStokesProjection<3>::set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<3> &);
+
+template void RMHD::NavierStokesProjection<2>::clear();
+template void RMHD::NavierStokesProjection<3>::clear();
 
 template void RMHD::NavierStokesProjection<2>::reset_phi();
 template void RMHD::NavierStokesProjection<3>::reset_phi();

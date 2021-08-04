@@ -22,6 +22,8 @@ mpi_communicator(velocity->mpi_communicator),
 velocity(velocity),
 pressure(pressure),
 time_stepping(time_stepping),
+norm_diffusion_rhs(std::numeric_limits<double>::min()),
+norm_projection_rhs(std::numeric_limits<double>::min()),
 flag_normalize_pressure(false),
 flag_setup_phi(true),
 flag_matrices_were_updated(true)
