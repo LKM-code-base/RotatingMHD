@@ -15,6 +15,8 @@ void build_preconditioner
  const bool                                        higher_order_elements,
  const bool                                        symmetric)
 {
+  (void) symmetric;
+
   preconditioner.reset();
 
   switch (parameters->preconditioner_type)
