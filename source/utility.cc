@@ -15,7 +15,11 @@ void build_preconditioner
  const bool                                        higher_order_elements,
  const bool                                        symmetric)
 {
-  (void) symmetric;
+  #ifdef USE_PETSC_LA
+    (void) higher_order_elements;
+  #else
+    (void) symmetric;
+  #endif
 
   preconditioner.reset();
 
@@ -111,6 +115,8 @@ void build_preconditioner
 
       #ifndef USE_PETSC_LA
         preconditioner_data.omega = preconditioner_parameters->omega;
+      #else
+        (void) preconditioner_parameters;
       #endif
 
       preconditioner =

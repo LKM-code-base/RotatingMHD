@@ -76,6 +76,7 @@ void EntityBase<dim>::reinit()
 {
   Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
+  // solution vectors contains locally relevant DoFs
   #ifdef USE_PETSC_LA
     solution.reinit(locally_owned_dofs,
                     locally_relevant_dofs,
@@ -87,14 +88,13 @@ void EntityBase<dim>::reinit()
   old_solution.reinit(solution);
   old_old_solution.reinit(solution);
 
+  // distributed vector contains only locally owned DoFs
   #ifdef USE_PETSC_LA
     distributed_vector.reinit(locally_owned_dofs,
                               mpi_communicator);
   #else
     distributed_vector.reinit(locally_owned_dofs,
-                              locally_relevant_dofs,
-                              mpi_communicator,
-                              true);
+                              mpi_communicator);
   #endif
 }
 
