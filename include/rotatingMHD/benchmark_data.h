@@ -190,18 +190,13 @@ struct DFGBechmarkRequest
    * the current dimensionless time, @ref pressure_difference,
    * @ref drag_coefficient and the @ref lift_coefficient.
    */
-  void print_step_data(TimeDiscretization::DiscreteTime &time);
+  void print_step_data();
 
   /*!
    * @brief A method that outputs the @ref data_table into a file.
    */
   void write_table_to_file(const std::string &file);
 };
-
-template<int dim> class MIT;
-
-template<typename Stream, int dim>
-Stream& operator<<(Stream &, const MIT<dim> &);
 
 /*!
  * @class MIT
@@ -249,7 +244,7 @@ public:
    * @brief Output of the benchmark data to the terminal.
    */
   template<typename Stream, int dim_>
-  friend Stream& operator<<(Stream &stream, const MIT<dim_> &mit);
+  friend Stream& operator<<(Stream &, const MIT<dim_> &);
 
 private:
   /*!
@@ -453,10 +448,11 @@ private:
 
 
 
-template<int dim> class ChristensenBenchmark;
-
 template<typename Stream, int dim>
-Stream& operator<<(Stream &, const ChristensenBenchmark<dim> &);
+Stream& operator<<(Stream &, const MIT<dim> &);
+
+
+
 
 /*!
  * @class ChristensenBenchmark
@@ -505,7 +501,7 @@ public:
    * @brief Output of the benchmark data to the terminal.
    */
   template<typename Stream, int dim_>
-  friend Stream& operator<<(Stream &stream, const ChristensenBenchmark<dim_> &mit);
+  friend Stream& operator<<(Stream &, const ChristensenBenchmark<dim_> &);
 
 
 private:
@@ -716,6 +712,9 @@ private:
    */
   void compute_point_data();
 };
+
+template<typename Stream, int dim>
+Stream& operator<<(Stream &, const ChristensenBenchmark<dim> &);
 
 } // namespace BenchmarkData
 

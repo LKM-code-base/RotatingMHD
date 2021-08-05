@@ -28,10 +28,10 @@ std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
 }
 
 template<int dim>
-Problem<dim>::Problem(const RunTimeParameters::ProblemBaseParameters &prm)
+Problem<dim>::Problem(const RunTimeParameters::ProblemBaseParameters &prm_)
 :
 mpi_communicator(MPI_COMM_WORLD),
-prm(prm),
+prm(prm_),
 triangulation(mpi_communicator,
               typename Triangulation<dim>::MeshSmoothing(
               Triangulation<dim>::smoothing_on_refinement |
@@ -43,7 +43,7 @@ pcout(std::make_shared<ConditionalOStream>(std::cout,
 computing_timer(
   std::make_shared<TimerOutput>(mpi_communicator,
                                 *pcout,
-                                TimerOutput::summary,
+                                (prm.verbose? TimerOutput::summary: TimerOutput::never),
                                 TimerOutput::wall_times))
 {
   if (!std::filesystem::exists(prm.graphical_output_directory) &&
@@ -240,9 +240,10 @@ double Problem<dim>::compute_next_time_step
   if (!prm.time_discretization_parameters.adaptive_time_stepping ||
       time_stepping.get_step_number() == 0)
     return time_stepping.get_next_step_size();
-
-  return max_cfl_number / cfl_number *
-         time_stepping.get_next_step_size();
+  else if (cfl_number < 1e-6)
+    return time_stepping.get_next_step_size();
+  else
+    return max_cfl_number / cfl_number * time_stepping.get_next_step_size();
 }
 
 template <int dim>

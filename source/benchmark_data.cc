@@ -34,10 +34,10 @@ DFGBechmarkRequest<dim>::DFGBechmarkRequest
  const double reference_length)
 :
 Re(reynolds_number),
-front_evaluation_point(0.15 / reference_length,
-                       0.20 / reference_length),
-rear_evaluation_point(0.25 / reference_length,
-                      0.20 / reference_length),
+front_evaluation_point(1.5 / reference_length,
+                       2.0 / reference_length),
+rear_evaluation_point(2.5 / reference_length,
+                      2.0 / reference_length),
 pressure_difference(0),
 drag_coefficient(0),
 lift_coefficient(0)
@@ -184,20 +184,14 @@ void DFGBechmarkRequest<dim>::update_table(TimeDiscretization::DiscreteTime  &ti
 }
 
 template <int dim>
-void DFGBechmarkRequest<dim>::print_step_data(TimeDiscretization::DiscreteTime &time)
+void DFGBechmarkRequest<dim>::print_step_data()
 {
   ConditionalOStream  pcout(std::cout,
                             (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
 
-  pcout << "Step = "
-        << std::setw(4)
-        << time.get_step_number()
-        << " Time = "
-        << std::noshowpos << std::scientific
-        << time.get_current_time()
-        << " dp = "
+  pcout << "    dp = "
         << std::setprecision(6)
-	<< std::showpos << std::scientific
+	      << std::showpos << std::scientific
         << pressure_difference
         << " C_d = "
         << std::showpos << std::scientific
@@ -205,7 +199,7 @@ void DFGBechmarkRequest<dim>::print_step_data(TimeDiscretization::DiscreteTime &
         << " C_l = "
         << std::showpos << std::scientific
         << lift_coefficient
-	<< std::defaultfloat << std::endl;
+        << std::defaultfloat << std::endl;
 }
 
 template <int dim>
