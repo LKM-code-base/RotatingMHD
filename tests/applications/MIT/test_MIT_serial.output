@@ -27,8 +27,8 @@
 +------------------------------------------+----------------------+
 | Adaptive mesh refinement                 | False                |
 | Number of initial adapt. refinements     | 0                    |
-| Number of initial global refinements     | 2                    |
-| Number of initial boundary refinements   | 1                    |
+| Number of initial global refinements     | 0                    |
+| Number of initial boundary refinements   | 0                    |
 +------------------------------------------+----------------------+
 +------------------------------------------+----------------------+
 | Timestepping parameters                                         |
@@ -120,13 +120,14 @@
 
 
 Triangulation:
- Number of initial active cells           = 332
+ Number of initial active cells           = 2048
+ Maximum aspect ratio                     = 2.5e+00
 
 Spatial discretization:
- Number of velocity degrees of freedom    = 3202
- Number of pressure degrees of freedom    = 437
- Number of temperature degrees of freedom = 1601
- Number of total degrees of freedom       = 5240
+ Number of velocity degrees of freedom    = 16962
+ Number of pressure degrees of freedom    = 2193
+ Number of temperature degrees of freedom = 8481
+ Number of total degrees of freedom       = 27636
 
 +---------+------------+------------------------------------------+
 | Boundary conditions of the Velocity entity                      |
@@ -165,17 +166,17 @@ Step =      0, Current time = 0.0e+00, Next time step = 5.0e-02
 | A datum has been set at the boundary                            |
 +---------+------------+------------------------------------------+
 Step =      1, Current time = 5.0e-02, Next time step = 5.0e-02
-    ux_1 = 0.000000e+00, T_1 = -9.784202e-04, p_14 = 0.000000e+00, Nu = 5.531334e+00, u = 0.000000e+00, w = 0.000000e+00
-    CFL = 0.000000e+00, Norms: (0.000000e+00, 0.000000e+00, 3.021287e-02)
+    ux_1 = 0.000000e+00, T_1 = -2.174536e-06, p_14 = 0.000000e+00, Nu = 1.321238e+01, u = 0.000000e+00, w = 0.000000e+00
+    CFL = 0.000000e+00, Norms: (0.000000e+00, 0.000000e+00, 7.738352e-04)
 Step =      2, Current time = 1.000000e-01, Next time step = 5.000000e-02
-    ux_1 = 0.000000e+00, T_1 = -4.173690e-04, p_14 = 2.996906e-04, Nu = 8.611795e+00, u = 1.671772e-04, w = 6.653052e-03
-    CFL = 0.000000e+00, Norms: (1.263378e-03, 1.261490e-03, 5.512553e-02)
+    ux_1 = 0.000000e+00, T_1 = 6.036691e-07, p_14 = 6.049072e-04, Nu = 1.796707e+01, u = 3.802242e-04, w = 3.373622e-02
+    CFL = 0.000000e+00, Norms: (1.671646e-03, 2.174036e-03, 2.621734e-03)
 Step =      3, Current time = 1.500000e-01, Next time step = 5.000000e-02
-    ux_1 = 2.002924e-05, T_1 = 9.029836e-04, p_14 = 5.590459e-04, Nu = 1.019166e+01, u = 5.088169e-04, w = 1.999531e-02
-    CFL = 1.920092e-04, Norms: (3.867602e-03, 2.073748e-03, 4.785826e-02)
+    ux_1 = 4.886913e-05, T_1 = -3.999114e-06, p_14 = 9.653787e-04, Nu = 1.865888e+01, u = 1.020592e-03, w = 8.075528e-02
+    CFL = 2.806062e-03, Norms: (4.341569e-03, 2.759352e-03, 4.326854e-03)
 Step =      4, Current time = 2.000000e-01, Next time step = 5.000000e-02
-    ux_1 = 4.736439e-05, T_1 = 2.373636e-03, p_14 = 8.349649e-04, Nu = 1.088143e+01, u = 1.031691e-03, w = 3.981088e-02
-    CFL = 5.298809e-04, Norms: (7.914819e-03, 2.355608e-03, 3.355367e-02)
+    ux_1 = 1.058997e-04, T_1 = -5.581889e-06, p_14 = 1.297565e-03, Nu = 1.773749e+01, u = 1.863321e-03, w = 1.318951e-01
+    CFL = 6.512880e-03, Norms: (7.650244e-03, 2.653826e-03, 5.858634e-03)
 Step =      5, Current time = 2.500000e-01, Next time step = 5.000000e-02
-    ux_1 = 8.736830e-05, T_1 = 3.643911e-03, p_14 = 1.111455e-03, Nu = 1.105912e+01, u = 1.723016e-03, w = 6.514466e-02
-    CFL = 1.089922e-03, Norms: (1.334930e-02, 2.195702e-03, 3.026321e-02)
+    ux_1 = 1.794247e-04, T_1 = -4.805323e-06, p_14 = 1.589344e-03, Nu = 1.632367e+01, u = 2.857000e-03, w = 1.834179e-01
+    CFL = 1.124927e-02, Norms: (1.137241e-02, 2.394075e-03, 7.147904e-03)

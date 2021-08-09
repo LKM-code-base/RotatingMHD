@@ -12,6 +12,7 @@
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
@@ -207,12 +208,14 @@ void MITBenchmark<2>::make_grid()
   constexpr int dim = 2;
   constexpr double tol = 1e-12;
 
-  GridGenerator::subdivided_hyper_rectangle(this->triangulation,
-                                            {1u, 8u},
+  Triangulation<dim>  tria;
+
+  GridGenerator::subdivided_hyper_rectangle(tria,
+                                            {16u, 16u*8u},
                                             Point<dim>(0., 0.),
                                             Point<dim>(1., 8.));
 
-  for (auto &face: triangulation.active_face_iterators())
+  for (auto &face: tria.active_face_iterators())
     if (face->at_boundary())
     {
       const Point<dim> center = face->center();
@@ -234,6 +237,21 @@ void MITBenchmark<2>::make_grid()
         Assert(false, ExcInternalError());
     }
 
+  // Transforms the mesh
+  auto transformation = [](const Point<dim> &point)
+      {
+        // Compute coordinate of Chebyshev node
+        const std::array<double, dim> chebyshev_coords
+          {0.5 - 0.5 * cos(point[0] * numbers::PI),
+           4.0 - 4.0 * cos(point[1] / 8.0 * numbers::PI)};
+        // Take the mean of the Chebyshev and the original coordinate
+        return Point<dim>(0.5 * (point[0] + chebyshev_coords[0]),
+                          0.5 * (point[1] + chebyshev_coords[1]));
+      };
+  GridTools::transform(transformation, tria);
+
+  this->triangulation.copy_triangulation(tria);
+
   // Performs global refinements
   this->triangulation.refine_global(prm.spatial_discretization_parameters.n_initial_global_refinements);
 
@@ -253,6 +271,11 @@ void MITBenchmark<2>::make_grid()
                  << std::endl
                  << " Number of initial active cells           = "
                  << this->triangulation.n_global_active_cells()
+                 << std::endl
+                 << " Maximum aspect ratio                     = "
+                 << GridTools::compute_maximum_aspect_ratio(*this->mapping,
+                                                            this->triangulation,
+                                                            QGauss<dim>(2))
                  << std::endl << std::endl;
 }
 
