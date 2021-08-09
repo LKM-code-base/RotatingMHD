@@ -4,7 +4,7 @@
 MESSAGE("====================================================")
 MESSAGE("=============== Configuring RotatingMHD ============")
 MESSAGE("========= An adaptive parallel flow solver =========")
-MESSAGE("========= for the rotating magnetohydrodynamics ====")
+MESSAGE("========= for rotating magnetohydrodynamics ========")
 MESSAGE("====================================================")
 ##
 # Is the cmake version sufficient?
