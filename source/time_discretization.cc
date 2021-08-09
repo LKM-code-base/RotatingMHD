@@ -143,7 +143,6 @@ void TimeDiscretizationParameters::parse_parameters(ParameterHandler &prm)
            ExcLowerRange(adaptive_time_step_barrier, 0));
 
     n_maximum_steps = prm.get_integer("Maximum number of time steps");
-    Assert(n_maximum_steps > 0, ExcLowerRange(n_maximum_steps, 0));
 
     initial_time_step = prm.get_double("Initial time step");
     Assert(initial_time_step > 0,
