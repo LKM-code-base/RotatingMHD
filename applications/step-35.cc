@@ -68,8 +68,6 @@ private:
   void output();
 
   void update_solution_vectors();
-
-  void sample_point_data(const Point<dim> &point) const;
 };
 
 template <int dim>
@@ -196,7 +194,32 @@ void Step35<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  sample_point_data(evaluation_point);
+  const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
+  cell_point =
+  GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
+                                           *velocity->dof_handler,
+                                           evaluation_point);
+  if (cell_point.first->is_locally_owned())
+  {
+    Vector<double> point_value_velocity(dim);
+    VectorTools::point_value(*velocity->dof_handler,
+                             velocity->solution,
+                             evaluation_point,
+                             point_value_velocity);
+
+    const double point_value_pressure
+    = VectorTools::point_value(*pressure->dof_handler,
+                               pressure->solution,
+                               evaluation_point);
+
+    *this->pcout << "   Velocity = ("
+                 << std::showpos << std::scientific
+                 << point_value_velocity[0]
+                 << ", "
+                 << point_value_velocity[1]
+                 << ") Pressure = "
+                 << point_value_pressure  << std::noshowpos << std::endl;
+  }
 }
 
 template <int dim>
@@ -240,7 +263,12 @@ void Step35<dim>::update_solution_vectors()
 template <int dim>
 void Step35<dim>::run()
 {
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  const unsigned int n_steps = this->parameters.time_discretization_parameters.n_maximum_steps;
+
+  *this->pcout << time_stepping << std::endl;
+
+  while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -248,8 +276,7 @@ void Step35<dim>::run()
     cfl_number = navier_stokes.get_cfl_number();
 
     // Updates the time step, i.e sets the value of t^{k}
-    time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(time_stepping, cfl_number));
+    time_stepping.set_desired_next_step_size(this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -260,6 +287,7 @@ void Step35<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << time_stepping << std::endl;
 
     // Snapshot stage
     if (time_stepping.get_step_number() %
@@ -282,37 +310,6 @@ void Step35<dim>::run()
 
 }
 
-template <int dim>
-void Step35<dim>::sample_point_data(const Point<dim> &point) const
-{
-  const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
-  cell_point =
-  GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
-                                           *velocity->dof_handler,
-                                           point);
-  if (cell_point.first->is_locally_owned())
-  {
-    Vector<double> point_value_velocity(dim);
-    VectorTools::point_value(*velocity->dof_handler,
-                            velocity->solution,
-                            point,
-                            point_value_velocity);
-
-    const double point_value_pressure
-    = VectorTools::point_value(*pressure->dof_handler,
-                              pressure->solution,
-                              point);
-
-    std::cout << time_stepping
-              << " Velocity = ("
-              << std::showpos << std::scientific
-              << point_value_velocity[0]
-              << ", "
-              << point_value_velocity[1]
-              << ") Pressure = "
-              << point_value_pressure  << std::noshowpos << std::endl;
-  }
-}
 } // namespace RMHD
 
 int main(int argc, char *argv[])

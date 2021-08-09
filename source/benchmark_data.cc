@@ -184,20 +184,14 @@ void DFGBechmarkRequest<dim>::update_table(TimeDiscretization::DiscreteTime  &ti
 }
 
 template <int dim>
-void DFGBechmarkRequest<dim>::print_step_data(TimeDiscretization::DiscreteTime &time)
+void DFGBechmarkRequest<dim>::print_step_data()
 {
   ConditionalOStream  pcout(std::cout,
                             (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0));
 
-  pcout << "Step = "
-        << std::setw(4)
-        << time.get_step_number()
-        << " Time = "
-        << std::noshowpos << std::scientific
-        << time.get_current_time()
-        << " dp = "
+  pcout << "    dp = "
         << std::setprecision(6)
-	<< std::showpos << std::scientific
+	      << std::showpos << std::scientific
         << pressure_difference
         << " C_d = "
         << std::showpos << std::scientific
@@ -205,7 +199,7 @@ void DFGBechmarkRequest<dim>::print_step_data(TimeDiscretization::DiscreteTime &
         << " C_l = "
         << std::showpos << std::scientific
         << lift_coefficient
-	<< std::defaultfloat << std::endl;
+        << std::defaultfloat << std::endl;
 }
 
 template <int dim>

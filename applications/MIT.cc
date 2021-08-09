@@ -338,12 +338,11 @@ void MITBenchmark<dim>::postprocessing()
   // class for further information.
   mit_benchmark.compute_benchmark_data();
 
-  std::cout.precision(1);
   /*! @attention For some reason, a run time error happens when I try
       to only use one pcout */
-  *this->pcout << time_stepping << ", ";
-  *this->pcout << mit_benchmark
-               << ", CFL = "
+  *this->pcout << "    ";
+  *this->pcout << mit_benchmark << std::endl;
+  *this->pcout << "    CFL = "
                << cfl_number
                << ", Norms: ("
                << std::noshowpos << std::scientific
@@ -352,11 +351,8 @@ void MITBenchmark<dim>::postprocessing()
                << navier_stokes.get_projection_step_rhs_norm()
                << ", "
                << heat_equation.get_rhs_norm()
-               << ") ["
-               << std::setw(5)
-               << std::fixed
-               << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-               << "%] \r";
+               << ")"
+               << std::endl;
 
   if (time_stepping.get_step_number() % 10 == 0)
     cfl_output_file << time_stepping.get_current_time() << ","
@@ -417,7 +413,11 @@ void MITBenchmark<dim>::update_solution_vectors()
 template <int dim>
 void MITBenchmark<dim>::run()
 {
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
+
+  *this->pcout << time_stepping << std::endl;
+  while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -442,6 +442,7 @@ void MITBenchmark<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << time_stepping << std::endl;
 
     // Performs post-processing
     postprocessing();
