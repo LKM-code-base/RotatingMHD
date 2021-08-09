@@ -268,7 +268,7 @@ void Step35<dim>::run()
   *this->pcout << time_stepping << std::endl;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
-         time_stepping.get_step_number() < n_steps)
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 

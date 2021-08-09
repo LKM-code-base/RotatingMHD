@@ -457,7 +457,7 @@ void Christensen<dim>::run()
   const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
-         time_stepping.get_step_number() < n_steps)
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
