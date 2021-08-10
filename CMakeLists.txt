@@ -72,6 +72,7 @@ SET(TARGET_SRC
     source/equation_data.cc
     source/problem_class.cc
     source/run_time_parameters.cc
+    source/solver_class.cc
     source/time_discretization.cc
     source/utility.cc
     source/navier_stokes_projection.cc
