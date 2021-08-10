@@ -39,16 +39,17 @@ IF(NOT DEAL_II_WITH_P4EST)
 ENDIF()
 
 # Trilinos or PETSc
-IF(NOT DEAL_II_WITH_TRILINOS OR NOT DEAL_II_WITH_PETSC)
+IF((NOT DEAL_II_WITH_TRILINOS) AND (NOT DEAL_II_WITH_PETSC))
 
    MESSAGE(FATAL_ERROR "\n"
    "This library requires a deal.II installation built with support for Trilinos or PETSc but both of these appear to be missing!"
    "This library requires a deal.II library that was configured with the following options:\n"
    "     DEAL_II_WITH_P4EST = ON\n"
-   "     DEAL_II_WITH_PETSC = ON\n"
+   "     DEAL_II_WITH_PETSC = ON or DEAL_II_WITH_TRILINOS = ON\n"
    "However, the deal.II library found at ${DEAL_II_PATH} was configured with these options\n"
    "     DEAL_II_WITH_P4EST = ${DEAL_II_WITH_P4EST}\n"
-   "     DEAL_II_WITH_TRILINOS = ${DEAL_II_WITH_PETSC}\n"
+   "     DEAL_II_WITH_TRILINOS = ${DEAL_II_WITH_TRILINOS}\n"
+   "     DEAL_II_WITH_PETSC = ${DEAL_II_WITH_PETSC}\n"
    "which conflict with the requirements.\n"
    "One or both of the aforementioned combinations of prerequisites are not met by your installation, but at least one is required for\n"
    "this library.")
