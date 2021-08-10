@@ -1,19 +1,11 @@
 # Listing of Parameters
 # ---------------------
-set FE's polynomial degree - Temperature            = 2
+set FE's polynomial degree - Temperature            = 1
 set Mapping - Apply to interior cells               = false
 set Mapping - Polynomial degree                     = 1
 set Problem type                                    = heat_convection_diffusion
 set Spatial dimension                               = 2
 set Verbose                                         = false
-
-
-subsection Convergence test parameters
-  set Convergence test type                 = temporal
-  set Number of spatial convergence cycles  = 2
-  set Number of temporal convergence cycles = 6
-  set Time-step reduction factor            = 0.5
-end
 
 
 subsection Dimensionless numbers
@@ -29,17 +21,13 @@ subsection Heat equation solver parameters
 
 
   subsection Linear solver parameters
-    set Absolute tolerance           = 1e-11
+    set Absolute tolerance           = 1e-12
     set Maximum number of iterations = 1000
-    set Relative tolerance           = 1e-10
+    set Relative tolerance           = 1e-8
 
 
     subsection Preconditioner parameters
-      set Preconditioner type      = ILU
-      set Fill-in level            = 2
-      set Absolute tolerance       = 1e-5
-      set Relative tolerance       = 1.01
-      set Overlap                  = 2
+      set Preconditioner type      = SSOR
     end
 
   end
@@ -69,7 +57,7 @@ subsection Time stepping parameters
   set Maximum time step             = 1e-3
   set Minimum time step             = 1e-6
   set Start time                    = 0.0
-  set Time stepping scheme          = BDF2
+  set Time stepping scheme          = CNAB
   set Verbose                       = false
 end
 
