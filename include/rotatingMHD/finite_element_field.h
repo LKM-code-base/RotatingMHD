@@ -1,5 +1,5 @@
-#ifndef INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
-#define INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
+#ifndef INCLUDE_ROTATINGMHD_FINITE_ELEMENT_FIELD_H_
+#define INCLUDE_ROTATINGMHD_FINITE_ELEMENT_FIELD_H_
 
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/boundary_conditions.h>
@@ -478,4 +478,4 @@ struct ScalarEntity : EntityBase<dim>
 
 } // namespace RMHD
 
-#endif /* INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_ */
+#endif /* INCLUDE_ROTATINGMHD_FINITE_ELEMENT_FIELD_H_ */

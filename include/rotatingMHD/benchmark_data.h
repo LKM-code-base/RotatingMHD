@@ -1,7 +1,6 @@
 #ifndef INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 #define INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/time_discretization.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/assembly_data.h>
@@ -16,6 +15,7 @@
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/lac/trilinos_vector.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <iostream>
 #include <vector>

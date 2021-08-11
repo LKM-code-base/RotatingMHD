@@ -1,4 +1,3 @@
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/problem_class.h>
@@ -14,6 +13,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <rotatingMHD/convergence_test.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <memory>
 

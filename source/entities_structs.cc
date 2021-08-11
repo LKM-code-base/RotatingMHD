@@ -1,10 +1,9 @@
-#include <rotatingMHD/entities_structs.h>
-
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <algorithm>
 

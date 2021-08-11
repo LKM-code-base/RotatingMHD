@@ -1,7 +1,6 @@
 #ifndef INCLUDE_ROTATINGMHD_PROBLEM_CLASS_H_
 #define INCLUDE_ROTATINGMHD_PROBLEM_CLASS_H_
 
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/time_discretization.h>
 #include <rotatingMHD/run_time_parameters.h>
 
@@ -17,6 +16,7 @@
 
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/solution_transfer.h>
+#include <rotatingMHD/finite_element_field.h>
 
 namespace RMHD
 {

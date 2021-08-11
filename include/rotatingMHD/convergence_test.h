@@ -1,13 +1,12 @@
 #ifndef INCLUDE_ROTATINGMHD_CONVERGENCE_TEST_H_
 #define INCLUDE_ROTATINGMHD_CONVERGENCE_TEST_H_
 
-#include <rotatingMHD/entities_structs.h>
-
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
 #include <deal.II/base/parameter_handler.h>
 
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <fstream>
 #include <string>

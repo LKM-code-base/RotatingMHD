@@ -4,7 +4,6 @@
  * @brief The .cc file replicating the numerical test of section 10.3 of the Guermond paper.
  *
  */
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
@@ -17,6 +16,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <rotatingMHD/convergence_test.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <memory>
 
