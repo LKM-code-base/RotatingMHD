@@ -54,44 +54,32 @@ Function<dim>(1, time),
 Pe(Pe)
 {}
 
-template<int dim>
-double ExactSolution<dim>::value
-(const Point<dim> &point,
+template<>
+double ExactSolution<2>::value
+(const Point<2> &point,
  const unsigned int /* component */) const
 {
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  const double F = exp(-2.0 * k * k  / Pe * t);
-
-  return (F *(cos(k * x) * sin(k * y)));
+  const double F = exp(-2.0 * k * k  / Pe * this->get_time());
+  return (F *(cos(k * point[0]) * sin(k * point[1])));
 }
 
-template<int dim>
-Tensor<1, dim> ExactSolution<dim>::gradient
-(const Point<dim> &point,
+
+template<>
+Tensor<1, 2> ExactSolution<2>::gradient
+(const Point<2> &point,
  const unsigned int /* component */) const
 {
-  Tensor<1, dim>  return_value;
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  const double F = exp(-2.0 * k * k  / Pe * t);
-
-  return_value[0] = - F * k * sin(k * x) * sin(k * y);
-  return_value[1] = + F * k * cos(k * x) * cos(k * y);
-
-  return (return_value);
+  const double F = exp(-2.0 * k * k  / Pe * this->get_time() );
+  return Tensor<1, 2>({-F * k * sin(k * point[0]) * sin(k * point[1]),
+                       F * k * cos(k * point[0]) * cos(k * point[1])});
 }
 
 
 template <int dim>
-class Diffusion
+class DiffusionProblem
 {
 public:
-  Diffusion(const RMHD::TimeDiscretization::TimeDiscretizationParameters &);
+  DiffusionProblem(const RMHD::TimeDiscretization::TimeDiscretizationParameters &);
 
   void run();
 
@@ -162,7 +150,7 @@ private:
 
 
 template <int dim>
-Diffusion<dim>::Diffusion(const RMHD::TimeDiscretization::TimeDiscretizationParameters &prm)
+DiffusionProblem<dim>::DiffusionProblem(const RMHD::TimeDiscretization::TimeDiscretizationParameters &prm)
 :
 fe(1),
 dof_handler(triangulation),
@@ -178,7 +166,7 @@ top_boundary_id(3)
 
 
 template <int dim>
-void Diffusion<dim>::make_grid(const unsigned int n_global_refinements)
+void DiffusionProblem<dim>::make_grid(const unsigned int n_global_refinements)
 {
   GridGenerator::hyper_cube(this->triangulation,
                             0.0,
@@ -207,7 +195,7 @@ void Diffusion<dim>::make_grid(const unsigned int n_global_refinements)
 
 
 template <int dim>
-void Diffusion<dim>::setup_dofs()
+void DiffusionProblem<dim>::setup_dofs()
 {
   dof_handler.distribute_dofs(fe);
 
@@ -237,7 +225,7 @@ void Diffusion<dim>::setup_dofs()
 
 
 template<int dim>
-void Diffusion<dim>::setup_system()
+void DiffusionProblem<dim>::setup_system()
 {
   DynamicSparsityPattern dsp(dof_handler.n_dofs());
 
@@ -263,7 +251,7 @@ void Diffusion<dim>::setup_system()
 
 
 template<int dim>
-void Diffusion<dim>::assemble_constant_matrices()
+void DiffusionProblem<dim>::assemble_constant_matrices()
 {
   // Reset data
   mass_matrix    = 0.;
@@ -340,7 +328,7 @@ void Diffusion<dim>::assemble_constant_matrices()
 
 
 template<int dim>
-void Diffusion<dim>::assemble_system()
+void DiffusionProblem<dim>::assemble_system()
 {
   if (discrete_time.get_step_number() == 0)
     assemble_constant_matrices();
@@ -357,7 +345,7 @@ void Diffusion<dim>::assemble_system()
 
 
 template<int dim>
-void Diffusion<dim>::assemble_system_rhs()
+void DiffusionProblem<dim>::assemble_system_rhs()
 {
   const double time_step{discrete_time.get_next_step_size()};
   const std::vector<double> alpha = discrete_time.get_alpha();
@@ -466,7 +454,7 @@ void Diffusion<dim>::assemble_system_rhs()
 
 
 template <int dim>
-void Diffusion<dim>::set_initial_condition()
+void DiffusionProblem<dim>::set_initial_condition()
 {
   Assert(discrete_time.get_current_time() == discrete_time.get_start_time(),
          ExcMessage("Error in set_initial_condition"));
@@ -482,7 +470,7 @@ void Diffusion<dim>::set_initial_condition()
 
 
 template <int dim>
-void Diffusion<dim>::solve_time_step()
+void DiffusionProblem<dim>::solve_time_step()
 {
   if (discrete_time.coefficients_changed())
     assemble_system();
@@ -502,7 +490,7 @@ void Diffusion<dim>::solve_time_step()
 
 
 template <int dim>
-void Diffusion<dim>::process_solution(const unsigned int cycle)
+void DiffusionProblem<dim>::process_solution(const unsigned int cycle)
 {
   const double current_time{discrete_time.get_current_time()};
 
@@ -554,7 +542,7 @@ void Diffusion<dim>::process_solution(const unsigned int cycle)
 
 
 template <int dim>
-void Diffusion<dim>::run()
+void DiffusionProblem<dim>::run()
 {
   make_grid(7);
 
@@ -623,13 +611,13 @@ int main()
     // Crank-Nicolson scheme
     parameters.vsimex_scheme = RMHD::TimeDiscretization::VSIMEXScheme::CNAB;
     {
-      Diffusion<2> simulation(parameters);
+      DiffusionProblem<2> simulation(parameters);
       simulation.run();
     }
     // BDF2 scheme
     parameters.vsimex_scheme = RMHD::TimeDiscretization::VSIMEXScheme::BDF2;
     {
-      Diffusion<2> simulation(parameters);
+      DiffusionProblem<2> simulation(parameters);
       simulation.run();
     }
 
