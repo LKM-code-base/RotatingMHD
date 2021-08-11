@@ -257,7 +257,7 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
   if (flag_point_evaluation)
   {
     std::cout.precision(1);
-    *this->pcout << time_stepping
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
                  << " Norms = ("
                  << std::noshowpos << std::scientific
                  << navier_stokes.get_diffusion_step_rhs_norm()

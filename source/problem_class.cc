@@ -43,7 +43,7 @@ pcout(std::make_shared<ConditionalOStream>(std::cout,
 computing_timer(
   std::make_shared<TimerOutput>(mpi_communicator,
                                 *pcout,
-                                TimerOutput::summary,
+                                (prm.verbose? TimerOutput::summary: TimerOutput::never),
                                 TimerOutput::wall_times))
 {
   if (!std::filesystem::exists(prm.graphical_output_directory) &&

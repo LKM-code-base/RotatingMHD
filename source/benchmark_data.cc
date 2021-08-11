@@ -29,15 +29,13 @@ namespace BenchmarkData
 {
 
 template <int dim>
-DFGBechmarkRequest<dim>::DFGBechmarkRequest
-(const double reynolds_number,
- const double reference_length)
+DFGBechmarkRequest<dim>::DFGBechmarkRequest(const double reynolds_number)
 :
 Re(reynolds_number),
-front_evaluation_point(0.15 / reference_length,
-                       0.20 / reference_length),
-rear_evaluation_point(0.25 / reference_length,
-                      0.20 / reference_length),
+front_evaluation_point(1.5,
+                       2.0),
+rear_evaluation_point(2.5,
+                      2.0),
 pressure_difference(0),
 drag_coefficient(0),
 lift_coefficient(0)

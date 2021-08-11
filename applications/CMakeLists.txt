@@ -1,5 +1,3 @@
-PROJECT(applications)
-
 INCLUDE_DIRECTORIES(
     include
     ${CMAKE_SOURCE_DIR}/include
@@ -19,8 +17,9 @@ SET(SOURCE_FILES
 
 FOREACH(sourcefile ${SOURCE_FILES})
     # string replace: cut off .cc from files
-    STRING(REPLACE ".cc" "" testname ${sourcefile} )
-    ADD_EXECUTABLE( ${testname} ${sourcefile})
-    DEAL_II_SETUP_TARGET(${testname})
-    TARGET_LINK_LIBRARIES(${testname} rotatingMHD stdc++fs)
-ENDFOREACH( sourcefile ${APP_SOURCES} )
+    STRING(REPLACE ".cc" "" executablename ${sourcefile} )
+    PROJECT(${executablename})
+    ADD_EXECUTABLE(${executablename} ${sourcefile})
+    DEAL_II_SETUP_TARGET(${executablename})
+    TARGET_LINK_LIBRARIES(${executablename} rotatingMHD stdc++fs)
+ENDFOREACH(sourcefile ${APP_SOURCES})

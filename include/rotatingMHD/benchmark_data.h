@@ -53,8 +53,7 @@ struct DFGBechmarkRequest
    * @brief The default constructor of the structure.
    *
    */
-  DFGBechmarkRequest(const double reynolds_number = 100.0,
-                     const double reference_length = 1.0);
+  DFGBechmarkRequest(const double reynolds_number = 100.0);
 
   /*!
    * @brief The Reynolds number of the problem.
