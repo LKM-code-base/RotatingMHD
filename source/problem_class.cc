@@ -103,7 +103,13 @@ void Problem<dim>::project_function
          ExcMessage("The number of components of the function does not those "
                     "of the entity"));
 
-  LinearAlgebra::MPI::Vector tmp_vector(entity->distributed_vector);
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->get_locally_owned_dofs(), mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->get_locally_owned_dofs());
+  #endif
 
   VectorTools::project(*(this->mapping),
                        entity->get_dof_handler(),
@@ -126,7 +132,14 @@ void Problem<dim>::interpolate_function
   Assert(function.n_components == entity->n_components(),
          ExcMessage("The number of components of the function does not those "
                     "of the entity"));
-  LinearAlgebra::MPI::Vector  tmp_vector(entity->distributed_vector);
+
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->get_locally_owned_dofs(), mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_vector(entity->get_locally_owned_dofs());
+  #endif
 
   VectorTools::interpolate(entity->get_dof_handler(),
                            function,
@@ -144,7 +157,13 @@ void Problem<dim>::set_initial_conditions
  const TimeDiscretization::VSIMEXMethod     &time_stepping,
  const bool                                 boolean)
 {
-  LinearAlgebra::MPI::Vector  tmp_old_solution(entity->distributed_vector);
+  #ifdef USE_PETSC_LA
+    LinearAlgebra::MPI::Vector
+    tmp_old_solution(entity->get_locally_owned_dofs(), mpi_communicator);
+  #else
+    LinearAlgebra::MPI::Vector
+    tmp_old_solution(entity->get_locally_owned_dofs());
+  #endif
 
   function.set_time(time_stepping.get_start_time());
 

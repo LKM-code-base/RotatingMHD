@@ -81,12 +81,11 @@ void FE_FieldBase<dim>::setup_dofs()
     AssertThrow(dof_handler->has_active_dofs(),
                 ExcMessage("The DoFHandler of the base entity does not have any "
                            "active degrees of freedom."));
-
   }
   else
   {
     dof_handler->initialize(triangulation, *finite_element);
-    DoFRenumbering::boost::Cuthill_McKee(*dof_handler);
+    DoFRenumbering::Cuthill_McKee(*dof_handler);
   }
 
   locally_owned_dofs = dof_handler->locally_owned_dofs();
@@ -264,28 +263,25 @@ void FE_VectorField<dim>::setup_dofs()
   {
     this->dof_handler->initialize(this->triangulation,
                                   this->get_finite_element());
-    DoFRenumbering::component_wise(*(this->dof_handler));
-
-    this->locally_owned_dofs = this->dof_handler->locally_owned_dofs();
-    DoFTools::extract_locally_relevant_dofs(this->get_dof_handler(),
-                                            this->locally_relevant_dofs);
-    // Fill hanging node constraints
-    this->hanging_node_constraints.clear();
-    {
-      this->hanging_node_constraints.reinit(this->locally_relevant_dofs);
-      DoFTools::make_hanging_node_constraints(*(this->dof_handler),
-                                              this->hanging_node_constraints);
-    }
-    this->hanging_node_constraints.close();
-
-    // Modify flag because the dofs are setup
-    this->flag_setup_dofs = false;
-
-    // Setup solution vectors
-    this->setup_vectors();
+//    DoFRenumbering::Cuthill_McKee(*(this->dof_handler));
+//    DoFRenumbering::block_wise(*(this->dof_handler));
   }
-}
 
+  this->locally_owned_dofs = this->dof_handler->locally_owned_dofs();
+  DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
+                                          this->locally_relevant_dofs);
+  // Fill hanging node constraints
+  this->hanging_node_constraints.clear();
+  {
+    this->hanging_node_constraints.reinit(this->locally_relevant_dofs);
+    DoFTools::make_hanging_node_constraints(*(this->dof_handler),
+                                            this->hanging_node_constraints);
+  }
+  this->hanging_node_constraints.close();
+
+  // Modify flag because the dofs are setup
+  this->flag_setup_dofs = false;
+}
 
 
 

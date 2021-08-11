@@ -94,7 +94,7 @@ public:
   types::global_dof_index n_dofs() const;
 
   /*!
-   * @breif Returns the number of components of the finite element.
+   * @brief Returns the number of components of the finite element.
    */
   unsigned int n_components() const;
 
