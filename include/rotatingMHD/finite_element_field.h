@@ -40,13 +40,13 @@ namespace Entities
  */
 
 template <int dim>
-struct EntityBase
+struct FE_FieldBase
 {
 public:
   /*!
    * @brief Constructor.
    */
-  EntityBase(const unsigned int                               n_components,
+  FE_FieldBase(const unsigned int                               n_components,
              const unsigned int                               fe_degree,
              const parallel::distributed::Triangulation<dim> &triangulation,
              const std::string                               &name = "entity");
@@ -54,7 +54,7 @@ public:
   /*!
    * @brief Copy constructor.
    */
-  EntityBase(const EntityBase<dim>  &entity,
+  FE_FieldBase(const FE_FieldBase<dim>  &entity,
              const std::string      &new_name = "entity");
 
   /*!
@@ -237,7 +237,7 @@ protected:
 
 
 template <int dim>
-inline bool EntityBase<dim>::is_child_entity() const
+inline bool FE_FieldBase<dim>::is_child_entity() const
 {
   return (flag_child_entity);
 }
@@ -245,7 +245,7 @@ inline bool EntityBase<dim>::is_child_entity() const
 
 
 template <int dim>
-inline const parallel::distributed::Triangulation<dim> &EntityBase<dim>::get_triangulation() const
+inline const parallel::distributed::Triangulation<dim> &FE_FieldBase<dim>::get_triangulation() const
 {
   return (triangulation);
 }
@@ -255,7 +255,7 @@ inline const parallel::distributed::Triangulation<dim> &EntityBase<dim>::get_tri
    * @brief Numerical representation of a vector field.
    */
 template <int dim>
-struct VectorEntity : EntityBase<dim>
+struct VectorEntity : FE_FieldBase<dim>
 {
   /*!
    * @brief Constructor.
@@ -368,7 +368,7 @@ struct VectorEntity : EntityBase<dim>
  * @brief Numerical representation of a scalar field.
  */
 template <int dim>
-struct ScalarEntity : EntityBase<dim>
+struct ScalarEntity : FE_FieldBase<dim>
 {
   /*!
    * @brief Constructor.

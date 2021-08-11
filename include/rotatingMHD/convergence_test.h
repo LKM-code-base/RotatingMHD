@@ -21,11 +21,11 @@ struct ConvergenceAnalysisData
 {
   ConvergenceTable                convergence_table;
 
-  const std::shared_ptr<const Entities::EntityBase<dim>> entity;
+  const std::shared_ptr<const Entities::FE_FieldBase<dim>> entity;
 
   const Function<dim>            &exact_solution;
 
-  ConvergenceAnalysisData(const std::shared_ptr<Entities::EntityBase<dim>> &entity,
+  ConvergenceAnalysisData(const std::shared_ptr<Entities::FE_FieldBase<dim>> &entity,
                           const Function<dim>             &exact_solution);
 
   void update_table(const unsigned int  level,

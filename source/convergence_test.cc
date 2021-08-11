@@ -17,7 +17,7 @@ using namespace dealii;
 
 template <int dim>
 ConvergenceAnalysisData<dim>::ConvergenceAnalysisData
-(const std::shared_ptr<Entities::EntityBase<dim>> &entity,
+(const std::shared_ptr<Entities::FE_FieldBase<dim>> &entity,
  const Function<dim>             &exact_solution)
 :
 entity(entity),

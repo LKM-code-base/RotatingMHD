@@ -18,7 +18,7 @@ namespace Entities
 
 
 template <int dim>
-EntityBase<dim>::EntityBase
+FE_FieldBase<dim>::FE_FieldBase
 (const unsigned int                               n_components,
  const unsigned int                               fe_degree,
  const parallel::distributed::Triangulation<dim> &triangulation,
@@ -37,8 +37,8 @@ triangulation(triangulation)
 
 
 template <int dim>
-EntityBase<dim>::EntityBase
-(const EntityBase<dim>  &entity,
+FE_FieldBase<dim>::FE_FieldBase
+(const FE_FieldBase<dim>  &entity,
  const std::string      &new_name)
 :
 n_components(entity.n_components),
@@ -51,7 +51,7 @@ triangulation(entity.triangulation)
 {}
 
 template <int dim>
-void EntityBase<dim>::clear()
+void FE_FieldBase<dim>::clear()
 {
   solution.clear();
   old_solution.clear();
@@ -71,7 +71,7 @@ void EntityBase<dim>::clear()
 }
 
 template <int dim>
-void EntityBase<dim>::reinit()
+void FE_FieldBase<dim>::reinit()
 {
   Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
@@ -100,7 +100,7 @@ void EntityBase<dim>::reinit()
 
 
 template <int dim>
-void EntityBase<dim>::update_solution_vectors()
+void FE_FieldBase<dim>::update_solution_vectors()
 {
   Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
@@ -111,7 +111,7 @@ void EntityBase<dim>::update_solution_vectors()
 
 
 template <int dim>
-void EntityBase<dim>::set_solution_vectors_to_zero()
+void FE_FieldBase<dim>::set_solution_vectors_to_zero()
 {
   Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
@@ -122,7 +122,7 @@ void EntityBase<dim>::set_solution_vectors_to_zero()
 
 template<int dim>
 std::map<typename VectorTools::NormType, double>
-EntityBase<dim>::compute_error
+FE_FieldBase<dim>::compute_error
 (const Function<dim>	&exact_solution,
  const std::shared_ptr<Mapping<dim>> external_mapping) const
 {
@@ -187,7 +187,7 @@ VectorEntity<dim>::VectorEntity
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
-EntityBase<dim>(dim, fe_degree, triangulation, name),
+FE_FieldBase<dim>(dim, fe_degree, triangulation, name),
 fe(FE_Q<dim>(fe_degree), dim),
 boundary_conditions(triangulation)
 {}
@@ -199,7 +199,7 @@ VectorEntity<dim>::VectorEntity
 (const VectorEntity<dim>  &entity,
  const std::string        &new_name)
 :
-EntityBase<dim>(entity, new_name),
+FE_FieldBase<dim>(entity, new_name),
 fe(FE_Q<dim>(entity.fe_degree), dim),
 boundary_conditions(entity.get_triangulation())
 {}
@@ -210,7 +210,7 @@ void VectorEntity<dim>::clear()
 {
   boundary_conditions.clear();
 
-  EntityBase<dim>::clear();
+  FE_FieldBase<dim>::clear();
 }
 
 template <int dim>
@@ -672,7 +672,7 @@ ScalarEntity<dim>::ScalarEntity
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
-EntityBase<dim>(1, fe_degree, triangulation, name),
+FE_FieldBase<dim>(1, fe_degree, triangulation, name),
 fe(fe_degree),
 boundary_conditions(triangulation)
 {}
@@ -684,7 +684,7 @@ ScalarEntity<dim>::ScalarEntity
 (const ScalarEntity<dim>  &entity,
  const std::string        &new_name)
 :
-EntityBase<dim>(entity, new_name),
+FE_FieldBase<dim>(entity, new_name),
 fe(entity.fe_degree),
 boundary_conditions(entity.get_triangulation())
 {}
@@ -694,7 +694,7 @@ void ScalarEntity<dim>::clear()
 {
   boundary_conditions.clear();
 
-  EntityBase<dim>::clear();
+  FE_FieldBase<dim>::clear();
 }
 
 template <int dim>
@@ -1038,8 +1038,8 @@ Tensor<1,dim> ScalarEntity<dim>::point_gradient(
 
 } // namespace RMHD
 
-template struct RMHD::Entities::EntityBase<2>;
-template struct RMHD::Entities::EntityBase<3>;
+template struct RMHD::Entities::FE_FieldBase<2>;
+template struct RMHD::Entities::FE_FieldBase<3>;
 
 template struct RMHD::Entities::VectorEntity<2>;
 template struct RMHD::Entities::VectorEntity<3>;

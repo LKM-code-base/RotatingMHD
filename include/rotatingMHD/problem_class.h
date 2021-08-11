@@ -40,7 +40,7 @@ struct SolutionTransferContainer
    * @details The boolean indicates wheter the entity is to be
    * considered by the error estimation or not.
    */
-  using EntityEntry = std::pair<Entities::EntityBase<dim> *, bool>;
+  using EntityEntry = std::pair<Entities::FE_FieldBase<dim> *, bool>;
 
   /*!
    * @brief A std::vector with all the entities to be considered in
@@ -76,7 +76,7 @@ struct SolutionTransferContainer
    * @details If no boolean is passed, it is assumed that the entity
    * is to be considered by the error estimation.
    */
-  void add_entity(std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag = true);
+  void add_entity(std::shared_ptr<Entities::FE_FieldBase<dim>> entity, bool flag = true);
 
 private:
 
@@ -163,7 +163,7 @@ protected:
    */
   void project_function
   (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::EntityBase<dim>> entity,
+   const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
    LinearAlgebra::MPI::Vector                      &vector);
 
   /*!
@@ -172,7 +172,7 @@ protected:
    */
   void interpolate_function
   (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::EntityBase<dim>> entity,
+   const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
    LinearAlgebra::MPI::Vector                      &vector);
 
   /*!
@@ -190,7 +190,7 @@ protected:
    * apply the constraints instead of projection?
    */
   void set_initial_conditions
-  (std::shared_ptr<Entities::EntityBase<dim>> entity,
+  (std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
    Function<dim>                              &function,
    const TimeDiscretization::VSIMEXMethod     &time_stepping,
    const bool                                 boolean = false);
@@ -206,7 +206,7 @@ protected:
    */
   void compute_error
   (LinearAlgebra::MPI::Vector                 &error_vector,
-   std::shared_ptr<Entities::EntityBase<dim>> entity,
+   std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
    Function<dim>                              &exact_solution);
 
   /*!
