@@ -33,7 +33,7 @@ namespace Entities
 {
 
 /*!
- * @struct EntityBase
+ * @struct FE_FieldBase
  *
  * @brief This struct gathers all the numerical attributes that are
  * independent of the rank of the tensor.
@@ -159,42 +159,42 @@ public:
   void set_solution_vectors_to_zero();
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::setup_dofs and @ref VectorEntity::setup_dofs
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField in a vector and call
+   * @ref FE_ScalarField::setup_dofs and @ref FE_VectorField::setup_dofs
    * respectively.
    */
   virtual void setup_dofs() = 0;
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::apply_boundary_conditions and
-   * @ref VectorEntity::apply_boundary_conditions respectively.
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField in a vector and call
+   * @ref FE_ScalarField::apply_boundary_conditions and
+   * @ref FE_VectorField::apply_boundary_conditions respectively.
    */
   virtual void apply_boundary_conditions(const bool check_regularity = true) = 0;
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity as EntityBase instances and call
-   * @ref ScalarEntity::close_boundary_conditions and
-   * @ref VectorEntity::close_boundary_conditions respectively.
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField as FE_FieldBase instances and call
+   * @ref FE_ScalarField::close_boundary_conditions and
+   * @ref FE_VectorField::close_boundary_conditions respectively.
    */
   virtual void close_boundary_conditions(const bool print_summary = true) = 0;
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::update_boundary_conditions and
-   * @ref VectorEntity::update_boundary_conditions respectively.
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField in a vector and call
+   * @ref FE_ScalarField::update_boundary_conditions and
+   * @ref FE_VectorField::update_boundary_conditions respectively.
    */
   virtual void update_boundary_conditions() = 0;
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity as EntityBase instances and call
-   * @ref ScalarEntity::clear_boundary_conditions and
-   * @ref VectorEntity::clear_boundary_conditions respectively.
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField as FE_FieldBase instances and call
+   * @ref FE_ScalarField::clear_boundary_conditions and
+   * @ref FE_VectorField::clear_boundary_conditions respectively.
    */
   virtual void clear_boundary_conditions() = 0;
 
@@ -251,7 +251,7 @@ inline const parallel::distributed::Triangulation<dim> &FE_FieldBase<dim>::get_t
 }
 
   /*!
-   * @struct VectorEntity
+   * @struct FE_VectorField
    * @brief Numerical representation of a vector field.
    */
 template <int dim>
@@ -363,7 +363,7 @@ struct FE_VectorField : FE_FieldBase<dim>
 };
 
 /*!
- * @struct ScalarEntity
+ * @struct FE_ScalarField
  *
  * @brief Numerical representation of a scalar field.
  */

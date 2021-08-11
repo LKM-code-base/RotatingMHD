@@ -70,7 +70,7 @@ public:
 
   /*!
    * @brief The constructor of the HeatEquation class for the case
-   * where the velocity field is given by a VectorEntity instance.
+   * where the velocity field is given by a FE_VectorField instance.
    *
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
@@ -110,7 +110,7 @@ public:
    *  the heat equation problem.
    *
    *  @details Initializes the vector and matrices using the information
-   *  contained in the ScalarEntity and VectorEntity structs passed on
+   *  contained in the FE_ScalarField and FE_VectorField structs passed on
    *  in the constructor (The temperature and the velocity respectively).
    */
   void setup();

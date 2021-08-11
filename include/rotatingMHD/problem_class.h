@@ -36,17 +36,17 @@ struct SolutionTransferContainer
 {
   /*!
    * @brief A typedef for the std::pair composed of a pointer to a
-   * @ref Entities::EntityBase instance and a boolean.
+   * @ref Entities::FE_FieldBase instance and a boolean.
    * @details The boolean indicates wheter the entity is to be
    * considered by the error estimation or not.
    */
-  using EntityEntry = std::pair<Entities::FE_FieldBase<dim> *, bool>;
+  using FE_Field = std::pair<Entities::FE_FieldBase<dim> *, bool>;
 
   /*!
    * @brief A std::vector with all the entities to be considered in
    * a solution transfer
    */
-  std::vector<EntityEntry>  entities;
+  std::vector<FE_Field>  entities;
 
   /*!
    * @brief Default constructor.
@@ -71,7 +71,7 @@ struct SolutionTransferContainer
   bool empty() const;
 
   /*!
-   * @brief Adds the passed on EntityBase instance and flag to the
+   * @brief Adds the passed on FE_FieldBase instance and flag to the
    * entities struct member.
    * @details If no boolean is passed, it is assumed that the entity
    * is to be considered by the error estimation.
