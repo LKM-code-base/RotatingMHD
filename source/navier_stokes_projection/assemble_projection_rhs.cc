@@ -48,9 +48,9 @@ assemble_projection_step_rhs()
 
   WorkStream::run(
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               velocity->get_dof_handler().begin_active()),
+               pressure->get_dof_handler().begin_active()),
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               velocity->get_dof_handler().end()),
+               pressure->get_dof_handler().end()),
     worker,
     copier,
     AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>(

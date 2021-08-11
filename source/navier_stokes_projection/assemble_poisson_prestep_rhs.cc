@@ -66,9 +66,9 @@ assemble_poisson_prestep_rhs()
 
   WorkStream::run(
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               velocity->get_dof_handler().begin_active()),
+               pressure->get_dof_handler().begin_active()),
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               velocity->get_dof_handler().end()),
+               pressure->get_dof_handler().end()),
     worker,
     copier,
     AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>(
