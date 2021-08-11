@@ -99,7 +99,7 @@ void Problem<dim>::project_function
  const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
  LinearAlgebra::MPI::Vector                      &vector)
 {
-  Assert(function.n_components == entity->n_components,
+  Assert(function.n_components == entity->n_components(),
          ExcMessage("The number of components of the function does not those "
                     "of the entity"));
 
@@ -108,7 +108,7 @@ void Problem<dim>::project_function
   VectorTools::project(*(this->mapping),
                        entity->get_dof_handler(),
                        entity->get_constraints(),
-                       QGauss<dim>(entity->fe_degree + 2),
+                       QGauss<dim>(entity->get_finite_element().degree + 2),
                        function,
                        tmp_vector);
 
@@ -123,7 +123,7 @@ void Problem<dim>::interpolate_function
  const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
  LinearAlgebra::MPI::Vector                      &vector)
 {
-  Assert(function.n_components == entity->n_components,
+  Assert(function.n_components == entity->n_components(),
          ExcMessage("The number of components of the function does not those "
                     "of the entity"));
   LinearAlgebra::MPI::Vector  tmp_vector(entity->distributed_vector);
@@ -152,7 +152,7 @@ void Problem<dim>::set_initial_conditions
   {
     VectorTools::project(entity->get_dof_handler(),
                          entity->get_constraints(),
-                          QGauss<dim>(entity->fe_degree + 2),
+                          QGauss<dim>(entity->get_finite_element().degree + 2),
                           function,
                           tmp_old_solution);
 
@@ -164,7 +164,7 @@ void Problem<dim>::set_initial_conditions
 
     VectorTools::project(entity->get_dof_handler(),
                          entity->get_constraints(),
-                          QGauss<dim>(entity->fe_degree + 2),
+                          QGauss<dim>(entity->get_finite_element().degree + 2),
                           function,
                           tmp_old_old_solution);
 
@@ -172,7 +172,7 @@ void Problem<dim>::set_initial_conditions
 
     VectorTools::project(entity->get_dof_handler(),
                          entity->get_constraints(),
-                          QGauss<dim>(entity->fe_degree + 2),
+                          QGauss<dim>(entity->get_finite_element().degree + 2),
                           function,
                           tmp_old_solution);
 
@@ -276,7 +276,7 @@ void Problem<dim>::adaptive_mesh_refinement()
       {
         KellyErrorEstimator<dim>::estimate(
           container.entities[i].first->get_dof_handler(),
-          QGauss<dim-1>(container.entities[i].first->fe_degree + 1),
+          QGauss<dim-1>(container.entities[i].first->get_finite_element().degree + 1),
           std::map<types::boundary_id, const Function<dim> *>(),
           container.entities[i].first->solution,
           estimated_errors_per_cell[j],
@@ -392,7 +392,7 @@ void Problem<dim>::adaptive_mesh_refinement()
     }
 
     (entity.first)->apply_boundary_conditions();
-    (entity.first)->reinit();
+    (entity.first)->setup_vectors();
   }
 
   *pcout << std::setw(60)

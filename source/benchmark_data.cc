@@ -84,13 +84,13 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
 
   const MappingQ<dim> mapping(3);
 
-  const int face_p_degree = velocity->fe_degree;
+  const int face_p_degree = velocity->get_finite_element().degree;
 
   const QGauss<dim-1>   face_quadrature_formula(
                             std::ceil(0.5 * double(face_p_degree + 1)));
 
   FEFaceValues<dim> velocity_face_fe_values(mapping,
-                                            velocity->fe,
+                                            velocity->get_finite_element(),
                                             face_quadrature_formula,
                                             update_values |
                                             update_gradients |
@@ -98,7 +98,7 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
                                             update_normal_vectors);
 
   FEFaceValues<dim> pressure_face_fe_values(mapping,
-                                            pressure->fe,
+                                            pressure->get_finite_element(),
                                             face_quadrature_formula,
                                             update_values);
 
@@ -425,7 +425,7 @@ void MIT<dim>::compute_wall_data()
   /*! @attention What would be the polynomial degree of the normal
       vector? */
   // Polynomial degree of the integrand
-  const int face_p_degree = temperature->fe_degree;
+  const int face_p_degree = temperature->get_finite_element().degree;
 
   // Quadrature formula
   const QGauss<dim-1>   face_quadrature_formula(
@@ -433,7 +433,7 @@ void MIT<dim>::compute_wall_data()
 
   // Finite element values
   FEFaceValues<dim> face_fe_values(*mapping,
-                                   temperature->fe,
+                                   temperature->get_finite_element(),
                                    face_quadrature_formula,
                                    update_gradients |
                                    update_JxW_values |
@@ -511,7 +511,7 @@ void MIT<dim>::compute_global_data()
   average_vorticity_metric  = 0.0;
 
   // Polynomial degree of the integrand
-  const int p_degree = 2 * velocity->fe_degree;
+  const int p_degree = 2 * velocity->get_finite_element().degree;
 
   // Quadrature formula
   const QGauss<dim>   quadrature_formula(
@@ -519,7 +519,7 @@ void MIT<dim>::compute_global_data()
 
   // Finite element values
   FEValues<dim> fe_values(*mapping,
-                          velocity->fe,
+                          velocity->get_finite_element(),
                           quadrature_formula,
                           update_values |
                           update_gradients |
@@ -782,14 +782,14 @@ void ChristensenBenchmark<dim>::compute_global_data()
   const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(2), dim);
 
   // Create pointer to the pertinent finite element
-  const FESystem<dim>* const magnetic_field_fe =
-              (case_number != 0) ? &magnetic_field->fe : &dummy_fe_system;
+  const FiniteElement<dim>* const magnetic_field_fe =
+              (case_number != 0) ? &magnetic_field->get_finite_element() : &dummy_fe_system;
 
   // Polynomial degree of the integrand
   const int p_degree = 2 * (case_number != 0
-                              ? std::max(velocity->fe_degree,
-                                        magnetic_field->fe_degree)
-                              : velocity->fe_degree);
+                              ? std::max(velocity->get_finite_element().degree,
+                                        magnetic_field->get_finite_element().degree)
+                              : velocity->get_finite_element().degree);
 
   // Quadrature formula
   const QGauss<dim>   quadrature_formula(
@@ -827,13 +827,13 @@ void ChristensenBenchmark<dim>::compute_global_data()
    AssemblyData::Benchmarks::Christensen::Scratch<dim>(
     *mapping,
     quadrature_formula,
-    velocity->fe,
+    velocity->get_finite_element(),
     update_JxW_values|
     update_values|
     update_quadrature_points,
     *magnetic_field_fe,
     update_values),
-   AssemblyData::Benchmarks::Christensen::Copy(velocity->fe.dofs_per_cell));
+   AssemblyData::Benchmarks::Christensen::Copy(velocity->get_finite_element().dofs_per_cell));
 
   // Gather the values of each processor
   mean_kinetic_energy_density = Utilities::MPI::sum(

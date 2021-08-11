@@ -21,20 +21,20 @@ assemble_diffusion_step_rhs()
   const FE_Q<dim> dummy_fe(1);
 
   // Create pointer to the pertinent finite element
-  const FE_Q<dim> * const temperature_fe_ptr =
-          (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
+  const FiniteElement<dim> * const temperature_fe_ptr =
+          (temperature.get() != nullptr) ? &temperature->get_finite_element() : &dummy_fe;
 
   // Polynomial degree of the body force and the neumann function
-  const int p_degree_body_force       = velocity->fe_degree;
+  const int p_degree_body_force       = velocity->get_finite_element().degree;
 
-  const int p_degree_neumann_function = velocity->fe_degree;
+  const int p_degree_neumann_function = velocity->get_finite_element().degree;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = std::max(3 * velocity->fe_degree - 1,
-                                velocity->fe_degree + p_degree_body_force);
+  const int p_degree = std::max(3 * velocity->get_finite_element().degree - 1,
+                                velocity->get_finite_element().degree + p_degree_body_force);
 
   // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = velocity->fe_degree + p_degree_neumann_function;
+  const int face_p_degree = velocity->get_finite_element().degree + p_degree_neumann_function;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -75,7 +75,7 @@ assemble_diffusion_step_rhs()
      *mapping,
      quadrature_formula,
      face_quadrature_formula,
-     velocity->fe,
+     velocity->get_finite_element(),
      update_values|
      update_gradients|
      update_JxW_values|
@@ -83,11 +83,11 @@ assemble_diffusion_step_rhs()
      update_values |
      update_JxW_values |
      update_quadrature_points,
-     pressure->fe,
+     pressure->get_finite_element(),
      update_values,
      *temperature_fe_ptr,
      update_values),
-   AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy(velocity->fe.dofs_per_cell));
+   AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy(velocity->get_finite_element().dofs_per_cell));
 
   // Compress global data
   diffusion_step_rhs.compress(VectorOperation::add);

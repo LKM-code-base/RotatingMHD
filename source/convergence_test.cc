@@ -69,7 +69,7 @@ void ConvergenceAnalysisData<dim>::update_table
 
     {
       // Compute the error in the L2-norm.
-      const QGauss<dim>    quadrature_formula(entity->fe_degree + 2);
+      const QGauss<dim>    quadrature_formula(entity->get_finite_element().degree + 2);
 
       VectorTools::integrate_difference
       (entity->get_dof_handler(),
@@ -115,7 +115,7 @@ void ConvergenceAnalysisData<dim>::update_table
     {
       const QTrapez<1>     trapezoidal_rule;
       const QIterated<dim> linfty_quadrature_rule(trapezoidal_rule,
-                                                  entity->fe_degree);
+                                                  entity->get_finite_element().degree);
 
       // Compute the error in the Linfty-norm.
       VectorTools::integrate_difference

@@ -48,9 +48,7 @@ void NavierStokesProjection<dim>::setup_phi()
   // Extract owned and relevant degrees of freedom and populate
   // AffineConstraint instance of the hanging nodes
   phi->setup_dofs();
-
-  // Initiate the solution vectors
-  phi->reinit();
+  phi->setup_vectors();
 
   // Clears the boundary conditions
   phi->clear_boundary_conditions();

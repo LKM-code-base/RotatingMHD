@@ -102,8 +102,8 @@ evaluation_point(2.0, 3.0)
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   initialize();
   this->container.add_entity(velocity);
   this->container.add_entity(pressure, false);
@@ -240,7 +240,7 @@ void Step35<dim>::output()
   data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->get_finite_element().degree);
 
   static int out_index = 0;
 

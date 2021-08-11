@@ -24,31 +24,31 @@ void HeatEquation<dim>::assemble_rhs()
   const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(2), dim);
 
   // Create pointer to the pertinent finite element
-  const FESystem<dim>* const velocity_fe =
-              (velocity != nullptr) ? &velocity->fe : &dummy_fe_system;
+  const FiniteElement<dim>* const velocity_fe =
+              (velocity != nullptr) ? &velocity->get_finite_element() : &dummy_fe_system;
 
   // Set polynomial degree of the velocity. If the velicity is given
   // by a function the degree is hardcoded to 2.
   const unsigned int velocity_fe_degree =
-                        (velocity != nullptr) ? velocity->fe_degree : 2;
+                        (velocity != nullptr) ? velocity->get_finite_element().degree : 2;
 
   // Set polynomial degree of the source function.
   // Hardcoded to match that of the velocity.
-  const int p_degree_source_function = temperature->fe_degree;
+  const int p_degree_source_function = temperature->get_finite_element().degree;
 
   // Set polynomial degree of the Neumann boundary condition function.
   // Hardcoded to match that of the velocity.
-  const int p_degree_neumann_function = temperature->fe_degree;
+  const int p_degree_neumann_function = temperature->get_finite_element().degree;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = std::max(temperature->fe_degree + p_degree_source_function,
-                                2 * temperature->fe_degree + velocity_fe_degree - 1);
+  const int p_degree = std::max(temperature->get_finite_element().degree + p_degree_source_function,
+                                2 * temperature->get_finite_element().degree + velocity_fe_degree - 1);
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = temperature->fe_degree + p_degree_neumann_function;
+  const int face_p_degree = temperature->get_finite_element().degree + p_degree_neumann_function;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
@@ -86,7 +86,7 @@ void HeatEquation<dim>::assemble_rhs()
     *mapping,
     quadrature_formula,
     face_quadrature_formula,
-    temperature->fe,
+    temperature->get_finite_element(),
     update_JxW_values |
     update_values|
     update_gradients|
@@ -96,7 +96,7 @@ void HeatEquation<dim>::assemble_rhs()
     update_quadrature_points,
     *velocity_fe,
     update_values),
-   AssemblyData::HeatEquation::RightHandSide::Copy(temperature->fe.dofs_per_cell));
+   AssemblyData::HeatEquation::RightHandSide::Copy(temperature->get_finite_element().dofs_per_cell));
 
   // Compress global data
   rhs.compress(VectorOperation::add);

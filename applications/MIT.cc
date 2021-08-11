@@ -184,9 +184,9 @@ flag_local_refinement(true)
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
-  temperature->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
+  temperature->setup_vectors();
   initialize();
 
   // Stores all the fields to the SolutionTransfor container
@@ -389,7 +389,7 @@ void MITBenchmark<dim>::output()
   // elements. In other words, the triangulation visualized in the
   // *.pvtu file is one globl refinement finer than the actual
   // triangulation.
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->get_finite_element().degree);
 
   // Writes the DataOut instance to the file.
   static int out_index = 0;

@@ -23,16 +23,16 @@ void HeatEquation<dim>::assemble_advection_matrix()
   const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(1), dim);
 
   // Create pointer to the pertinent finite element
-  const FESystem<dim>* const velocity_fe =
-              (velocity != nullptr) ? &velocity->fe : &dummy_fe_system;
+  const FiniteElement<dim>* const velocity_fe =
+              (velocity != nullptr) ? &velocity->get_finite_element() : &dummy_fe_system;
 
   // Set polynomial degree of the velocity. If the velicity is given
   // by a function the degree is hardcoded to 2.
   const unsigned int velocity_fe_degree =
-                        (velocity != nullptr) ? velocity->fe_degree : 2;
+                        (velocity != nullptr) ? velocity->get_finite_element().degree : 2;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = velocity_fe_degree + 2 * temperature->fe_degree - 1;
+  const int p_degree = velocity_fe_degree + 2 * temperature->get_finite_element().degree - 1;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -69,14 +69,14 @@ void HeatEquation<dim>::assemble_advection_matrix()
    AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>(
     *mapping,
     quadrature_formula,
-    temperature->fe,
+    temperature->get_finite_element(),
     update_values|
     update_gradients|
     update_JxW_values |
     update_quadrature_points,
     *velocity_fe,
     update_values),
-   AssemblyData::HeatEquation::AdvectionMatrix::Copy(temperature->fe.dofs_per_cell));
+   AssemblyData::HeatEquation::AdvectionMatrix::Copy(temperature->get_finite_element().dofs_per_cell));
 
   // Compress global data
   advection_matrix.compress(VectorOperation::add);

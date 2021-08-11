@@ -49,21 +49,24 @@ public:
   /*!
    * @brief Constructor.
    */
-  FE_FieldBase(const unsigned int                               n_components,
-             const unsigned int                               fe_degree,
-             const parallel::distributed::Triangulation<dim> &triangulation,
-             const std::string                               &name = "entity");
+  FE_FieldBase(const parallel::distributed::Triangulation<dim> &triangulation,
+               const std::string                               &name = "entity");
 
   /*!
    * @brief Copy constructor.
    */
   FE_FieldBase(const FE_FieldBase<dim>  &entity,
-             const std::string      &new_name = "entity");
+               const std::string      &new_name = "entity");
 
   /*!
    * @brief Returns a const reference to the @ref dof_handler
    */
   const DoFHandler<dim>&  get_dof_handler() const;
+
+  /*!
+   * @brief Returns a const reference to the @ref finite_element
+   */
+  const FiniteElement<dim>&  get_finite_element() const;
 
   /*!
    * @brief Returns a const reference to the @ref locally_owned_dofs
@@ -91,14 +94,9 @@ public:
   types::global_dof_index n_dofs() const;
 
   /*!
-   * @brief Number of vector components.
+   * @breif Returns the number of components of the finite element.
    */
-  const unsigned int                n_components;
-
-  /*!
-   * @brief The degree of the finite element.
-   */
-  const unsigned int                fe_degree;
+  unsigned int n_components() const;
 
   /*!
    * @brief Name of the physical field which is contained in the entity.
@@ -146,7 +144,7 @@ public:
    * @brief Initializes the solution vectors by calling their respective
    * reinit method.
    */
-  void reinit();
+  void setup_vectors();
 
   /*!
    * @brief Passes the contents of a solution vector to the one prior to it.
@@ -164,7 +162,7 @@ public:
    * @ref FE_ScalarField::setup_dofs and @ref FE_VectorField::setup_dofs
    * respectively.
    */
-  virtual void setup_dofs() = 0;
+  virtual void setup_dofs();
 
   /*!
    * @brief Empty virtual method introduced to gather @ref FE_ScalarField
@@ -240,7 +238,12 @@ protected:
   /*!
    * @brief The DoFHandler<dim> instance of the entity.
    */
-  std::shared_ptr<DoFHandler<dim>>  dof_handler;
+  std::shared_ptr<DoFHandler<dim>>      dof_handler;
+
+  /*!
+   * @brief Finite element.
+   */
+  std::shared_ptr<FiniteElement<dim>> finite_element;
 
   /*!
    * @brief The AffineConstraints<double> instance handling the
@@ -271,6 +274,13 @@ inline const DoFHandler<dim> &
 FE_FieldBase<dim>::get_dof_handler() const
 {
   return (*dof_handler);
+}
+
+template<int dim>
+inline const FiniteElement<dim> &
+FE_FieldBase<dim>::get_finite_element() const
+{
+  return (*finite_element);
 }
 
 template<int dim>
@@ -315,6 +325,13 @@ FE_FieldBase<dim>::n_dofs() const
   return (dof_handler->n_dofs());
 }
 
+template<int dim>
+inline unsigned int
+FE_FieldBase<dim>::n_components() const
+{
+  return (finite_element->n_components());
+}
+
 template <int dim>
 inline const parallel::distributed::Triangulation<dim> &
 FE_FieldBase<dim>::get_triangulation() const
@@ -341,11 +358,6 @@ struct FE_VectorField : FE_FieldBase<dim>
    */
   FE_VectorField(const FE_VectorField<dim>  &entity,
                const std::string        &new_name);
-
-  /*!
-   * @brief The finite element of the vector field.
-   */
-  FESystem<dim>                 fe;
 
   /*!
    * @brief @ref VectorBoundaryConditions instance bookkeeping the
@@ -456,11 +468,6 @@ struct FE_ScalarField : FE_FieldBase<dim>
                const std::string        &new_name = "entity");
 
   /*!
-   * @brief The finite element of the scalar field.
-   */
-  FE_Q<dim> fe;
-
-  /*!
    * @brief @ref ScalarBoundaryConditions instance bookkeeping the
    * boundary conditions of the scalar field.
    */
@@ -471,14 +478,6 @@ struct FE_ScalarField : FE_FieldBase<dim>
    * after having called the default constructor.
    */
   virtual void clear() override;
-
-  /*!
-   * @brief Set ups the degrees of freedom of the scalar field.
-   * @details It distributes the degrees of freedom bases on @ref fe;
-   * extracts the @ref locally_owned_dofs and the @ref locally_relevant_dofs;
-   * and makes the hanging node constraints contained in @ref hanging_nodes.
-   */
-  virtual void setup_dofs() override;
 
   /*!
    * @brief Applies all the boundary conditions into the @ref constraints

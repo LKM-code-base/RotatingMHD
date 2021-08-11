@@ -223,9 +223,9 @@ christensen_benchmark(velocity,
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
-  temperature->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
+  temperature->setup_vectors();
   initialize();
 
   // Stores all the fields to the SolutionTransfer container
@@ -421,7 +421,7 @@ void Christensen<dim>::output()
   // triangulation.
 
   data_out.build_patches(*this->mapping,
-                         velocity->fe_degree,
+                         velocity->get_finite_element().degree,
                          DataOut<dim>::curved_inner_cells);
 
 

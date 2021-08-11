@@ -284,7 +284,7 @@ void Couette<dim>::output()
                            pressure->solution,
                            "pressure");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->get_finite_element().degree);
 
   static int out_index = 0;
 
@@ -309,8 +309,8 @@ void Couette<dim>::solve(const unsigned int &level)
 {
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   error.reinit(velocity->solution);
   initialize();
 

@@ -220,7 +220,7 @@ void ThermalTGV<dim>::output()
                            error,
                            "error");
 
-  data_out.build_patches(temperature->fe_degree);
+  data_out.build_patches(temperature->get_finite_element().degree);
 
   static int out_index = 0;
 
@@ -244,7 +244,7 @@ void ThermalTGV<dim>::solve(const unsigned int &level)
 {
   setup_dofs();
   setup_constraints();
-  temperature->reinit();
+  temperature->setup_vectors();
   error.reinit(temperature->solution);
   initialize();
 

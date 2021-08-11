@@ -20,7 +20,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
   stiffness_matrix  = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * temperature->fe_degree;
+  const int p_degree = 2 * temperature->get_finite_element().degree;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -57,11 +57,11 @@ void HeatEquation<dim>::assemble_constant_matrices()
    AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>(
     *mapping,
     quadrature_formula,
-    temperature->fe,
+    temperature->get_finite_element(),
     update_values|
     update_gradients|
     update_JxW_values),
-   AssemblyData::HeatEquation::ConstantMatrices::Copy(temperature->fe.dofs_per_cell));
+   AssemblyData::HeatEquation::ConstantMatrices::Copy(temperature->get_finite_element().dofs_per_cell));
 
   // Compress global data
   mass_matrix.compress(VectorOperation::add);

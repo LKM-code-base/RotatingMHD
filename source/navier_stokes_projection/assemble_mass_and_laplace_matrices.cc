@@ -18,7 +18,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   velocity_laplace_matrix = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * velocity->fe_degree;
+  const int p_degree = 2 * velocity->get_finite_element().degree;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -55,11 +55,11 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>(
     *mapping,
     quadrature_formula,
-    velocity->fe,
+    velocity->get_finite_element(),
     update_values|
     update_gradients|
     update_JxW_values),
-   AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy(velocity->fe.dofs_per_cell));
+   AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy(velocity->get_finite_element().dofs_per_cell));
 
   // Compress global data
   velocity_mass_matrix.compress(VectorOperation::add);
@@ -150,7 +150,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   phi_laplace_matrix      = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * pressure->fe_degree;
+  const int p_degree = 2 * pressure->get_finite_element().degree;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -187,11 +187,11 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>(
     *mapping,
     quadrature_formula,
-    pressure->fe,
+    pressure->get_finite_element(),
     update_values|
     update_gradients|
     update_JxW_values),
-   AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy(pressure->fe.dofs_per_cell));
+   AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy(pressure->get_finite_element().dofs_per_cell));
 
   // Compress global data
   pressure_laplace_matrix.compress(VectorOperation::add);

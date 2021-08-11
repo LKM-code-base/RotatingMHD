@@ -279,7 +279,7 @@ void TGV<dim>::output()
                            pressure_error,
                            "pressure_error");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->get_finite_element().degree);
 
   static int out_index = 0;
 
@@ -303,8 +303,8 @@ void TGV<dim>::solve(const unsigned int &level)
 {
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   velocity_error.reinit(velocity->solution);
   pressure_error.reinit(pressure->solution);
   initialize();

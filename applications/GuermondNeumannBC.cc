@@ -230,7 +230,7 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 
       VectorTools::project(pressure->get_dof_handler(),
                           pressure->get_constraints(),
-                          QGauss<dim>(pressure->fe_degree + 2),
+                          QGauss<dim>(pressure->get_finite_element().degree + 2),
                           *pressure_exact_solution,
                           tmp_analytical_pressure);
 
@@ -319,7 +319,7 @@ void Guermond<dim>::output()
                            pressure_error,
                            "pressure_error");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->get_finite_element().degree);
 
   static int out_index = 0;
 
@@ -345,8 +345,8 @@ void Guermond<dim>::solve(const unsigned int &level)
   navier_stokes.set_body_force(body_force);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   velocity_error.reinit(velocity->solution);
   pressure_error.reinit(pressure->solution);
   initialize();

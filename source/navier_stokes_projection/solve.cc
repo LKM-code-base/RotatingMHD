@@ -121,7 +121,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             build_preconditioner(correction_step_preconditioner,
                                  projection_mass_matrix,
                                  solver_parameters.preconditioner_parameters_ptr,
-                                 (pressure->fe_degree > 1? true: false));
+                                 (pressure->get_finite_element().degree > 1? true: false));
           }
 
           AssertThrow(correction_step_preconditioner != nullptr,
@@ -194,7 +194,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           {
             const LinearAlgebra::MPI::Vector::value_type mean_value
               = VectorTools::compute_mean_value(pressure->get_dof_handler(),
-                                                QGauss<dim>(pressure->fe.degree + 1),
+                                                QGauss<dim>(pressure->get_finite_element().degree + 1),
                                                 pressure->solution,
                                                 0);
 

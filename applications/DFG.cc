@@ -341,8 +341,8 @@ pressure_initial_condition()
   make_grid();
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   initialize();
   this->container.add_entity(velocity);
   this->container.add_entity(pressure, false);
@@ -466,7 +466,7 @@ void DFG<dim>::output()
                            pressure->solution,
                            "Pressure");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->get_finite_element().degree);
 
   static int out_index = 0;
 

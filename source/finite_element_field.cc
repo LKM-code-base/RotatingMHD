@@ -1,5 +1,6 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
+#include <deal.II/dofs/dof_renumbering.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/vector_tools.h>
@@ -19,13 +20,9 @@ namespace Entities
 
 template <int dim>
 FE_FieldBase<dim>::FE_FieldBase
-(const unsigned int                               n_components,
- const unsigned int                               fe_degree,
- const parallel::distributed::Triangulation<dim> &triangulation,
+(const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
-n_components(n_components),
-fe_degree(fe_degree),
 name(name),
 flag_child_entity(false),
 flag_setup_dofs(true),
@@ -41,13 +38,13 @@ FE_FieldBase<dim>::FE_FieldBase
 (const FE_FieldBase<dim>  &entity,
  const std::string      &new_name)
 :
-n_components(entity.n_components),
-fe_degree(entity.fe_degree),
 name(new_name),
 flag_child_entity(true),
+flag_setup_dofs(entity.flag_setup_dofs),
 mpi_communicator(entity.get_triangulation().get_communicator()),
 triangulation(entity.get_triangulation()),
-dof_handler(entity.dof_handler)
+dof_handler(entity.dof_handler),
+finite_element(entity.finite_element)
 {}
 
 template <int dim>
@@ -71,7 +68,45 @@ void FE_FieldBase<dim>::clear()
 }
 
 template <int dim>
-void FE_FieldBase<dim>::reinit()
+void FE_FieldBase<dim>::setup_dofs()
+{
+  if (flag_child_entity)
+  {
+    AssertThrow(finite_element != nullptr,
+                ExcMessage("The shared pointer to the FiniteElement of the base "
+                           "entity is not setup correctly."));
+    AssertThrow(dof_handler != nullptr,
+                ExcMessage("The shared pointer to the DoFHandler of the base "
+                           "entity is not setup correctly."));
+    AssertThrow(dof_handler->has_active_dofs(),
+                ExcMessage("The DoFHandler of the base entity does not have any "
+                           "active degrees of freedom."));
+
+  }
+  else
+  {
+    dof_handler->initialize(triangulation, *finite_element);
+    DoFRenumbering::boost::Cuthill_McKee(*dof_handler);
+  }
+
+  locally_owned_dofs = dof_handler->locally_owned_dofs();
+  DoFTools::extract_locally_relevant_dofs(*dof_handler,
+                                          locally_relevant_dofs);
+  // Fill hanging node constraints
+  hanging_node_constraints.clear();
+  {
+    hanging_node_constraints.reinit(locally_relevant_dofs);
+    DoFTools::make_hanging_node_constraints(*dof_handler,
+                                            hanging_node_constraints);
+  }
+  hanging_node_constraints.close();
+
+  // Modify flag because the dofs are setup
+  flag_setup_dofs = false;
+}
+
+template <int dim>
+void FE_FieldBase<dim>::setup_vectors()
 {
   Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
@@ -154,6 +189,7 @@ FE_FieldBase<dim>::compute_error
 
   std::map<typename VectorTools::NormType, double> error_map;
 
+  const unsigned int fe_degree{finite_element->degree};
 	const QGauss<dim> quadrature_formula(fe_degree + 2);
 
 	norm_type = VectorTools::NormType::L2_norm;
@@ -187,10 +223,11 @@ FE_VectorField<dim>::FE_VectorField
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
-FE_FieldBase<dim>(dim, fe_degree, triangulation, name),
-fe(FE_Q<dim>(fe_degree), dim),
+FE_FieldBase<dim>(triangulation, name),
 boundary_conditions(triangulation)
-{}
+{
+  this->finite_element = std::make_shared<FESystem<dim>>(FE_Q<dim>(fe_degree), dim);
+}
 
 
 
@@ -200,7 +237,6 @@ FE_VectorField<dim>::FE_VectorField
  const std::string        &new_name)
 :
 FE_FieldBase<dim>(entity, new_name),
-fe(FE_Q<dim>(entity.fe_degree), dim),
 boundary_conditions(entity.get_triangulation())
 {}
 
@@ -209,7 +245,6 @@ template <int dim>
 void FE_VectorField<dim>::clear()
 {
   boundary_conditions.clear();
-
   FE_FieldBase<dim>::clear();
 }
 
@@ -224,30 +259,31 @@ void FE_VectorField<dim>::setup_dofs()
     AssertThrow(this->dof_handler->has_active_dofs(),
                 ExcMessage("The DoFHandler of the base entity does not have any "
                            "active degrees of freedom."));
-
   }
   else
   {
-    this->dof_handler->initialize(this->triangulation, fe);
+    this->dof_handler->initialize(this->triangulation,
+                                  this->get_finite_element());
+    DoFRenumbering::component_wise(*(this->dof_handler));
+
+    this->locally_owned_dofs = this->dof_handler->locally_owned_dofs();
+    DoFTools::extract_locally_relevant_dofs(this->get_dof_handler(),
+                                            this->locally_relevant_dofs);
+    // Fill hanging node constraints
+    this->hanging_node_constraints.clear();
+    {
+      this->hanging_node_constraints.reinit(this->locally_relevant_dofs);
+      DoFTools::make_hanging_node_constraints(*(this->dof_handler),
+                                              this->hanging_node_constraints);
+    }
+    this->hanging_node_constraints.close();
+
+    // Modify flag because the dofs are setup
+    this->flag_setup_dofs = false;
+
+    // Setup solution vectors
+    this->setup_vectors();
   }
-
-  this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
-  DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
-                                          this->locally_relevant_dofs);
-  // Fill hanging node constraints
-  this->hanging_node_constraints.clear();
-  {
-    this->hanging_node_constraints.reinit(this->locally_relevant_dofs);
-    DoFTools::make_hanging_node_constraints(*(this->dof_handler),
-                                            this->hanging_node_constraints);
-  }
-  this->hanging_node_constraints.close();
-
-  // Modify flag because the dofs are setup
-  this->flag_setup_dofs = false;
-
-  // Setup solution vectors
-  this->reinit();
 }
 
 
@@ -296,7 +332,7 @@ void FE_VectorField<dim>::apply_boundary_conditions(const bool check_regularity)
     DoFTools::make_periodicity_constraints<DoFHandler<dim>>(
       periodicity_vector,
       this->constraints,
-      fe.component_mask(extractor),
+      this->finite_element->component_mask(extractor),
       first_vector_components);
   }
 
@@ -672,10 +708,11 @@ FE_ScalarField<dim>::FE_ScalarField
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
 :
-FE_FieldBase<dim>(1, fe_degree, triangulation, name),
-fe(fe_degree),
+FE_FieldBase<dim>(triangulation, name),
 boundary_conditions(triangulation)
-{}
+{
+  this->finite_element = std::make_shared<FE_Q<dim>>(fe_degree);
+}
 
 
 
@@ -685,7 +722,6 @@ FE_ScalarField<dim>::FE_ScalarField
  const std::string        &new_name)
 :
 FE_FieldBase<dim>(entity, new_name),
-fe(entity.fe_degree),
 boundary_conditions(entity.get_triangulation())
 {}
 
@@ -695,44 +731,6 @@ void FE_ScalarField<dim>::clear()
   boundary_conditions.clear();
 
   FE_FieldBase<dim>::clear();
-}
-
-template <int dim>
-void FE_ScalarField<dim>::setup_dofs()
-{
-  if (this->flag_child_entity)
-  {
-    AssertThrow(this->dof_handler != nullptr,
-                ExcMessage("The shared pointer to the DoFHandler of the base "
-                           "entity is not setup correctly."));
-    AssertThrow(this->dof_handler->has_active_dofs(),
-                ExcMessage("The DoFHandler of the base entity does not have any "
-                           "active degrees of freedom."));
-
-  }
-  else
-  {
-    this->dof_handler->initialize(this->triangulation,
-                                  fe);
-  }
-
-  this->locally_owned_dofs = (this->dof_handler)->locally_owned_dofs();
-  DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
-                                          this->locally_relevant_dofs);
-  // Fill hanging node constraints
-  this->hanging_node_constraints.clear();
-  {
-    this->hanging_node_constraints.reinit(this->locally_relevant_dofs);
-    DoFTools::make_hanging_node_constraints(*(this->dof_handler),
-                                            this->hanging_node_constraints);
-  }
-  this->hanging_node_constraints.close();
-
-  // Modify flag because the dofs are setup
-  this->flag_setup_dofs = false;
-
-  // Setup solution vectors
-  this->reinit();
 }
 
 template <int dim>
@@ -791,8 +789,9 @@ void FE_ScalarField<dim>::apply_boundary_conditions(const bool check_regularity)
   if (boundary_conditions.datum_set_at_boundary())
   {
     IndexSet    boundary_dofs;
-    DoFTools::extract_boundary_dofs(*this->dof_handler,
-                                    ComponentMask(this->fe.n_components(), true),
+    DoFTools::extract_boundary_dofs(*(this->dof_handler),
+                                    ComponentMask(this->finite_element->n_components(),
+                                                  true),
                                     boundary_dofs);
 
     // Looks for an admissible local degree of freedom to constrain
