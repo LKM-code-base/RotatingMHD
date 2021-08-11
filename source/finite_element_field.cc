@@ -667,7 +667,7 @@ Tensor<2,dim> FE_VectorField<dim>::point_gradient(
 
 
 template <int dim>
-ScalarEntity<dim>::ScalarEntity
+FE_ScalarField<dim>::FE_ScalarField
 (const unsigned int                               fe_degree,
  const parallel::distributed::Triangulation<dim> &triangulation,
  const std::string                               &name)
@@ -680,8 +680,8 @@ boundary_conditions(triangulation)
 
 
 template <int dim>
-ScalarEntity<dim>::ScalarEntity
-(const ScalarEntity<dim>  &entity,
+FE_ScalarField<dim>::FE_ScalarField
+(const FE_ScalarField<dim>  &entity,
  const std::string        &new_name)
 :
 FE_FieldBase<dim>(entity, new_name),
@@ -690,7 +690,7 @@ boundary_conditions(entity.get_triangulation())
 {}
 
 template <int dim>
-void ScalarEntity<dim>::clear()
+void FE_ScalarField<dim>::clear()
 {
   boundary_conditions.clear();
 
@@ -698,7 +698,7 @@ void ScalarEntity<dim>::clear()
 }
 
 template <int dim>
-void ScalarEntity<dim>::setup_dofs()
+void FE_ScalarField<dim>::setup_dofs()
 {
   if (this->flag_child_entity)
   {
@@ -736,7 +736,7 @@ void ScalarEntity<dim>::setup_dofs()
 }
 
 template <int dim>
-void ScalarEntity<dim>::apply_boundary_conditions(const bool check_regularity)
+void FE_ScalarField<dim>::apply_boundary_conditions(const bool check_regularity)
 {
   if (check_regularity == true)
     AssertThrow(boundary_conditions.regularity_guaranteed(),
@@ -833,7 +833,7 @@ void ScalarEntity<dim>::apply_boundary_conditions(const bool check_regularity)
 }
 
 template <int dim>
-void ScalarEntity<dim>::close_boundary_conditions(const bool print_summary)
+void FE_ScalarField<dim>::close_boundary_conditions(const bool print_summary)
 {
   boundary_conditions.close();
 
@@ -846,7 +846,7 @@ void ScalarEntity<dim>::close_boundary_conditions(const bool print_summary)
 }
 
 template <int dim>
-void ScalarEntity<dim>::update_boundary_conditions()
+void FE_ScalarField<dim>::update_boundary_conditions()
 {
   if (boundary_conditions.time_dependent_bcs_map.empty())
     return;
@@ -904,7 +904,7 @@ void ScalarEntity<dim>::update_boundary_conditions()
 
 
 template <int dim>
-void ScalarEntity<dim>::clear_boundary_conditions()
+void FE_ScalarField<dim>::clear_boundary_conditions()
 {
   boundary_conditions.clear();
 
@@ -914,7 +914,7 @@ void ScalarEntity<dim>::clear_boundary_conditions()
 
 
 template<int dim>
-double ScalarEntity<dim>::point_value(
+double FE_ScalarField<dim>::point_value(
   const Point<dim>                    &point,
   const std::shared_ptr<Mapping<dim>> external_mapping) const
 {
@@ -974,7 +974,7 @@ double ScalarEntity<dim>::point_value(
 
 
 template<int dim>
-Tensor<1,dim> ScalarEntity<dim>::point_gradient(
+Tensor<1,dim> FE_ScalarField<dim>::point_gradient(
   const Point<dim> &point,
   const std::shared_ptr<Mapping<dim>> external_mapping) const
 {
@@ -1044,5 +1044,5 @@ template struct RMHD::Entities::FE_FieldBase<3>;
 template struct RMHD::Entities::FE_VectorField<2>;
 template struct RMHD::Entities::FE_VectorField<3>;
 
-template struct RMHD::Entities::ScalarEntity<2>;
-template struct RMHD::Entities::ScalarEntity<3>;
+template struct RMHD::Entities::FE_ScalarField<2>;
+template struct RMHD::Entities::FE_ScalarField<3>;

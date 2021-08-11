@@ -40,7 +40,7 @@ private:
 
   std::ofstream                                 log_file;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
   LinearAlgebra::MPI::Vector                    error;
 
@@ -81,7 +81,7 @@ ThermalTGV<dim>::ThermalTGV(
 Problem<dim>(parameters),
 parameters(parameters),
 log_file("ThermalTGV_Log.csv"),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_temperature,
+temperature(std::make_shared<Entities::FE_ScalarField<dim>>(parameters.fe_degree_temperature,
                                                           this->triangulation,
                                                           "Temperature")),
 time_stepping(parameters.time_discretization_parameters),

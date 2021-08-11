@@ -85,7 +85,7 @@ public:
   (const RunTimeParameters::NavierStokesParameters  &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::FE_VectorField<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =
@@ -104,8 +104,8 @@ public:
   (const RunTimeParameters::NavierStokesParameters        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
    std::shared_ptr<Entities::FE_VectorField<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+   std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure,
+   std::shared_ptr<Entities::FE_ScalarField<dim>> &temperature,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =
@@ -118,7 +118,7 @@ public:
    * the field computed during the projection step and later used in
    * the pressure-correction step.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>   phi;
 
 
   /*!
@@ -253,12 +253,12 @@ private:
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
   /*!
    * @brief A reference to the entity of the temperature field.
    */
-  std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<const Entities::FE_ScalarField<dim>>  temperature;
 
   /*!
    * @brief A pointer to the body force function.

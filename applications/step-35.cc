@@ -36,7 +36,7 @@ private:
 
   std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
@@ -78,7 +78,7 @@ parameters(parameters),
 velocity(std::make_shared<Entities::FE_VectorField<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
                                                        "velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
                                                        "pressure")),
 time_stepping(parameters.time_discretization_parameters),

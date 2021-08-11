@@ -149,7 +149,7 @@ struct DFGBechmarkRequest
    * @brief This method computes the @ref pressure_difference.
    */
   void compute_pressure_difference
-  (const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure);
+  (const std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure);
 
   /*!
    * @brief This method computes the @ref drag_coefficient and the
@@ -175,7 +175,7 @@ struct DFGBechmarkRequest
    */
   void compute_drag_and_lift_coefficients
   (const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
-   const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
+   const std::shared_ptr<Entities::FE_ScalarField<dim>>  &pressure,
    const types::boundary_id                             cylinder_boundary_id = 2);
 
   /*!
@@ -215,8 +215,8 @@ public:
    * @brief Constructor.
    */
   MIT(const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
-      const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
-      const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+      const std::shared_ptr<Entities::FE_ScalarField<dim>>  &pressure,
+      const std::shared_ptr<Entities::FE_ScalarField<dim>>  &temperature,
       TimeDiscretization::VSIMEXMethod                    &time_stepping,
       const unsigned int                                  left_wall_boundary_id,
       const unsigned int                                  right_wall_boundary_id,
@@ -282,13 +282,13 @@ private:
    * @brief A shared pointer to the pressure field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::ScalarEntity<dim>>  pressure;
+  const std::shared_ptr<const Entities::FE_ScalarField<dim>>  pressure;
 
   /*!
    * @brief A shared pointer to the temperature field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
+  const std::shared_ptr<const Entities::FE_ScalarField<dim>>  temperature;
 
   /*!
    * @brief A vector containing all the points at which data will be
@@ -470,7 +470,7 @@ public:
    */
   ChristensenBenchmark(
     const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
-    const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+    const std::shared_ptr<Entities::FE_ScalarField<dim>>  &temperature,
     const std::shared_ptr<Entities::FE_VectorField<dim>>  &magnetic_field,
     const TimeDiscretization::VSIMEXMethod              &time_stepping,
     const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
@@ -540,7 +540,7 @@ private:
    * @brief A shared pointer to the temperature field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
+  const std::shared_ptr<const Entities::FE_ScalarField<dim>>  temperature;
 
   /*!
    * @brief A shared pointer to the magnetic flux field's numerical

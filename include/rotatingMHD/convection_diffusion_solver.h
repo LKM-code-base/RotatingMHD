@@ -60,7 +60,7 @@ public:
   HeatEquation
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>        external_pcout =
@@ -78,7 +78,7 @@ public:
   HeatEquation
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
    std::shared_ptr<Entities::FE_VectorField<dim>>     &velocity,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
@@ -97,7 +97,7 @@ public:
   HeatEquation
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
    std::shared_ptr<TensorFunction<1, dim>>          &velocity,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
@@ -174,7 +174,7 @@ private:
   /*!
    * @brief A shared pointer to the entity of the scalar field.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
   /*!
    * @brief A shared pointer to the entity of velocity field.

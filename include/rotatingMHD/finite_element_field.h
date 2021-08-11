@@ -368,19 +368,19 @@ struct FE_VectorField : FE_FieldBase<dim>
  * @brief Numerical representation of a scalar field.
  */
 template <int dim>
-struct ScalarEntity : FE_FieldBase<dim>
+struct FE_ScalarField : FE_FieldBase<dim>
 {
   /*!
    * @brief Constructor.
    */
-  ScalarEntity(const unsigned int                               fe_degree,
+  FE_ScalarField(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation,
                const std::string                               &name = "entity");
 
   /*!
    * @brief Copy constructor.
    */
-  ScalarEntity(const ScalarEntity<dim>  &entity,
+  FE_ScalarField(const FE_ScalarField<dim>  &entity,
                const std::string        &new_name = "entity");
 
   /*!

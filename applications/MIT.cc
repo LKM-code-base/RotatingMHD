@@ -91,9 +91,9 @@ public:
 private:
   std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
   std::shared_ptr<EquationData::MIT::TemperatureBoundaryCondition<dim>>
                                                 temperature_boundary_conditions;
@@ -137,11 +137,11 @@ velocity(std::make_shared<Entities::FE_VectorField<dim>>(
               parameters.fe_degree_velocity,
               this->triangulation,
               "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_pressure,
               this->triangulation,
               "Pressure")),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(
+temperature(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_temperature,
               this->triangulation,
               "Temperature")),
