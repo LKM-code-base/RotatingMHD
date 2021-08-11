@@ -10,7 +10,7 @@ template <int dim>
 NavierStokesProjection<dim>::NavierStokesProjection
 (const RunTimeParameters::NavierStokesParameters  &parameters,
  TimeDiscretization::VSIMEXMethod                 &time_stepping,
- std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+ std::shared_ptr<Entities::FE_VectorField<dim>>     &velocity,
  std::shared_ptr<Entities::ScalarEntity<dim>>     &pressure,
  const std::shared_ptr<Mapping<dim>>              external_mapping,
  const std::shared_ptr<ConditionalOStream>        external_pcout,
@@ -73,7 +73,7 @@ template <int dim>
 NavierStokesProjection<dim>::NavierStokesProjection
 (const RunTimeParameters::NavierStokesParameters  &parameters,
  TimeDiscretization::VSIMEXMethod                 &time_stepping,
- std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+ std::shared_ptr<Entities::FE_VectorField<dim>>     &velocity,
  std::shared_ptr<Entities::ScalarEntity<dim>>     &pressure,
  std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
  const std::shared_ptr<Mapping<dim>>              external_mapping,

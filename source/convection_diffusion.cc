@@ -64,7 +64,7 @@ HeatEquation<dim>::HeatEquation
 (const RunTimeParameters::HeatEquationParameters  &parameters,
  TimeDiscretization::VSIMEXMethod                 &time_stepping,
  std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
- std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+ std::shared_ptr<Entities::FE_VectorField<dim>>     &velocity,
  const std::shared_ptr<Mapping<dim>>              external_mapping,
  const std::shared_ptr<ConditionalOStream>        external_pcout,
  const std::shared_ptr<TimerOutput>               external_timer)

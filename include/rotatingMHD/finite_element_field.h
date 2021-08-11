@@ -255,19 +255,19 @@ inline const parallel::distributed::Triangulation<dim> &FE_FieldBase<dim>::get_t
    * @brief Numerical representation of a vector field.
    */
 template <int dim>
-struct VectorEntity : FE_FieldBase<dim>
+struct FE_VectorField : FE_FieldBase<dim>
 {
   /*!
    * @brief Constructor.
    */
-  VectorEntity(const unsigned int                               fe_degree,
+  FE_VectorField(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation,
                const std::string                               &name = "entity");
 
   /*!
    * @brief Copy constructor.
    */
-  VectorEntity(const VectorEntity<dim>  &entity,
+  FE_VectorField(const FE_VectorField<dim>  &entity,
                const std::string        &new_name);
 
   /*!

@@ -101,13 +101,13 @@ private:
 
   const unsigned int                            outer_boundary_id;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  magnetic_field;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  magnetic_field;
 
   std::shared_ptr<EquationData::Christensen::TemperatureInitialCondition<dim>>
                                                 temperature_initial_conditions;
@@ -155,7 +155,7 @@ outer_radius(20./13.),
 A(0.1),
 inner_boundary_id(0),
 outer_boundary_id(1),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(
            parameters.fe_degree_velocity,
            this->triangulation,
            "Velocity")),
@@ -167,7 +167,7 @@ temperature(std::make_shared<Entities::ScalarEntity<dim>>(
               parameters.fe_degree_temperature,
               this->triangulation,
               "Temperature")),
-magnetic_field(std::make_shared<Entities::VectorEntity<dim>>(
+magnetic_field(std::make_shared<Entities::FE_VectorField<dim>>(
               1/*parameters.fe_degree_magnetic_field*/,
               this->triangulation,
               "Magnetic field")),

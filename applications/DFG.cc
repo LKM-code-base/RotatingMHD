@@ -280,7 +280,7 @@ public:
   void run();
 private:
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
@@ -317,7 +317,7 @@ template <int dim>
 DFG<dim>::DFG(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>
+velocity(std::make_shared<Entities::FE_VectorField<dim>>
          (parameters.fe_degree_velocity,
           this->triangulation,
           "Velocity")),

@@ -84,7 +84,7 @@ public:
   NavierStokesProjection
   (const RunTimeParameters::NavierStokesParameters  &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   std::shared_ptr<Entities::FE_VectorField<dim>> &velocity,
    std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
@@ -103,7 +103,7 @@ public:
   NavierStokesProjection
   (const RunTimeParameters::NavierStokesParameters        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
+   std::shared_ptr<Entities::FE_VectorField<dim>> &velocity,
    std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
    std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
@@ -248,7 +248,7 @@ private:
   /*!
    * @brief A reference to the entity of velocity field.
    */
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.

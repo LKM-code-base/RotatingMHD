@@ -34,7 +34,7 @@ public:
 private:
   const RunTimeParameters::ProblemParameters   &parameters;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
   std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
 
@@ -75,7 +75,7 @@ Step35<dim>::Step35(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velocity,
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
                                                        "velocity")),
 pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
