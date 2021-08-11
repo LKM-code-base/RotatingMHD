@@ -121,7 +121,7 @@ solve_diffusion_step(const bool reinit_prec)
     std::abort();
   }
 
-  velocity->constraints.distribute(distributed_velocity);
+  velocity->get_constraints().distribute(distributed_velocity);
 
   velocity->solution = distributed_velocity;
 

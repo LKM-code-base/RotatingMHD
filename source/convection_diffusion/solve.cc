@@ -139,7 +139,7 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
     std::abort();
   }
 
-  temperature->constraints.distribute(distributed_temperature);
+  temperature->get_constraints().distribute(distributed_temperature);
 
   temperature->solution = distributed_temperature;
 

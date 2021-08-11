@@ -42,6 +42,9 @@ namespace Entities
 template <int dim>
 struct FE_FieldBase
 {
+private:
+  using value_type = LinearAlgebra::MPI::Vector::value_type;
+
 public:
   /*!
    * @brief Constructor.
@@ -58,6 +61,36 @@ public:
              const std::string      &new_name = "entity");
 
   /*!
+   * @brief Returns a const reference to the @ref dof_handler
+   */
+  const DoFHandler<dim>&  get_dof_handler() const;
+
+  /*!
+   * @brief Returns a const reference to the @ref locally_owned_dofs
+   */
+  const IndexSet& get_locally_owned_dofs() const;
+
+  /*!
+   * @brief Returns a const reference to the @ref locally_relevant_owned_dofs
+   */
+  const IndexSet& get_locally_relevant_dofs() const;
+
+  /*!
+   * @brief Returns a const reference to the @ref constraints
+   */
+  const AffineConstraints<value_type>&  get_constraints() const;
+
+  /*!
+   * @brief Returns a const reference to the @ref hanging_node_constraints
+   */
+  const AffineConstraints<value_type>&  get_hanging_node_constraints() const;
+
+  /*!
+   * @brief Returns the number of degrees of freedom.
+   */
+  types::global_dof_index n_dofs() const;
+
+  /*!
    * @brief Number of vector components.
    */
   const unsigned int                n_components;
@@ -68,42 +101,9 @@ public:
   const unsigned int                fe_degree;
 
   /*!
-   * @brief The MPI communicator.
-   */
-  const MPI_Comm                    mpi_communicator;
-
-  /*!
-   * @brief The DoFHandler<dim> instance of the entity.
-   */
-  std::shared_ptr<DoFHandler<dim>>  dof_handler;
-
-  /*!
    * @brief Name of the physical field which is contained in the entity.
    */
   const std::string                 name;
-
-  /*!
-   * @brief The AffineConstraints<double> instance handling the
-   * hanging nodes.
-   */
-  AffineConstraints<LinearAlgebra::MPI::Vector::value_type>         hanging_nodes;
-
-  /*!
-   * @brief The AffineConstraints<double> instance handling the
-   * hanging nodes and the boundary conditions.
-   */
-  AffineConstraints<LinearAlgebra::MPI::Vector::value_type>         constraints;
-
-  /*!
-   * @brief The set of the degrees of freedom owned by the processor.
-   */
-  IndexSet                          locally_owned_dofs;
-
-  /*!
-   * @brief The set of the degrees of freedom that are relevant for
-   * the processor.
-   */
-  IndexSet                          locally_relevant_dofs;
 
   /*!
    * @brief Vector containing the solution at the current time.
@@ -151,7 +151,7 @@ public:
   /*!
    * @brief Passes the contents of a solution vector to the one prior to it.
    */
-  void update_solution_vectors();
+  virtual void update_solution_vectors();
 
   /*!
    * @brief Sets all entries of all solution vectors to zero.
@@ -203,15 +203,14 @@ public:
    */
   bool is_child_entity() const;
 
-
   /*!
    * @brief Computes the error of the discrete solution w.r.t. to the exact solution
    * specified by the function @p exact_solution. The error is computed in the L2 norm, the H1 norm
    * and the infinity norm and return as mapping.
    */
   std::map<typename VectorTools::NormType, double> compute_error
-	(const Function<dim>							&exact_solution,
-	 const std::shared_ptr<Mapping<dim>> external_mapping) const;
+  (const Function<dim>              &exact_solution,
+   const std::shared_ptr<Mapping<dim>> external_mapping) const;
 
 protected:
   /*!
@@ -229,12 +228,79 @@ protected:
   bool        flag_setup_dofs;
 
   /*!
+   * @brief The MPI communicator.
+   */
+  const MPI_Comm    mpi_communicator;
+
+  /*!
    * @brief Reference to the underlying triangulation.
    */
   const parallel::distributed::Triangulation<dim> &triangulation;
+
+  /*!
+   * @brief The DoFHandler<dim> instance of the entity.
+   */
+  std::shared_ptr<DoFHandler<dim>>  dof_handler;
+
+  /*!
+   * @brief The AffineConstraints<double> instance handling the
+   * hanging nodes.
+   */
+  AffineConstraints<value_type>         hanging_node_constraints;
+
+  /*!
+   * @brief The AffineConstraints<double> instance handling the
+   * hanging nodes and the boundary conditions.
+   */
+  AffineConstraints<value_type>         constraints;
+
+  /*!
+   * @brief The set of the degrees of freedom owned by the processor.
+   */
+  IndexSet                          locally_owned_dofs;
+
+  /*!
+   * @brief The set of the degrees of freedom that are relevant for
+   * the processor.
+   */
+  IndexSet                          locally_relevant_dofs;
 };
 
+template<int dim>
+inline const DoFHandler<dim> &
+FE_FieldBase<dim>::get_dof_handler() const
+{
+  return (*dof_handler);
+}
 
+template<int dim>
+inline const IndexSet &
+FE_FieldBase<dim>::get_locally_owned_dofs() const
+{
+  return (locally_owned_dofs);
+}
+
+template<int dim>
+inline const IndexSet &
+FE_FieldBase<dim>::get_locally_relevant_dofs() const
+{
+  return (locally_relevant_dofs);
+}
+
+template<int dim>
+inline const AffineConstraints<LinearAlgebra::MPI::Vector::value_type> &
+FE_FieldBase<dim>::get_constraints() const
+{
+  return (constraints);
+}
+
+
+template<int dim>
+inline const AffineConstraints<LinearAlgebra::MPI::Vector::value_type> &
+FE_FieldBase<dim>::get_hanging_node_constraints() const
+{
+  return (hanging_node_constraints);
+}
 
 template <int dim>
 inline bool FE_FieldBase<dim>::is_child_entity() const
@@ -242,10 +308,16 @@ inline bool FE_FieldBase<dim>::is_child_entity() const
   return (flag_child_entity);
 }
 
-
+template<int dim>
+inline types::global_dof_index
+FE_FieldBase<dim>::n_dofs() const
+{
+  return (dof_handler->n_dofs());
+}
 
 template <int dim>
-inline const parallel::distributed::Triangulation<dim> &FE_FieldBase<dim>::get_triangulation() const
+inline const parallel::distributed::Triangulation<dim> &
+FE_FieldBase<dim>::get_triangulation() const
 {
   return (triangulation);
 }

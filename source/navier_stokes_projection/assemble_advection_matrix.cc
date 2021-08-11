@@ -45,9 +45,9 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (*velocity->dof_handler).begin_active()),
+              velocity->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (*velocity->dof_handler).end()),
+              velocity->get_dof_handler().end()),
    worker,
    copier,
    AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>(
@@ -227,7 +227,7 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_advection_matrix
 (const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy  &data)
 {
-  velocity->constraints.distribute_local_to_global(
+  velocity->get_constraints().distribute_local_to_global(
                                       data.local_matrix,
                                       data.local_dof_indices,
                                       velocity_advection_matrix);

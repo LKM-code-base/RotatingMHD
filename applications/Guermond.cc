@@ -165,14 +165,13 @@ void Guermond<dim>::setup_dofs()
                << this->triangulation.n_global_active_cells()
                << std::endl;
   *this->pcout << "  Number of velocity degrees of freedom = "
-               << (velocity->dof_handler)->n_dofs()
+               << velocity->n_dofs()
                << std::endl
                << "  Number of pressure degrees of freedom = "
-               << (pressure->dof_handler)->n_dofs()
+               << pressure->n_dofs()
                << std::endl
                << "  Number of total degrees of freedom    = "
-               << (pressure->dof_handler->n_dofs() +
-                   velocity->dof_handler->n_dofs())
+               << (pressure->n_dofs() + velocity->n_dofs())
                << std::endl;
 }
 
@@ -230,21 +229,21 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
     distributed_numerical_pressure.reinit(pressure->distributed_vector);
 
     VectorTools::interpolate(*this->mapping,
-                            *pressure->dof_handler,
+                            pressure->get_dof_handler(),
                             *pressure_exact_solution,
                             distributed_analytical_pressure);
-    pressure->hanging_nodes.distribute(distributed_analytical_pressure);
+    pressure->get_hanging_node_constraints().distribute(distributed_analytical_pressure);
     analytical_pressure = distributed_analytical_pressure;
     distributed_numerical_pressure = pressure->solution;
 
     const LinearAlgebra::MPI::Vector::value_type analytical_mean_value
-      = VectorTools::compute_mean_value(*pressure->dof_handler,
+      = VectorTools::compute_mean_value(pressure->get_dof_handler(),
                                         QGauss<dim>(pressure->fe.degree + 1),
                                         analytical_pressure,
                                         0);
 
     const LinearAlgebra::MPI::Vector::value_type numerical_mean_value
-      = VectorTools::compute_mean_value(*pressure->dof_handler,
+      = VectorTools::compute_mean_value(pressure->get_dof_handler(),
                                         QGauss<dim>(pressure->fe.degree + 1),
                                         pressure->solution,
                                         0);
@@ -301,18 +300,18 @@ void Guermond<dim>::output()
                            DataComponentInterpretation::component_is_part_of_vector);
 
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity_error,
                            error_name,
                            component_interpretation);
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure_error,
                            "pressure_error");
 

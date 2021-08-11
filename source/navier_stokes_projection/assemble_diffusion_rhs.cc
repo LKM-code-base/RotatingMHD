@@ -66,9 +66,9 @@ assemble_diffusion_step_rhs()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->begin_active()),
+              velocity->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->end()),
+              velocity->get_dof_handler().end()),
    worker,
    copier,
    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>(
@@ -179,7 +179,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   pressure_cell(&velocity->get_triangulation(),
                  cell->level(),
                  cell->index(),
-                (pressure->dof_handler).get());
+                &pressure->get_dof_handler());
 
   scratch.pressure_fe_values.reinit(pressure_cell);
 
@@ -235,7 +235,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     temperature_cell(&velocity->get_triangulation(),
                      cell->level(),
                      cell->index(),
-                     (temperature->dof_handler).get());
+                     &temperature->get_dof_handler());
 
     scratch.temperature_fe_values.reinit(temperature_cell);
 
@@ -465,7 +465,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
       // Loop over the i-th column's rows of the local matrix
       // for the case of inhomogeneous Dirichlet boundary conditions
-      if (velocity->constraints.is_inhomogeneously_constrained(
+      if (velocity->get_constraints().is_inhomogeneously_constrained(
             data.local_dof_indices[i]))
         for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
         {
@@ -630,7 +630,7 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_diffusion_step_rhs
 (const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy &data)
 {
-  velocity->constraints.distribute_local_to_global(
+  velocity->get_constraints().distribute_local_to_global(
                                 data.local_rhs,
                                 data.local_dof_indices,
                                 diffusion_step_rhs,

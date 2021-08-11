@@ -26,12 +26,12 @@ FE_FieldBase<dim>::FE_FieldBase
 :
 n_components(n_components),
 fe_degree(fe_degree),
-mpi_communicator(triangulation.get_communicator()),
-dof_handler(std::make_shared<DoFHandler<dim>>()),
 name(name),
 flag_child_entity(false),
 flag_setup_dofs(true),
-triangulation(triangulation)
+mpi_communicator(triangulation.get_communicator()),
+triangulation(triangulation),
+dof_handler(std::make_shared<DoFHandler<dim>>())
 {}
 
 
@@ -43,11 +43,11 @@ FE_FieldBase<dim>::FE_FieldBase
 :
 n_components(entity.n_components),
 fe_degree(entity.fe_degree),
-mpi_communicator(entity.mpi_communicator),
-dof_handler(entity.dof_handler),
 name(new_name),
 flag_child_entity(true),
-triangulation(entity.triangulation)
+mpi_communicator(entity.get_triangulation().get_communicator()),
+triangulation(entity.get_triangulation()),
+dof_handler(entity.dof_handler)
 {}
 
 template <int dim>
@@ -58,7 +58,7 @@ void FE_FieldBase<dim>::clear()
   old_old_solution.clear();
   distributed_vector.clear();
 
-  hanging_nodes.clear();
+  hanging_node_constraints.clear();
   constraints.clear();
 
   locally_owned_dofs.clear();
@@ -235,13 +235,13 @@ void FE_VectorField<dim>::setup_dofs()
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
   // Fill hanging node constraints
-  this->hanging_nodes.clear();
+  this->hanging_node_constraints.clear();
   {
-    this->hanging_nodes.reinit(this->locally_relevant_dofs);
+    this->hanging_node_constraints.reinit(this->locally_relevant_dofs);
     DoFTools::make_hanging_node_constraints(*(this->dof_handler),
-                                            this->hanging_nodes);
+                                            this->hanging_node_constraints);
   }
-  this->hanging_nodes.close();
+  this->hanging_node_constraints.close();
 
   // Modify flag because the dofs are setup
   this->flag_setup_dofs = false;
@@ -270,7 +270,7 @@ void FE_VectorField<dim>::apply_boundary_conditions(const bool check_regularity)
                               const Function<dim> *>;
   this->constraints.clear();
   this->constraints.reinit(this->locally_relevant_dofs);
-  this->constraints.merge(this->hanging_nodes);
+  this->constraints.merge(this->hanging_node_constraints);
 
   if (!boundary_conditions.periodic_bcs.empty())
   {
@@ -720,13 +720,13 @@ void FE_ScalarField<dim>::setup_dofs()
   DoFTools::extract_locally_relevant_dofs(*(this->dof_handler),
                                           this->locally_relevant_dofs);
   // Fill hanging node constraints
-  this->hanging_nodes.clear();
+  this->hanging_node_constraints.clear();
   {
-    this->hanging_nodes.reinit(this->locally_relevant_dofs);
+    this->hanging_node_constraints.reinit(this->locally_relevant_dofs);
     DoFTools::make_hanging_node_constraints(*(this->dof_handler),
-                                            this->hanging_nodes);
+                                            this->hanging_node_constraints);
   }
-  this->hanging_nodes.close();
+  this->hanging_node_constraints.close();
 
   // Modify flag because the dofs are setup
   this->flag_setup_dofs = false;
@@ -752,7 +752,7 @@ void FE_ScalarField<dim>::apply_boundary_conditions(const bool check_regularity)
                               const Function<dim> *>;
   this->constraints.clear();
   this->constraints.reinit(this->locally_relevant_dofs);
-  this->constraints.merge(this->hanging_nodes);
+  this->constraints.merge(this->hanging_node_constraints);
   if (!boundary_conditions.periodic_bcs.empty())
   {
     std::vector<unsigned int> first_vector_components;

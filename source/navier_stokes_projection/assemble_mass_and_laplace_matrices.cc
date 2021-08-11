@@ -47,9 +47,9 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->begin_active()),
+              velocity->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->end()),
+              velocity->get_dof_handler().end()),
    worker,
    copier,
    AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>(
@@ -126,11 +126,11 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_matrices
 (const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy &data)
 {
-  velocity->constraints.distribute_local_to_global(
+  velocity->get_constraints().distribute_local_to_global(
                                       data.local_mass_matrix,
                                       data.local_dof_indices,
                                       velocity_mass_matrix);
-  velocity->constraints.distribute_local_to_global(
+  velocity->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       velocity_laplace_matrix);
@@ -179,9 +179,9 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (pressure->dof_handler)->begin_active()),
+              pressure->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (pressure->dof_handler)->end()),
+              pressure->get_dof_handler().end()),
    worker,
    copier,
    AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>(
@@ -256,15 +256,15 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
 (const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy &data)
 {
-  pressure->constraints.distribute_local_to_global(
+  pressure->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       pressure_laplace_matrix);
-  phi->constraints.distribute_local_to_global(
+  phi->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       phi_laplace_matrix);
-  pressure->hanging_nodes.distribute_local_to_global(
+  pressure->get_hanging_node_constraints().distribute_local_to_global(
                                       data.local_mass_matrix,
                                       data.local_dof_indices,
                                       projection_mass_matrix);

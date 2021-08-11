@@ -49,9 +49,9 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->begin_active()),
+              temperature->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->end()),
+              temperature->get_dof_handler().end()),
    worker,
    copier,
    AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>(
@@ -129,11 +129,11 @@ template <int dim>
 void HeatEquation<dim>::copy_local_to_global_constant_matrices
 (const AssemblyData::HeatEquation::ConstantMatrices::Copy   &data)
 {
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
                                       data.local_mass_matrix,
                                       data.local_dof_indices,
                                       mass_matrix);
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       stiffness_matrix);

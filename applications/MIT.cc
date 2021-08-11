@@ -247,18 +247,18 @@ void MITBenchmark<dim>::setup_dofs()
   *(this->pcout) << "Spatial discretization:"
                  << std::endl
                  << " Number of velocity degrees of freedom    = "
-                 << (velocity->dof_handler)->n_dofs()
+                 << velocity->n_dofs()
                  << std::endl
                  << " Number of pressure degrees of freedom    = "
-                 << pressure->dof_handler->n_dofs()
+                 << pressure->n_dofs()
                  << std::endl
                  << " Number of temperature degrees of freedom = "
-                 << temperature->dof_handler->n_dofs()
+                 << temperature->n_dofs()
                  << std::endl
                  << " Number of total degrees of freedom       = "
-                 << (velocity->dof_handler->n_dofs() +
-                     pressure->dof_handler->n_dofs() +
-                     temperature->dof_handler->n_dofs())
+                 << (velocity->n_dofs() +
+                     pressure->n_dofs() +
+                     temperature->n_dofs())
                  << std::endl << std::endl;
 }
 
@@ -319,7 +319,7 @@ void MITBenchmark<dim>::initialize()
 
     distributed_old_temperature = temperature->old_solution;
 
-    temperature->constraints.distribute(distributed_old_temperature);
+    temperature->get_constraints().distribute(distributed_old_temperature);
 
     temperature->old_solution   = distributed_old_temperature;
   }
@@ -372,14 +372,14 @@ void MITBenchmark<dim>::output()
 
   // Loading the DataOut instance with the solution vectors
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*velocity->dof_handler,
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*pressure->dof_handler,
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            temperature->solution,
                            "Temperature");
 

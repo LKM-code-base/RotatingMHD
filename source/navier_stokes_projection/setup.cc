@@ -140,56 +140,56 @@ void NavierStokesProjection<dim>::setup_matrices()
   {
     #ifdef USE_PETSC_LA
       DynamicSparsityPattern
-      sparsity_pattern(velocity->locally_relevant_dofs);
+      sparsity_pattern(velocity->get_locally_relevant_dofs());
 
-      DoFTools::make_sparsity_pattern(*(velocity->dof_handler),
+      DoFTools::make_sparsity_pattern(velocity->get_dof_handler(),
                                       sparsity_pattern,
-                                      velocity->constraints,
+                                      velocity->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
       SparsityTools::distribute_sparsity_pattern
       (sparsity_pattern,
-       velocity->locally_owned_dofs,
+       velocity->get_locally_owned_dofs(),
        mpi_communicator,
-       velocity->locally_relevant_dofs);
+       velocity->get_locally_relevant_dofs());
 
       velocity_mass_plus_laplace_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       velocity_system_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       velocity_mass_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       velocity_laplace_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       velocity_advection_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
 
     #else
       TrilinosWrappers::SparsityPattern
-      sparsity_pattern(velocity->locally_owned_dofs,
-                       velocity->locally_owned_dofs,
-                       velocity->locally_relevant_dofs,
+      sparsity_pattern(velocity->get_locally_owned_dofs(),
+                       velocity->get_locally_owned_dofs(),
+                       velocity->get_locally_relevant_dofs(),
                        mpi_communicator);
 
-      DoFTools::make_sparsity_pattern(*(velocity->dof_handler),
+      DoFTools::make_sparsity_pattern(velocity->get_dof_handler(),
                                       sparsity_pattern,
-                                      velocity->constraints,
+                                      velocity->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
@@ -213,102 +213,102 @@ void NavierStokesProjection<dim>::setup_matrices()
   {
     #ifdef USE_PETSC_LA
       DynamicSparsityPattern
-      pressure_sparsity_pattern(pressure->locally_relevant_dofs);
+      pressure_sparsity_pattern(pressure->get_locally_relevant_dofs());
 
       DynamicSparsityPattern
-      phi_sparsity_pattern(phi->locally_relevant_dofs);
+      phi_sparsity_pattern(phi->get_locally_relevant_dofs());
 
       DynamicSparsityPattern
-      projection_sparsity_pattern(pressure->locally_relevant_dofs);
+      projection_sparsity_pattern(pressure->get_locally_relevant_dofs());
 
-      DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
+      DoFTools::make_sparsity_pattern(pressure->get_dof_handler(),
                                       pressure_sparsity_pattern,
-                                      pressure->constraints,
+                                      pressure->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
-      DoFTools::make_sparsity_pattern(*(phi->dof_handler),
+      DoFTools::make_sparsity_pattern(phi->get_dof_handler(),
                                       phi_sparsity_pattern,
-                                      phi->constraints,
+                                      phi->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
-      DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
+      DoFTools::make_sparsity_pattern(pressure->get_dof_handler(),
                                       projection_sparsity_pattern,
-                                      pressure->hanging_nodes,
+                                      pressure->get_hanging_node_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
 
       SparsityTools::distribute_sparsity_pattern
       (pressure_sparsity_pattern,
-       pressure->locally_owned_dofs,
+       pressure->get_locally_owned_dofs(),
        mpi_communicator,
-       pressure->locally_relevant_dofs);
+       pressure->get_locally_relevant_dofs());
 
       SparsityTools::distribute_sparsity_pattern
       (phi_sparsity_pattern,
-       phi->locally_owned_dofs,
+       phi->get_locally_owned_dofs(),
        mpi_communicator,
        phi->locally_relevant_dofs);
 
       SparsityTools::distribute_sparsity_pattern
       (projection_sparsity_pattern,
-       pressure->locally_owned_dofs,
+       pressure->get_locally_owned_dofs(),
        mpi_communicator,
-       pressure->locally_relevant_dofs);
+       pressure->get_locally_relevant_dofs());
 
       pressure_laplace_matrix.reinit
-      (pressure->locally_owned_dofs,
-       pressure->locally_owned_dofs,
+      (pressure->get_locally_owned_dofs(),
+       pressure->get_locally_owned_dofs(),
        pressure_sparsity_pattern,
        mpi_communicator);
       phi_laplace_matrix.reinit
-      (phi->locally_owned_dofs,
-       phi->locally_owned_dofs,
+      (phi->get_locally_owned_dofs(),
+       phi->get_locally_owned_dofs(),
        phi_sparsity_pattern,
        mpi_communicator);
       projection_mass_matrix.reinit
-      (pressure->locally_owned_dofs,
-       pressure->locally_owned_dofs,
+      (pressure->get_locally_owned_dofs(),
+       pressure->get_locally_owned_dofs(),
        projection_sparsity_pattern,
        mpi_communicator);
 
 
     #else
       TrilinosWrappers::SparsityPattern
-      pressure_sparsity_pattern(pressure->locally_owned_dofs,
-                                pressure->locally_owned_dofs,
-                                pressure->locally_relevant_dofs,
+      pressure_sparsity_pattern(pressure->get_locally_owned_dofs(),
+                                pressure->get_locally_owned_dofs(),
+                                pressure->get_locally_relevant_dofs(),
                                 mpi_communicator);
 
       TrilinosWrappers::SparsityPattern
-      phi_sparsity_pattern(phi->locally_owned_dofs,
-                           phi->locally_owned_dofs,
-                           phi->locally_relevant_dofs,
+      phi_sparsity_pattern(phi->get_locally_owned_dofs(),
+                           phi->get_locally_owned_dofs(),
+                           phi->get_locally_relevant_dofs(),
                            mpi_communicator);
 
       TrilinosWrappers::SparsityPattern
-      projection_sparsity_pattern(pressure->locally_owned_dofs,
-                                  pressure->locally_owned_dofs,
-                                  pressure->locally_relevant_dofs,
+      projection_sparsity_pattern(pressure->get_locally_owned_dofs(),
+                                  pressure->get_locally_owned_dofs(),
+                                  pressure->get_locally_relevant_dofs(),
                                   mpi_communicator);
 
-      DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
+      DoFTools::make_sparsity_pattern(pressure->get_dof_handler(),
                                       pressure_sparsity_pattern,
-                                      pressure->constraints,
+                                      pressure->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
-      DoFTools::make_sparsity_pattern(*(phi->dof_handler),
+      DoFTools::make_sparsity_pattern(phi->get_dof_handler(),
                                       phi_sparsity_pattern,
-                                      phi->constraints,
+                                      phi->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
-      DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
+      DoFTools::make_sparsity_pattern(pressure->get_dof_handler(),
                                       projection_sparsity_pattern,
-                                      pressure->hanging_nodes,
+                                      pressure->get_hanging_node_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 

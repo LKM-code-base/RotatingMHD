@@ -61,9 +61,9 @@ void HeatEquation<dim>::assemble_advection_matrix()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->begin_active()),
+              temperature->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->end()),
+              temperature->get_dof_handler().end()),
    worker,
    copier,
    AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>(
@@ -105,7 +105,7 @@ void HeatEquation<dim>::assemble_local_advection_matrix
                   cell->level(),
                   cell->index(),
                   //Pointer to the velocity's DoFHandler
-                  velocity->dof_handler.get());
+                  &velocity->get_dof_handler());
 
     scratch.velocity_fe_values.reinit(velocity_cell);
 
@@ -166,7 +166,7 @@ template <int dim>
 void HeatEquation<dim>::copy_local_to_global_advection_matrix
 (const AssemblyData::HeatEquation::AdvectionMatrix::Copy    &data)
 {
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
                                       data.local_matrix,
                                       data.local_dof_indices,
                                       advection_matrix);

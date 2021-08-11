@@ -77,9 +77,9 @@ void HeatEquation<dim>::assemble_rhs()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->begin_active()),
+              temperature->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->end()),
+              temperature->get_dof_handler().end()),
    worker,
    copier,
    AssemblyData::HeatEquation::RightHandSide::Scratch<dim>(
@@ -198,7 +198,7 @@ void HeatEquation<dim>::assemble_local_rhs(
                     cell->level(),
                     cell->index(),
                     // Pointer to the velocity's DoFHandler
-                    velocity->dof_handler.get());
+                    &velocity->get_dof_handler());
 
     scratch.velocity_fe_values.reinit(velocity_cell);
 
@@ -290,7 +290,7 @@ void HeatEquation<dim>::assemble_local_rhs(
 
       // Loop over the i-th column's rows of the local matrix
       // for the case of inhomogeneous Dirichlet boundary conditions
-      if (temperature->constraints.is_inhomogeneously_constrained(
+      if (temperature->get_constraints().is_inhomogeneously_constrained(
             data.local_dof_indices[i]))
         for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
         {
@@ -381,7 +381,7 @@ template <int dim>
 void HeatEquation<dim>::copy_local_to_global_rhs
 (const AssemblyData::HeatEquation::RightHandSide::Copy  &data)
 {
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
     data.local_rhs,
     data.local_dof_indices,
     rhs,

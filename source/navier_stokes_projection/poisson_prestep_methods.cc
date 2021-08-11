@@ -95,14 +95,14 @@ solve_poisson_prestep()
     std::abort();
   }
 
-  pressure->constraints.distribute(distributed_old_pressure);
+  pressure->get_constraints().distribute(distributed_old_pressure);
 
   pressure->old_solution = distributed_old_pressure;
 
   if (flag_normalize_pressure)
   {
     const LinearAlgebra::MPI::Vector::value_type mean_value
-      = VectorTools::compute_mean_value(*pressure->dof_handler,
+      = VectorTools::compute_mean_value(pressure->get_dof_handler(),
                                         QGauss<dim>(pressure->fe.degree + 1),
                                         pressure->old_solution,
                                         0);

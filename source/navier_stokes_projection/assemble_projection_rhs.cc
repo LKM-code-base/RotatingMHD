@@ -48,9 +48,9 @@ assemble_projection_step_rhs()
 
   WorkStream::run(
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               (pressure->dof_handler)->begin_active()),
+               velocity->get_dof_handler().begin_active()),
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               (pressure->dof_handler)->end()),
+               velocity->get_dof_handler().end()),
     worker,
     copier,
     AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>(
@@ -102,7 +102,7 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
   velocity_cell(&velocity->get_triangulation(),
                  cell->level(),
                  cell->index(),
-                velocity->dof_handler.get());
+                &velocity->get_dof_handler());
 
   scratch.velocity_fe_values.reinit(velocity_cell);
 
@@ -141,12 +141,12 @@ void NavierStokesProjection<dim>::
 copy_local_to_global_projection_step_rhs(
   const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy   &data)
 {
-  phi->constraints.distribute_local_to_global
+  phi->get_constraints().distribute_local_to_global
   (data.local_projection_step_rhs,
    data.local_dof_indices,
    projection_step_rhs);
 
-  pressure->hanging_nodes.distribute_local_to_global
+  pressure->get_hanging_node_constraints().distribute_local_to_global
   (data.local_correction_step_rhs,
    data.local_dof_indices,
    correction_step_rhs);

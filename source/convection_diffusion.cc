@@ -17,7 +17,7 @@ HeatEquation<dim>::HeatEquation
  const std::shared_ptr<TimerOutput>               external_timer)
 :
 parameters(parameters),
-mpi_communicator(temperature->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 temperature(temperature),
 flag_matrices_were_updated(true)
@@ -70,7 +70,7 @@ HeatEquation<dim>::HeatEquation
  const std::shared_ptr<TimerOutput>               external_timer)
 :
 parameters(parameters),
-mpi_communicator(temperature->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 temperature(temperature),
 velocity(velocity),
@@ -126,7 +126,7 @@ HeatEquation<dim>::HeatEquation
  const std::shared_ptr<TimerOutput>               external_timer)
 :
 parameters(parameters),
-mpi_communicator(temperature->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 temperature(temperature),
 velocity_function_ptr(velocity),

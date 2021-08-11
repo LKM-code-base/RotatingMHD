@@ -157,14 +157,13 @@ void Guermond<dim>::setup_dofs()
   *this->pcout  << "  Number of active cells                = "
                 << this->triangulation.n_global_active_cells() << std::endl;
   *this->pcout  << "  Number of velocity degrees of freedom = "
-                << (velocity->dof_handler)->n_dofs()
+                << velocity->n_dofs()
                 << std::endl
                 << "  Number of pressure degrees of freedom = "
-                << (pressure->dof_handler)->n_dofs()
+                << pressure->n_dofs()
                 << std::endl
                << "  Number of total degrees of freedom    = "
-               << (pressure->dof_handler->n_dofs() +
-                   velocity->dof_handler->n_dofs())
+               << (pressure->n_dofs() + velocity->n_dofs())
                << std::endl;
 }
 
@@ -227,16 +226,10 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
   {
     LinearAlgebra::MPI::Vector  analytical_pressure(pressure->solution);
     {
-      #ifdef USE_PETSC_LA
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs,
-                                this->mpi_communicator);
-      #else
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs);
-      #endif
-      VectorTools::project(*(pressure->dof_handler),
-                          pressure->constraints,
+      LinearAlgebra::MPI::Vector tmp_analytical_pressure(pressure->distributed_vector);
+
+      VectorTools::project(pressure->get_dof_handler(),
+                          pressure->get_constraints(),
                           QGauss<dim>(pressure->fe_degree + 2),
                           *pressure_exact_solution,
                           tmp_analytical_pressure);
@@ -246,15 +239,8 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
     {
       LinearAlgebra::MPI::Vector distributed_analytical_pressure;
       LinearAlgebra::MPI::Vector distributed_numerical_pressure;
-      #ifdef USE_PETSC_LA
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                        this->mpi_communicator);
-      #else
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                               pressure->locally_relevant_dofs,
-                                               this->mpi_communicator,
-                                               true);
-      #endif
+
+      distributed_analytical_pressure.reinit(pressure->distributed_vector);
       distributed_numerical_pressure.reinit(distributed_analytical_pressure);
 
       distributed_analytical_pressure = analytical_pressure;
@@ -315,21 +301,21 @@ void Guermond<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity_error,
                            error_name,
                            component_interpretation);
 
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
 
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure_error,
                            "pressure_error");
 

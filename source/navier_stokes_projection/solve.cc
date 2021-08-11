@@ -181,9 +181,9 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           // solution vector to consider the case of Dirichlet
           // boundary conditions on the pressure field.
           if (!pressure->boundary_conditions.dirichlet_bcs.empty())
-            pressure->constraints.distribute(distributed_pressure);
+            pressure->get_constraints().distribute(distributed_pressure);
           else
-            pressure->hanging_nodes.distribute(distributed_pressure);
+            pressure->get_hanging_node_constraints().distribute(distributed_pressure);
 
           // Pass the distributed vector to its ghost counterpart.
           pressure->solution = distributed_pressure;
@@ -193,7 +193,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           if (flag_normalize_pressure)
           {
             const LinearAlgebra::MPI::Vector::value_type mean_value
-              = VectorTools::compute_mean_value(*pressure->dof_handler,
+              = VectorTools::compute_mean_value(pressure->get_dof_handler(),
                                                 QGauss<dim>(pressure->fe.degree + 1),
                                                 pressure->solution,
                                                 0);

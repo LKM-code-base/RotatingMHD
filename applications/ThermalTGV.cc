@@ -150,7 +150,7 @@ void ThermalTGV<dim>::setup_dofs()
                 << this->triangulation.n_global_active_cells()
                 << std::endl
                 << "  Number of temperature degrees of freedom = "
-                << (temperature->dof_handler)->n_dofs()
+                << temperature->n_dofs()
                 << std::endl;
 }
 
@@ -213,10 +213,10 @@ void ThermalTGV<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            temperature->solution,
                            "temperature");
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            error,
                            "error");
 
@@ -296,7 +296,7 @@ void ThermalTGV<dim>::solve(const unsigned int &level)
   {
     auto error_map = temperature->compute_error(*temperature_exact_solution, this->mapping);
 
-    convergence_data.update_table(*this->temperature->dof_handler,
+    convergence_data.update_table(this->temperature->get_dof_handler(),
                                   time_stepping.get_previous_step_size(),
                                   error_map);
   }

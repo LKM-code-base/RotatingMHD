@@ -140,14 +140,13 @@ void Step35<dim>::setup_dofs()
   pressure->setup_dofs();
 
   *(this->pcout) << "Number of velocity degrees of freedom = "
-                 << (velocity->dof_handler)->n_dofs()
+                 << velocity->n_dofs()
                  << std::endl
                  << "Number of pressure degrees of freedom = "
-                 << pressure->dof_handler->n_dofs()
+                 << pressure->n_dofs()
                  << std::endl
                  << "Number of total degrees of freedom    = "
-                 << (pressure->dof_handler->n_dofs() +
-                     velocity->dof_handler->n_dofs())
+                 << (pressure->n_dofs() + velocity->n_dofs())
                  << std::endl << std::endl;
 }
 
@@ -197,18 +196,18 @@ void Step35<dim>::postprocessing()
   const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
   cell_point =
   GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
-                                           *velocity->dof_handler,
+                                           velocity->get_dof_handler(),
                                            evaluation_point);
   if (cell_point.first->is_locally_owned())
   {
     Vector<double> point_value_velocity(dim);
-    VectorTools::point_value(*velocity->dof_handler,
+    VectorTools::point_value(velocity->get_dof_handler(),
                              velocity->solution,
                              evaluation_point,
                              point_value_velocity);
 
     const double point_value_pressure
-    = VectorTools::point_value(*pressure->dof_handler,
+    = VectorTools::point_value(pressure->get_dof_handler(),
                                pressure->solution,
                                evaluation_point);
 
@@ -234,11 +233,11 @@ void Step35<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*velocity->dof_handler,
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*pressure->dof_handler,
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
   data_out.build_patches(velocity->fe_degree);

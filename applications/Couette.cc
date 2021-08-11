@@ -185,14 +185,13 @@ void Couette<dim>::setup_dofs()
   *this->pcout  << "  Number of active cells                = "
                 << this->triangulation.n_global_active_cells() << std::endl;
   *this->pcout  << "  Number of velocity degrees of freedom = "
-                << velocity->dof_handler->n_dofs()
+                << velocity->n_dofs()
                 << std::endl
                 << "  Number of pressure degrees of freedom = "
-                << pressure->dof_handler->n_dofs()
+                << pressure->n_dofs()
                 << std::endl
                 << "  Number of total degrees of freedom    = "
-                << (pressure->dof_handler->n_dofs() +
-                    velocity->dof_handler->n_dofs())
+                << (pressure->n_dofs() + velocity->n_dofs())
                 << std::endl;
 }
 
@@ -273,15 +272,15 @@ void Couette<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            error,
                            error_name,
                            component_interpretation);
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
 

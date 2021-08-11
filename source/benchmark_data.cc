@@ -112,7 +112,7 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
 
   Tensor<1, dim>              forces;
 
-  for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
+  for (const auto &cell : velocity->get_dof_handler().active_cell_iterators())
     if (cell->is_locally_owned() && cell->at_boundary() )
       for (const auto &face : cell->face_iterators())
         if (face->at_boundary() && face->boundary_id() == cylinder_boundary_id)
@@ -124,14 +124,14 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
                               cell->level(),
                               cell->index(),
                               // pointer to the pressure's DoFHandler
-                              pressure->dof_handler.get());
+                              &(pressure->get_dof_handler()));
 
             typename DoFHandler<dim>::active_face_iterator pressure_face(
                               &velocity->get_triangulation(),
                               face->level(),
                               face->index(),
                               // pointer to the pressure's DoFHandler
-                              pressure->dof_handler.get());
+                              &(pressure->get_dof_handler()));
 
             pressure_face_fe_values.reinit(pressure_cell, pressure_face);
 
@@ -227,7 +227,7 @@ MIT<dim>::MIT(
   const std::shared_ptr<ConditionalOStream>           external_pcout,
   const std::shared_ptr<TimerOutput>                  external_timer)
 :
-mpi_communicator(velocity->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 velocity(velocity),
 pressure(pressure),
@@ -452,7 +452,7 @@ void MIT<dim>::compute_wall_data()
   double left_boundary_integral  = 0.0;
   double right_boundary_integral = 0.0;
 
-  for (const auto &cell : (temperature->dof_handler)->active_cell_iterators())
+  for (const auto &cell : temperature->get_dof_handler().active_cell_iterators())
     if (cell->is_locally_owned() && cell->at_boundary())
       for (const auto &face : cell->face_iterators())
         if (face->at_boundary() &&
@@ -533,7 +533,7 @@ void MIT<dim>::compute_global_data()
   std::vector<Tensor<1, dim>> velocity_values(n_q_points);
   std::vector<CurlType> vorticity_values(n_q_points);
 
-  for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
+  for (const auto &cell : velocity->get_dof_handler().active_cell_iterators())
     if (cell->is_locally_owned())
     {
       // Initialize the finite element values
@@ -590,7 +590,7 @@ ChristensenBenchmark<dim>::ChristensenBenchmark(
   const std::shared_ptr<ConditionalOStream>           external_pcout,
   const std::shared_ptr<TimerOutput>                  external_timer)
 :
-mpi_communicator(velocity->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 velocity(velocity),
 temperature(temperature),
@@ -819,9 +819,9 @@ void ChristensenBenchmark<dim>::compute_global_data()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->begin_active()),
+              velocity->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->end()),
+              velocity->get_dof_handler().end()),
    worker,
    copier,
    AssemblyData::Benchmarks::Christensen::Scratch<dim>(
