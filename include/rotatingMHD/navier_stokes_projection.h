@@ -11,6 +11,7 @@
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -274,12 +275,29 @@ private:
    * @brief A pointer to unit vector function of the angular velocity of
    * the rotating frame of reference.
    */
-  RMHD::EquationData::AngularVelocity<dim>    *angular_velocity_vector_ptr;
+  RMHD::EquationData::AngularVelocity<dim>   *angular_velocity_vector_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
    */
-  const TimeDiscretization::VSIMEXMethod &time_stepping;
+  const TimeDiscretization::VSIMEXMethod     &time_stepping;
+
+  /*!
+    * @brief A vector containing the \f$ \alpha_0 \f$ of the previous time steps.
+    * @attention This member is only useful in the NavierStokesProjection
+    * class.
+    */
+  std::array<double, 2> previous_alpha_zeros = {1.0, 1.0};
+
+  /*!
+   * @brief A vector containing the sizes of the previous time steps.
+   * @details The DiscreteTime class stores only the previous time step.
+   * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
+   * is the order of the scheme.
+   * @attention This member is only useful in the NavierStokesProjection
+   * class.
+   */
+  std::array<double, 2> previous_step_sizes = {0.0, 0.0};
 
   /*!
    * @brief System matrix used to solve for the velocity field in the diffusion
