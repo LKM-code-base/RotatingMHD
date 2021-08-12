@@ -421,7 +421,7 @@ void Christensen<dim>::output()
   // triangulation.
 
   data_out.build_patches(*this->mapping,
-                         velocity->get_finite_element().degree,
+                         velocity->fe_degree(),
                          DataOut<dim>::curved_inner_cells);
 
 

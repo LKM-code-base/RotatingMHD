@@ -11,7 +11,7 @@ get_cfl_number()
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: CFL number");
 
   const QIterated<dim>  quadrature_formula(QTrapez<1>(),
-                                           velocity->get_finite_element().degree);
+                                           velocity->fe_degree());
   FEValues<dim>         fe_values(velocity->get_finite_element(),
                                   quadrature_formula,
                                   update_values);

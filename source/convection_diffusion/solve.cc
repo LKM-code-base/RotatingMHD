@@ -91,7 +91,7 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
     build_preconditioner(preconditioner,
                          *system_matrix_ptr,
                          solver_parameters.preconditioner_parameters_ptr,
-                         (temperature->get_finite_element().degree > 1? true: false));
+                         (temperature->fe_degree() > 1? true: false));
   }
 
   AssertThrow(preconditioner != nullptr,

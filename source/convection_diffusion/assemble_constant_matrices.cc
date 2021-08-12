@@ -20,7 +20,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
   stiffness_matrix  = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * temperature->get_finite_element().degree;
+  const int p_degree = 2 * temperature->fe_degree();
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));

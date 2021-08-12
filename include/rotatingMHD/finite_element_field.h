@@ -99,6 +99,11 @@ public:
   unsigned int n_components() const;
 
   /*!
+   * @brief Returns the polynomial degree of the finite element.
+   */
+  unsigned int fe_degree() const;
+
+  /*!
    * @brief Name of the physical field which is contained in the entity.
    */
   const std::string                 name;
@@ -330,6 +335,13 @@ inline unsigned int
 FE_FieldBase<dim>::n_components() const
 {
   return (finite_element->n_components());
+}
+
+template<int dim>
+inline unsigned int
+FE_FieldBase<dim>::fe_degree() const
+{
+  return (finite_element->degree);
 }
 
 template <int dim>

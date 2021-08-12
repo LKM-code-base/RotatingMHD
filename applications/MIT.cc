@@ -435,7 +435,7 @@ void MITBenchmark<dim>::output()
   // elements. In other words, the triangulation visualized in the
   // *.pvtu file is one globl refinement finer than the actual
   // triangulation.
-  data_out.build_patches(velocity->get_finite_element().degree);
+  data_out.build_patches(velocity->fe_degree());
 
   // Writes the DataOut instance to the file.
   static int out_index = 0;

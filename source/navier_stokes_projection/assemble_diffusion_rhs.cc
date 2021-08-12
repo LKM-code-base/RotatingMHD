@@ -25,16 +25,16 @@ assemble_diffusion_step_rhs()
           (temperature.get() != nullptr) ? &temperature->get_finite_element() : &dummy_fe;
 
   // Polynomial degree of the body force and the neumann function
-  const int p_degree_body_force       = velocity->get_finite_element().degree;
+  const int p_degree_body_force       = velocity->fe_degree();
 
-  const int p_degree_neumann_function = velocity->get_finite_element().degree;
+  const int p_degree_neumann_function = velocity->fe_degree();
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = std::max(3 * velocity->get_finite_element().degree - 1,
-                                velocity->get_finite_element().degree + p_degree_body_force);
+  const int p_degree = std::max(3 * velocity->fe_degree() - 1,
+                                velocity->fe_degree() + p_degree_body_force);
 
   // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = velocity->get_finite_element().degree + p_degree_neumann_function;
+  const int face_p_degree = velocity->fe_degree() + p_degree_neumann_function;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));

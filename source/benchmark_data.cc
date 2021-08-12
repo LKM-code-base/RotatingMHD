@@ -82,7 +82,7 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
 
   const MappingQ<dim> mapping(3);
 
-  const int face_p_degree = velocity->get_finite_element().degree;
+  const int face_p_degree = velocity->fe_degree();
 
   const QGauss<dim-1>   face_quadrature_formula(
                             std::ceil(0.5 * double(face_p_degree + 1)));
@@ -423,7 +423,7 @@ void MIT<dim>::compute_wall_data()
   /*! @attention What would be the polynomial degree of the normal
       vector? */
   // Polynomial degree of the integrand
-  const int face_p_degree = temperature->get_finite_element().degree;
+  const int face_p_degree = temperature->fe_degree();
 
   // Quadrature formula
   const QGauss<dim-1>   face_quadrature_formula(
@@ -509,7 +509,7 @@ void MIT<dim>::compute_global_data()
   average_vorticity_metric  = 0.0;
 
   // Polynomial degree of the integrand
-  const int p_degree = 2 * velocity->get_finite_element().degree;
+  const int p_degree = 2 * velocity->fe_degree();
 
   // Quadrature formula
   const QGauss<dim>   quadrature_formula(
@@ -785,9 +785,9 @@ void ChristensenBenchmark<dim>::compute_global_data()
 
   // Polynomial degree of the integrand
   const int p_degree = 2 * (case_number != 0
-                              ? std::max(velocity->get_finite_element().degree,
-                                        magnetic_field->get_finite_element().degree)
-                              : velocity->get_finite_element().degree);
+                              ? std::max(velocity->fe_degree(),
+                                        magnetic_field->fe_degree())
+                              : velocity->fe_degree());
 
   // Quadrature formula
   const QGauss<dim>   quadrature_formula(

@@ -220,7 +220,7 @@ void ThermalTGV<dim>::output()
                            error,
                            "error");
 
-  data_out.build_patches(temperature->get_finite_element().degree);
+  data_out.build_patches(temperature->fe_degree());
 
   static int out_index = 0;
 

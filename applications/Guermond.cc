@@ -238,13 +238,13 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 
     const LinearAlgebra::MPI::Vector::value_type analytical_mean_value
       = VectorTools::compute_mean_value(pressure->get_dof_handler(),
-                                        QGauss<dim>(pressure->get_finite_element().degree + 1),
+                                        QGauss<dim>(pressure->fe_degree() + 1),
                                         analytical_pressure,
                                         0);
 
     const LinearAlgebra::MPI::Vector::value_type numerical_mean_value
       = VectorTools::compute_mean_value(pressure->get_dof_handler(),
-                                        QGauss<dim>(pressure->get_finite_element().degree + 1),
+                                        QGauss<dim>(pressure->fe_degree() + 1),
                                         pressure->solution,
                                         0);
 
@@ -315,7 +315,7 @@ void Guermond<dim>::output()
                            pressure_error,
                            "pressure_error");
 
-  data_out.build_patches(velocity->get_finite_element().degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 

@@ -19,7 +19,7 @@ assemble_projection_step_rhs()
   correction_step_rhs = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = velocity->get_finite_element().degree + pressure->get_finite_element().degree - 1;
+  const int p_degree = velocity->fe_degree() + pressure->fe_degree() - 1;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));

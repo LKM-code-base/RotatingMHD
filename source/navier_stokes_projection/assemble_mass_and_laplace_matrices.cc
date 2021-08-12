@@ -18,7 +18,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   velocity_laplace_matrix = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * velocity->get_finite_element().degree;
+  const int p_degree = 2 * velocity->fe_degree();
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -150,7 +150,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   phi_laplace_matrix      = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * pressure->get_finite_element().degree;
+  const int p_degree = 2 * pressure->fe_degree();
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));

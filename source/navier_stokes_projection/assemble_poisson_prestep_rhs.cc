@@ -26,17 +26,17 @@ assemble_poisson_prestep_rhs()
 
   // Set polynomial degree of the body force function.
   // Hardcoded to match that of the velocity.
-  const int p_degree_body_force = velocity->get_finite_element().degree;
+  const int p_degree_body_force = velocity->fe_degree();
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = pressure->get_finite_element().degree + p_degree_body_force - 1;
+  const int p_degree = pressure->fe_degree() + p_degree_body_force - 1;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = std::max(pressure->get_finite_element().degree + p_degree_body_force,
-                                     pressure->get_finite_element().degree + velocity->get_finite_element().degree -2);
+  const int face_p_degree = std::max(pressure->fe_degree() + p_degree_body_force,
+                                     pressure->fe_degree() + velocity->fe_degree() -2);
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));

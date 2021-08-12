@@ -284,7 +284,7 @@ void Couette<dim>::output()
                            pressure->solution,
                            "pressure");
 
-  data_out.build_patches(velocity->get_finite_element().degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 

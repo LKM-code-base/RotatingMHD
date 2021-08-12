@@ -40,7 +40,7 @@ void NavierStokesProjection<dim>::solve_projection_step
     build_preconditioner(projection_step_preconditioner,
                          phi_laplace_matrix,
                          solver_parameters.preconditioner_parameters_ptr,
-                         (phi->get_finite_element().degree > 1? true: false));
+                         (phi->fe_degree() > 1? true: false));
   }
 
   AssertThrow(projection_step_preconditioner != nullptr,
@@ -97,7 +97,7 @@ void NavierStokesProjection<dim>::solve_projection_step
   {
     const LinearAlgebra::MPI::Vector::value_type mean_value
       = VectorTools::compute_mean_value(phi->get_dof_handler(),
-                                        QGauss<dim>(phi->get_finite_element().degree + 1),
+                                        QGauss<dim>(phi->fe_degree() + 1),
                                         phi->solution,
                                         0);
 

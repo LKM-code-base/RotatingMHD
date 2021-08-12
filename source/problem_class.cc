@@ -114,7 +114,7 @@ void Problem<dim>::project_function
   VectorTools::project(*(this->mapping),
                        entity->get_dof_handler(),
                        entity->get_constraints(),
-                       QGauss<dim>(entity->get_finite_element().degree + 2),
+                       QGauss<dim>(entity->fe_degree() + 2),
                        function,
                        tmp_vector);
 
@@ -171,7 +171,7 @@ void Problem<dim>::set_initial_conditions
   {
     VectorTools::project(entity->get_dof_handler(),
                          entity->get_constraints(),
-                          QGauss<dim>(entity->get_finite_element().degree + 2),
+                          QGauss<dim>(entity->fe_degree() + 2),
                           function,
                           tmp_old_solution);
 
@@ -183,7 +183,7 @@ void Problem<dim>::set_initial_conditions
 
     VectorTools::project(entity->get_dof_handler(),
                          entity->get_constraints(),
-                          QGauss<dim>(entity->get_finite_element().degree + 2),
+                          QGauss<dim>(entity->fe_degree() + 2),
                           function,
                           tmp_old_old_solution);
 
@@ -191,7 +191,7 @@ void Problem<dim>::set_initial_conditions
 
     VectorTools::project(entity->get_dof_handler(),
                          entity->get_constraints(),
-                          QGauss<dim>(entity->get_finite_element().degree + 2),
+                          QGauss<dim>(entity->fe_degree() + 2),
                           function,
                           tmp_old_solution);
 
@@ -295,7 +295,7 @@ void Problem<dim>::adaptive_mesh_refinement()
       {
         KellyErrorEstimator<dim>::estimate(
           container.entities[i].first->get_dof_handler(),
-          QGauss<dim-1>(container.entities[i].first->get_finite_element().degree + 1),
+          QGauss<dim-1>(container.entities[i].first->fe_degree() + 1),
           std::map<types::boundary_id, const Function<dim> *>(),
           container.entities[i].first->solution,
           estimated_errors_per_cell[j],

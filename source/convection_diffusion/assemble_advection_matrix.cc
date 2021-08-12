@@ -29,10 +29,10 @@ void HeatEquation<dim>::assemble_advection_matrix()
   // Set polynomial degree of the velocity. If the velicity is given
   // by a function the degree is hardcoded to 2.
   const unsigned int velocity_fe_degree =
-                        (velocity != nullptr) ? velocity->get_finite_element().degree : 2;
+                        (velocity != nullptr) ? velocity->fe_degree() : 2;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = velocity_fe_degree + 2 * temperature->get_finite_element().degree - 1;
+  const int p_degree = velocity_fe_degree + 2 * temperature->fe_degree() - 1;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
