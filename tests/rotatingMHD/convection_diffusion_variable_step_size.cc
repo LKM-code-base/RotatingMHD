@@ -18,6 +18,8 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <random>
+
 using namespace dealii;
 
 template <int dim>
@@ -132,7 +134,7 @@ private:
 
   void solve_time_step();
 
-  void process_solution(const unsigned int cycle);
+  void process_solution(const unsigned int, const double);
 
   Triangulation<dim> triangulation;
 
@@ -537,7 +539,7 @@ void ConvectionDiffusionProblem<dim>::solve_time_step()
 
 
 template <int dim>
-void ConvectionDiffusionProblem<dim>::process_solution(const unsigned int cycle)
+void ConvectionDiffusionProblem<dim>::process_solution(const unsigned int cycle, const double time_step)
 {
   const double current_time{discrete_time.get_current_time()};
 
@@ -578,7 +580,7 @@ void ConvectionDiffusionProblem<dim>::process_solution(const unsigned int cycle)
   const unsigned int n_active_cells = triangulation.n_active_cells();
   const unsigned int n_dofs         = dof_handler.n_dofs();
   convergence_table.add_value("cycle", cycle);
-  convergence_table.add_value("time_step", discrete_time.get_previous_step_size());
+  convergence_table.add_value("time_step", time_step);
   convergence_table.add_value("cells", n_active_cells);
   convergence_table.add_value("dofs", n_dofs);
   convergence_table.add_value("L2", L2_error);
@@ -601,7 +603,18 @@ void ConvectionDiffusionProblem<dim>::run()
 
   for (unsigned int cycle = 0; cycle < 5; ++cycle)
   {
-    const double time_step{discrete_time.get_maximum_step_size() * std::pow(0.5, cycle)};
+    const double maximum_time_step{discrete_time.get_maximum_step_size() * std::pow(0.5, cycle)};
+    const double minimum_time_step{0.5 * (discrete_time.get_maximum_step_size() * std::pow(0.5, cycle + 1)
+                                          + maximum_time_step)};
+    double time_step{maximum_time_step};
+
+    std::uniform_real_distribution<double> dist_double(minimum_time_step, maximum_time_step);
+    static std::default_random_engine re;
+
+    const unsigned int n_max_steps{(unsigned int)std::floor(discrete_time.get_end_time() / maximum_time_step)};
+    std::uniform_int_distribution<unsigned int> dist_int(2, n_max_steps);
+    const unsigned int adaptivity_frequency{dist_int(re)};
+
 
     discrete_time.restart();
     discrete_time.set_desired_next_step_size(time_step);
@@ -610,6 +623,16 @@ void ConvectionDiffusionProblem<dim>::run()
 
     while (discrete_time.get_current_time() < discrete_time.get_end_time())
     {
+      if (discrete_time.get_step_number() > 0 &&
+          discrete_time.get_step_number() % adaptivity_frequency == 0)
+      {
+        time_step = dist_double(re);
+        Assert(time_step >= minimum_time_step,
+               ExcLowerRangeType<double>(time_step, minimum_time_step))
+        Assert(maximum_time_step >= time_step,
+               ExcLowerRangeType<double>(maximum_time_step, time_step))
+        discrete_time.set_desired_next_step_size(time_step);
+      }
       discrete_time.update_coefficients();
 
       // solve
@@ -621,7 +644,7 @@ void ConvectionDiffusionProblem<dim>::run()
       old_solution = solution;
     }
 
-    process_solution(cycle);
+    process_solution(cycle, maximum_time_step);
   }
 
   convergence_table.set_precision("L2", 3);
