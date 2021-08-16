@@ -15,19 +15,31 @@ namespace VectorTools
 
 using NormType = dealii::VectorTools::NormType;
 
-template<int dim>
+template <int dim, typename VectorType>
 std::map<NormType, double>
 compute_error
-(const Mapping<dim>                 &external_mapping,
- const Entities::FE_FieldBase<dim>  &fe_field,
- const Function<dim>                &exact_solution);
+(const Mapping<dim>                             &mapping,
+ const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &exact_solution);
 
-template<int dim>
+template <int dim, typename VectorType>
 std::map<NormType, double>
 compute_error
-(const Entities::FE_FieldBase<dim>  &fe_field,
- const Function<dim>                &exact_solution);
+(const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &exact_solution);
 
+template <int dim, typename VectorType>
+void interpolate
+(const Mapping<dim>                             &mapping,
+ const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &function,
+ VectorType                                     &vector);
+
+template <int dim, typename VectorType>
+void interpolate
+(const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &function,
+ VectorType                                     &vector);
 
 }  // namespace VectorTools
 

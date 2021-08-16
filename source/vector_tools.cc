@@ -7,12 +7,12 @@ namespace VectorTools
 {
 
 
-template<int dim>
+template <int dim, typename VectorType>
 std::map<NormType, double>
 compute_error
-(const Mapping<dim>                 &mapping,
- const Entities::FE_FieldBase<dim>  &fe_field,
- const Function<dim>                &exact_solution)
+(const Mapping<dim>                             &mapping,
+ const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &exact_solution)
 {
   const Triangulation<dim> &tria{fe_field.get_triangulation()};
   const DoFHandler<dim>    &dof_handler{fe_field.get_dof_handler()};
@@ -74,14 +74,50 @@ compute_error
 
 
 
-template<int dim>
+template <int dim, typename VectorType>
 std::map<NormType, double>
 compute_error
-(const Entities::FE_FieldBase<dim>  &fe_field,
- const Function<dim>                &exact_solution)
+(const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &exact_solution)
 {
   return (compute_error(MappingQ1<dim>(), fe_field, exact_solution));
 }
+
+
+template <int dim, typename VectorType>
+void interpolate
+(const Mapping<dim>                             &mapping,
+ const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &function,
+ VectorType                               &vector)
+{
+  Assert(function.n_components == fe_field.n_components(),
+         ExcMessage("The number of components of the function does not those "
+                    "of the entity"));
+
+  VectorType  tmp_vector(fe_field.distributed_vector);
+
+  dealii::VectorTools::interpolate(mapping,
+                                   fe_field.get_dof_handler(),
+                                   function,
+                                   tmp_vector);
+  fe_field.get_constraints().distribute(tmp_vector);
+
+  vector = tmp_vector;
+}
+
+
+
+template <int dim, typename VectorType>
+void interpolate
+(const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &function,
+ VectorType                               &vector)
+{
+  interpolate(MappingQ1<dim>(), fe_field, function, vector);
+}
+
+
 
 }  // namespace VectorTools
 
@@ -90,25 +126,50 @@ compute_error
 // explicit instantiations
 template
 std::map<typename dealii::VectorTools::NormType, double>
-RMHD::VectorTools::compute_error<2>
-(const Mapping<2>                       &,
- const RMHD::Entities::FE_FieldBase<2>  &,
- const dealii::Function<2>              &);
+RMHD::VectorTools::compute_error<2, RMHD::LinearAlgebra::MPI::Vector>
+(const Mapping<2>                 &,
+ const RMHD::Entities::FE_FieldBase<2, RMHD::LinearAlgebra::MPI::Vector>  &,
+ const dealii::Function<2>        &);
 template
 std::map<typename dealii::VectorTools::NormType, double>
-RMHD::VectorTools::compute_error<3>
-(const Mapping<3>                       &,
- const RMHD::Entities::FE_FieldBase<3>  &,
- const dealii::Function<3>              &);
+RMHD::VectorTools::compute_error<3, RMHD::LinearAlgebra::MPI::Vector>
+(const Mapping<3>                 &,
+ const RMHD::Entities::FE_FieldBase<3, RMHD::LinearAlgebra::MPI::Vector>  &,
+ const dealii::Function<3>        &);
 
 template
 std::map<typename dealii::VectorTools::NormType, double>
-RMHD::VectorTools::compute_error<2>
-(const RMHD::Entities::FE_FieldBase<2>  &,
- const dealii::Function<2>              &);
+RMHD::VectorTools::compute_error<2, RMHD::LinearAlgebra::MPI::Vector>
+(const RMHD::Entities::FE_FieldBase<2, RMHD::LinearAlgebra::MPI::Vector>  &,
+ const dealii::Function<2>        &);
 template
 std::map<typename dealii::VectorTools::NormType, double>
-RMHD::VectorTools::compute_error<3>
-(const RMHD::Entities::FE_FieldBase<3>  &,
- const dealii::Function<3>              &);
+RMHD::VectorTools::compute_error<3, RMHD::LinearAlgebra::MPI::Vector>
+(const RMHD::Entities::FE_FieldBase<3, RMHD::LinearAlgebra::MPI::Vector>  &,
+ const dealii::Function<3>        &);
+
+template
+void RMHD::VectorTools::interpolate<2, RMHD::LinearAlgebra::MPI::Vector>
+(const Mapping<2> &,
+ const RMHD::Entities::FE_FieldBase<2, RMHD::LinearAlgebra::MPI::Vector>  &,
+ const dealii::Function<2>        &,
+ RMHD::LinearAlgebra::MPI::Vector &);
+template
+void RMHD::VectorTools::interpolate<3, RMHD::LinearAlgebra::MPI::Vector>
+(const Mapping<3>                 &,
+ const RMHD::Entities::FE_FieldBase<3, RMHD::LinearAlgebra::MPI::Vector>  &,
+ const dealii::Function<3>        &,
+ RMHD::LinearAlgebra::MPI::Vector &);
+
+template
+void RMHD::VectorTools::interpolate<2, RMHD::LinearAlgebra::MPI::Vector>
+(const RMHD::Entities::FE_FieldBase<2, RMHD::LinearAlgebra::MPI::Vector>  &,
+ const dealii::Function<2>        &,
+ RMHD::LinearAlgebra::MPI::Vector &);
+template
+void RMHD::VectorTools::interpolate<3, RMHD::LinearAlgebra::MPI::Vector>
+(const RMHD::Entities::FE_FieldBase<3, RMHD::LinearAlgebra::MPI::Vector>  &,
+ const dealii::Function<3>        &,
+ RMHD::LinearAlgebra::MPI::Vector &);
+
 
