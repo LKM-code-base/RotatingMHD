@@ -1,4 +1,3 @@
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/problem_class.h>
@@ -14,6 +13,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <rotatingMHD/convergence_test.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <memory>
 
@@ -40,7 +40,7 @@ private:
 
   std::ofstream                                 log_file;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
   LinearAlgebra::MPI::Vector                    error;
 
@@ -81,7 +81,7 @@ ThermalTGV<dim>::ThermalTGV(
 Problem<dim>(parameters),
 parameters(parameters),
 log_file("ThermalTGV_Log.csv"),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_temperature,
+temperature(std::make_shared<Entities::FE_ScalarField<dim>>(parameters.fe_degree_temperature,
                                                           this->triangulation,
                                                           "Temperature")),
 time_stepping(parameters.time_discretization_parameters),

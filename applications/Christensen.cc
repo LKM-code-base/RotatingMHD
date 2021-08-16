@@ -1,5 +1,4 @@
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
@@ -16,6 +15,7 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <iostream>
 #include <fstream>
@@ -101,13 +101,13 @@ private:
 
   const unsigned int                            outer_boundary_id;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  magnetic_field;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  magnetic_field;
 
   std::shared_ptr<EquationData::Christensen::TemperatureInitialCondition<dim>>
                                                 temperature_initial_conditions;
@@ -155,19 +155,19 @@ outer_radius(20./13.),
 A(0.1),
 inner_boundary_id(0),
 outer_boundary_id(1),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(
            parameters.fe_degree_velocity,
            this->triangulation,
            "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(
            parameters.fe_degree_pressure,
            this->triangulation,
            "Pressure")),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(
+temperature(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_temperature,
               this->triangulation,
               "Temperature")),
-magnetic_field(std::make_shared<Entities::VectorEntity<dim>>(
+magnetic_field(std::make_shared<Entities::FE_VectorField<dim>>(
               1/*parameters.fe_degree_magnetic_field*/,
               this->triangulation,
               "Magnetic field")),
@@ -457,7 +457,7 @@ void Christensen<dim>::run()
   const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
-         time_stepping.get_step_number() < n_steps)
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
