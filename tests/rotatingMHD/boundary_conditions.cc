@@ -25,11 +25,6 @@ void scalar_boundary_condition_test()
       std::make_shared<Functions::CutOffFunctionC1<dim>>();
 
   scalar_bcs01.extract_boundary_ids();
-  std::cout << "unconstrained_ids: ";
-  for (const auto &id: scalar_bcs01.get_unconstrained_boundary_ids())
-    std::cout << id << ", ";
-  std::cout << std::endl;
-
   scalar_bcs01.set_periodic_bc(0, 1, 0);
   scalar_bcs01.set_dirichlet_bc(2, ptr01, true);
   scalar_bcs01.set_neumann_bc(3, ptr02);
@@ -37,10 +32,6 @@ void scalar_boundary_condition_test()
   std::cout << "Time of ptr01 = " << ptr01->get_time() << std::endl;
   std::cout << "Time of ptr02 = " << ptr02->get_time() << std::endl;
 
-  std::cout << "unconstrained_ids: ";
-  for (const auto &id: scalar_bcs01.get_unconstrained_boundary_ids())
-    std::cout << id << ", ";
-  std::cout << std::endl;
   scalar_bcs01.print_summary(std::cout, "Scalar 01");
 
   ScalarBoundaryConditions<dim> scalar_bcs02(tria);
@@ -88,11 +79,6 @@ void vector_boundary_condition_test()
       std::make_shared<Functions::ConstantFunction<dim>>(1.0, dim);
 
   vector_bcs01.extract_boundary_ids();
-  std::cout << "unconstrained_ids: ";
-  for (const auto &id: vector_bcs01.get_unconstrained_boundary_ids())
-    std::cout << id << ", ";
-  std::cout << std::endl;
-
   vector_bcs01.set_periodic_bc(0, 1, 0);
   vector_bcs01.set_dirichlet_bc(2, ptr01, true);
   vector_bcs01.set_neumann_bc(3, ptr02);
@@ -100,10 +86,6 @@ void vector_boundary_condition_test()
   std::cout << "Time of ptr01 = " << ptr01->get_time() << std::endl;
   std::cout << "Time of ptr02 = " << ptr02->get_time() << std::endl;
 
-  std::cout << "unconstrained_ids: ";
-  for (const auto &id: vector_bcs01.get_unconstrained_boundary_ids())
-    std::cout << id << ", ";
-  std::cout << std::endl;
   vector_bcs01.print_summary(std::cout, "Vector 01");
 
   VectorBoundaryConditions<dim> vector_bcs02(tria);
@@ -113,11 +95,6 @@ void vector_boundary_condition_test()
   VectorBoundaryConditions<dim> vector_bcs03(tria);
   vector_bcs03.clear();
   vector_bcs03.extract_boundary_ids();
-
-  std::cout << "unconstrained_ids: ";
-  for (const auto &id: vector_bcs03.get_unconstrained_boundary_ids())
-    std::cout << id << ", ";
-  std::cout << std::endl;
 
   vector_bcs03.set_dirichlet_bc(0, ptr01, true);
   vector_bcs03.set_neumann_bc(1, ptr02, true);
