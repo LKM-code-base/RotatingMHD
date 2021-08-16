@@ -180,7 +180,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           // The pressure's constraints are distributed to the
           // solution vector to consider the case of Dirichlet
           // boundary conditions on the pressure field.
-          if (!pressure->boundary_conditions.dirichlet_bcs.empty())
+          if (!pressure->get_dirichlet_boundary_conditions().empty())
             pressure->get_constraints().distribute(distributed_pressure);
           else
             pressure->get_hanging_node_constraints().distribute(distributed_pressure);

@@ -118,6 +118,9 @@ void HeatEquation<dim>::assemble_local_rhs(
   AssemblyData::HeatEquation::RightHandSide::Scratch<dim>   &scratch,
   AssemblyData::HeatEquation::RightHandSide::Copy           &data)
 {
+  const typename Entities::ScalarBoundaryConditions<dim>::NeumannBCMapping
+  &neumann_bcs = temperature->get_neumann_boundary_conditions();
+
   // Reset local data
   data.local_rhs                          = 0.;
   data.local_matrix_for_inhomogeneous_bc  = 0.;
@@ -325,56 +328,53 @@ void HeatEquation<dim>::assemble_local_rhs(
   } // Loop over quadrature points
 
   // Loop over the faces of the cell
-  if (cell->at_boundary())
-    for (const auto &face : cell->face_iterators())
-      if (face->at_boundary() &&
-          temperature->boundary_conditions.neumann_bcs.find(face->boundary_id())
-          != temperature->boundary_conditions.neumann_bcs.end())
-      {
-        // Neumann boundary condition
-        scratch.temperature_fe_face_values.reinit(cell, face);
-
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-          time_stepping.get_current_time() - time_stepping.get_previous_step_size());
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-          scratch.temperature_fe_face_values.get_quadrature_points(),
-          scratch.old_old_neumann_bc_values);
-
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-          time_stepping.get_current_time() + time_stepping.get_next_step_size());
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-          scratch.temperature_fe_face_values.get_quadrature_points(),
-          scratch.neumann_bc_values);
-
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-          time_stepping.get_current_time());
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-          scratch.temperature_fe_face_values.get_quadrature_points(),
-          scratch.old_neumann_bc_values);
-
-        // Loop over face quadrature points
-        for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
+  if (!neumann_bcs.empty())
+    if (cell->at_boundary())
+      for (const auto &face : cell->face_iterators())
+        if (face->at_boundary() &&
+            neumann_bcs.find(face->boundary_id()) != neumann_bcs.end())
         {
-          // Extract the test function's values at the face quadrature points
-          for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-            scratch.face_phi[i] =
-              scratch.temperature_fe_face_values.shape_value(i,q);
+          // Neumann boundary condition
+          scratch.temperature_fe_face_values.reinit(cell, face);
 
-          // Loop over the degrees of freedom
-          for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-            data.local_rhs(i) +=
-              scratch.face_phi[i] * (
-                gamma[0] *
-                scratch.neumann_bc_values[q]
-                +
-                gamma[1] *
-                scratch.old_neumann_bc_values[q]
-                +
-                gamma[2] *
-                scratch.old_old_neumann_bc_values[q]) *
-              scratch.temperature_fe_face_values.JxW(q);
-        } // Loop over face quadrature points
-      } // Loop over the faces of the cell
+          const types::boundary_id  boundary_id{face->boundary_id()};
+          const std::vector<Point<dim>> face_quadrature_points{scratch.temperature_fe_face_values.get_quadrature_points()};
+
+          neumann_bcs.at(boundary_id)->set_time(time_stepping.get_previous_time());
+          neumann_bcs.at(boundary_id)->value_list(face_quadrature_points,
+                                                  scratch.old_old_neumann_bc_values);
+
+          neumann_bcs.at(boundary_id)->set_time(time_stepping.get_current_time());
+          neumann_bcs.at(boundary_id)->value_list(face_quadrature_points,
+                                                  scratch.old_neumann_bc_values);
+
+          neumann_bcs.at(boundary_id)->set_time(time_stepping.get_next_time());
+          neumann_bcs.at(boundary_id)->value_list(face_quadrature_points,
+                                                  scratch.neumann_bc_values);
+
+          // Loop over face quadrature points
+          for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
+          {
+            // Extract the test function's values at the face quadrature points
+            for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+              scratch.face_phi[i] =
+                scratch.temperature_fe_face_values.shape_value(i,q);
+
+            // Loop over the degrees of freedom
+            for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+              data.local_rhs(i) +=
+                scratch.face_phi[i] * (
+                  gamma[0] *
+                  scratch.neumann_bc_values[q]
+                  +
+                  gamma[1] *
+                  scratch.old_neumann_bc_values[q]
+                  +
+                  gamma[2] *
+                  scratch.old_old_neumann_bc_values[q]) *
+                scratch.temperature_fe_face_values.JxW(q);
+          } // Loop over face quadrature points
+        } // Loop over the faces of the cell
 } // assemble_local_rhs
 
 template <int dim>

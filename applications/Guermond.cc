@@ -183,15 +183,17 @@ void Guermond<dim>::setup_constraints()
   velocity->clear_boundary_conditions();
   pressure->clear_boundary_conditions();
 
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
   velocity_exact_solution->set_time(time_stepping.get_start_time());
 
   for (const auto& boundary_id : this->triangulation.get_boundary_ids())
-    velocity->boundary_conditions.set_dirichlet_bcs(
-      boundary_id,
-      velocity_exact_solution,
-      true);
+    velocity->set_dirichlet_boundary_condition(boundary_id,
+                                               velocity_exact_solution,
+                                               true);
 
-  pressure->boundary_conditions.set_datum_at_boundary();
+  pressure->set_datum_boundary_condition();
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -369,7 +371,7 @@ void Guermond<dim>::solve(const unsigned int &level)
     velocity_exact_solution->set_time(time_stepping.get_next_time());
     pressure_exact_solution->set_time(time_stepping.get_next_time());
 
-    velocity->boundary_conditions.set_time(time_stepping.get_next_time());
+    velocity_exact_solution->set_time(time_stepping.get_next_time());
     velocity->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}

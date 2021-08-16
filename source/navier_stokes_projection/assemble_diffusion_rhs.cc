@@ -17,14 +17,14 @@ assemble_diffusion_step_rhs()
   // Reset data
   diffusion_step_rhs  = 0.;
 
-  // Dummy finite element for when there is no bouyancy
+  // Dummy finite element for when there is no buoyancy
   const FE_Q<dim> dummy_fe(1);
 
   // Create pointer to the pertinent finite element
   const FiniteElement<dim> * const temperature_fe_ptr =
           (temperature.get() != nullptr) ? &temperature->get_finite_element() : &dummy_fe;
 
-  // Polynomial degree of the body force and the neumann function
+  // Polynomial degree of the body force and the Neumann function
   const int p_degree_body_force       = velocity->fe_degree();
 
   const int p_degree_neumann_function = velocity->fe_degree();
@@ -109,6 +109,9 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
  AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
  AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data)
 {
+  const typename Entities::VectorBoundaryConditions<dim>::NeumannBCMapping
+  &neumann_bcs = velocity->get_neumann_boundary_conditions();
+
   // Reset local data
   data.local_rhs                          = 0.;
   data.local_matrix_for_inhomogeneous_bc  = 0.;
@@ -118,7 +121,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   const std::vector<double> beta  = time_stepping.get_beta();
   const std::vector<double> gamma = time_stepping.get_gamma();
 
-  // Data for the elimination of the selonoidal velocity
+  // Data for the elimination of the solenoidal velocity
   const std::vector<double> old_alpha_zero  = time_stepping.get_previous_alpha_zeros();
   const std::vector<double> old_step_size   = time_stepping.get_previous_step_sizes();
 
@@ -266,7 +269,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
          scratch.old_old_temperature_values[q]);
   }
 
-  // Coreolis acceleration
+  // Coriolis acceleration
   if (angular_velocity_vector_ptr != nullptr)
   {
     angular_velocity_vector_ptr->set_time(time_stepping.get_previous_time());
@@ -575,55 +578,53 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   } // Loop over quadrature points
 
   // Loop over the faces of the cell
-  for (const auto &face : cell->face_iterators())
-    if (face->at_boundary() &&
-        velocity->boundary_conditions.neumann_bcs.find(face->boundary_id())
-        != velocity->boundary_conditions.neumann_bcs.end())
-    {
-      // Neumann boundary condition
-      scratch.velocity_fe_face_values.reinit(cell, face);
+  if (!neumann_bcs.empty())
+    if (cell->at_boundary())
+      for (const auto &face : cell->face_iterators())
+        if (face->at_boundary() &&
+            neumann_bcs.find(face->boundary_id()) != neumann_bcs.end())
+        {
+          // Neumann boundary condition
+          scratch.velocity_fe_face_values.reinit(cell, face);
 
-      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-        time_stepping.get_previous_time());
-      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-        scratch.velocity_fe_face_values.get_quadrature_points(),
-        scratch.old_old_neumann_bc_values);
+          const types::boundary_id  boundary_id{face->boundary_id()};
+          const std::vector<Point<dim>> face_quadrature_points{scratch.velocity_fe_face_values.get_quadrature_points()};
 
-      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-        time_stepping.get_current_time());
-      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-        scratch.velocity_fe_face_values.get_quadrature_points(),
-        scratch.old_neumann_bc_values);
+          neumann_bcs.at(boundary_id)->set_time(time_stepping.get_previous_time());
+          neumann_bcs.at(boundary_id)->value_list(face_quadrature_points,
+                                                  scratch.old_old_neumann_bc_values);
 
-      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-        time_stepping.get_next_time());
-      velocity->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-        scratch.velocity_fe_face_values.get_quadrature_points(),
-        scratch.neumann_bc_values);
+          neumann_bcs.at(boundary_id)->set_time(time_stepping.get_current_time());
+          neumann_bcs.at(boundary_id)->value_list(face_quadrature_points,
+                                                  scratch.old_neumann_bc_values);
 
-      // Loop over face quadrature points
-      for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
-      {
-        // Extract the test function's values at the face quadrature points
-        for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-          scratch.face_phi[i] =
-            scratch.velocity_fe_face_values[vector_extractor].value(i,q);
+          neumann_bcs.at(boundary_id)->set_time(time_stepping.get_next_time());
+          neumann_bcs.at(boundary_id)->value_list(face_quadrature_points,
+                                                  scratch.neumann_bc_values);
 
-        // Loop over the degrees of freedom
-        for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-          data.local_rhs(i) +=
-            scratch.face_phi[i] * (
-              gamma[0] *
-              scratch.neumann_bc_values[q]
-              +
-              gamma[1] *
-              scratch.old_neumann_bc_values[q]
-              +
-              gamma[2] *
-              scratch.old_old_neumann_bc_values[q]) *
-            scratch.velocity_fe_face_values.JxW(q);
-      } // Loop over face quadrature points
-    } // Loop over the faces of the cell
+          // Loop over face quadrature points
+          for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
+          {
+            // Extract the test function's values at the face quadrature points
+            for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+              scratch.face_phi[i] =
+                scratch.velocity_fe_face_values[vector_extractor].value(i,q);
+
+            // Loop over the degrees of freedom
+            for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+              data.local_rhs(i) +=
+                scratch.face_phi[i] * (
+                  gamma[0] *
+                  scratch.neumann_bc_values[q]
+                  +
+                  gamma[1] *
+                  scratch.old_neumann_bc_values[q]
+                  +
+                  gamma[2] *
+                  scratch.old_old_neumann_bc_values[q]) *
+                scratch.velocity_fe_face_values.JxW(q);
+          } // Loop over face quadrature points
+        } // Loop over the faces of the cell
 } // assemble_local_diffusion_step_rhs
 
 template <int dim>

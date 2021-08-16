@@ -155,12 +155,18 @@ void Step35<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.set_dirichlet_bcs(1);
-  velocity->boundary_conditions.set_dirichlet_bcs(2, inflow_boundary_condition);
-  velocity->boundary_conditions.set_dirichlet_bcs(4);
-  velocity->boundary_conditions.set_tangential_flux_bcs(3);
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
 
-  pressure->boundary_conditions.set_dirichlet_bcs(3);
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
+  velocity->set_dirichlet_boundary_condition(1);
+  velocity->set_dirichlet_boundary_condition(2, inflow_boundary_condition);
+  velocity->set_dirichlet_boundary_condition(4);
+  velocity->set_tangential_component_boundary_condition(3);
+
+  pressure->set_dirichlet_boundary_condition(3);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();

@@ -203,15 +203,18 @@ void Couette<dim>::setup_constraints()
   velocity->clear_boundary_conditions();
   pressure->clear_boundary_conditions();
 
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
   // The domain represents an infinite channel. In order to obtain the
   // analytical solution, periodic boundary conditions need to be
   // implemented.
-  velocity->boundary_conditions.set_periodic_bcs(0, 1, 0);
-  pressure->boundary_conditions.set_periodic_bcs(0, 1, 0);
+  velocity->set_periodic_boundary_condition(0, 1, 0);
+  pressure->set_periodic_boundary_condition(0, 1, 0);
   // No-slip boundary conditions on the lower plate
-  velocity->boundary_conditions.set_dirichlet_bcs(2);
+  velocity->set_dirichlet_boundary_condition(2);
   // The upper plate is displaced by a traction vector
-  velocity->boundary_conditions.set_neumann_bcs(3, traction_vector);
+  velocity->set_neumann_boundary_condition(3, traction_vector);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();

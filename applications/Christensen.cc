@@ -310,23 +310,29 @@ void Christensen<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
+  temperature->clear_boundary_conditions();
+
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+  temperature->setup_boundary_conditions();
+
   // Homogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  velocity->boundary_conditions.set_dirichlet_bcs(inner_boundary_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(outer_boundary_id);
+  velocity->set_dirichlet_boundary_condition(inner_boundary_id);
+  velocity->set_dirichlet_boundary_condition(outer_boundary_id);
 
   // The pressure itself has no boundary conditions. A datum needs to be
   // set to make the system matrix regular
-  pressure->boundary_conditions.set_datum_at_boundary();
+  pressure->set_datum_boundary_condition();
 
   // Inhomogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    inner_boundary_id,
-    temperature_boundary_conditions);
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    outer_boundary_id,
-    temperature_boundary_conditions);
+  temperature->set_dirichlet_boundary_condition(inner_boundary_id,
+                                                temperature_boundary_conditions);
+  temperature->set_dirichlet_boundary_condition(outer_boundary_id,
+                                                temperature_boundary_conditions);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();

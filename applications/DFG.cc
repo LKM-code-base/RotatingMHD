@@ -440,15 +440,22 @@ void DFG<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.set_dirichlet_bcs
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
+
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
+  velocity->set_dirichlet_boundary_condition
   (channel_inlet_bndry_id,
-   std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>(
-     this->prm.time_discretization_parameters.start_time));
+   std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>
+   (time_stepping.get_start_time())
+  );
 
-  velocity->boundary_conditions.set_dirichlet_bcs(channel_wall_bndry_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(cylinder_bndry_id);
+  velocity->set_dirichlet_boundary_condition(channel_wall_bndry_id);
+  velocity->set_dirichlet_boundary_condition(cylinder_bndry_id);
 
-  pressure->boundary_conditions.set_dirichlet_bcs(channel_outlet_bndry_id);
+  pressure->set_dirichlet_boundary_condition(channel_outlet_bndry_id);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();

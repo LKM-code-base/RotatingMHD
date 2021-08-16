@@ -38,25 +38,23 @@ namespace Entities
  * @brief This struct gathers all the numerical attributes that are
  * independent of the rank of the tensor.
  */
-
-template <int dim>
-struct FE_FieldBase
+template <int dim, typename VectorType = LinearAlgebra::MPI::Vector>
+class FE_FieldBase
 {
-private:
-  using value_type = LinearAlgebra::MPI::Vector::value_type;
-
 public:
+  using value_type = typename VectorType::value_type;
+
   /*!
    * @brief Constructor.
    */
-  FE_FieldBase(const parallel::distributed::Triangulation<dim> &triangulation,
-               const std::string                               &name = "entity");
+  FE_FieldBase(const Triangulation<dim>  &triangulation,
+               const std::string         &name = "entity");
 
   /*!
    * @brief Copy constructor.
    */
-  FE_FieldBase(const FE_FieldBase<dim>  &entity,
-               const std::string      &new_name = "entity");
+  FE_FieldBase(const FE_FieldBase<dim, VectorType>  &entity,
+               const std::string        &new_name = "entity");
 
   /*!
    * @brief Returns a const reference to the @ref dof_handler
@@ -88,6 +86,30 @@ public:
    */
   const AffineConstraints<value_type>&  get_hanging_node_constraints() const;
 
+  const BoundaryConditionsBase<dim> &
+  get_boundary_conditions() const;
+
+  BoundaryConditionsBase<dim> & get_boundary_conditions();
+
+
+  const typename BoundaryConditionsBase<dim>::BCMapping &
+  get_dirichlet_boundary_conditions() const;
+
+  /*!
+   * @brief Set a Dirichlet boundary condition.
+   */
+  void set_dirichlet_boundary_condition(const types::boundary_id ,
+                                        const std::shared_ptr<Function<dim>> &function
+                                          = std::shared_ptr<Function<dim>>(),
+                                        const bool time_dependent_bc = false);
+
+  /*!
+   * @brief Set a periodic boundary condition.
+   */
+  void set_periodic_boundary_condition(const types::boundary_id  first_bndry_id,
+                                       const types::boundary_id  second_bndry_id,
+                                       const unsigned int        direction);
+
   /*!
    * @brief Returns the number of degrees of freedom.
    */
@@ -111,19 +133,19 @@ public:
   /*!
    * @brief Vector containing the solution at the current time.
    */
-  LinearAlgebra::MPI::Vector        solution;
+  VectorType  solution;
 
   /*!
    * @brief Vector containing the solution one time step prior to the
    * current time.
    */
-  LinearAlgebra::MPI::Vector        old_solution;
+  VectorType  old_solution;
 
   /*!
    * @brief Vector containing the solution two time step prior to the
    * current time.
    */
-  LinearAlgebra::MPI::Vector        old_old_solution;
+  VectorType  old_old_solution;
 
   /*!
    * @brief The entity's distributed vector.
@@ -132,12 +154,12 @@ public:
    * linear systems and the distributed instances of the
    * solution vectors needed to perform algebraic operations with them.
    */
-  LinearAlgebra::MPI::Vector        distributed_vector;
+  VectorType  distributed_vector;
 
   /*!
    * @brief Method returning a reference to the triangulation.
    */
-  const parallel::distributed::Triangulation<dim> &get_triangulation() const;
+  const Triangulation<dim> &get_triangulation() const;
 
   /*!
    * @details Release all memory and return all objects to a state just like
@@ -162,7 +184,7 @@ public:
   void set_solution_vectors_to_zero();
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * @brief Virtual method introduced to gather @ref FE_ScalarField
    * and @ref FE_VectorField in a vector and call
    * @ref FE_ScalarField::setup_dofs and @ref FE_VectorField::setup_dofs
    * respectively.
@@ -170,36 +192,33 @@ public:
   virtual void setup_dofs();
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
-   * and @ref FE_VectorField in a vector and call
+   * @brief Virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField and call
    * @ref FE_ScalarField::apply_boundary_conditions and
    * @ref FE_VectorField::apply_boundary_conditions respectively.
    */
-  virtual void apply_boundary_conditions(const bool check_regularity = true) = 0;
+  virtual void apply_boundary_conditions(const bool check_regularity = true);
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
-   * and @ref FE_VectorField as FE_FieldBase instances and call
-   * @ref FE_ScalarField::close_boundary_conditions and
-   * @ref FE_VectorField::close_boundary_conditions respectively.
+   * @brief Closes the @ref boundary_conditions and prints a summary
+   * of the boundary conditions to the terminal.
    */
-  virtual void close_boundary_conditions(const bool print_summary = true) = 0;
+  void close_boundary_conditions(const bool print_summary = true);
+
+  void setup_boundary_conditions();
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
-   * and @ref FE_VectorField in a vector and call
+   * @brief Virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField and call
    * @ref FE_ScalarField::update_boundary_conditions and
    * @ref FE_VectorField::update_boundary_conditions respectively.
    */
-  virtual void update_boundary_conditions() = 0;
+  virtual void update_boundary_conditions();
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
-   * and @ref FE_VectorField as FE_FieldBase instances and call
-   * @ref FE_ScalarField::clear_boundary_conditions and
-   * @ref FE_VectorField::clear_boundary_conditions respectively.
+   * @brief Clears the @ref boundary_conditions and the @ref constraints.
    */
-  virtual void clear_boundary_conditions() = 0;
+  void clear_boundary_conditions();
 
   /*!
    * @brief Returns the value of @ref flag_child_entity.
@@ -212,8 +231,8 @@ public:
    * and the infinity norm and return as mapping.
    */
   std::map<typename VectorTools::NormType, double> compute_error
-  (const Function<dim>              &exact_solution,
-   const std::shared_ptr<Mapping<dim>> external_mapping) const;
+  (const Function<dim>  &exact_solution,
+   const Mapping<dim>   &external_mapping) const;
 
 protected:
   /*!
@@ -233,17 +252,17 @@ protected:
   /*!
    * @brief The MPI communicator.
    */
-  const MPI_Comm    mpi_communicator;
+//  const MPI_Comm    mpi_communicator;
 
   /*!
    * @brief Reference to the underlying triangulation.
    */
-  const parallel::distributed::Triangulation<dim> &triangulation;
+  const Triangulation<dim> &triangulation;
 
   /*!
    * @brief The DoFHandler<dim> instance of the entity.
    */
-  std::shared_ptr<DoFHandler<dim>>      dof_handler;
+  std::shared_ptr<DoFHandler<dim>>    dof_handler;
 
   /*!
    * @brief Finite element.
@@ -251,137 +270,215 @@ protected:
   std::shared_ptr<FiniteElement<dim>> finite_element;
 
   /*!
+   * @brief @ref BoundaryConditions instance for bookkeeping the
+   * boundary conditions of the finite element field.
+   */
+  BoundaryConditionsBase<dim>*        boundary_conditions;
+
+  /*!
    * @brief The AffineConstraints<double> instance handling the
    * hanging nodes.
    */
-  AffineConstraints<value_type>         hanging_node_constraints;
+  AffineConstraints<value_type>       hanging_node_constraints;
 
   /*!
    * @brief The AffineConstraints<double> instance handling the
    * hanging nodes and the boundary conditions.
    */
-  AffineConstraints<value_type>         constraints;
+  AffineConstraints<value_type>       constraints;
 
   /*!
    * @brief The set of the degrees of freedom owned by the processor.
    */
-  IndexSet                          locally_owned_dofs;
+  IndexSet                            locally_owned_dofs;
 
   /*!
    * @brief The set of the degrees of freedom that are relevant for
    * the processor.
    */
-  IndexSet                          locally_relevant_dofs;
+  IndexSet                            locally_relevant_dofs;
+
+private:
+  /*!
+   * @brief Method applying periodic boundary conditions to the @ref constraints.
+   */
+  void apply_periodicity_constraints();
+
+  /*!
+   * @brief Method applying periodic boundary conditions to the @ref constraints.
+   */
+  void apply_dirichlet_constraints();
+
+protected:
+  template<typename T>
+  void send_point_data(T                 &point_value,
+                       const Point<dim>  &point,
+                       const bool         point_found) const;
+
+  template<typename T>
+  void send_point_data_vector(std::vector<T>    &point_value,
+                              const Point<dim>  &point,
+                              const bool         point_found) const;
 };
 
-template<int dim>
+template <int dim, typename VectorType>
 inline const DoFHandler<dim> &
-FE_FieldBase<dim>::get_dof_handler() const
+FE_FieldBase<dim, VectorType>::get_dof_handler() const
 {
   return (*dof_handler);
 }
 
-template<int dim>
+template <int dim, typename VectorType>
 inline const FiniteElement<dim> &
-FE_FieldBase<dim>::get_finite_element() const
+FE_FieldBase<dim, VectorType>::get_finite_element() const
 {
   return (*finite_element);
 }
 
-template<int dim>
+template <int dim, typename VectorType>
 inline const IndexSet &
-FE_FieldBase<dim>::get_locally_owned_dofs() const
+FE_FieldBase<dim, VectorType>::get_locally_owned_dofs() const
 {
   return (locally_owned_dofs);
 }
 
-template<int dim>
+template <int dim, typename VectorType>
 inline const IndexSet &
-FE_FieldBase<dim>::get_locally_relevant_dofs() const
+FE_FieldBase<dim, VectorType>::get_locally_relevant_dofs() const
 {
   return (locally_relevant_dofs);
 }
 
-template<int dim>
-inline const AffineConstraints<LinearAlgebra::MPI::Vector::value_type> &
-FE_FieldBase<dim>::get_constraints() const
+template <int dim, typename VectorType>
+inline const AffineConstraints<typename FE_FieldBase<dim, VectorType>::value_type> &
+FE_FieldBase<dim, VectorType>::get_constraints() const
 {
   return (constraints);
 }
 
+template <int dim, typename VectorType>
+inline BoundaryConditionsBase<dim> &
+FE_FieldBase<dim, VectorType>::get_boundary_conditions()
+{
+  Assert(this->boundary_conditions != nullptr,
+         ExcMessage("Boundary conditions object is not initialized."));
+  return (*boundary_conditions);
+}
 
-template<int dim>
-inline const AffineConstraints<LinearAlgebra::MPI::Vector::value_type> &
-FE_FieldBase<dim>::get_hanging_node_constraints() const
+template <int dim, typename VectorType>
+inline const BoundaryConditionsBase<dim> &
+FE_FieldBase<dim, VectorType>::get_boundary_conditions() const
+{
+  Assert(this->boundary_conditions != nullptr,
+         ExcMessage("Boundary conditions object is not initialized."));
+  return (*boundary_conditions);
+}
+
+template <int dim, typename VectorType>
+inline const typename BoundaryConditionsBase<dim>::BCMapping &
+FE_FieldBase<dim, VectorType>::get_dirichlet_boundary_conditions() const
+{
+  return (boundary_conditions->dirichlet_bcs);
+}
+
+template <int dim, typename VectorType>
+inline const AffineConstraints<typename FE_FieldBase<dim, VectorType>::value_type> &
+FE_FieldBase<dim, VectorType>::get_hanging_node_constraints() const
 {
   return (hanging_node_constraints);
 }
 
-template <int dim>
-inline bool FE_FieldBase<dim>::is_child_entity() const
+template <int dim, typename VectorType>
+inline bool FE_FieldBase<dim, VectorType>::is_child_entity() const
 {
   return (flag_child_entity);
 }
 
-template<int dim>
+template <int dim, typename VectorType>
 inline types::global_dof_index
-FE_FieldBase<dim>::n_dofs() const
+FE_FieldBase<dim, VectorType>::n_dofs() const
 {
   return (dof_handler->n_dofs());
 }
 
-template<int dim>
+template <int dim, typename VectorType>
 inline unsigned int
-FE_FieldBase<dim>::n_components() const
+FE_FieldBase<dim, VectorType>::n_components() const
 {
   return (finite_element->n_components());
 }
 
-template<int dim>
+template <int dim, typename VectorType>
 inline unsigned int
-FE_FieldBase<dim>::fe_degree() const
+FE_FieldBase<dim, VectorType>::fe_degree() const
 {
   return (finite_element->degree);
 }
 
-template <int dim>
-inline const parallel::distributed::Triangulation<dim> &
-FE_FieldBase<dim>::get_triangulation() const
+template <int dim, typename VectorType>
+inline const Triangulation<dim> &
+FE_FieldBase<dim, VectorType>::get_triangulation() const
 {
   return (triangulation);
 }
 
-  /*!
-   * @struct FE_VectorField
-   * @brief Numerical representation of a vector field.
-   */
-template <int dim>
-struct FE_VectorField : FE_FieldBase<dim>
+template <int dim, typename VectorType>
+inline void FE_FieldBase<dim, VectorType>::setup_boundary_conditions()
 {
+  Assert(this->boundary_conditions != nullptr,
+         ExcMessage("Boundary conditions object is not initialized."));
+
+  this->boundary_conditions->extract_boundary_ids();
+}
+
+
+/*!
+ * @struct FE_VectorField
+ * @brief Numerical representation of a vector field.
+ */
+template <int dim, typename VectorType = LinearAlgebra::MPI::Vector>
+class FE_VectorField: public FE_FieldBase<dim, VectorType>
+{
+public:
   /*!
    * @brief Constructor.
    */
   FE_VectorField(const unsigned int                               fe_degree,
-               const parallel::distributed::Triangulation<dim> &triangulation,
-               const std::string                               &name = "entity");
+                 const Triangulation<dim> &triangulation,
+                 const std::string                               &name = "entity");
 
   /*!
    * @brief Copy constructor.
    */
-  FE_VectorField(const FE_VectorField<dim>  &entity,
-               const std::string        &new_name);
+  FE_VectorField(const FE_VectorField<dim, VectorType> &entity,
+                 const std::string                     &new_name);
+
+  const typename VectorBoundaryConditions<dim>::NeumannBCMapping &
+  get_neumann_boundary_conditions() const;
 
   /*!
-   * @brief @ref VectorBoundaryConditions instance bookkeeping the
-   * boundary conditions of the vector field.
+   * @brief Set a Neumann boundary condition.
    */
-  VectorBoundaryConditions<dim> boundary_conditions;
+  void set_neumann_boundary_condition(const types::boundary_id  boundary_id,
+                                      const std::shared_ptr<TensorFunction<1, dim>> &function
+                                        = std::shared_ptr<TensorFunction<1, dim>>(),
+                                      const bool  time_dependent_bc = false);
 
   /*!
-   * @details Release all memory and return all objects to a state just like
-   * after having called the default constructor.
+   * @brief Set a boundary condition on the tangential components of the field.
    */
-  virtual void clear() override;
+  void set_normal_component_boundary_condition(const types::boundary_id  boundary_id,
+                                               const std::shared_ptr<Function<dim>> &function
+                                                 = std::shared_ptr<Function<dim>>(),
+                                               const bool  time_dependent_bc = false);
+
+  /*!
+   * @brief Set a boundary condition on the tangential components of the field.
+   */
+  void set_tangential_component_boundary_condition(const types::boundary_id  boundary_id,
+                                                   const std::shared_ptr<Function<dim>> &function
+                                                     = std::shared_ptr<Function<dim>>(),
+                                                   const bool  time_dependent_bc = false);
 
   /*!
    * @brief Set ups the degrees of freedom of the vector field.
@@ -406,12 +503,6 @@ struct FE_VectorField : FE_FieldBase<dim>
   virtual void apply_boundary_conditions(const bool check_regularity = true) override;
 
   /*!
-   * @brief Closes the @ref boundary_conditions and prints a summary
-   * of the boundary conditions to the terminal.
-   */
-  virtual void close_boundary_conditions(const bool print_summary = true) override;
-
-  /*!
    * @brief Updates the time dependent boundary conditions.
    *
    * @details It loops over all boundary condition marked as time
@@ -427,69 +518,74 @@ struct FE_VectorField : FE_FieldBase<dim>
   virtual void update_boundary_conditions() override;
 
   /*!
-   * @brief Clears the @ref boundary_conditions and the @ref constraints.
-   */
-  virtual void clear_boundary_conditions() override;
-
-  /*!
-   * @brief This method evaluates the value of the continous vector
+   * @brief This method evaluates the continuous finite element
    * field at the given point.
    *
    * @details It catches the value obtained by the processor who owns
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
-  Tensor<1,dim> point_value(
-    const Point<dim>                    &point,
-    const std::shared_ptr<Mapping<dim>> external_mapping =
-                                          std::shared_ptr<Mapping<dim>>()) const;
+  Tensor<1, dim> point_value(const Point<dim>   &point,
+                             const Mapping<dim> &external_mapping = MappingQ1<dim>()) const;
 
   /*!
-   * @brief This method evaluates the gradient of the continous vector
+   * @brief This method evaluates the gradient of the continuous finite element
    * field at the given point.
    *
    * @details It catches the value obtained by the processor who owns
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
-  Tensor<2,dim> point_gradient(
-    const Point<dim>                    &point,
-    const std::shared_ptr<Mapping<dim>> external_mapping =
-                                          std::shared_ptr<Mapping<dim>>()) const;
+  Tensor<2, dim> point_gradient(const Point<dim>    &point,
+                                const Mapping<dim>  &external_mapping = MappingQ1<dim>()) const;
 };
+
+template <int dim, typename VectorType>
+const typename VectorBoundaryConditions<dim>::NeumannBCMapping &
+FE_VectorField<dim, VectorType>::get_neumann_boundary_conditions() const
+{
+  return (static_cast<const VectorBoundaryConditions<dim> *>(this->boundary_conditions)
+            ->neumann_bcs);
+}
+
 
 /*!
  * @struct FE_ScalarField
  *
  * @brief Numerical representation of a scalar field.
  */
-template <int dim>
-struct FE_ScalarField : FE_FieldBase<dim>
+template <int dim, typename VectorType = LinearAlgebra::MPI::Vector>
+class FE_ScalarField: public FE_FieldBase<dim, VectorType>
 {
+public:
   /*!
    * @brief Constructor.
    */
-  FE_ScalarField(const unsigned int                               fe_degree,
-               const parallel::distributed::Triangulation<dim> &triangulation,
-               const std::string                               &name = "entity");
+  FE_ScalarField(const unsigned int         fe_degree,
+                 const Triangulation<dim>  &triangulation,
+                 const std::string         &name = "entity");
 
   /*!
    * @brief Copy constructor.
    */
-  FE_ScalarField(const FE_ScalarField<dim>  &entity,
-               const std::string        &new_name = "entity");
+  FE_ScalarField(const FE_ScalarField<dim, VectorType> &entity,
+                 const std::string                     &new_name = "entity");
+
+  const typename ScalarBoundaryConditions<dim>::NeumannBCMapping &
+  get_neumann_boundary_conditions() const;
 
   /*!
-   * @brief @ref ScalarBoundaryConditions instance bookkeeping the
-   * boundary conditions of the scalar field.
+   * @brief Set a Neumann boundary condition.
    */
-  ScalarBoundaryConditions<dim>       boundary_conditions;
+  void set_neumann_boundary_condition(const types::boundary_id  boundary_id,
+                                      const std::shared_ptr<Function<dim>> &function
+                                       = std::shared_ptr<Function<dim>>(),
+                                      const bool time_dependent_bc = false);
 
   /*!
-   * @details Release all memory and return all objects to a state just like
-   * after having called the default constructor.
+   * @brief Set a datum boundary condition.
    */
-  virtual void clear() override;
+  void set_datum_boundary_condition();
 
   /*!
    * @brief Applies all the boundary conditions into the @ref constraints
@@ -505,57 +601,38 @@ struct FE_ScalarField : FE_FieldBase<dim>
   virtual void apply_boundary_conditions(const bool check_regularity = true) override;
 
   /*!
-   * @brief Closes the @ref boundary_conditions and prints a summary
-   * of the boundary conditions to the terminal.
-   */
-  virtual void close_boundary_conditions(const bool print_summary = true) override;
-
-  /*!
-   * @brief Updates the time dependent boundary conditions.
-   *
-   * @details It loops over all boundary condition marked as time
-   * dependent and reapplies the constraints into a temporary
-   * AffineConstraints<double> instance which is then merge into @ref
-   * constraints.
-   *
-   * @attention Make sure to advance the underlying function in time
-   * using the @ref ScalarBoundaryConditions::set_time method before
-   * calling this method. Otherwise the method will just re-apply the
-   * same boundary conditions.
-   */
-  virtual void update_boundary_conditions() override;
-
-  /*!
-   * @brief Clears the @ref boundary_conditions and the @ref constraints.
-   */
-  virtual void clear_boundary_conditions() override;
-
-  /*!
-   * @brief This method evaluates the value of the continous scalar
+   * @brief This method evaluates the continuous finite element
    * field at the given point.
    *
    * @details It catches the value obtained by the processor who owns
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
-  double point_value(
-    const Point<dim>                    &point,
-    const std::shared_ptr<Mapping<dim>> external_mapping =
-                                          std::shared_ptr<Mapping<dim>>()) const;
+  typename FE_FieldBase<dim, VectorType>::value_type
+  point_value(const Point<dim>    &point,
+              const Mapping<dim>  &external_mapping = MappingQ1<dim>()) const;
 
   /*!
-   * @brief This method evaluates the gradient of the continous scalar
+   * @brief This method evaluates the gradient of the continuous finite element
    * field at the given point.
    *
    * @details It catches the value obtained by the processor who owns
    * the point while ignoring the rest. It also checks if the point
    * is inside the domain.
    */
-  Tensor<1,dim> point_gradient(
-    const Point<dim>                    &point,
-    const std::shared_ptr<Mapping<dim>> external_mapping =
-                                          std::shared_ptr<Mapping<dim>>()) const;
+  Tensor<1, dim> point_gradient(const Point<dim>    &point,
+                                const Mapping<dim>  &external_mapping = MappingQ1<dim>()) const;
+
 };
+
+template <int dim, typename VectorType>
+inline const typename ScalarBoundaryConditions<dim>::NeumannBCMapping &
+FE_ScalarField<dim, VectorType>::get_neumann_boundary_conditions() const
+{
+  return (static_cast<const ScalarBoundaryConditions<dim> *>(this->boundary_conditions)
+            ->neumann_bcs);
+}
+
 
 } // namespace Entities
 

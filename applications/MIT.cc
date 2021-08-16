@@ -313,28 +313,38 @@ void MITBenchmark<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
+  temperature->clear_boundary_conditions();
+
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+  temperature->setup_boundary_conditions();
+
   // Homogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  velocity->boundary_conditions.set_dirichlet_bcs(left_bndry_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(right_bndry_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(top_bndry_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(bottom_bndry_id);
+  velocity->set_dirichlet_boundary_condition(left_bndry_id);
+  velocity->set_dirichlet_boundary_condition(right_bndry_id);
+  velocity->set_dirichlet_boundary_condition(top_bndry_id);
+  velocity->set_dirichlet_boundary_condition(bottom_bndry_id);
 
   // The pressure itself has no boundary conditions, leading to a pure
   // Neumann problem. A datum ensures the well-posedness of the problem
   // and The Navier-Stokes solver will enforce a zero mean value
   // constraint.
-  pressure->boundary_conditions.set_datum_at_boundary();
+  pressure->set_datum_boundary_condition();
 
   // Inhomogeneous time dependent Dirichlet boundary conditions over
   // the side walls and homogeneous Neumann boundary conditions over
   // the bottom and top walls for the temperature field.
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    left_bndry_id, temperature_boundary_conditions, true);
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    right_bndry_id, temperature_boundary_conditions, true);
-  temperature->boundary_conditions.set_neumann_bcs(top_bndry_id);
-  temperature->boundary_conditions.set_neumann_bcs(bottom_bndry_id);
+  temperature->set_dirichlet_boundary_condition(left_bndry_id,
+                                                temperature_boundary_conditions,
+                                                true);
+  temperature->set_dirichlet_boundary_condition(right_bndry_id,
+                                                temperature_boundary_conditions,
+                                                true);
+  temperature->set_neumann_boundary_condition(top_bndry_id);
+  temperature->set_neumann_boundary_condition(bottom_bndry_id);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -479,7 +489,7 @@ void MITBenchmark<dim>::run()
     time_stepping.update_coefficients();
 
     // Updates the functions and constraints to t^{k}
-    temperature->boundary_conditions.set_time(time_stepping.get_next_time());
+    temperature_boundary_conditions->set_time(time_stepping.get_next_time());
     temperature->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}

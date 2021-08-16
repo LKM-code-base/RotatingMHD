@@ -1142,7 +1142,7 @@ double ChristensenBenchmark<dim>::compute_radial_velocity(
   const Point<dim> point = GeometricUtilities::Coordinates::from_spherical(spherical_coordinates);
 
   // Compute the radial velocity at the given spherical coordinates.
-  const Tensor<1,dim> local_velocity = velocity->point_value(point, mapping);
+  const Tensor<1,dim> local_velocity = velocity->point_value(point, *mapping);
 
   return local_velocity * point / radius;
 }
@@ -1265,8 +1265,8 @@ double ChristensenBenchmark<dim>::compute_azimuthal_gradient_of_radial_velocity(
   // longitude at the given spherical coordinates.
   const Point<dim> point = GeometricUtilities::Coordinates::from_spherical(spherical_coordinates);
 
-  const Tensor<1,dim> local_velocity          = velocity->point_value(point, mapping);
-  const Tensor<2,dim> local_velocity_gradient = velocity->point_gradient(point, mapping);
+  const Tensor<1,dim> local_velocity          = velocity->point_value(point, *mapping);
+  const Tensor<2,dim> local_velocity_gradient = velocity->point_gradient(point, *mapping);
 
   return (sin(polar_angle) *
           (radius * local_radial_basis_vector * local_velocity_gradient * local_azimuthal_basis_vector
@@ -1285,8 +1285,8 @@ void ChristensenBenchmark<dim>::compute_point_data()
   local_azimuthal_basis_vector[0] = -sin(sample_point_longitude);
   local_azimuthal_basis_vector[1] = cos(sample_point_longitude);
 
-  temperature_at_sample_point           = temperature->point_value(sample_point, mapping);
-  azimuthal_velocity_at_sample_point    = velocity->point_value(sample_point, mapping) *
+  temperature_at_sample_point           = temperature->point_value(sample_point, *mapping);
+  azimuthal_velocity_at_sample_point    = velocity->point_value(sample_point, *mapping) *
                                           local_azimuthal_basis_vector;
 
   /*

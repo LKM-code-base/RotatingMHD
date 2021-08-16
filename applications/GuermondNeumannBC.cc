@@ -175,25 +175,25 @@ void Guermond<dim>::setup_constraints()
   velocity->clear_boundary_conditions();
   pressure->clear_boundary_conditions();
 
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
   velocity_exact_solution->set_time(time_stepping.get_start_time());
 
   // left boundary
-  velocity->boundary_conditions.set_neumann_bcs(0);
+  velocity->set_neumann_boundary_condition(0);
   // right boundary
-  velocity->boundary_conditions.set_dirichlet_bcs(
-    1,
-    velocity_exact_solution,
-    true);
+  velocity->set_dirichlet_boundary_condition(1,
+                                             velocity_exact_solution,
+                                             true);
   // bottom boundary
-  velocity->boundary_conditions.set_dirichlet_bcs(
-    2,
-    velocity_exact_solution,
-    true);
+  velocity->set_dirichlet_boundary_condition(2,
+                                             velocity_exact_solution,
+                                             true);
   // top boundary
-  velocity->boundary_conditions.set_dirichlet_bcs(
-    3,
-    velocity_exact_solution,
-    true);
+  velocity->set_dirichlet_boundary_condition(3,
+                                             velocity_exact_solution,
+                                             true);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -382,8 +382,6 @@ void Guermond<dim>::solve(const unsigned int &level)
     // Updates the functions and the constraints to t^{k}
     velocity_exact_solution->set_time(time_stepping.get_next_time());
     pressure_exact_solution->set_time(time_stepping.get_next_time());
-
-    velocity->boundary_conditions.set_time(time_stepping.get_next_time());
     velocity->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
