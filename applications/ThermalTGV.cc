@@ -186,7 +186,7 @@ void ThermalTGV<dim>::postprocessing()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
   std::cout.precision(1);
-  *this->pcout  << time_stepping
+  *this->pcout  << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
                 << " Norm = "
                 << std::noshowpos << std::scientific
                 << heat_equation.get_rhs_norm()

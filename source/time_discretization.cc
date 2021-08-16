@@ -261,26 +261,6 @@ Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm)
 }
 
 template<typename Stream>
-Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
-{
-  stream << "Step = "
-         << std::right
-         << std::setw(6)
-         << vsimex.get_step_number()
-         << ","
-         << std::left
-         << " Current time = "
-         << std::scientific
-         << vsimex.get_current_time()
-         << ","
-         << " Next time step = "
-         << std::scientific
-         << vsimex.get_next_step_size();
-
-  return (stream);
-}
-
-template<typename Stream>
 void VSIMEXMethod::print_coefficients(Stream &stream, const std::string prefix) const
 {
   switch (beta.size())
@@ -699,11 +679,6 @@ template std::ostream & RMHD::TimeDiscretization::operator<<
 (std::ostream &, const RMHD::TimeDiscretization::TimeDiscretizationParameters &);
 template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
 (dealii::ConditionalOStream &, const RMHD::TimeDiscretization::TimeDiscretizationParameters  &);
-
-template std::ostream & RMHD::TimeDiscretization::operator<<
-(std::ostream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
-template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
-(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
 
 template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
 (std::ostream &, const std::string prefix) const;
