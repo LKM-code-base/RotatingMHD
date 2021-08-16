@@ -284,8 +284,6 @@ private:
 
   /*!
     * @brief A vector containing the \f$ \alpha_0 \f$ of the previous time steps.
-    * @attention This member is only useful in the NavierStokesProjection
-    * class.
     */
   std::array<double, 2> previous_alpha_zeros = {1.0, 1.0};
 
@@ -294,8 +292,6 @@ private:
    * @details The DiscreteTime class stores only the previous time step.
    * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
    * is the order of the scheme.
-   * @attention This member is only useful in the NavierStokesProjection
-   * class.
    */
   std::array<double, 2> previous_step_sizes = {0.0, 0.0};
 
