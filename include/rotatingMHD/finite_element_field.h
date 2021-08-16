@@ -1,5 +1,5 @@
-#ifndef INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
-#define INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_
+#ifndef INCLUDE_ROTATINGMHD_FINITE_ELEMENT_FIELD_H_
+#define INCLUDE_ROTATINGMHD_FINITE_ELEMENT_FIELD_H_
 
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/boundary_conditions.h>
@@ -33,20 +33,20 @@ namespace Entities
 {
 
 /*!
- * @struct EntityBase
+ * @struct FE_FieldBase
  *
  * @brief This struct gathers all the numerical attributes that are
  * independent of the rank of the tensor.
  */
 
 template <int dim>
-struct EntityBase
+struct FE_FieldBase
 {
 public:
   /*!
    * @brief Constructor.
    */
-  EntityBase(const unsigned int                               n_components,
+  FE_FieldBase(const unsigned int                               n_components,
              const unsigned int                               fe_degree,
              const parallel::distributed::Triangulation<dim> &triangulation,
              const std::string                               &name = "entity");
@@ -54,7 +54,7 @@ public:
   /*!
    * @brief Copy constructor.
    */
-  EntityBase(const EntityBase<dim>  &entity,
+  FE_FieldBase(const FE_FieldBase<dim>  &entity,
              const std::string      &new_name = "entity");
 
   /*!
@@ -159,42 +159,42 @@ public:
   void set_solution_vectors_to_zero();
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::setup_dofs and @ref VectorEntity::setup_dofs
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField in a vector and call
+   * @ref FE_ScalarField::setup_dofs and @ref FE_VectorField::setup_dofs
    * respectively.
    */
   virtual void setup_dofs() = 0;
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::apply_boundary_conditions and
-   * @ref VectorEntity::apply_boundary_conditions respectively.
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField in a vector and call
+   * @ref FE_ScalarField::apply_boundary_conditions and
+   * @ref FE_VectorField::apply_boundary_conditions respectively.
    */
   virtual void apply_boundary_conditions(const bool check_regularity = true) = 0;
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity as EntityBase instances and call
-   * @ref ScalarEntity::close_boundary_conditions and
-   * @ref VectorEntity::close_boundary_conditions respectively.
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField as FE_FieldBase instances and call
+   * @ref FE_ScalarField::close_boundary_conditions and
+   * @ref FE_VectorField::close_boundary_conditions respectively.
    */
   virtual void close_boundary_conditions(const bool print_summary = true) = 0;
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity in a vector and call
-   * @ref ScalarEntity::update_boundary_conditions and
-   * @ref VectorEntity::update_boundary_conditions respectively.
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField in a vector and call
+   * @ref FE_ScalarField::update_boundary_conditions and
+   * @ref FE_VectorField::update_boundary_conditions respectively.
    */
   virtual void update_boundary_conditions() = 0;
 
   /*!
-   * @brief Empty virtual method introduced to gather @ref ScalarEntity
-   * and @ref VectorEntity as EntityBase instances and call
-   * @ref ScalarEntity::clear_boundary_conditions and
-   * @ref VectorEntity::clear_boundary_conditions respectively.
+   * @brief Empty virtual method introduced to gather @ref FE_ScalarField
+   * and @ref FE_VectorField as FE_FieldBase instances and call
+   * @ref FE_ScalarField::clear_boundary_conditions and
+   * @ref FE_VectorField::clear_boundary_conditions respectively.
    */
   virtual void clear_boundary_conditions() = 0;
 
@@ -237,7 +237,7 @@ protected:
 
 
 template <int dim>
-inline bool EntityBase<dim>::is_child_entity() const
+inline bool FE_FieldBase<dim>::is_child_entity() const
 {
   return (flag_child_entity);
 }
@@ -245,29 +245,29 @@ inline bool EntityBase<dim>::is_child_entity() const
 
 
 template <int dim>
-inline const parallel::distributed::Triangulation<dim> &EntityBase<dim>::get_triangulation() const
+inline const parallel::distributed::Triangulation<dim> &FE_FieldBase<dim>::get_triangulation() const
 {
   return (triangulation);
 }
 
   /*!
-   * @struct VectorEntity
+   * @struct FE_VectorField
    * @brief Numerical representation of a vector field.
    */
 template <int dim>
-struct VectorEntity : EntityBase<dim>
+struct FE_VectorField : FE_FieldBase<dim>
 {
   /*!
    * @brief Constructor.
    */
-  VectorEntity(const unsigned int                               fe_degree,
+  FE_VectorField(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation,
                const std::string                               &name = "entity");
 
   /*!
    * @brief Copy constructor.
    */
-  VectorEntity(const VectorEntity<dim>  &entity,
+  FE_VectorField(const FE_VectorField<dim>  &entity,
                const std::string        &new_name);
 
   /*!
@@ -363,24 +363,24 @@ struct VectorEntity : EntityBase<dim>
 };
 
 /*!
- * @struct ScalarEntity
+ * @struct FE_ScalarField
  *
  * @brief Numerical representation of a scalar field.
  */
 template <int dim>
-struct ScalarEntity : EntityBase<dim>
+struct FE_ScalarField : FE_FieldBase<dim>
 {
   /*!
    * @brief Constructor.
    */
-  ScalarEntity(const unsigned int                               fe_degree,
+  FE_ScalarField(const unsigned int                               fe_degree,
                const parallel::distributed::Triangulation<dim> &triangulation,
                const std::string                               &name = "entity");
 
   /*!
    * @brief Copy constructor.
    */
-  ScalarEntity(const ScalarEntity<dim>  &entity,
+  FE_ScalarField(const FE_ScalarField<dim>  &entity,
                const std::string        &new_name = "entity");
 
   /*!
@@ -478,4 +478,4 @@ struct ScalarEntity : EntityBase<dim>
 
 } // namespace RMHD
 
-#endif /* INCLUDE_ROTATINGMHD_ENTITIES_STRUCTS_H_ */
+#endif /* INCLUDE_ROTATINGMHD_FINITE_ELEMENT_FIELD_H_ */

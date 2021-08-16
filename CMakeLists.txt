@@ -68,8 +68,8 @@ SET(TARGET_SRC
     source/convergence_test.cc
     source/convection_diffusion.cc
     source/discrete_time.cc
-    source/entities_structs.cc
     source/equation_data.cc
+    source/finite_element_field.cc
     source/problem_class.cc
     source/run_time_parameters.cc
     source/time_discretization.cc

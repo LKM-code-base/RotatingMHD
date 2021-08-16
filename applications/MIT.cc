@@ -1,5 +1,4 @@
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
@@ -16,6 +15,7 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <iostream>
 #include <fstream>
@@ -89,11 +89,11 @@ public:
   void run();
 
 private:
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
   std::shared_ptr<EquationData::MIT::TemperatureBoundaryCondition<dim>>
                                                 temperature_boundary_conditions;
@@ -133,15 +133,15 @@ template <int dim>
 MITBenchmark<dim>::MITBenchmark(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(
               parameters.fe_degree_velocity,
               this->triangulation,
               "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_pressure,
               this->triangulation,
               "Pressure")),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(
+temperature(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_temperature,
               this->triangulation,
               "Temperature")),
