@@ -5,8 +5,8 @@
 #include <deal.II/base/timer.h>
 
 #include <rotatingMHD/assembly_data.h>
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
@@ -84,8 +84,8 @@ public:
   NavierStokesProjection
   (const RunTimeParameters::NavierStokesParameters  &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   std::shared_ptr<Entities::FE_VectorField<dim>> &velocity,
+   std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =
@@ -103,9 +103,9 @@ public:
   NavierStokesProjection
   (const RunTimeParameters::NavierStokesParameters        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+   std::shared_ptr<Entities::FE_VectorField<dim>> &velocity,
+   std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure,
+   std::shared_ptr<Entities::FE_ScalarField<dim>> &temperature,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =
@@ -118,7 +118,7 @@ public:
    * the field computed during the projection step and later used in
    * the pressure-correction step.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>   phi;
 
 
   /*!
@@ -133,7 +133,7 @@ public:
    *  the projection method problem.
    *
    *  @details Initializes the vector and matrices using the information
-   *  contained in the VectorEntity and ScalarEntity structs passed on
+   *  contained in the FE_VectorField and FE_ScalarField structs passed on
    *  in the constructor (The velocity and the pressure respectively).
    *  The boolean passed as argument control if the pressure is to be
    *  normalized.
@@ -248,17 +248,17 @@ private:
   /*!
    * @brief A reference to the entity of velocity field.
    */
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
   /*!
    * @brief A reference to the entity of the temperature field.
    */
-  std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<const Entities::FE_ScalarField<dim>>  temperature;
 
   /*!
    * @brief A pointer to the body force function.
@@ -494,7 +494,7 @@ private:
 
   /*!
    * @brief This method solves the linear system of the diffusion step. Updates
-   * the Entities::VectorEntity::solution vector of the #velocity.
+   * the Entities::FE_VectorField::solution vector of the #velocity.
    */
   void solve_diffusion_step(const bool reinit_prec);
 
@@ -510,14 +510,14 @@ private:
 
   /*!
    * @brief This method solves the linear system of the projection step. Updates
-   * the Entities::ScalarEntity::solution vector of the pressure correction
+   * the Entities::FE_ScalarField::solution vector of the pressure correction
    * #phi.
    */
   void solve_projection_step(const bool reinit_prec);
 
   /*!
    * @brief This method performs the pressure update of the projection step.
-   * Updates the Entities::ScalarEntity::solution vector of the #pressure.
+   * Updates the Entities::FE_ScalarField::solution vector of the #pressure.
    */
   void pressure_correction(const bool reinit_prec);
 

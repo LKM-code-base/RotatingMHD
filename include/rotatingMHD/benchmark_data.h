@@ -1,7 +1,6 @@
 #ifndef INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 #define INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/time_discretization.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/assembly_data.h>
@@ -16,6 +15,7 @@
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/fe/fe_system.h>
 #include <deal.II/lac/trilinos_vector.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <iostream>
 #include <vector>
@@ -53,8 +53,7 @@ struct DFGBechmarkRequest
    * @brief The default constructor of the structure.
    *
    */
-  DFGBechmarkRequest(const double reynolds_number = 100.0,
-                     const double reference_length = 1.0);
+  DFGBechmarkRequest(const double reynolds_number = 100.0);
 
   /*!
    * @brief The Reynolds number of the problem.
@@ -149,7 +148,7 @@ struct DFGBechmarkRequest
    * @brief This method computes the @ref pressure_difference.
    */
   void compute_pressure_difference
-  (const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure);
+  (const std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure);
 
   /*!
    * @brief This method computes the @ref drag_coefficient and the
@@ -174,8 +173,8 @@ struct DFGBechmarkRequest
    *
    */
   void compute_drag_and_lift_coefficients
-  (const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-   const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
+  (const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
+   const std::shared_ptr<Entities::FE_ScalarField<dim>>  &pressure,
    const types::boundary_id                             cylinder_boundary_id = 2);
 
   /*!
@@ -214,9 +213,9 @@ public:
   /*!
    * @brief Constructor.
    */
-  MIT(const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-      const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
-      const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+  MIT(const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
+      const std::shared_ptr<Entities::FE_ScalarField<dim>>  &pressure,
+      const std::shared_ptr<Entities::FE_ScalarField<dim>>  &temperature,
       TimeDiscretization::VSIMEXMethod                    &time_stepping,
       const unsigned int                                  left_wall_boundary_id,
       const unsigned int                                  right_wall_boundary_id,
@@ -276,19 +275,19 @@ private:
    * @brief A shared pointer to the velocity field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
+  const std::shared_ptr<const Entities::FE_VectorField<dim>>  velocity;
 
   /*!
    * @brief A shared pointer to the pressure field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::ScalarEntity<dim>>  pressure;
+  const std::shared_ptr<const Entities::FE_ScalarField<dim>>  pressure;
 
   /*!
    * @brief A shared pointer to the temperature field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
+  const std::shared_ptr<const Entities::FE_ScalarField<dim>>  temperature;
 
   /*!
    * @brief A vector containing all the points at which data will be
@@ -469,9 +468,9 @@ public:
    * @brief Constructor.
    */
   ChristensenBenchmark(
-    const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-    const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-    const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_field,
+    const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
+    const std::shared_ptr<Entities::FE_ScalarField<dim>>  &temperature,
+    const std::shared_ptr<Entities::FE_VectorField<dim>>  &magnetic_field,
     const TimeDiscretization::VSIMEXMethod              &time_stepping,
     const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
     const double                                        outer_radius,
@@ -534,19 +533,19 @@ private:
    * @brief A shared pointer to the velocity field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
+  const std::shared_ptr<const Entities::FE_VectorField<dim>>  velocity;
 
   /*!
    * @brief A shared pointer to the temperature field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
+  const std::shared_ptr<const Entities::FE_ScalarField<dim>>  temperature;
 
   /*!
    * @brief A shared pointer to the magnetic flux field's numerical
    * representation.
    */
-  const std::shared_ptr<const Entities::VectorEntity<dim>>  magnetic_field;
+  const std::shared_ptr<const Entities::FE_VectorField<dim>>  magnetic_field;
 
   /*!
    * @brief A reference to the struct containing all the relevant
