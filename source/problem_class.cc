@@ -20,7 +20,7 @@ error_vector_size(0)
 
 template<int dim>
 void SolutionTransferContainer<dim>::add_entity(
-std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
+std::shared_ptr<Entities::FE_FieldBase<dim>> entity, bool flag)
 {
   entities.emplace_back(std::make_pair(entity.get(), flag));
   if (flag)
@@ -43,7 +43,7 @@ pcout(std::make_shared<ConditionalOStream>(std::cout,
 computing_timer(
   std::make_shared<TimerOutput>(mpi_communicator,
                                 *pcout,
-                                TimerOutput::summary,
+                                (prm.verbose? TimerOutput::summary: TimerOutput::never),
                                 TimerOutput::wall_times))
 {
   if (!std::filesystem::exists(prm.graphical_output_directory) &&
@@ -96,7 +96,7 @@ void Problem<dim>::clear()
 template <int dim>
 void Problem<dim>::project_function
 (const Function<dim>                             &function,
- const std::shared_ptr<Entities::EntityBase<dim>> entity,
+ const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
  LinearAlgebra::MPI::Vector                      &vector)
 {
   Assert(function.n_components == entity->n_components,
@@ -125,7 +125,7 @@ void Problem<dim>::project_function
 template <int dim>
 void Problem<dim>::interpolate_function
 (const Function<dim>                             &function,
- const std::shared_ptr<Entities::EntityBase<dim>> entity,
+ const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
  LinearAlgebra::MPI::Vector                      &vector)
 {
   Assert(function.n_components == entity->n_components,
@@ -150,7 +150,7 @@ void Problem<dim>::interpolate_function
 
 template <int dim>
 void Problem<dim>::set_initial_conditions
-(std::shared_ptr<Entities::EntityBase<dim>> entity,
+(std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
  Function<dim>                              &function,
  const TimeDiscretization::VSIMEXMethod     &time_stepping,
  const bool                                 boolean)
@@ -201,7 +201,7 @@ void Problem<dim>::set_initial_conditions
 template <int dim>
 void Problem<dim>::compute_error(
   LinearAlgebra::MPI::Vector                  &error_vector,
-  std::shared_ptr<Entities::EntityBase<dim>>  entity,
+  std::shared_ptr<Entities::FE_FieldBase<dim>>  entity,
   Function<dim>                               &exact_solution)
 {
   AssertThrow(error_vector.local_size() ==

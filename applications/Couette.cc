@@ -3,7 +3,6 @@
  *@brief The source file solving the Couette flow problem.
  */
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
@@ -16,6 +15,7 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <rotatingMHD/convergence_test.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <memory>
 
@@ -65,9 +65,9 @@ private:
 
   const RunTimeParameters::ProblemParameters   &parameters;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
   LinearAlgebra::MPI::Vector                    error;
 
@@ -109,10 +109,10 @@ Couette<dim>::Couette(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velocity,
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
                                                        "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
                                                        "Pressure")),
 time_stepping(parameters.time_discretization_parameters),
@@ -240,7 +240,7 @@ void Couette<dim>::postprocessing()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
   std::cout.precision(1);
-  *this->pcout << time_stepping
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
                << " Norms = ("
                << std::noshowpos << std::scientific
                << navier_stokes.get_diffusion_step_rhs_norm()

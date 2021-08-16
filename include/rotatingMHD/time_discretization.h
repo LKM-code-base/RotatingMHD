@@ -264,13 +264,6 @@ public:
                         std::vector<DataType>       &extrapolated_values) const;
 
   /*!
-   * @brief Output of the current step number, the current time and the size of
-   * the time step.
-   */
-  template<typename Stream>
-  friend Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex);
-
-  /*!
    * @brief Output of the current table of coefficients of the variable step
    * size IMEX scheme to a stream object.
    */
@@ -366,12 +359,7 @@ private:
 
 
 
-/*!
- * @brief Output of the current step number, the current time and the size of
- * the time step.
- */
-template<typename Stream>
-Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex);
+
 
 
 

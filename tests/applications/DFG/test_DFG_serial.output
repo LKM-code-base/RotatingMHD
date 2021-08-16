@@ -1,0 +1,146 @@
++------------------------------------------+----------------------+
+| Problem parameters                                              |
++------------------------------------------+----------------------+
+| Problem type                             | hydrodynamic         |
+| Spatial dimension                        | 2                    |
+| Mapping                                  | MappingQ<2>(2)       |
+| Mapping - Apply to interior cells        | false                |
+| Finite Element - Velocity                | FE_Q<2>(2)^2         |
+| Finite Element - Pressure                | FE_Q<2>(1)           |
+| Verbose                                  | false                |
++------------------------------------------+----------------------+
+| Output control parameters                                       |
++------------------------------------------+----------------------+
+| Graphical output frequency               | 10                   |
+| Terminal output frequency                | 1                    |
+| Graphical output directory               | DFGResults/          |
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
+| Dimensionless numbers                                           |
++------------------------------------------+----------------------+
+| Reynolds number                          | 100                  |
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
+| Refinement control parameters                                   |
++------------------------------------------+----------------------+
+| Adaptive mesh refinement                 | False                |
+| Number of initial adapt. refinements     | 0                    |
+| Number of initial global refinements     | 2                    |
+| Number of initial boundary refinements   | 1                    |
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
+| Timestepping parameters                                         |
++------------------------------------------+----------------------+
+| IMEX scheme                              | BDF2                 |
+| Maximum number of time steps             | 5                    |
+| Adaptive timestepping                    | false                |
+| Initial time step                        | 0.025                |
+| Start time                               | 0                    |
+| Final time                               | 3000                 |
+| Verbose                                  | false                |
++------------------------------------------+----------------------++------------------------------------------+----------------------+
+| Navier-Stokes discretization parameters                         |
++------------------------------------------+----------------------+
+| Incremental pressure-correction scheme   | rotational           |
+| Convective term weak form                | skew-symmetric       |
+| Convective temporal form                 | semi-implicit        |
+| Preconditioner update frequency          | 15                   |
++------------------------------------------+----------------------+
+| Linear solver parameters - Diffusion step                       |
++------------------------------------------+----------------------+
+| Maximum number of iterations             | 200                  |
+| Relative tolerance                       | 1e-10                |
+| Absolute tolerance                       | 1e-11                |
+| Preconditioner                           | ILU                  |
+|   Fill-in level                          | 2                    |
+|   Overlap                                | 2                    |
+|   Relative tolerance                     | 1.01                 |
+|   Absolute tolerance                     | 1e-05                |
++------------------------------------------+----------------------+
+| Linear solver parameters - Projection step                      |
++------------------------------------------+----------------------+
+| Maximum number of iterations             | 200                  |
+| Relative tolerance                       | 1e-10                |
+| Absolute tolerance                       | 1e-11                |
+| Preconditioner                           | ILU                  |
+|   Fill-in level                          | 2                    |
+|   Overlap                                | 2                    |
+|   Relative tolerance                     | 1.01                 |
+|   Absolute tolerance                     | 1e-05                |
++------------------------------------------+----------------------+
+| Linear solver parameters - Correction step                      |
++------------------------------------------+----------------------+
+| Maximum number of iterations             | 200                  |
+| Relative tolerance                       | 1e-10                |
+| Absolute tolerance                       | 1e-11                |
+| Preconditioner                           | ILU                  |
+|   Fill-in level                          | 2                    |
+|   Overlap                                | 2                    |
+|   Relative tolerance                     | 1.01                 |
+|   Absolute tolerance                     | 1e-05                |
++------------------------------------------+----------------------+
+| Linear solver parameters - Poisson pre-step                     |
++------------------------------------------+----------------------+
+| Maximum number of iterations             | 200                  |
+| Relative tolerance                       | 1e-10                |
+| Absolute tolerance                       | 1e-11                |
+| Preconditioner                           | ILU                  |
+|   Fill-in level                          | 2                    |
+|   Overlap                                | 2                    |
+|   Relative tolerance                     | 1.01                 |
+|   Absolute tolerance                     | 1e-05                |
++------------------------------------------+----------------------+
+
+
++----------+----------+----------+----------+----------+----------+
+|    C1    |    C2    |    C3    |    C4    |    C5    |    C6    |
++----------+----------+----------+----------+----------+----------+
+|  0.0e+00 |  1.0e-02 |  0.0e+00 |  0.0e+00 |  0.0e+00 |  1.0e+00 |
++----------+----------+----------+----------+----------+----------+
+
+
+Number of active cells                = 2436
+Number of velocity degrees of freedom = 21376
+Number of pressure degrees of freedom = 2792
+Number of total degrees of freedom    = 24168
+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Velocity entity                      |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 0       | Dirichlet  | DFG::VelocityInflowBoundaryCondition<2>  |
+| 2       | Dirichlet  | ZeroFunction<2, double>                  |
+| 3       | Dirichlet  | ZeroFunction<2, double>                  |
+| Unconstrained boundary ids: 1                                   |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Pressure entity                      |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 1       | Dirichlet  | ZeroFunction<2, double>                  |
+| Unconstrained boundary ids: 0, 2, 3                             |
++---------+------------+------------------------------------------+
+Solving until t = 350...
+Step =      0, Current time = 0.0e+00, Next time step = 2.5e-02
++---------+------------+------------------------------------------+
+| Boundary conditions of the Phi entity                           |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 0       | Neumann    | ZeroFunction<2, double>                  |
+| 2       | Neumann    | ZeroFunction<2, double>                  |
+| 3       | Neumann    | ZeroFunction<2, double>                  |
+| 1       | Dirichlet  | ZeroFunction<2, double>                  |
++---------+------------+------------------------------------------+
+Step =      1, Current time = 2.5e-02, Next time step = 2.5e-02
+    dp = +8.585950e+01 C_d = +1.337508e+02 C_l = -2.073725e-01
+Step =      2, Current time = +5.000000e-02, Next time step = +2.500000e-02
+    dp = +2.674982e+01 C_d = +5.115431e+01 C_l = -1.540453e-01
+Step =      3, Current time = +7.500000e-02, Next time step = +2.500000e-02
+    dp = -1.101397e+01 C_d = -1.472003e+01 C_l = +1.261749e-01
+Step =      4, Current time = +1.000000e-01, Next time step = +2.500000e-02
+    dp = -3.586786e+00 C_d = -1.643369e+00 C_l = +2.080311e-03
+Step =      5, Current time = +1.250000e-01, Next time step = +2.500000e-02
+    dp = +2.955208e+00 C_d = +5.259251e+00 C_l = -2.957324e-03
+Restarting...
+Solving until t = +3000...
+Step =      0, Current time = +0.000000e+00, Next time step = +2.500000e-02
