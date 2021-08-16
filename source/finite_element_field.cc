@@ -1037,7 +1037,7 @@ Tensor<1, dim> FE_ScalarField<dim, VectorType>::point_gradient
 {
   Assert(!this->flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
-  Tensor<1, dim> point_gradient;
+  std::vector<Tensor<1, dim>> point_gradient(1);
 
   // try to evaluate the solution at this point. in parallel, the point
   // will be on only one processor's owned cells, so the others are
@@ -1047,10 +1047,10 @@ Tensor<1, dim> FE_ScalarField<dim, VectorType>::point_gradient
 
   try
   {
-    point_gradient = VectorTools::point_gradient(external_mapping,
-                                                 *(this->dof_handler),
-                                                 this->solution,
-                                                 point);
+    point_gradient[0] = VectorTools::point_gradient(external_mapping,
+                                                    *(this->dof_handler),
+                                                    this->solution,
+                                                    point);
     point_found = true;
   }
   catch (const VectorTools::ExcPointNotAvailableHere &)
@@ -1058,9 +1058,9 @@ Tensor<1, dim> FE_ScalarField<dim, VectorType>::point_gradient
     // ignore
   }
 
-  this->send_point_data(point_gradient, point, point_found);
+  this->send_point_data_vector(point_gradient, point, point_found);
 
-  return (point_gradient);
+  return (point_gradient[0]);
 }
 
 
