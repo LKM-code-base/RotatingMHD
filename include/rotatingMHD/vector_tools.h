@@ -41,6 +41,19 @@ void interpolate
  const Function<dim>                            &function,
  VectorType                                     &vector);
 
+template <int dim, typename VectorType>
+void project
+(const Mapping<dim>                             &mapping,
+ const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &function,
+ VectorType                                     &vector);
+
+template <int dim, typename VectorType>
+void project
+(const Entities::FE_FieldBase<dim, VectorType>  &fe_field,
+ const Function<dim>                            &function,
+ VectorType                                     &vector);
+
 }  // namespace VectorTools
 
 }  // namespace RMHD
