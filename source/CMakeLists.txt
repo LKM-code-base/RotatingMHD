@@ -9,8 +9,8 @@ SET(TARGET_SRC
     convection_diffusion.cc
     data_postprocessors.cc
     discrete_time.cc
-    entities_structs.cc
     equation_data.cc
+    finite_element_field.cc    
     problem_class.cc
     run_time_parameters.cc
     time_discretization.cc

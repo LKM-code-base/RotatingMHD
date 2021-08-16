@@ -29,15 +29,13 @@ namespace BenchmarkData
 {
 
 template <int dim>
-DFGBechmarkRequest<dim>::DFGBechmarkRequest
-(const double reynolds_number,
- const double reference_length)
+DFGBechmarkRequest<dim>::DFGBechmarkRequest(const double reynolds_number)
 :
 Re(reynolds_number),
-front_evaluation_point(1.5 / reference_length,
-                       2.0 / reference_length),
-rear_evaluation_point(2.5 / reference_length,
-                      2.0 / reference_length),
+front_evaluation_point(1.5,
+                       2.0),
+rear_evaluation_point(2.5,
+                      2.0),
 pressure_difference(0),
 drag_coefficient(0),
 lift_coefficient(0)
@@ -61,7 +59,7 @@ lift_coefficient(0)
 
 template <int dim>
 void DFGBechmarkRequest<dim>::compute_pressure_difference
-(const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure)
+(const std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure)
 {
   const double front_point_pressure_value
   = pressure->point_value(front_evaluation_point);
@@ -75,8 +73,8 @@ void DFGBechmarkRequest<dim>::compute_pressure_difference
 
 template <int dim>
 void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
-(const std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
- const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+(const std::shared_ptr<Entities::FE_VectorField<dim>> &velocity,
+ const std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure,
  const types::boundary_id                            cylinder_boundary_id)
 {
 
@@ -217,9 +215,9 @@ void DFGBechmarkRequest<dim>::write_table_to_file(const std::string  &file)
 
 template <int dim>
 MIT<dim>::MIT(
-  const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-  const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
-  const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
+  const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
+  const std::shared_ptr<Entities::FE_ScalarField<dim>>  &pressure,
+  const std::shared_ptr<Entities::FE_ScalarField<dim>>  &temperature,
   TimeDiscretization::VSIMEXMethod                    &time_stepping,
   const unsigned int                                  left_wall_boundary_id,
   const unsigned int                                  right_wall_boundary_id,
@@ -578,9 +576,9 @@ void MIT<dim>::compute_global_data()
 
 template <int dim>
 ChristensenBenchmark<dim>::ChristensenBenchmark(
-  const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-  const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-  const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_field,
+  const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
+  const std::shared_ptr<Entities::FE_ScalarField<dim>>  &temperature,
+  const std::shared_ptr<Entities::FE_VectorField<dim>>  &magnetic_field,
   const TimeDiscretization::VSIMEXMethod              &time_stepping,
   const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
   const double                                        inner_radius,

@@ -1,4 +1,3 @@
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
@@ -13,6 +12,7 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <iostream>
 #include <fstream>
@@ -34,9 +34,9 @@ public:
 private:
   const RunTimeParameters::ProblemParameters   &parameters;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
@@ -75,10 +75,10 @@ Step35<dim>::Step35(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velocity,
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
                                                        "velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
                                                        "pressure")),
 time_stepping(parameters.time_discretization_parameters),
@@ -269,7 +269,7 @@ void Step35<dim>::run()
                << std::endl;
 
   while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
-         time_stepping.get_step_number() < n_steps)
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
