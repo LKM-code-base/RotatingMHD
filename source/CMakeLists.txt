@@ -7,6 +7,7 @@ SET(TARGET_SRC
     boundary_conditions.cc
     convergence_test.cc
     convection_diffusion.cc
+    data_postprocessors.cc
     discrete_time.cc
     equation_data.cc
     finite_element_field.cc    
