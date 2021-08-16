@@ -1,0 +1,114 @@
+#include <rotatingMHD/vector_tools.h>
+
+namespace RMHD
+{
+
+namespace VectorTools
+{
+
+
+template<int dim>
+std::map<NormType, double>
+compute_error
+(const Mapping<dim>                 &mapping,
+ const Entities::FE_FieldBase<dim>  &fe_field,
+ const Function<dim>                &exact_solution)
+{
+  const Triangulation<dim> &tria{fe_field.get_triangulation()};
+  const DoFHandler<dim>    &dof_handler{fe_field.get_dof_handler()};
+
+  const unsigned int        fe_degree{fe_field.fe_degree()};
+  const unsigned int        n_components{fe_field.n_components()};
+
+  AssertThrow(n_components == exact_solution.n_components,
+              ExcDimensionMismatch(n_components, exact_solution.n_components));
+
+  Vector<double>  cellwise_error(tria.n_active_cells());
+
+  auto compute_error
+  = [&mapping, &tria, &cellwise_error, &dof_handler, &fe_field]
+     (const Quadrature<dim>&quadrature,
+      const Function<dim>  &exact_solution,
+      const NormType        norm_type)
+  ->
+  double
+  {
+    dealii::VectorTools::integrate_difference(mapping,
+                                              dof_handler,
+                                              fe_field.solution,
+                                              exact_solution,
+                                              cellwise_error,
+                                              quadrature,
+                                              norm_type);
+    return (dealii::VectorTools::compute_global_error(tria,
+                                                      cellwise_error,
+                                                      norm_type));
+  };
+
+  const QGauss<dim> quadrature_formula(fe_degree + 1);
+
+  NormType norm_type;
+
+  std::map<NormType, double> error_map;
+
+  norm_type = NormType::L2_norm;
+  error_map[norm_type] = compute_error(quadrature_formula,
+                                       exact_solution,
+                                       norm_type);
+
+  norm_type = NormType::H1_norm;
+  error_map[norm_type] = compute_error(quadrature_formula,
+                                       exact_solution,
+                                       norm_type);
+
+  const QTrapez<1>     trapezoidal_rule;
+  const QIterated<dim> linfty_quadrature_formula(trapezoidal_rule,
+                                                 fe_degree);
+
+  norm_type = NormType::Linfty_norm;
+  error_map[norm_type] = compute_error(linfty_quadrature_formula,
+                                       exact_solution,
+                                       norm_type);
+  return (error_map);
+}
+
+
+
+template<int dim>
+std::map<NormType, double>
+compute_error
+(const Entities::FE_FieldBase<dim>  &fe_field,
+ const Function<dim>                &exact_solution)
+{
+  return (compute_error(MappingQ1<dim>(), fe_field, exact_solution));
+}
+
+}  // namespace VectorTools
+
+}  // namespace RMHD
+
+// explicit instantiations
+template
+std::map<typename dealii::VectorTools::NormType, double>
+RMHD::VectorTools::compute_error<2>
+(const Mapping<2>                       &,
+ const RMHD::Entities::FE_FieldBase<2>  &,
+ const dealii::Function<2>              &);
+template
+std::map<typename dealii::VectorTools::NormType, double>
+RMHD::VectorTools::compute_error<3>
+(const Mapping<3>                       &,
+ const RMHD::Entities::FE_FieldBase<3>  &,
+ const dealii::Function<3>              &);
+
+template
+std::map<typename dealii::VectorTools::NormType, double>
+RMHD::VectorTools::compute_error<2>
+(const RMHD::Entities::FE_FieldBase<2>  &,
+ const dealii::Function<2>              &);
+template
+std::map<typename dealii::VectorTools::NormType, double>
+RMHD::VectorTools::compute_error<3>
+(const RMHD::Entities::FE_FieldBase<3>  &,
+ const dealii::Function<3>              &);
+
