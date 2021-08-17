@@ -20,7 +20,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
   stiffness_matrix  = 0.;
 
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(temperature->fe_degree);
+  const QGauss<dim>   quadrature_formula(temperature->fe_degree  + 1);
 
   // Set up the lamba function for the local assembly operation
   auto worker =

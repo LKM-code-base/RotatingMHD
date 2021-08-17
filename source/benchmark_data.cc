@@ -770,12 +770,6 @@ void ChristensenBenchmark<dim>::compute_global_data()
   const FESystem<dim>* const magnetic_field_fe =
               (case_number != 0) ? &magnetic_field->fe : &dummy_fe_system;
 
-  // Polynomial degree of the integrand
-  const int p_degree = 2 * (case_number != 0
-                              ? std::max(velocity->fe_degree,
-                                        magnetic_field->fe_degree)
-                              : velocity->fe_degree);
-
   // Quadrature formula
   const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
 

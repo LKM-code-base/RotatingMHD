@@ -18,7 +18,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   velocity_laplace_matrix = 0.;
 
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(velocity->fe_degree);
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
 
   // Set up the lambda function for the local assembly operation
   auto worker =
