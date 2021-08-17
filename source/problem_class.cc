@@ -113,7 +113,7 @@ void Problem<dim>::project_function
   VectorTools::project(*(this->mapping),
                       *(entity->dof_handler),
                        entity->constraints,
-                       QGauss<dim>(entity->fe_degree + 2),
+                       QGauss<dim>(entity->fe_degree + 1),
                        function,
                        tmp_vector);
 
@@ -169,7 +169,7 @@ void Problem<dim>::set_initial_conditions
   {
     VectorTools::project(*entity->dof_handler,
                           entity->constraints,
-                          QGauss<dim>(entity->fe_degree + 2),
+                          QGauss<dim>(entity->fe_degree + 1),
                           function,
                           tmp_old_solution);
 
@@ -181,7 +181,7 @@ void Problem<dim>::set_initial_conditions
 
     VectorTools::project(*entity->dof_handler,
                           entity->constraints,
-                          QGauss<dim>(entity->fe_degree + 2),
+                          QGauss<dim>(entity->fe_degree + 1),
                           function,
                           tmp_old_old_solution);
 
@@ -189,7 +189,7 @@ void Problem<dim>::set_initial_conditions
 
     VectorTools::project(*entity->dof_handler,
                           entity->constraints,
-                          QGauss<dim>(entity->fe_degree + 2),
+                          QGauss<dim>(entity->fe_degree + 1),
                           function,
                           tmp_old_solution);
 

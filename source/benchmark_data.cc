@@ -82,10 +82,7 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
 
   const MappingQ<dim> mapping(3);
 
-  const int face_p_degree = velocity->fe_degree;
-
-  const QGauss<dim-1>   face_quadrature_formula(
-                            std::ceil(0.5 * double(face_p_degree + 1)));
+  const QGauss<dim-1>   face_quadrature_formula(velocity->fe_degree + 1);
 
   FEFaceValues<dim> velocity_face_fe_values(mapping,
                                             velocity->fe,
@@ -420,14 +417,8 @@ void MIT<dim>::compute_wall_data()
 {
   TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Wall data");
 
-  /*! @attention What would be the polynomial degree of the normal
-      vector? */
-  // Polynomial degree of the integrand
-  const int face_p_degree = temperature->fe_degree;
-
   // Quadrature formula
-  const QGauss<dim-1>   face_quadrature_formula(
-                            std::ceil(0.5 * double(face_p_degree + 1)));
+  const QGauss<dim-1>   face_quadrature_formula(temperature->fe_degree + 1);
 
   // Finite element values
   FEFaceValues<dim> face_fe_values(*mapping,
@@ -508,12 +499,8 @@ void MIT<dim>::compute_global_data()
   average_velocity_metric   = 0.0;
   average_vorticity_metric  = 0.0;
 
-  // Polynomial degree of the integrand
-  const int p_degree = 2 * velocity->fe_degree;
-
   // Quadrature formula
-  const QGauss<dim>   quadrature_formula(
-                            std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
 
   // Finite element values
   FEValues<dim> fe_values(*mapping,
@@ -790,8 +777,7 @@ void ChristensenBenchmark<dim>::compute_global_data()
                               : velocity->fe_degree);
 
   // Quadrature formula
-  const QGauss<dim>   quadrature_formula(
-                            std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
 
   // Set up the lamba function for the local assembly operation
   auto worker =

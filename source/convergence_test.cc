@@ -69,7 +69,7 @@ void ConvergenceAnalysisData<dim>::update_table
 
     {
       // Compute the error in the L2-norm.
-      const QGauss<dim>    quadrature_formula(entity->fe_degree + 2);
+      const QGauss<dim>    quadrature_formula(entity->fe_degree + 1);
 
       VectorTools::integrate_difference
       (*(entity->dof_handler),

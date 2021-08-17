@@ -154,7 +154,7 @@ FE_FieldBase<dim>::compute_error
 
   std::map<typename VectorTools::NormType, double> error_map;
 
-	const QGauss<dim> quadrature_formula(fe_degree + 2);
+	const QGauss<dim> quadrature_formula(fe_degree + 1);
 
 	norm_type = VectorTools::NormType::L2_norm;
 	double error = compute_error(quadrature_formula,
