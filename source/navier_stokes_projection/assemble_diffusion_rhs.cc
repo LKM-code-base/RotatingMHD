@@ -25,10 +25,10 @@ assemble_diffusion_step_rhs()
           (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
 
     // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 2);
 
   // Initiate the face quadrature formula for exact numerical integration
-  const QGauss<dim-1> face_quadrature_formula(velocity->fe_degree + 1);
+  const QGauss<dim-1> face_quadrature_formula(velocity->fe_degree + 2);
 
   // Set up the lambda function for the local assembly operation
   auto worker =
