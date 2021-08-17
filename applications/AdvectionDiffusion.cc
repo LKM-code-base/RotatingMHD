@@ -1,11 +1,11 @@
 #include <rotatingMHD/convection_diffusion_solver.h>
-#include <rotatingMHD/convergence_test.h>
 #include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
+#include <deal.II/base/convergence_table.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -43,7 +43,7 @@ private:
 
   HeatEquation<dim>                             advection_diffusion;
 
-  ConvergenceAnalysisData<dim>                  convergence_table;
+  ConvergenceTable                              convergence_table;
 
   double                                        cfl_number;
 
@@ -60,6 +60,8 @@ private:
   void solve(const unsigned int &level);
 
   void postprocessing();
+
+  void process_solution(const unsigned int cycle);
 
   void output();
 
@@ -91,7 +93,6 @@ advection_diffusion(parameters.heat_equation_parameters,
                     this->mapping,
                     this->pcout,
                     this->computing_timer),
-convergence_table(scalar_field, *exact_solution),
 cfl_number(std::numeric_limits<double>::min()),
 log_file("AdvectionDiffusion_Log.csv")
 {}
@@ -182,6 +183,63 @@ void AdvectionDiffusion<dim>::postprocessing()
 }
 
 
+template <int dim>
+void AdvectionDiffusion<dim>::process_solution(const unsigned int cycle)
+{
+  const double current_time{time_stepping.get_current_time()};
+
+  using ExactSolution = EquationData::ThermalTGV::TemperatureExactSolution<dim>;
+
+  exact_solution->set_time(current_time);
+
+  Vector<float> difference_per_cell(this->triangulation.n_active_cells());
+  VectorTools::integrate_difference(*scalar_field->dof_handler,
+                                    scalar_field->solution,
+                                    *exact_solution,
+                                    difference_per_cell,
+                                    QGauss<dim>(scalar_field->fe_degree + 1),
+                                    VectorTools::L2_norm);
+  const double L2_error =
+    VectorTools::compute_global_error(this->triangulation,
+                                      difference_per_cell,
+                                      VectorTools::L2_norm);
+  VectorTools::integrate_difference(*scalar_field->dof_handler,
+                                    scalar_field->solution,
+                                    *exact_solution,
+                                    difference_per_cell,
+                                    QGauss<dim>(scalar_field->fe_degree + 1),
+                                    VectorTools::H1_seminorm);
+  const double H1_error =
+    VectorTools::compute_global_error(this->triangulation,
+                                      difference_per_cell,
+                                      VectorTools::H1_seminorm);
+  const QTrapez<1>     q_trapez;
+  const QIterated<dim> q_iterated(q_trapez, scalar_field->fe_degree * 2 + 1);
+  VectorTools::integrate_difference(*scalar_field->dof_handler,
+                                    scalar_field->solution,
+                                    *exact_solution,
+                                    difference_per_cell,
+                                    q_iterated,
+                                    VectorTools::Linfty_norm);
+  const double Linfty_error =
+    VectorTools::compute_global_error(this->triangulation,
+                                      difference_per_cell,
+                                      VectorTools::Linfty_norm);
+
+  const unsigned int n_active_cells = this->triangulation.n_global_active_cells();
+  const unsigned int n_dofs         = scalar_field->dof_handler->n_dofs();
+
+  convergence_table.add_value("cycle", cycle);
+  convergence_table.add_value("time_step", time_stepping.get_previous_step_size());
+  convergence_table.add_value("cells", n_active_cells);
+  convergence_table.add_value("dofs", n_dofs);
+  convergence_table.add_value("L2", L2_error);
+  convergence_table.add_value("H1", H1_error);
+  convergence_table.add_value("Linfty", Linfty_error);
+
+}
+
+
 
 template <int dim>
 void AdvectionDiffusion<dim>::output()
@@ -217,7 +275,7 @@ void AdvectionDiffusion<dim>::output()
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::solve(const unsigned int &level)
+void AdvectionDiffusion<dim>::solve(const unsigned int &/* level */)
 {
   advection_diffusion.set_source_term(source_term);
   setup_dofs();
@@ -271,12 +329,6 @@ void AdvectionDiffusion<dim>::solve(const unsigned int &level)
   Assert(time_stepping.get_current_time() == exact_solution->get_time(),
     ExcMessage("Time mismatch between the time stepping class and the temperature function"));
 
-  convergence_table.update_table(
-    level,
-    time_stepping.get_previous_step_size(),
-    parameters.convergence_test_parameters.test_type ==
-    		ConvergenceTest::ConvergenceTestType::spatial);
-
   log_file << "\n";
 
   *this->pcout << std::endl << std::endl;
@@ -308,6 +360,8 @@ void AdvectionDiffusion<dim>::run()
       solve(level);
 
       this->triangulation.refine_global();
+
+      process_solution(level);
     }
     break;
   case ConvergenceTest::ConvergenceTestType::temporal:
@@ -331,23 +385,30 @@ void AdvectionDiffusion<dim>::run()
       time_stepping.set_desired_next_step_size(time_step);
 
       solve(parameters.spatial_discretization_parameters.n_initial_global_refinements);
+
+      process_solution(cycle);
     }
     break;
   default:
     break;
   }
 
-  *this->pcout << convergence_table;
+  convergence_table.set_precision("L2", 3);
+  convergence_table.set_precision("H1", 3);
+  convergence_table.set_precision("Linfty", 3);
+  convergence_table.set_scientific("L2", true);
+  convergence_table.set_scientific("H1", true);
+  convergence_table.set_scientific("Linfty", true);
+  convergence_table.omit_column_from_convergence_rate_evaluation("cycle");
+  convergence_table.omit_column_from_convergence_rate_evaluation("cells");
+  convergence_table.omit_column_from_convergence_rate_evaluation("dofs");
+  convergence_table.omit_column_from_convergence_rate_evaluation("time_step");
+  convergence_table.evaluate_all_convergence_rates("time_step", ConvergenceTable::RateMode::reduction_rate_log2);
 
-  std::ostringstream tablefilename;
-  tablefilename << ((parameters.convergence_test_parameters.test_type ==
-  									 ConvergenceTest::ConvergenceTestType::spatial)
-                     ? "AdvectionDiffusion_SpatialTest"
-                     : ("AdvectionDiffusion_TemporalTest_Level" + std::to_string(parameters.spatial_discretization_parameters.n_initial_global_refinements)))
-                << "_Pe"
-                << parameters.Pe;
+  *this->pcout << std::endl;
+  if (this->pcout->is_active())
+    convergence_table.write_text(this->pcout->get_stream());
 
-  convergence_table.write_text(tablefilename.str());
 }
 
 
