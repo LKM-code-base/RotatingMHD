@@ -17,32 +17,20 @@ assemble_diffusion_step_rhs()
   // Reset data
   diffusion_step_rhs  = 0.;
 
-  // Dummy finite element for when there is no bouyancy
+  // Dummy finite element for when there is no buoyancy
   const FE_Q<dim> dummy_fe(1);
 
   // Create pointer to the pertinent finite element
   const FE_Q<dim> * const temperature_fe_ptr =
           (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
 
-  // Polynomial degree of the body force and the neumann function
-  const int p_degree_body_force       = velocity->fe_degree;
-
-  const int p_degree_neumann_function = velocity->fe_degree;
-
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = std::max(3 * velocity->fe_degree - 1,
-                                velocity->fe_degree + p_degree_body_force);
-
-  // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = velocity->fe_degree + p_degree_neumann_function;
-
-  // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+    // Initiate the quadrature formula for exact numerical integration
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
 
   // Initiate the face quadrature formula for exact numerical integration
-  const QGauss<dim-1> face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
+  const QGauss<dim-1> face_quadrature_formula(velocity->fe_degree + 1);
 
-  // Set up the lamba function for the local assembly operation
+  // Set up the lambda function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator                 &cell,
            AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
@@ -53,7 +41,7 @@ assemble_diffusion_step_rhs()
                                               data);
     };
 
-  // Set up the lamba function for the copy local to global operation
+  // Set up the lambda function for the copy local to global operation
   auto copier =
     [this](const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy   &data)
     {

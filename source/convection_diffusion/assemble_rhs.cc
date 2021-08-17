@@ -27,33 +27,13 @@ void HeatEquation<dim>::assemble_rhs()
   const FESystem<dim>* const velocity_fe =
               (velocity != nullptr) ? &velocity->fe : &dummy_fe_system;
 
-  // Set polynomial degree of the velocity. If the velicity is given
-  // by a function the degree is hardcoded to 2.
-  const unsigned int velocity_fe_degree =
-                        (velocity != nullptr) ? velocity->fe_degree : 2;
-
-  // Set polynomial degree of the source function.
-  // Hardcoded to match that of the velocity.
-  const int p_degree_source_function = temperature->fe_degree;
-
-  // Set polynomial degree of the Neumann boundary condition function.
-  // Hardcoded to match that of the velocity.
-  const int p_degree_neumann_function = temperature->fe_degree;
-
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = std::max(temperature->fe_degree + p_degree_source_function,
-                                2 * temperature->fe_degree + velocity_fe_degree - 1);
+  // Initiate the quadrature formula for exact numerical integration
+  const QGauss<dim>   quadrature_formula(temperature->fe_degree + 1);
 
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim-1>   face_quadrature_formula(temperature->fe_degree + 1);
 
-  // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = temperature->fe_degree + p_degree_neumann_function;
-
-  // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
-
-  // Set up the lamba function for the local assembly operation
+  // Set up the lambda function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
            AssemblyData::HeatEquation::RightHandSide::Scratch<dim>  &scratch,
@@ -64,7 +44,7 @@ void HeatEquation<dim>::assemble_rhs()
                                data);
     };
 
-  // Set up the lamba function for the copy local to global operation
+  // Set up the lambda function for the copy local to global operation
   auto copier =
     [this](const AssemblyData::HeatEquation::RightHandSide::Copy    &data)
     {

@@ -15,13 +15,10 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
   // Reset data
   velocity_advection_matrix = 0.;
 
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 3 * velocity->fe_degree - 1;
-
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
 
-  // Set up the lamba function for the local assembly operation
+  // Set up the lambda function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator                 &cell,
            AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>  &scratch,
@@ -32,7 +29,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
                                                      data);
     };
 
-  // Set up the lamba function for the copy local to global operation
+  // Set up the lambda function for the copy local to global operation
   auto copier =
     [this](const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy    &data)
     {

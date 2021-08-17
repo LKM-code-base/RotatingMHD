@@ -17,13 +17,10 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   velocity_mass_matrix    = 0.;
   velocity_laplace_matrix = 0.;
 
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * velocity->fe_degree;
-
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree);
 
-  // Set up the lamba function for the local assembly operation
+  // Set up the lambda function for the local assembly operation
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
            AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim> &scratch,
@@ -34,7 +31,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
                                              data);
     };
 
-  // Set up the lamba function for the copy local to global operation
+  // Set up the lambda function for the copy local to global operation
   auto copier =
     [this](const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy   &data)
     {
@@ -149,11 +146,8 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   pressure_laplace_matrix = 0.;
   phi_laplace_matrix      = 0.;
 
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * pressure->fe_degree;
-
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(pressure->fe_degree + 1);
 
   // Set up the lamba function for the local assembly operation
   auto worker =
