@@ -158,15 +158,6 @@ protected:
   virtual void clear();
 
   /*!
-   * @brief Projects the @p function on the finite element space contained
-   * in the @p entity and saves the result in the @p vector.
-   */
-  void project_function
-  (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
-   LinearAlgebra::MPI::Vector                      &vector);
-
-  /*!
    * @brief Interpolates the @p function on the finite element space contained
    * in the @p entity and saves the result in the @p vector.
    */
