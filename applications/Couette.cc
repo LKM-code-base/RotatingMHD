@@ -262,10 +262,6 @@ void Couette<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
-  this->compute_error(error,
-                      velocity,
-                      *exact_solution);
-
   std::vector<std::string> names(dim, "velocity");
   std::vector<std::string> error_name(dim, "velocity_error");
 

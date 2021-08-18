@@ -209,10 +209,6 @@ void ThermalTGV<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
-  this->compute_error(error,
-                      temperature,
-                      *temperature_exact_solution);
-
   DataOut<dim>        data_out;
 
   data_out.add_data_vector(temperature->get_dof_handler(),

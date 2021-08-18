@@ -196,20 +196,6 @@ protected:
    const bool                                 boolean = false);
 
   /*!
-   * @brief Computes the error of the numerical solution against
-   * the analytical solution.
-   *
-   * @details The error is calculated by subtracting the /f$ L_2/f$
-   * projection of the given function from the solution vector and
-   * computing the absolute value of the residum.
-   *
-   */
-  void compute_error
-  (LinearAlgebra::MPI::Vector                 &error_vector,
-   std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
-   Function<dim>                              &exact_solution);
-
-  /*!
    *  @brief Computes the next time step according to the
    *  Courant-Friedrichs-Lewy (CFL) condition.
    *

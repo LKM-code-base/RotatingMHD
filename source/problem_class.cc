@@ -202,39 +202,6 @@ void Problem<dim>::set_initial_conditions
 }
 
 template <int dim>
-void Problem<dim>::compute_error(
-  LinearAlgebra::MPI::Vector                  &error_vector,
-  std::shared_ptr<Entities::FE_FieldBase<dim>>  entity,
-  Function<dim>                               &exact_solution)
-{
-  AssertThrow(error_vector.local_size() ==
-                entity->solution.local_size(),
-              ExcMessage("The vectors do not match in size"));
-
-  LinearAlgebra::MPI::Vector  distributed_solution_vector;
-  LinearAlgebra::MPI::Vector  distributed_error_vector;
-
-  distributed_solution_vector.reinit(entity->distributed_vector);
-  distributed_error_vector.reinit(entity->distributed_vector);
-
-  distributed_solution_vector = entity->solution;
-  VectorTools::interpolate(*mapping,
-                           entity->get_dof_handler(),
-                           exact_solution,
-                           distributed_error_vector);
-  entity->get_hanging_node_constraints().distribute(distributed_error_vector);
-
-  distributed_error_vector.add(-1.0, distributed_solution_vector);
-
-  for (unsigned int i = distributed_error_vector.local_range().first;
-       i < distributed_error_vector.local_range().second; ++i)
-    if (distributed_error_vector(i) < 0)
-      distributed_error_vector(i) *= -1.0;
-
-  error_vector = distributed_error_vector;
-}
-
-template <int dim>
 double Problem<dim>::compute_next_time_step
 (const TimeDiscretization::VSIMEXMethod &time_stepping,
  const double                           cfl_number,
