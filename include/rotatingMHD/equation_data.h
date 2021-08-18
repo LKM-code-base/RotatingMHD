@@ -12,7 +12,6 @@
 #include <deal.II/base/function.h>
 #include <deal.II/base/tensor_function.h>
 #include <deal.II/lac/vector.h>
-#include <deal.II/fe/fe_values.h>
 
 #include <cmath>
 
@@ -23,45 +22,6 @@ using namespace dealii;
 
 namespace EquationData
 {
-
-
-template <int dim>
-using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
-
-
-
-template <int dim>
-class VectorFunction : public TensorFunction<1, dim>
-{
-
-public:
-
-  VectorFunction(const double time = 0);
-
-  virtual double divergence(const Point<dim> &point) const;
-
-  virtual void divergence_list(const std::vector<Point<dim>> &points,
-                               std::vector<double>           &values) const;
-
-  virtual curl_type<dim> curl(const Point<dim> &point) const;
-
-  virtual void curl_list(const std::vector<Point<dim>>  &points,
-                         std::vector<curl_type<dim>>     &values) const;
-};
-
-
-
-template <int dim>
-class AngularVelocity : public VectorFunction<dim>
-{
-public:
-  AngularVelocity(const double time = 0);
-
-  /*! @attention I am not really a fan of the method's names. Do you have
-      a better naming option perhaps? value is already
-      being used by TensorFunction */
-  virtual curl_type<dim> rotation() const;
-};
 
 namespace Step35
 {
@@ -230,20 +190,20 @@ public:
                                   const unsigned int = 0) const;
 };
 
-template <int dim>
-class BodyForce: public RMHD::EquationData::VectorFunction<dim>
-{
-public:
-  BodyForce(const double Re,
-            const double time = 0);
-
-  virtual Tensor<1, dim> value(
-    const Point<dim>  &point) const override;
-
-  virtual double divergence(const Point<dim>  &point) const override;
-
-  const double Re;
-};
+//template <int dim>
+//class BodyForce: public RMHD::EquationData::VectorFunction<dim>
+//{
+//public:
+//  BodyForce(const double Re,
+//            const double time = 0);
+//
+//  virtual Tensor<1, dim> value(
+//    const Point<dim>  &point) const override;
+//
+//  virtual double divergence(const Point<dim>  &point) const override;
+//
+//  const double Re;
+//};
 
 } // namespace Guermond
 
@@ -277,20 +237,20 @@ public:
                                   const unsigned int = 0) const;
 };
 
-template <int dim>
-class BodyForce: public RMHD::EquationData::VectorFunction<dim>
-{
-public:
-  BodyForce(const double Re,
-            const double time = 0);
-
-  virtual Tensor<1, dim> value(
-    const Point<dim>  &point) const override;
-
-  virtual double divergence(const Point<dim>  &point) const override;
-
-  const double Re;
-};
+//template <int dim>
+//class BodyForce: public RMHD::EquationData::VectorFunction<dim>
+//{
+//public:
+//  BodyForce(const double Re,
+//            const double time = 0);
+//
+//  virtual Tensor<1, dim> value(
+//    const Point<dim>  &point) const override;
+//
+//  virtual double divergence(const Point<dim>  &point) const override;
+//
+//  const double Re;
+//};
 
 } // namespace GuermondNeumannBC
 
@@ -446,15 +406,15 @@ private:
   const double beta = 10.;
 };
 
-template <int dim>
-class GravityUnitVector: public RMHD::EquationData::VectorFunction<dim>
-{
-public:
-  GravityUnitVector(const double time = 0);
-
-  virtual Tensor<1, dim> value(
-    const Point<dim>  &point) const override;
-};
+//template <int dim>
+//class GravityUnitVector: public RMHD::EquationData::VectorFunction<dim>
+//{
+//public:
+//  GravityUnitVector(const double time = 0);
+//
+//  virtual Tensor<1, dim> value(
+//    const Point<dim>  &point) const override;
+//};
 
 } // namespace MIT
 
@@ -555,44 +515,43 @@ private:
  * \f$ r_o \f$ the outer radius of the shell and
  * \f$ \bs{r} \f$ the radius vector.
  */
-template <int dim>
-class GravityVector: public RMHD::EquationData::VectorFunction<dim>
-{
-public:
-  GravityVector(const double outer_radius,
-                const double time = 0);
+//template <int dim>
+//class GravityVector: public RMHD::EquationData::VectorFunction<dim>
+//{
+//public:
+//  GravityVector(const double outer_radius,
+//                const double time = 0);
+//
+//  virtual Tensor<1, dim> value(const Point<dim> &point) const override;
+//
+//private:
+//
+//  /*!
+//   * @brief Outer radius of the shell.
+//   */
+//  const double outer_radius;
+//};
 
-  virtual Tensor<1, dim> value(const Point<dim> &point) const override;
-
-private:
-
-  /*!
-   * @brief Outer radius of the shell.
-   */
-  const double outer_radius;
-};
 
 
-
-/*!
- * @class AngularVelocity
- * @brief The angular velocity of the rotating frame of reference.
- * @details Given by
- * \f[
- * \ \bs{\omega} = \ez
- * \f]
- * where \f$ \bs{\omega} \f$ is the angular velocity and
- * \f$ \ez \f$ the unit vector in the \f$ z \f$-direction.
- */
-template <int dim>
-class AngularVelocity: public RMHD::EquationData::AngularVelocity<dim>
-{
-public:
-  AngularVelocity(const double time = 0);
-
-  virtual curl_type<dim> rotation() const override;
-};
-
+///*!
+// * @class AngularVelocity
+// * @brief The angular velocity of the rotating frame of reference.
+// * @details Given by
+// * \f[
+// * \ \bs{\omega} = \ez
+// * \f]
+// * where \f$ \bs{\omega} \f$ is the angular velocity and
+// * \f$ \ez \f$ the unit vector in the \f$ z \f$-direction.
+// */
+//template <int dim>
+//class AngularVelocity: public RMHD::EquationData::AngularVelocity<dim>
+//{
+//public:
+//  AngularVelocity(const double time = 0);
+//
+//  virtual curl_type<dim> rotation() const override;
+//};
 
 
 } // namespace Christensen

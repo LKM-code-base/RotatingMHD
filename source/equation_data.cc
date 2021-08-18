@@ -15,78 +15,6 @@ namespace RMHD
 namespace EquationData
 {
 
-
-
-template <int dim>
-VectorFunction<dim>::VectorFunction(const double time)
-:
-TensorFunction<1, dim>(time)
-{}
-
-
-
-template <int dim>
-double VectorFunction<dim>::divergence(const Point<dim>  &/* point */) const
-{
-  return (0.0);
-}
-
-
-
-template <int dim>
-void VectorFunction<dim>::divergence_list(
-  const std::vector<Point<dim>> &points,
-  std::vector<double>           &values) const
-{
-  for (unsigned int i = 0; i < points.size(); ++i)
-    values[i] = divergence(points[i]);
-}
-
-
-
-template <int dim>
-curl_type<dim> VectorFunction<dim>::curl(const Point<dim>  &/* point */) const
-{
-  curl_type<dim> value;
-
-  value = 0.;
-
-  return (value);
-}
-
-
-
-template <int dim>
-void VectorFunction<dim>::curl_list(
-  const std::vector<Point<dim>> &points,
-  std::vector<curl_type<dim>>    &values) const
-{
-  for (unsigned int i = 0; i < points.size(); ++i)
-    values[i] = curl(points[i]);
-}
-
-
-
-template <int dim>
-AngularVelocity<dim>::AngularVelocity(const double time)
-:
-VectorFunction<dim>(time)
-{}
-
-
-
-template <int dim>
-curl_type<dim> AngularVelocity<dim>::rotation() const
-{
-  curl_type<dim> value;
-
-  value = 0.;
-
-  return (value);
-}
-
-
-
 namespace Step35
 {
 
@@ -329,54 +257,54 @@ Tensor<1, dim> PressureExactSolution<dim>::gradient
   return return_value;
 }
 
-template <int dim>
-BodyForce<dim>::BodyForce
-(const double Re,
- const double time)
-:
-RMHD::EquationData::VectorFunction<dim>(time),
-Re(Re)
-{}
-
-template <int dim>
-Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
-{
-  // The commented out lines corresponds to the case where the convection
-  // term is ignored.
-  Tensor<1, dim> value;
-
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
-
-  value[0] = cos(t + x - y) + sin(2.*(t + x))/2. +
-              (2.*sin(t + x)*sin(t + y))/Re + sin(2.*t + x + y)
-              /*cos(t + x - 1.*y) + (2.*sin(t + x)*sin(t + y))/Re
-              + sin(2.*t + x + y)*/;
-  value[1] = (cos(x - y) + cos(2.*t + x + y) - (Re*(2.*cos(t + x - y) +
-              sin(2.*(t + y)) + 2.*sin(2.*t + x + y)))/2.)/Re
-              /*(cos(x - 1.*y) + cos(2.*t + x + y) -
-              1.*Re*(cos(t + x - 1.*y) + sin(2.*t + x + y)))/Re*/;
-
-  return value;
-}
-
-template <int dim>
-double BodyForce<dim>::divergence(const Point<dim>  &point) const
-{
-  double t = this->get_time();
-  double x = point(0);
-  double y = point(1);
-
-  return cos(2.*(t + x)) + cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) +
-         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) -
-         0.5*Re*(2.*cos(2.*(t + y)) + 2.*cos(2.*t + x + y) +
-         2.*sin(t + x - 1.*y)) - 1.*sin(2.*t + x + y))/Re
-         /*cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) +
-         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) -
-         1.*Re*(cos(2.*t + x + y) + sin(t + x - 1.*y)) -
-         1.*sin(2.*t + x + y))/Re*/;
-}
+//template <int dim>
+//BodyForce<dim>::BodyForce
+//(const double Re,
+// const double time)
+//:
+//RMHD::EquationData::VectorFunction<dim>(time),
+//Re(Re)
+//{}
+//
+//template <int dim>
+//Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
+//{
+//  // The commented out lines corresponds to the case where the convection
+//  // term is ignored.
+//  Tensor<1, dim> value;
+//
+//  double t = this->get_time();
+//  double x = point(0);
+//  double y = point(1);
+//
+//  value[0] = cos(t + x - y) + sin(2.*(t + x))/2. +
+//              (2.*sin(t + x)*sin(t + y))/Re + sin(2.*t + x + y)
+//              /*cos(t + x - 1.*y) + (2.*sin(t + x)*sin(t + y))/Re
+//              + sin(2.*t + x + y)*/;
+//  value[1] = (cos(x - y) + cos(2.*t + x + y) - (Re*(2.*cos(t + x - y) +
+//              sin(2.*(t + y)) + 2.*sin(2.*t + x + y)))/2.)/Re
+//              /*(cos(x - 1.*y) + cos(2.*t + x + y) -
+//              1.*Re*(cos(t + x - 1.*y) + sin(2.*t + x + y)))/Re*/;
+//
+//  return value;
+//}
+//
+//template <int dim>
+//double BodyForce<dim>::divergence(const Point<dim>  &point) const
+//{
+//  double t = this->get_time();
+//  double x = point(0);
+//  double y = point(1);
+//
+//  return cos(2.*(t + x)) + cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) +
+//         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) -
+//         0.5*Re*(2.*cos(2.*(t + y)) + 2.*cos(2.*t + x + y) +
+//         2.*sin(t + x - 1.*y)) - 1.*sin(2.*t + x + y))/Re
+//         /*cos(2.*t + x + y) - 1.*sin(t + x - 1.*y) +
+//         (2.*cos(t + x)*sin(t + y))/Re + (sin(x - 1.*y) -
+//         1.*Re*(cos(2.*t + x + y) + sin(t + x - 1.*y)) -
+//         1.*sin(2.*t + x + y))/Re*/;
+//}
 
 } // namespace Guermond
 
@@ -462,54 +390,54 @@ Tensor<1, dim> PressureExactSolution<dim>::gradient
   return return_value;
 }
 
-template <int dim>
-BodyForce<dim>::BodyForce
-(const double Re,
- const double time)
-:
-RMHD::EquationData::VectorFunction<dim>(time),
-Re(Re)
-{}
-
-template <int dim>
-Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
-{
-  // The commented out lines corresponds to the case where the convection
-  // term is ignored.
-  Tensor<1, dim> value;
-
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  // With advection term
-  value[0] = (sin(x)*(Re*(cos(x) + cos(t + y)) - 1.*(-2. + Re)*sin(t + y)))/Re;
-  value[1] = (((2. + Re)*cos(x)*cos(t + y))/Re - 1.*(cos(x) + cos(t + y))*sin(t + y));
-
-  /*
-  // Without advection term
-  value[0] = ((sin(x)*(Re*cos(t + y) - 1.*(-2. + Re)*sin(t + y)))/Re);
-  value[1] = (cos(x)*((2. + Re)*cos(t + y) - 1.*Re*sin(t + y)))/Re;
-  */
-
-  return value;
-}
-
-template <int dim>
-double BodyForce<dim>::divergence(const Point<dim>  &point) const
-{
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  // With advection term
-  return (cos(2.*x) - 1.*cos(2.*(t + y)) - 2.*cos(x)*sin(t + y));
-
-  /*
-  // Without advection term
-  return (-2.*cos(x)*sin(t + y));
-  */
-}
+//template <int dim>
+//BodyForce<dim>::BodyForce
+//(const double Re,
+// const double time)
+//:
+//RMHD::EquationData::VectorFunction<dim>(time),
+//Re(Re)
+//{}
+//
+//template <int dim>
+//Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
+//{
+//  // The commented out lines corresponds to the case where the convection
+//  // term is ignored.
+//  Tensor<1, dim> value;
+//
+//  const double t = this->get_time();
+//  const double x = point(0);
+//  const double y = point(1);
+//
+//  // With advection term
+//  value[0] = (sin(x)*(Re*(cos(x) + cos(t + y)) - 1.*(-2. + Re)*sin(t + y)))/Re;
+//  value[1] = (((2. + Re)*cos(x)*cos(t + y))/Re - 1.*(cos(x) + cos(t + y))*sin(t + y));
+//
+//  /*
+//  // Without advection term
+//  value[0] = ((sin(x)*(Re*cos(t + y) - 1.*(-2. + Re)*sin(t + y)))/Re);
+//  value[1] = (cos(x)*((2. + Re)*cos(t + y) - 1.*Re*sin(t + y)))/Re;
+//  */
+//
+//  return value;
+//}
+//
+//template <int dim>
+//double BodyForce<dim>::divergence(const Point<dim>  &point) const
+//{
+//  const double t = this->get_time();
+//  const double x = point(0);
+//  const double y = point(1);
+//
+//  // With advection term
+//  return (cos(2.*x) - 1.*cos(2.*(t + y)) - 2.*cos(x)*sin(t + y));
+//
+//  /*
+//  // Without advection term
+//  return (-2.*cos(x)*sin(t + y));
+//  */
+//}
 
 } // namespace GuermondNeumannBC
 namespace Couette
@@ -693,23 +621,23 @@ double TemperatureBoundaryCondition<dim>::value
 }
 
 
-template <int dim>
-GravityUnitVector<dim>::GravityUnitVector
-(const double time)
-:
-RMHD::EquationData::VectorFunction<dim>(time)
-{}
-
-template <int dim>
-Tensor<1, dim> GravityUnitVector<dim>::value(const Point<dim> &/*point*/) const
-{
-  Tensor<1, dim> value;
-
-  value[0] = 0.0;
-  value[1] = -1.0;
-
-  return value;
-}
+//template <int dim>
+//GravityUnitVector<dim>::GravityUnitVector
+//(const double time)
+//:
+//RMHD::EquationData::VectorFunction<dim>(time)
+//{}
+//
+//template <int dim>
+//Tensor<1, dim> GravityUnitVector<dim>::value(const Point<dim> &/*point*/) const
+//{
+//  Tensor<1, dim> value;
+//
+//  value[0] = 0.0;
+//  value[1] = -1.0;
+//
+//  return value;
+//}
 
 } // namespace MIT
 
@@ -799,54 +727,26 @@ double TemperatureBoundaryCondition<dim>::value
 
 
 
-template <int dim>
-GravityVector<dim>::GravityVector
-(const double outer_radius,
- const double time)
-:
-RMHD::EquationData::VectorFunction<dim>(time),
-outer_radius(outer_radius)
-{}
-
-
-
-template <int dim>
-Tensor<1, dim> GravityVector<dim>::value(const Point<dim> &point) const
-{
-  Tensor<1, dim> value(point);
-
-  value /= -outer_radius;
-
-  return value;
-}
-
-
-
-template <int dim>
-AngularVelocity<dim>::AngularVelocity
-(const double time)
-:
-RMHD::EquationData::AngularVelocity<dim>(time)
-{}
-
-
-
-template <int dim>
-curl_type<dim> AngularVelocity<dim>::rotation() const
-{
-  curl_type<dim> value;
-
-  value = 0.;
-
-  if constexpr(dim == 2)
-    value[0] = 1.;
-  else if constexpr(dim == 3)
-    value[2] = 1.;
-
-
-  return value;
-}
-
+//template <int dim>
+//GravityVector<dim>::GravityVector
+//(const double outer_radius,
+// const double time)
+//:
+//RMHD::EquationData::VectorFunction<dim>(time),
+//outer_radius(outer_radius)
+//{}
+//
+//
+//
+//template <int dim>
+//Tensor<1, dim> GravityVector<dim>::value(const Point<dim> &point) const
+//{
+//  Tensor<1, dim> value(point);
+//
+//  value /= -outer_radius;
+//
+//  return value;
+//}
 
 
 } // namespace Christensen
@@ -858,13 +758,6 @@ curl_type<dim> AngularVelocity<dim>::rotation() const
 
 
 // explicit instantiation
-
-template class RMHD::EquationData::VectorFunction<2>;
-template class RMHD::EquationData::VectorFunction<3>;
-
-template class RMHD::EquationData::AngularVelocity<2>;
-template class RMHD::EquationData::AngularVelocity<3>;
-
 template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<2>;
 template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<3>;
 
@@ -886,8 +779,8 @@ template class RMHD::EquationData::Guermond::VelocityExactSolution<3>;
 template class RMHD::EquationData::Guermond::PressureExactSolution<2>;
 template class RMHD::EquationData::Guermond::PressureExactSolution<3>;
 
-template class RMHD::EquationData::Guermond::BodyForce<2>;
-template class RMHD::EquationData::Guermond::BodyForce<3>;
+//template class RMHD::EquationData::Guermond::BodyForce<2>;
+//template class RMHD::EquationData::Guermond::BodyForce<3>;
 
 template class RMHD::EquationData::GuermondNeumannBC::VelocityExactSolution<2>;
 template class RMHD::EquationData::GuermondNeumannBC::VelocityExactSolution<3>;
@@ -895,8 +788,8 @@ template class RMHD::EquationData::GuermondNeumannBC::VelocityExactSolution<3>;
 template class RMHD::EquationData::GuermondNeumannBC::PressureExactSolution<2>;
 template class RMHD::EquationData::GuermondNeumannBC::PressureExactSolution<3>;
 
-template class RMHD::EquationData::GuermondNeumannBC::BodyForce<2>;
-template class RMHD::EquationData::GuermondNeumannBC::BodyForce<3>;
+//template class RMHD::EquationData::GuermondNeumannBC::BodyForce<2>;
+//template class RMHD::EquationData::GuermondNeumannBC::BodyForce<3>;
 
 template class RMHD::EquationData::Couette::VelocityExactSolution<2>;
 template class RMHD::EquationData::Couette::VelocityExactSolution<3>;
@@ -916,18 +809,8 @@ template class RMHD::EquationData::ThermalTGV::VelocityField<3>;
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<2>;
 template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<3>;
 
-template class RMHD::EquationData::MIT::GravityUnitVector<2>;
-template class RMHD::EquationData::MIT::GravityUnitVector<3>;
-
 template class RMHD::EquationData::Christensen::TemperatureInitialCondition<2>;
 template class RMHD::EquationData::Christensen::TemperatureInitialCondition<3>;
 
 template class RMHD::EquationData::Christensen::TemperatureBoundaryCondition<2>;
 template class RMHD::EquationData::Christensen::TemperatureBoundaryCondition<3>;
-
-template class RMHD::EquationData::Christensen::GravityVector<2>;
-template class RMHD::EquationData::Christensen::GravityVector<3>;
-
-template class RMHD::EquationData::Christensen::AngularVelocity<2>;
-template class RMHD::EquationData::Christensen::AngularVelocity<3>;
-

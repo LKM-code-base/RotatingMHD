@@ -1,5 +1,6 @@
 # Set the source files to be compiled
 SET(TARGET_SRC
+    angular_velocity.cc
     basic_parameters.cc
     linear_solver_parameters.cc
     assembly_data.cc
