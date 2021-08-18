@@ -93,32 +93,6 @@ void Problem<dim>::clear()
 
 
 
-template <int dim>
-void Problem<dim>::interpolate_function
-(const Function<dim>                             &function,
- const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
- LinearAlgebra::MPI::Vector                      &vector)
-{
-  Assert(function.n_components == entity->n_components(),
-         ExcMessage("The number of components of the function does not those "
-                    "of the entity"));
-
-  #ifdef USE_PETSC_LA
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->get_locally_owned_dofs(), mpi_communicator);
-  #else
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->get_locally_owned_dofs());
-  #endif
-
-  VectorTools::interpolate(entity->get_dof_handler(),
-                           function,
-                           tmp_vector);
-
-  vector = tmp_vector;
-}
-
-
 
 template <int dim>
 void Problem<dim>::set_initial_conditions

@@ -158,15 +158,6 @@ protected:
   virtual void clear();
 
   /*!
-   * @brief Interpolates the @p function on the finite element space contained
-   * in the @p entity and saves the result in the @p vector.
-   */
-  void interpolate_function
-  (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
-   LinearAlgebra::MPI::Vector                      &vector);
-
-  /*!
    * @brief Loads the initial conditions to the pertinent solution
    * vector
    * @details Projects the @ref function at simulation's start time
