@@ -8,6 +8,8 @@
 namespace RMHD
 {
 
+using Copy = AssemblyData::HeatEquation::RightHandSide::Copy;
+
 template <int dim>
 void HeatEquation<dim>::assemble_rhs()
 {
@@ -34,10 +36,11 @@ void HeatEquation<dim>::assemble_rhs()
   const QGauss<dim-1>   face_quadrature_formula(temperature->fe_degree + 1);
 
   // Set up the lambda function for the local assembly operation
+  using Scratch = typename AssemblyData::HeatEquation::RightHandSide::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
-           AssemblyData::HeatEquation::RightHandSide::Scratch<dim>  &scratch,
-           AssemblyData::HeatEquation::RightHandSide::Copy          &data)
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_rhs(cell,
                                scratch,
@@ -46,7 +49,7 @@ void HeatEquation<dim>::assemble_rhs()
 
   // Set up the lambda function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::HeatEquation::RightHandSide::Copy    &data)
+    [this](const Copy &data)
     {
       this->copy_local_to_global_rhs(data);
     };
@@ -55,6 +58,13 @@ void HeatEquation<dim>::assemble_rhs()
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
+  const UpdateFlags temperature_update_flags = update_values|
+                                               update_gradients|
+                                               update_quadrature_points|
+                                               update_JxW_values;
+  const UpdateFlags temperature_face_update_flags = update_values|
+                                                    update_quadrature_points|
+                                                    update_JxW_values;
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
               (temperature->dof_handler)->begin_active()),
@@ -62,21 +72,15 @@ void HeatEquation<dim>::assemble_rhs()
               (temperature->dof_handler)->end()),
    worker,
    copier,
-   AssemblyData::HeatEquation::RightHandSide::Scratch<dim>(
-    *mapping,
-    quadrature_formula,
-    face_quadrature_formula,
-    temperature->fe,
-    update_JxW_values |
-    update_values|
-    update_gradients|
-    update_quadrature_points,
-    update_JxW_values |
-    update_values |
-    update_quadrature_points,
-    *velocity_fe,
-    update_values),
-   AssemblyData::HeatEquation::RightHandSide::Copy(temperature->fe.dofs_per_cell));
+   Scratch(*mapping,
+           quadrature_formula,
+           face_quadrature_formula,
+           temperature->fe,
+           temperature_update_flags,
+           temperature_face_update_flags,
+           *velocity_fe,
+           update_values),
+   Copy(temperature->fe.dofs_per_cell));
 
   // Compress global data
   rhs.compress(VectorOperation::add);
@@ -93,10 +97,10 @@ void HeatEquation<dim>::assemble_rhs()
 }
 
 template <int dim>
-void HeatEquation<dim>::assemble_local_rhs(
-  const typename DoFHandler<dim>::active_cell_iterator      &cell,
-  AssemblyData::HeatEquation::RightHandSide::Scratch<dim>   &scratch,
-  AssemblyData::HeatEquation::RightHandSide::Copy           &data)
+void HeatEquation<dim>::assemble_local_rhs
+(const typename DoFHandler<dim>::active_cell_iterator     &cell,
+ AssemblyData::HeatEquation::RightHandSide::Scratch<dim>  &scratch,
+ Copy &data)
 {
   // Reset local data
   data.local_rhs                          = 0.;
@@ -359,7 +363,7 @@ void HeatEquation<dim>::assemble_local_rhs(
 
 template <int dim>
 void HeatEquation<dim>::copy_local_to_global_rhs
-(const AssemblyData::HeatEquation::RightHandSide::Copy  &data)
+(const Copy  &data)
 {
   temperature->constraints.distribute_local_to_global(
     data.local_rhs,

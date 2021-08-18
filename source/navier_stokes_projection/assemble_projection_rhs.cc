@@ -5,6 +5,8 @@
 namespace RMHD
 {
 
+using Copy = AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy;
+
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_projection_step_rhs()
@@ -22,10 +24,11 @@ assemble_projection_step_rhs()
   const QGauss<dim>   quadrature_formula(pressure->fe_degree + 1);
 
   // Set up the lambda function for the local assembly operation
+  using Scratch = typename AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-           AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>    &scratch,
-           AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy            &data)
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_projection_step_rhs(cell,
                                                scratch,
@@ -50,14 +53,12 @@ assemble_projection_step_rhs()
                (pressure->dof_handler)->end()),
     worker,
     copier,
-    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>(
-      *mapping,
-      quadrature_formula,
-      velocity->fe,
-      update_gradients,
-      pressure->fe,
-      update_JxW_values |
-      update_values),
+    Scratch(*mapping,
+            quadrature_formula,
+            velocity->fe,
+            update_gradients,
+            pressure->fe,
+            update_values|update_JxW_values),
     AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy(pressure->fe.dofs_per_cell));
 
   // Compress global data
@@ -79,7 +80,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>  &scratch,
- AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy          &data)
+ Copy &data)
 {
   // Reset local data
   data.local_projection_step_rhs = 0.;

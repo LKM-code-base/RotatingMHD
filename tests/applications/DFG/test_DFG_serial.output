@@ -134,13 +134,13 @@ Step =      0, Current time = 0.0e+00, Next time step = 2.5e-02
 Step =      1, Current time = 2.5e-02, Next time step = 2.5e-02
     dp = +8.585950e+01 C_d = +1.337508e+02 C_l = -2.073725e-01
 Step =      2, Current time = +5.000000e-02, Next time step = +2.500000e-02
-    dp = +2.674982e+01 C_d = +5.115477e+01 C_l = -1.540460e-01
+    dp = -3.621147e+01 C_d = -4.433768e+01 C_l = -1.150706e-02
 Step =      3, Current time = +7.500000e-02, Next time step = +2.500000e-02
-    dp = -1.101398e+01 C_d = -1.471997e+01 C_l = +1.261757e-01
+    dp = -3.651465e+00 C_d = -4.543315e+00 C_l = +1.233294e-01
 Step =      4, Current time = +1.000000e-01, Next time step = +2.500000e-02
-    dp = -3.586757e+00 C_d = -1.642946e+00 C_l = +2.079792e-03
+    dp = +9.222475e-01 C_d = +1.431875e+01 C_l = -3.942792e-02
 Step =      5, Current time = +1.250000e-01, Next time step = +2.500000e-02
-    dp = +2.955181e+00 C_d = +5.259301e+00 C_l = -2.956158e-03
+    dp = +3.299177e+00 C_d = +6.725427e+00 C_l = +2.810765e-02
 Restarting...
 Solving until t = +3000...
 Step =      0, Current time = +0.000000e+00, Next time step = +2.500000e-02

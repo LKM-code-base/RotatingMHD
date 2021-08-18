@@ -5,6 +5,8 @@
 namespace RMHD
 {
 
+using Copy = AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy;
+
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_diffusion_step_rhs()
@@ -31,10 +33,11 @@ assemble_diffusion_step_rhs()
   const QGauss<dim-1> face_quadrature_formula(velocity->fe_degree + 2);
 
   // Set up the lambda function for the local assembly operation
+  using Scratch = AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator                 &cell,
-           AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
-           AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data)
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_diffusion_step_rhs(cell,
                                               scratch,
@@ -43,7 +46,7 @@ assemble_diffusion_step_rhs()
 
   // Set up the lambda function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy   &data)
+    [this](const Copy   &data)
     {
       this->copy_local_to_global_diffusion_step_rhs(data);
     };
@@ -52,6 +55,14 @@ assemble_diffusion_step_rhs()
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
+  const UpdateFlags velocity_update_flags = update_values|
+                                            update_gradients|
+                                            update_quadrature_points|
+                                            update_JxW_values;
+  const UpdateFlags velocity_face_update_flags = update_values|
+                                                 update_quadrature_points|
+                                                 update_JxW_values;
+
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
               (velocity->dof_handler)->begin_active()),
@@ -59,23 +70,17 @@ assemble_diffusion_step_rhs()
               (velocity->dof_handler)->end()),
    worker,
    copier,
-   AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim>(
-     *mapping,
-     quadrature_formula,
-     face_quadrature_formula,
-     velocity->fe,
-     update_values|
-     update_gradients|
-     update_JxW_values|
-     update_quadrature_points,
-     update_values |
-     update_JxW_values |
-     update_quadrature_points,
-     pressure->fe,
-     update_values,
-     *temperature_fe_ptr,
-     update_values),
-   AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy(velocity->fe.dofs_per_cell));
+   Scratch(*mapping,
+           quadrature_formula,
+           face_quadrature_formula,
+           velocity->fe,
+           velocity_update_flags,
+           velocity_face_update_flags,
+           pressure->fe,
+           update_values,
+           *temperature_fe_ptr,
+           update_values),
+   Copy(velocity->fe.dofs_per_cell));
 
   // Compress global data
   diffusion_step_rhs.compress(VectorOperation::add);
@@ -95,7 +100,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 (const typename DoFHandler<dim>::active_cell_iterator                 &cell,
  AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
- AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data)
+ Copy &data)
 {
   // Reset local data
   data.local_rhs                          = 0.;
@@ -105,10 +110,6 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   const std::vector<double> alpha = time_stepping.get_alpha();
   const std::vector<double> beta  = time_stepping.get_beta();
   const std::vector<double> gamma = time_stepping.get_gamma();
-
-  // Data for the elimination of the selonoidal velocity
-  const std::vector<double> old_alpha_zero  = time_stepping.get_previous_alpha_zeros();
-  const std::vector<double> old_step_size   = time_stepping.get_previous_step_sizes();
 
   // Taylor extrapolation coefficients
   const std::vector<double> eta   = time_stepping.get_eta();
@@ -254,7 +255,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
          scratch.old_old_temperature_values[q]);
   }
 
-  // Coreolis acceleration
+  // Coriolis acceleration
   if (angular_velocity_vector_ptr != nullptr)
   {
     angular_velocity_vector_ptr->set_time(time_stepping.get_previous_time());
@@ -404,12 +405,12 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
               parameters.C6 *
               (scratch.old_pressure_values[q]
                -
-               old_step_size[0] / time_stepping.get_next_step_size() *
-               alpha[1] / old_alpha_zero[0] *
+               previous_step_sizes[0] / time_stepping.get_next_step_size() *
+               alpha[1] / previous_alpha_zeros[0] *
                scratch.old_phi_values[q]
                -
-               old_step_size[1] / time_stepping.get_next_step_size() *
-               alpha[2] / old_alpha_zero[1] *
+               previous_step_sizes[1] / time_stepping.get_next_step_size() *
+               alpha[2] / previous_alpha_zeros[1] *
                scratch.old_old_phi_values[q]);
 
     diffusion_term[q] =
@@ -616,7 +617,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_diffusion_step_rhs
-(const AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy &data)
+(const Copy &data)
 {
   velocity->constraints.distribute_local_to_global(
                                 data.local_rhs,

@@ -4,6 +4,9 @@
 
 namespace RMHD
 {
+
+using Copy = AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy;
+
 template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
 {
@@ -19,10 +22,11 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
   const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
 
   // Set up the lambda function for the local assembly operation
+  using Scratch = typename AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>;
   auto worker =
-    [this](const typename DoFHandler<dim>::active_cell_iterator                 &cell,
-           AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>  &scratch,
-           AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy          &data)
+    [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_velocity_advection_matrix(cell,
                                                      scratch,
@@ -40,6 +44,9 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
+  const UpdateFlags advection_update_flags = update_values|
+                                             update_gradients|
+                                             update_JxW_values;
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
               (*velocity->dof_handler).begin_active()),
@@ -47,13 +54,10 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
               (*velocity->dof_handler).end()),
    worker,
    copier,
-   AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>(
-     *mapping,
-                                         quadrature_formula,
-                                             velocity->fe,
-                                         update_values|
-                                         update_JxW_values|
-                                         update_gradients),
+   Scratch(*mapping,
+           quadrature_formula,
+           velocity->fe,
+           advection_update_flags),
    AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy(velocity->fe.dofs_per_cell));
 
   // Compress global data
@@ -67,7 +71,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>&scratch,
- AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy        &data)
+ Copy        &data)
 {
   // Reset local data
   data.local_matrix = 0.;
@@ -222,7 +226,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_advection_matrix
-(const AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy  &data)
+(const Copy &data)
 {
   velocity->constraints.distribute_local_to_global(
                                       data.local_matrix,

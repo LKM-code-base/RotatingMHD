@@ -24,7 +24,9 @@ DeclException0(ExcBoostNoConvergence);
 #include <ostream>
 namespace RMHD
 {
-  using namespace dealii;
+
+using namespace dealii;
+
 namespace BenchmarkData
 {
 
