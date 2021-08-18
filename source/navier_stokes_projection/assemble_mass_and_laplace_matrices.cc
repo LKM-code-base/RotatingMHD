@@ -5,6 +5,9 @@
 namespace RMHD
 {
 
+using CopyVelocity = AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy;
+using CopyPressure = AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy;
+
 template <int dim>
 void NavierStokesProjection<dim>::assemble_velocity_matrices()
 {
@@ -24,10 +27,11 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   // Set up the lamba function for the local assembly operation
+  using Scratch = typename AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim> &scratch,
-           AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy         &data)
+           Scratch      &scratch,
+           CopyVelocity &data)
     {
       this->assemble_local_velocity_matrices(cell,
                                              scratch,
@@ -36,7 +40,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy   &data)
+    [this](const CopyVelocity &data)
     {
       this->copy_local_to_global_velocity_matrices(data);
     };
@@ -52,14 +56,11 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
               velocity->get_dof_handler().end()),
    worker,
    copier,
-   AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>(
-    *mapping,
-    quadrature_formula,
-    velocity->get_finite_element(),
-    update_values|
-    update_gradients|
-    update_JxW_values),
-   AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy(velocity->get_finite_element().dofs_per_cell));
+   Scratch(*mapping,
+           quadrature_formula,
+           velocity->get_finite_element(),
+           update_values|update_gradients|update_JxW_values),
+   CopyVelocity(velocity->get_finite_element().dofs_per_cell));
 
   // Compress global data
   velocity_mass_matrix.compress(VectorOperation::add);
@@ -72,8 +73,8 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_velocity_matrices
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
- AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim>   &scratch,
- AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy           &data)
+ AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Scratch<dim> &scratch,
+ CopyVelocity &data)
 {
   // Reset local data
   data.local_mass_matrix = 0.;
@@ -124,7 +125,7 @@ void NavierStokesProjection<dim>::assemble_local_velocity_matrices
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_matrices
-(const AssemblyData::NavierStokesProjection::VelocityConstantMatrices::Copy &data)
+(const CopyVelocity &data)
 {
   velocity->get_constraints().distribute_local_to_global(
                                       data.local_mass_matrix,
@@ -156,10 +157,11 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   // Set up the lamba function for the local assembly operation
+  using Scratch = typename AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-           AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim> &scratch,
-           AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy         &data)
+           Scratch      &scratch,
+           CopyPressure &data)
     {
       this->assemble_local_pressure_matrices(cell,
                                              scratch,
@@ -168,7 +170,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy &data)
+    [this](const CopyPressure &data)
     {
       this->copy_local_to_global_pressure_matrices(data);
     };
@@ -184,14 +186,11 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
               pressure->get_dof_handler().end()),
    worker,
    copier,
-   AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>(
-    *mapping,
-    quadrature_formula,
-    pressure->get_finite_element(),
-    update_values|
-    update_gradients|
-    update_JxW_values),
-   AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy(pressure->get_finite_element().dofs_per_cell));
+   Scratch(*mapping,
+           quadrature_formula,
+           pressure->get_finite_element(),
+           update_values|update_gradients|update_JxW_values),
+   CopyPressure(pressure->get_finite_element().dofs_per_cell));
 
   // Compress global data
   pressure_laplace_matrix.compress(VectorOperation::add);
@@ -206,7 +205,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_local_pressure_matrices
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::NavierStokesProjection::PressureConstantMatrices::Scratch<dim>   &scratch,
- AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy           &data)
+ CopyPressure           &data)
 {
   // Reset local data
   data.local_mass_matrix      = 0.;
@@ -254,7 +253,7 @@ void NavierStokesProjection<dim>::assemble_local_pressure_matrices
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
-(const AssemblyData::NavierStokesProjection::PressureConstantMatrices::Copy &data)
+(const CopyPressure &data)
 {
   pressure->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,

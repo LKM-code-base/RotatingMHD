@@ -4,6 +4,7 @@
 
 #include <rotatingMHD/discrete_time.h>
 
+#include <deal.II/base/exceptions.h>
 #include <deal.II/base/parameter_handler.h>
 
 #include <iostream>
@@ -212,18 +213,6 @@ public:
   const std::vector<double>& get_eta() const;
 
   /*!
-   * @brief A method returning the coefficients \f$ \alpha_0 \f$ of the previous
-   * time steps.
-   */
-  const std::vector<double>& get_previous_alpha_zeros() const;
-
-  /*!
-   * @brief A method returning the sizes \f$ \Delta_t \f$ of the previous time
-   * steps.
-   */
-  const std::vector<double>& get_previous_step_sizes() const;
-
-  /*!
    * @brief A method returning the minimum size of the time step.
    */
   double get_minimum_step_size() const;
@@ -252,6 +241,7 @@ public:
   /*!
   * @brief A method passing the *desired* size of the next time step to the
   * class.
+  *
   * @details The method checks if the the time step is inside the bounds
   * set in the constructor. If not, it adjusts the time step accordingly
   * and passes it to the set_desired_time_step() method from the
@@ -347,24 +337,7 @@ private:
    */
   double              omega;
 
-  /*!
-   * @brief A vector containing the \f$ \alpha_0 \f$ of the previous time steps.
-   * @attention This member is only useful in the NavierStokesProjection
-   * class.
-   */
-  std::vector<double> previous_alpha_zeros;
-
-  /*!
-   * @brief A vector containing the sizes of the previous time steps.
-   * @details The DiscreteTime class stores only the previous time step.
-   * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
-   * is the order of the scheme.
-   * @attention This member is only useful in the NavierStokesProjection
-   * class.
-   */
-  std::vector<double> previous_step_sizes;
-
-  /*!
+   /*!
    * @brief The minimum size of the time step.
    */
   double  minimum_step_size;
@@ -416,16 +389,6 @@ inline const std::vector<double>& VSIMEXMethod::get_eta() const
   return (eta);
 }
 
-inline const std::vector<double>& VSIMEXMethod::get_previous_alpha_zeros() const
-{
-  return (previous_alpha_zeros);
-}
-
-inline const std::vector<double>& VSIMEXMethod::get_previous_step_sizes() const
-{
-  return (previous_step_sizes);
-}
-
 inline bool VSIMEXMethod::coefficients_changed() const
 {
   return (flag_coefficients_changed);
@@ -446,12 +409,10 @@ inline void VSIMEXMethod::set_minimum_step_size(const double step_size)
   if (is_at_end())
     return;
 
-  using namespace dealii;
-
   AssertThrow(maximum_step_size >= step_size,
-              ExcLowerRangeType<double>(maximum_step_size, step_size));
+              dealii::ExcLowerRangeType<double>(maximum_step_size, step_size));
   AssertThrow(get_next_step_size() >= step_size,
-              ExcLowerRangeType<double>(get_next_step_size(), step_size));
+              dealii::ExcLowerRangeType<double>(get_next_step_size(), step_size));
 
   minimum_step_size = step_size;
 }
@@ -461,12 +422,10 @@ inline void VSIMEXMethod::set_maximum_step_size(const double step_size)
   if (is_at_end())
     return;
 
-  using namespace dealii;
-
   AssertThrow(step_size >= get_next_step_size(),
-              ExcLowerRangeType<double>(step_size, get_next_step_size()));
+              dealii::ExcLowerRangeType<double>(step_size, get_next_step_size()));
   AssertThrow(step_size >= minimum_step_size,
-              ExcLowerRangeType<double>(step_size, minimum_step_size));
+              dealii::ExcLowerRangeType<double>(step_size, minimum_step_size));
 
   maximum_step_size = step_size;
 }
