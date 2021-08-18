@@ -17,7 +17,7 @@ subsection Navier-Stokes solver parameters
   set Convective term time discretization    = semi-implicit
   set Convective term weak form              = skew-symmetric
   set Incremental pressure-correction scheme = rotational
-  set Preconditioner update frequency        = 1
+  set Preconditioner update frequency        = 15
   set Verbose                                = false
 
 
@@ -38,9 +38,9 @@ subsection Navier-Stokes solver parameters
   end
 
   subsection Linear solver parameters - Diffusion step
-    set Absolute tolerance           = 1e-9
+    set Absolute tolerance           = 1e-12
     set Maximum number of iterations = 200
-    set Relative tolerance           = 1e-6
+    set Relative tolerance           = 1e-9
 
 
     subsection Preconditioner parameters
@@ -104,7 +104,7 @@ subsection Refinement control parameters
   set Minimum number of levels               = 0
   set Number of initial adaptive refinements = 0
   set Number of initial boundary refinements = 1
-  set Number of initial global refinements   = 3
+  set Number of initial global refinements   = 2
 end
 
 
@@ -112,10 +112,10 @@ subsection Time stepping parameters
   set Adaptive time stepping        = false
   set Adaptive timestepping barrier = 2
   set Final time                    = 3000.0
-  set Initial time step             = 5e-3
-  set Maximum number of time steps  = 100
-  set Maximum time step             = 5e-3
-  set Minimum time step             = 1e-3
+  set Initial time step             = 2.5e-2
+  set Maximum number of time steps  = 10
+  set Maximum time step             = 5e-2
+  set Minimum time step             = 1e-2
   set Start time                    = 0.0
   set Time stepping scheme          = BDF2
   set Verbose                       = false

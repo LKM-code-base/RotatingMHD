@@ -81,7 +81,8 @@ void FE_FieldBase<dim>::reinit()
                     locally_relevant_dofs,
                     mpi_communicator);
   #else
-    solution.reinit(locally_relevant_dofs,
+    solution.reinit(locally_owned_dofs,
+                    locally_relevant_dofs,
                     mpi_communicator);
   #endif
   old_solution.reinit(solution);
