@@ -23,59 +23,6 @@ using namespace dealii;
 namespace EquationData
 {
 
-namespace TGV
-{
-template <int dim>
-class VelocityExactSolution : public Function<dim>
-{
-public:
-  VelocityExactSolution(const double Re,
-                        const double time = 0);
-
-  virtual void vector_value(const Point<dim>  &p,
-                            Vector<double>    &values) const override;
-
-  virtual Tensor<1, dim> gradient(const Point<dim> &point,
-                                  const unsigned int component) const;
-
-private:
-  /*!
-   * @brief The Reynolds number.
-   */
-  const double Re;
-
-  /*!
-   * @brief The wave number.
-   */
-  const double k = 2. * M_PI;
-};
-
-template <int dim>
-class PressureExactSolution : public Function<dim>
-{
-public:
-  PressureExactSolution(const double Re,
-                        const double time = 0);
-
-  virtual double value(const Point<dim> &p,
-                       const unsigned int component = 0) const override;
-
-  virtual Tensor<1, dim> gradient(const Point<dim> &point,
-                                  const unsigned int = 0) const;
-
-private:
-  /*!
-   * @brief The Reynolds number.
-   */
-  const double Re;
-
-  /*!
-   * @brief The wave number.
-   */
-  const double k = 2. * M_PI;
-};
-} // namespace TGV
-
 namespace Guermond
 {
 template <int dim>

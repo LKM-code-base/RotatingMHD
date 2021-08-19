@@ -15,103 +15,6 @@ namespace RMHD
 namespace EquationData
 {
 
-namespace TGV
-{
-
-template <int dim>
-VelocityExactSolution<dim>::VelocityExactSolution
-(const double Re,
- const double time)
-:
-Function<dim>(dim, time),
-Re(Re)
-{}
-
-template <int dim>
-void VelocityExactSolution<dim>::vector_value
-(const Point<dim>  &point,
- Vector<double>    &values) const
-{
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  const double F = exp(-2.0 * k * k / Re * t);
-
-  values[0] =   F * cos(k * x) * sin(k * y);
-  values[1] = - F * sin(k * x) * cos(k * y);
-}
-
-template <int dim>
-Tensor<1, dim> VelocityExactSolution<dim>::gradient
-(const Point<dim>  &point,
- const unsigned int component) const
-{
-  Tensor<1, dim>  return_value;
-
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  const double F = exp(-2.0 * k * k / Re * t);
-
-  // The gradient has to match that of dealii, i.e. from the right.
-  if (component == 0)
-  {
-    return_value[0] = - F * k * sin(k * x) * sin(k * y);
-    return_value[1] =   F * k * cos(k * x) * cos(k * y);
-  }
-  else if (component == 1)
-  {
-    return_value[0] = - F * k * cos(k * x) * cos(k * y);
-    return_value[1] =   F * k * sin(k * x) * sin(k * y);
-  }
-
-  return return_value;
-}
-
-template <int dim>
-PressureExactSolution<dim>::PressureExactSolution
-(const double Re,
- const double time)
-:
-Function<dim>(1, time),
-Re(Re)
-{}
-
-template<int dim>
-double PressureExactSolution<dim>::value
-(const Point<dim> &point,
- const unsigned int /* component */) const
-{
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  const double F = exp(-2.0 * k * k / Re * t);
-
-  return (-0.25 * F * F *(cos(2. * k * x) + cos(2. * k * y)));
-}
-
-template<int dim>
-Tensor<1, dim> PressureExactSolution<dim>::gradient
-(const Point<dim> &point,
- const unsigned int /* component */) const
-{
-  Tensor<1, dim>  return_value;
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  const double F = exp(-2.0 * k * k / Re * t);
-
-  return_value[0] = 0.5 * F * F * k * sin(2. * k * x);
-  return_value[1] = 0.5 * F * F * k * sin(2. * k * y);
-
-  return return_value;
-}
-} // namespace TGV
-
 namespace Guermond
 {
 
@@ -505,12 +408,6 @@ void VelocityField<dim>::vector_value
 
 
 // explicit instantiation
-template class RMHD::EquationData::TGV::VelocityExactSolution<2>;
-template class RMHD::EquationData::TGV::VelocityExactSolution<3>;
-
-template class RMHD::EquationData::TGV::PressureExactSolution<2>;
-template class RMHD::EquationData::TGV::PressureExactSolution<3>;
-
 template class RMHD::EquationData::Guermond::VelocityExactSolution<2>;
 template class RMHD::EquationData::Guermond::VelocityExactSolution<3>;
 
