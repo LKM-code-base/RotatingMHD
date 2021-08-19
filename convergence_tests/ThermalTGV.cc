@@ -148,7 +148,7 @@ void ThermalTGV<dim>::setup_dofs()
                 << this->triangulation.n_global_active_cells()
                 << std::endl
                 << "  Number of temperature degrees of freedom = "
-                << (temperature->dof_handler)->n_dofs()
+                << temperature->n_dofs()
                 << std::endl;
 }
 
@@ -159,10 +159,12 @@ void ThermalTGV<dim>::setup_constraints()
 
   temperature->clear_boundary_conditions();
 
+  temperature->setup_boundary_conditions();
+
   temperature_exact_solution->set_time(time_stepping.get_start_time());
 
-  temperature->boundary_conditions.set_periodic_bcs(0, 1, 0);
-  temperature->boundary_conditions.set_periodic_bcs(2, 3, 1);
+  temperature->set_periodic_boundary_condition(0, 1, 0);
+  temperature->set_periodic_boundary_condition(2, 3, 1);
 
   temperature->close_boundary_conditions();
   temperature->apply_boundary_conditions();
@@ -209,29 +211,29 @@ void ThermalTGV<dim>::process_solution(const unsigned int cycle)
   using ExactSolution = EquationData::ThermalTGV::TemperatureExactSolution<dim>;
 
   Vector<float> difference_per_cell(this->triangulation.n_active_cells());
-  VectorTools::integrate_difference(*temperature->dof_handler,
+  VectorTools::integrate_difference(temperature->get_dof_handler(),
                                     temperature->solution,
                                     ExactSolution(parameters.Pe, current_time),
                                     difference_per_cell,
-                                    QGauss<dim>(temperature->fe_degree + 1),
+                                    QGauss<dim>(temperature->fe_degree() + 1),
                                     VectorTools::L2_norm);
   const double L2_error =
     VectorTools::compute_global_error(this->triangulation,
                                       difference_per_cell,
                                       VectorTools::L2_norm);
-  VectorTools::integrate_difference(*temperature->dof_handler,
+  VectorTools::integrate_difference(temperature->get_dof_handler(),
                                     temperature->solution,
                                     ExactSolution(parameters.Pe, current_time),
                                     difference_per_cell,
-                                    QGauss<dim>(temperature->fe_degree + 1),
+                                    QGauss<dim>(temperature->fe_degree() + 1),
                                     VectorTools::H1_seminorm);
   const double H1_error =
     VectorTools::compute_global_error(this->triangulation,
                                       difference_per_cell,
                                       VectorTools::H1_seminorm);
   const QTrapez<1>     q_trapez;
-  const QIterated<dim> q_iterated(q_trapez, temperature->fe_degree * 2 + 1);
-  VectorTools::integrate_difference(*temperature->dof_handler,
+  const QIterated<dim> q_iterated(q_trapez, temperature->fe_degree() * 2 + 1);
+  VectorTools::integrate_difference(temperature->get_dof_handler(),
                                     temperature->solution,
                                     ExactSolution(parameters.Pe, current_time),
                                     difference_per_cell,
@@ -243,7 +245,7 @@ void ThermalTGV<dim>::process_solution(const unsigned int cycle)
                                       VectorTools::Linfty_norm);
 
   const unsigned int n_active_cells = this->triangulation.n_global_active_cells();
-  const unsigned int n_dofs         = temperature->dof_handler->n_dofs();
+  const unsigned int n_dofs         = temperature->n_dofs();
 
   convergence_table.add_value("cycle", cycle);
   convergence_table.add_value("time_step", time_stepping.get_previous_step_size());
@@ -261,20 +263,16 @@ void ThermalTGV<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
-  this->compute_error(error,
-                      temperature,
-                      *temperature_exact_solution);
-
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            temperature->solution,
                            "temperature");
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            error,
                            "error");
 
-  data_out.build_patches(temperature->fe_degree);
+  data_out.build_patches(temperature->fe_degree());
 
   static int out_index = 0;
 
@@ -298,7 +296,7 @@ void ThermalTGV<dim>::solve(const unsigned int /* level */)
 {
   setup_dofs();
   setup_constraints();
-  temperature->reinit();
+  temperature->setup_vectors();
   error.reinit(temperature->solution);
   initialize();
 
@@ -318,8 +316,6 @@ void ThermalTGV<dim>::solve(const unsigned int /* level */)
 
     // Updates the functions and the constraints to t^{k}
     temperature_exact_solution->set_time(time_stepping.get_next_time());
-
-    temperature->boundary_conditions.set_time(time_stepping.get_next_time());
     temperature->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}

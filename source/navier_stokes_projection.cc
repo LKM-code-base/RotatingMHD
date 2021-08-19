@@ -18,7 +18,7 @@ NavierStokesProjection<dim>::NavierStokesProjection
 :
 phi(std::make_shared<Entities::FE_ScalarField<dim>>(*pressure, "Phi")),
 parameters(parameters),
-mpi_communicator(velocity->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 velocity(velocity),
 pressure(pressure),
 time_stepping(time_stepping),
@@ -82,7 +82,7 @@ NavierStokesProjection<dim>::NavierStokesProjection
 :
 phi(std::make_shared<Entities::FE_ScalarField<dim>>(*pressure, "Phi")),
 parameters(parameters),
-mpi_communicator(velocity->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 velocity(velocity),
 pressure(pressure),
 temperature(temperature),

@@ -1,0 +1,137 @@
+Time of ptr01 = 1
+Time of ptr02 = 1
++---------+------------+------------------------------------------+
+| Boundary conditions of the Scalar 01 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | CutOffFunctionC1<2>                      |
+| 2       | Dirichlet  | ExpFunction<2>                           |
+| 0, 1    | Periodic   | ---                                      |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Scalar 02 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | CutOffFunctionC1<2>                      |
+| 2       | Dirichlet  | ExpFunction<2>                           |
+| 0, 1    | Periodic   | ---                                      |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Scalar 03 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| A datum has been set at the boundary                            |
+| Unconstrained boundary ids: 0, 1, 2, 3                          |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Scalar 03 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | CutOffFunctionC1<2>                      |
+| 2       | Dirichlet  | ExpFunction<2>                           |
+| 0, 1    | Periodic   | ---                                      |
++---------+------------+------------------------------------------+
+Time of ptr01 = 10
+Time of ptr02 = 10
+Time of ptr01 = 1
+Time of ptr02 = 1
++---------+------------+------------------------------------------+
+| Boundary conditions of the Scalar 01 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | CutOffFunctionC1<3>                      |
+| 2       | Dirichlet  | ExpFunction<3>                           |
+| 0, 1    | Periodic   | ---                                      |
+| Unconstrained boundary ids: 4, 5                                |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Scalar 02 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | CutOffFunctionC1<3>                      |
+| 2       | Dirichlet  | ExpFunction<3>                           |
+| 0, 1    | Periodic   | ---                                      |
+| Unconstrained boundary ids: 4, 5                                |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Scalar 03 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| A datum has been set at the boundary                            |
+| Unconstrained boundary ids: 0, 1, 2, 3, 4, 5                    |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Scalar 03 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | CutOffFunctionC1<3>                      |
+| 2       | Dirichlet  | ExpFunction<3>                           |
+| 0, 1    | Periodic   | ---                                      |
+| Unconstrained boundary ids: 4, 5                                |
++---------+------------+------------------------------------------+
+Time of ptr01 = 10
+Time of ptr02 = 10
+Time of ptr01 = 1
+Time of ptr02 = 1
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector 01 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | ZeroTensorFunction<1, 2, double>         |
+| 2       | Dirichlet  | CutOffFunctionC1<2>                      |
+| 0, 1    | Periodic   | ---                                      |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector 02 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | ZeroTensorFunction<1, 2, double>         |
+| 2       | Dirichlet  | CutOffFunctionC1<2>                      |
+| 0, 1    | Periodic   | ---                                      |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector 03 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 1       | Neumann    | ZeroTensorFunction<1, 2, double>         |
+| 2       | Tang. flux | CosineFunction<2>                        |
+| 0       | Dirichlet  | CutOffFunctionC1<2>                      |
+| Unconstrained boundary ids: 3                                   |
++---------+------------+------------------------------------------+
+Time of ptr01 = 10
+Time of ptr02 = 10
+Time of ptr03 = 10
+Time of ptr01 = 1
+Time of ptr02 = 1
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector 01 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | ZeroTensorFunction<1, 3, double>         |
+| 2       | Dirichlet  | CutOffFunctionC1<3>                      |
+| 0, 1    | Periodic   | ---                                      |
+| Unconstrained boundary ids: 4, 5                                |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector 02 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | ZeroTensorFunction<1, 3, double>         |
+| 2       | Dirichlet  | CutOffFunctionC1<3>                      |
+| 0, 1    | Periodic   | ---                                      |
+| Unconstrained boundary ids: 4, 5                                |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector 03 entity                     |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 1       | Neumann    | ZeroTensorFunction<1, 3, double>         |
+| 4       | Norm. flux | ConstantFunction<3, double>              |
+| 2       | Tang. flux | CosineFunction<3>                        |
+| 0       | Dirichlet  | CutOffFunctionC1<3>                      |
+| Unconstrained boundary ids: 3, 5                                |
++---------+------------+------------------------------------------+
+Time of ptr01 = 10
+Time of ptr02 = 10
+Time of ptr03 = 10
+Time of ptr04 = 10

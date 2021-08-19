@@ -11,8 +11,8 @@ get_cfl_number()
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: CFL number");
 
   const QIterated<dim>  quadrature_formula(QTrapez<1>(),
-                                           velocity->fe_degree);
-  FEValues<dim>         fe_values(velocity->fe,
+                                           velocity->fe_degree());
+  FEValues<dim>         fe_values(velocity->get_finite_element(),
                                   quadrature_formula,
                                   update_values);
 
@@ -22,7 +22,7 @@ get_cfl_number()
 
   const FEValuesExtractors::Vector  velocities(0);
 
-  for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
+  for (const auto &cell : velocity->get_dof_handler().active_cell_iterators())
     if (cell->is_locally_owned())
       {
         double max_local_velocity = std::numeric_limits<double>::lowest();

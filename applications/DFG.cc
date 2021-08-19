@@ -347,8 +347,8 @@ pressure_initial_condition()
   make_grid();
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   initialize();
   this->container.add_entity(velocity);
   this->container.add_entity(pressure, false);
@@ -424,14 +424,14 @@ void DFG<dim>::setup_dofs()
   pressure->setup_dofs();
 
   *this->pcout << "Number of velocity degrees of freedom = "
-               << (velocity->dof_handler)->n_dofs()
+               << velocity->n_dofs()
                << std::endl
                << "Number of pressure degrees of freedom = "
-               << (pressure->dof_handler)->n_dofs()
+               << pressure->n_dofs()
                << std::endl
                << "Number of total degrees of freedom    = "
-               << (pressure->dof_handler->n_dofs() +
-                  velocity->dof_handler->n_dofs())
+               << (pressure->n_dofs() +
+                  velocity->n_dofs())
                << std::endl << std::endl;
 }
 
@@ -440,15 +440,22 @@ void DFG<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.set_dirichlet_bcs
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
+
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
+  velocity->set_dirichlet_boundary_condition
   (channel_inlet_bndry_id,
-   std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>(
-     this->prm.time_discretization_parameters.start_time));
+   std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>
+   (time_stepping.get_start_time())
+  );
 
-  velocity->boundary_conditions.set_dirichlet_bcs(channel_wall_bndry_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(cylinder_bndry_id);
+  velocity->set_dirichlet_boundary_condition(channel_wall_bndry_id);
+  velocity->set_dirichlet_boundary_condition(cylinder_bndry_id);
 
-  pressure->boundary_conditions.set_dirichlet_bcs(channel_outlet_bndry_id);
+  pressure->set_dirichlet_boundary_condition(channel_outlet_bndry_id);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -494,16 +501,16 @@ void DFG<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
 
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 

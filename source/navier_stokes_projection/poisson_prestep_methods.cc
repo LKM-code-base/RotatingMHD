@@ -47,7 +47,7 @@ solve_poisson_prestep()
   build_preconditioner(poisson_prestep_preconditioner,
                        pressure_laplace_matrix,
                        solver_parameters.preconditioner_parameters_ptr,
-                       (pressure->fe_degree > 1? true: false));
+                       (pressure->fe_degree() > 1? true: false));
 
   AssertThrow(poisson_prestep_preconditioner != nullptr,
               ExcMessage("The pointer to the Poisson pre-step's preconditioner has not being initialized."));
@@ -95,15 +95,15 @@ solve_poisson_prestep()
     std::abort();
   }
 
-  pressure->constraints.distribute(distributed_old_pressure);
+  pressure->get_constraints().distribute(distributed_old_pressure);
 
   pressure->old_solution = distributed_old_pressure;
 
   if (flag_normalize_pressure)
   {
     const LinearAlgebra::MPI::Vector::value_type mean_value
-      = VectorTools::compute_mean_value(*pressure->dof_handler,
-                                        QGauss<dim>(pressure->fe.degree + 1),
+      = VectorTools::compute_mean_value(pressure->get_dof_handler(),
+                                        QGauss<dim>(pressure->fe_degree() + 1),
                                         pressure->old_solution,
                                         0);
 

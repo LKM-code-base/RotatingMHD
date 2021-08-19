@@ -21,7 +21,7 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
   velocity_laplace_matrix = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * velocity->fe_degree;
+  const int p_degree = 2 * velocity->fe_degree();
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -51,16 +51,16 @@ void NavierStokesProjection<dim>::assemble_velocity_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->begin_active()),
+              velocity->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->end()),
+              velocity->get_dof_handler().end()),
    worker,
    copier,
    Scratch(*mapping,
            quadrature_formula,
-           velocity->fe,
+           velocity->get_finite_element(),
            update_values|update_gradients|update_JxW_values),
-   CopyVelocity(velocity->fe.dofs_per_cell));
+   CopyVelocity(velocity->get_finite_element().dofs_per_cell));
 
   // Compress global data
   velocity_mass_matrix.compress(VectorOperation::add);
@@ -127,11 +127,11 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_matrices
 (const CopyVelocity &data)
 {
-  velocity->constraints.distribute_local_to_global(
+  velocity->get_constraints().distribute_local_to_global(
                                       data.local_mass_matrix,
                                       data.local_dof_indices,
                                       velocity_mass_matrix);
-  velocity->constraints.distribute_local_to_global(
+  velocity->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       velocity_laplace_matrix);
@@ -151,7 +151,7 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
   phi_laplace_matrix      = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * pressure->fe_degree;
+  const int p_degree = 2 * pressure->fe_degree();
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -181,16 +181,16 @@ void NavierStokesProjection<dim>::assemble_pressure_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (pressure->dof_handler)->begin_active()),
+              pressure->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (pressure->dof_handler)->end()),
+              pressure->get_dof_handler().end()),
    worker,
    copier,
    Scratch(*mapping,
            quadrature_formula,
-           pressure->fe,
+           pressure->get_finite_element(),
            update_values|update_gradients|update_JxW_values),
-   CopyPressure(pressure->fe.dofs_per_cell));
+   CopyPressure(pressure->get_finite_element().dofs_per_cell));
 
   // Compress global data
   pressure_laplace_matrix.compress(VectorOperation::add);
@@ -255,15 +255,15 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_pressure_matrices
 (const CopyPressure &data)
 {
-  pressure->constraints.distribute_local_to_global(
+  pressure->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       pressure_laplace_matrix);
-  phi->constraints.distribute_local_to_global(
+  phi->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       phi_laplace_matrix);
-  pressure->hanging_nodes.distribute_local_to_global(
+  pressure->get_hanging_node_constraints().distribute_local_to_global(
                                       data.local_mass_matrix,
                                       data.local_dof_indices,
                                       projection_mass_matrix);
