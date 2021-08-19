@@ -52,7 +52,14 @@ public:
    * @brief The default constructor of the structure.
    *
    */
-  DFGBechmarkRequests(const double reynolds_number = 100.0);
+  DFGBechmarkRequests(const double reynolds_number = 100.0,
+                      const types::boundary_id  cylinder_boundary_id = 2);
+
+  /*!
+   * @brief Output of the benchmark data to the terminal.
+   */
+  template<typename Stream, int dim_>
+  friend Stream& operator<<(Stream &stream, const DFGBechmarkRequests<dim_> &dfg);
 
   /*!
    * @brief A method that updates @ref data_table with the step number,
@@ -62,13 +69,7 @@ public:
   void update(const double                         time,
               const unsigned int                   step_number,
               const Entities::FE_VectorField<dim> &velocity,
-              const Entities::FE_ScalarField<dim> &pressure,
-              const types::boundary_id             cylinder_boundary_id = 2);
-  /*!
-   * @brief Output of the benchmark data to the terminal.
-   */
-  template<typename Stream, int dim_>
-  friend Stream& operator<<(Stream &stream, const DFGBechmarkRequests<dim_> &dfg);
+              const Entities::FE_ScalarField<dim> &pressure);
 
   /*!
    * @brief A method that outputs the @ref data_table into a file.
@@ -87,6 +88,11 @@ private:
    *
    */
   const double  Re;
+
+  /*!
+   * @brief Boundary identifier assigned to the boundary of the cylinder.
+   */
+  const types::boundary_id  cylinder_boundary_id;
 
   /*!
    * @brief The point \f$ \mathrm{P}_\text{front} \f$ at the front side of the
@@ -194,8 +200,7 @@ private:
    */
   void compute_drag_and_lift_coefficients
   (const Entities::FE_VectorField<dim>  &velocity,
-   const Entities::FE_ScalarField<dim>  &pressure,
-   const types::boundary_id             cylinder_boundary_id = 2);
+   const Entities::FE_ScalarField<dim>  &pressure);
 
 };
 
@@ -221,37 +226,14 @@ Stream& operator<<(Stream &stream, const DFGBechmarkRequests<dim> &prm);
  * first sample point.
  */
 template <int dim>
-class MIT
+struct MIT
 {
 public:
   /*!
    * @brief Constructor.
    */
-  MIT(const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
-      const std::shared_ptr<Entities::FE_ScalarField<dim>>  &pressure,
-      const std::shared_ptr<Entities::FE_ScalarField<dim>>  &temperature,
-      TimeDiscretization::VSIMEXMethod                    &time_stepping,
-      const unsigned int                                  left_wall_boundary_id,
-      const unsigned int                                  right_wall_boundary_id,
-      const std::shared_ptr<Mapping<dim>>                 external_mapping
-                                = std::shared_ptr<Mapping<dim>>(),
-      const std::shared_ptr<ConditionalOStream>           external_pcout
-                                = std::shared_ptr<ConditionalOStream>(),
-      const std::shared_ptr<TimerOutput>                  external_timer
-                                = std::shared_ptr<TimerOutput>());
-
-  /*!
-   * @brief A method that computes all the benchmark data with the
-   * last computed field variables.
-   */
-  void compute_benchmark_data();
-
-  /*!
-   * @brief Outputs the computed benchmark data to a text file in
-   * org mode format.
-   */
-  void print_data_to_file(std::string file_name);
-
+  MIT(const types::boundary_id  left_wall_boundary_id,
+      const types::boundary_id  right_wall_boundary_id);
 
   /*!
    * @brief Output of the benchmark data to the terminal.
@@ -259,53 +241,27 @@ public:
   template<typename Stream, int dim_>
   friend Stream& operator<<(Stream &, const MIT<dim_> &);
 
+  /*!
+   * @brief A method that computes all the benchmark data with the
+   * last computed field variables.
+   */
+  void update(const double                          time,
+              const unsigned int                    step_number,
+              const Entities::FE_VectorField<dim>  &velocity,
+              const Entities::FE_ScalarField<dim>  &pressure,
+              const Entities::FE_ScalarField<dim>  &temperature);
+
+  /*!
+   * @brief Outputs the computed benchmark data to a text file in
+   * org mode format.
+   */
+  void write_text(std::ostream  &file) const;
+
 private:
-  /*!
-   * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
-   */
-  const MPI_Comm                                 mpi_communicator;
-
-  /*!
-   * @brief A reference to the class controlling the temporal discretization.
-   */
-  const TimeDiscretization::VSIMEXMethod        &time_stepping;
-
-  /*!
-   * @brief A shared pointer to a conditional output stream object.
-   */
-  std::shared_ptr<ConditionalOStream>           pcout;
-
-  /*!
-   * @brief A shared pointer to a monitor of the computing times.
-   */
-  std::shared_ptr<TimerOutput>                  computing_timer;
-
-  /*!
-   * @brief A shared pointer to the mapping to be used throughout the solver.
-   */
-  std::shared_ptr<Mapping<dim>>                 mapping;
-
-  /*!
-   * @brief A shared pointer to the velocity field's numerical
-   * representation.
-   */
-  const std::shared_ptr<const Entities::FE_VectorField<dim>>  velocity;
-
-  /*!
-   * @brief A shared pointer to the pressure field's numerical
-   * representation.
-   */
-  const std::shared_ptr<const Entities::FE_ScalarField<dim>>  pressure;
-
-  /*!
-   * @brief A shared pointer to the temperature field's numerical
-   * representation.
-   */
-  const std::shared_ptr<const Entities::FE_ScalarField<dim>>  temperature;
-
   /*!
    * @brief A vector containing all the points at which data will be
    * sampled.
+   *
    * @details The points are
    * \f[
    * P_1 = (0.1810,\, 7.3700), \quad
@@ -314,11 +270,13 @@ private:
    * P_4 = (0.8190,\, 7.3700), \quad \textrm{and} \quad
    * P_5 = (0.1810,\, 4.0000).
    * \f]
+   *
    */
   std::vector<Point<dim>>                       sample_points;
 
   /*!
    * @brief A vector containing the pertinent pressure differences.
+   *
    * @details Defined as
    * \f[
    * \Delta p_{ij} = p_i - p_j
@@ -326,6 +284,7 @@ private:
    * where the subindices indicate the sample point. The computed
    * differences are \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and
    * \f$ \Delta p_{35} \f$.
+   *
    */
   std::vector<double>                           pressure_differences;
 
@@ -337,20 +296,21 @@ private:
   /*!
    * @brief The temperature at the sample point \f$ P_1 \f$.
    */
-  double                                        temperature_at_p1;
+  double  temperature_at_p1;
 
   /*!
    * @brief The stream function at the sample point \f$ P_1 \f$.
    */
-  double                                        stream_function_at_p1;
+//  double  stream_function_at_p1;
 
   /*!
    * @brief The vorticity norm at the sample point \f$ P_1 \f$.
    */
-  double                                        vorticity_at_p1;
+//  double  vorticity_at_p1;
 
   /*!
    * @brief The Nusselt number at the left and right walls.
+   *
    * @details They are given by
    * \f[
    * \mathit{Nu}_{1,2} = \dfrac{1}{H} \int_{\Gamma_{1,2}} \nabla \vartheta
@@ -358,62 +318,73 @@ private:
    * \f]
    * where the subindices 0 and 1 indicate the left and right walls
    * respectively.
+   *
    */
-  std::pair<double, double>                     nusselt_numbers;
+  std::pair<double, double> nusselt_numbers;
 
   /*!
    * @brief The skewness metric.
+   *
    * @details Given by
    * \f[
    * \varepsilon_{12} = \vartheta_1 + \vartheta_2
    * \f]
    * where the subindices indicate the sample point.
+   *
    */
-  double                                        skewness_metric;
+  double  skewness_metric;
 
   /*!
    * @brief The average velocity metric.
+   *
    * @details Given by
    * \f[
    * \hat{u} = \sqrt{ \dfrac{1}{2HW} \int_\Omega \bs{u} \cdot \bs{u} \dint v}
-   * \f]   */
-  double                                        average_velocity_metric;
+   * \f]
+   *
+   */
+  double  average_velocity_metric;
 
   /*!
    * @brief The average vorticity metric.
    * @details Given by
    * \f[
    * \hat{\omega} = \sqrt{ \dfrac{1}{2HW} \int_\Omega
-   * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}   * \f]   */
-  double                                        average_vorticity_metric;
+   * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}   * \f]
+   *
+   */
+  double  average_vorticity_metric;
 
   /*!
    * @brief The table which stores all the benchmark data.
    */
-  TableHandler                                  data;
+  TableHandler    data;
 
   /*!
    * @brief The width of the cavity.
    * @details Given by  \f$ W = 1.0 \f$.
+   *
    */
-  const double                                  width;
+  const double      width;
 
   /*!
    * @brief The height of the cavity.
+   *
    * @details Given by  \f$ H = 8.0 \f$.
+   *
    */
-  const double                                  height;
+  const double      height;
 
   /*!
    * @brief The areaa of the cavity.
    * @details Given by  \f$ A = WH \f$
    */
-  const double                                  area;
+  const double      area;
 
   /*!
    * @brief The boundary id of the cavity's left wall.
    */
-  const unsigned int                            left_wall_boundary_id;
+  const unsigned int  left_wall_boundary_id;
 
   /*!
    * @brief The boundary id of the cavity's right wall.
@@ -430,7 +401,9 @@ private:
    * \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and
    * \f$ \Delta p_{35} \f$.
    */
-  void compute_point_data();
+  void compute_point_data(const Entities::FE_VectorField<dim>  &velocity,
+                          const Entities::FE_ScalarField<dim>  &pressure,
+                          const Entities::FE_ScalarField<dim>  &temperature);
 
   /*!
    * @brief A method that computes the Nusselt number of the
@@ -443,7 +416,7 @@ private:
    * where the subindices 0 and 1 indicate the left and right walls
    * respectively.
    * */
-  void compute_wall_data();
+  void compute_wall_data(const Entities::FE_ScalarField<dim>  &temperature);
 
   /*!
    * @brief A method that computes the average velocity and vorticity
@@ -456,7 +429,7 @@ private:
    * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}
    * \f]
    */
-  void compute_global_data();
+  void compute_global_data(const Entities::FE_VectorField<dim>  &velocity);
 };
 
 

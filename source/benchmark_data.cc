@@ -31,9 +31,12 @@ namespace BenchmarkData
 {
 
 template <>
-DFGBechmarkRequests<2>::DFGBechmarkRequests(const double reynolds_number)
+DFGBechmarkRequests<2>::DFGBechmarkRequests
+(const double             reynolds_number,
+ const types::boundary_id cylinder_id)
 :
 Re(reynolds_number),
+cylinder_boundary_id(cylinder_id),
 front_evaluation_point(1.5, 2.0),
 rear_evaluation_point(2.5, 2.0),
 pressure_difference(0),
@@ -75,8 +78,7 @@ void DFGBechmarkRequests<dim>::compute_pressure_difference
 template <>
 void DFGBechmarkRequests<2>::compute_drag_and_lift_coefficients
 (const Entities::FE_VectorField<2>  &velocity,
- const Entities::FE_ScalarField<2>  &pressure,
- const types::boundary_id            cylinder_boundary_id)
+ const Entities::FE_ScalarField<2>  &pressure)
 {
   constexpr unsigned int dim{2};
 
@@ -151,7 +153,16 @@ void DFGBechmarkRequests<2>::compute_drag_and_lift_coefficients
           }
         }
 
-  forces = Utilities::MPI::sum(forces, MPI_COMM_WORLD);
+  // Gather the values of each processor
+  const Triangulation<dim>  &tria = velocity.get_triangulation();
+  const parallel::TriangulationBase<dim> *tria_ptr =
+      dynamic_cast<const parallel::TriangulationBase<dim> *>(&tria);
+  if (tria_ptr != nullptr)
+  {
+    forces = Utilities::MPI::sum(forces, tria_ptr->get_communicator());
+  }
+
+
 
   drag_coefficient = 2.0 * forces[0];
   lift_coefficient = 2.0 * forces[1];
@@ -172,10 +183,9 @@ void DFGBechmarkRequests<dim>::update
 (const double                         time,
  const unsigned int                   step_number,
  const Entities::FE_VectorField<dim> &velocity,
- const Entities::FE_ScalarField<dim> &pressure,
- const types::boundary_id             cylinder_boundary_id)
+ const Entities::FE_ScalarField<dim> &pressure)
 {
-  compute_drag_and_lift_coefficients(velocity, pressure, cylinder_boundary_id);
+  compute_drag_and_lift_coefficients(velocity, pressure);
   compute_pressure_difference(pressure);
 
   data_table.add_value("step", step_number);
@@ -206,23 +216,11 @@ Stream& operator<<(Stream &stream, const DFGBechmarkRequests<dim> &dfg)
 }
 
 
-template <int dim>
-MIT<dim>::MIT(
-  const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
-  const std::shared_ptr<Entities::FE_ScalarField<dim>>  &pressure,
-  const std::shared_ptr<Entities::FE_ScalarField<dim>>  &temperature,
-  TimeDiscretization::VSIMEXMethod                    &time_stepping,
-  const unsigned int                                  left_wall_boundary_id,
-  const unsigned int                                  right_wall_boundary_id,
-  const std::shared_ptr<Mapping<dim>>                 external_mapping,
-  const std::shared_ptr<ConditionalOStream>           external_pcout,
-  const std::shared_ptr<TimerOutput>                  external_timer)
+template <>
+MIT<2>::MIT
+(const types::boundary_id left_wall_boundary_id,
+ const types::boundary_id right_wall_boundary_id)
 :
-mpi_communicator(MPI_COMM_WORLD),
-time_stepping(time_stepping),
-velocity(velocity),
-pressure(pressure),
-temperature(temperature),
 pressure_differences(3),
 width(1.0),
 height(8.0),
@@ -230,17 +228,6 @@ area(8.0),
 left_wall_boundary_id(left_wall_boundary_id),
 right_wall_boundary_id(right_wall_boundary_id)
 {
-  AssertDimension(dim, 2);
-  Assert(velocity.get() != nullptr,
-         ExcMessage("The velocity's shared pointer has not be"
-                    " initialized."));
-  Assert(pressure.get() != nullptr,
-         ExcMessage("The pressure's shared pointer has not be"
-                    " initialized."));
-  Assert(temperature.get() != nullptr,
-         ExcMessage("The temperature's shared pointer has not be"
-                    " initialized."));
-
   // Initiating the sample points.
   sample_points.emplace_back(0.1810, 7.3700);
   sample_points.emplace_back(0.8190, 0.6300);
@@ -248,36 +235,12 @@ right_wall_boundary_id(right_wall_boundary_id)
   sample_points.emplace_back(0.8190, 7.3700);
   sample_points.emplace_back(0.1810, 4.0000);
 
-  // Initiating the internal Mapping instance.
-  if (external_mapping.get() != nullptr)
-    mapping = external_mapping;
-  else
-    mapping.reset(new MappingQ<dim>(1));
-
-  // Initiating the internal ConditionalOStream instance.
-  if (external_pcout.get() != nullptr)
-    pcout = external_pcout;
-  else
-    pcout.reset(new ConditionalOStream(
-      std::cout,
-      Utilities::MPI::this_mpi_process(mpi_communicator) == 0));
-
-  // Initiating the internal TimerOutput instance.
-  if (external_timer.get() != nullptr)
-    computing_timer  = external_timer;
-  else
-    computing_timer.reset(new TimerOutput(
-      *pcout,
-      TimerOutput::summary,
-      TimerOutput::wall_times));
-
   // Setting up columns
   data.declare_column("time");
+  data.declare_column("step");
   data.declare_column("velocity_x_1");
   data.declare_column("velocity_y_1");
   data.declare_column("temperature_1");
-  data.declare_column("streamfunction_1");
-  data.declare_column("vorticity_1");
   data.declare_column("skewness");
   data.declare_column("dpressure_14");
   data.declare_column("dpressure_51");
@@ -292,8 +255,6 @@ right_wall_boundary_id(right_wall_boundary_id)
   data.set_scientific("velocity_x_1", true);
   data.set_scientific("velocity_y_1", true);
   data.set_scientific("temperature_1", true);
-  data.set_scientific("streamfunction_1", true);
-  data.set_scientific("vorticity_1", true);
   data.set_scientific("skewness", true);
   data.set_scientific("dpressure_14", true);
   data.set_scientific("dpressure_51", true);
@@ -308,8 +269,6 @@ right_wall_boundary_id(right_wall_boundary_id)
   data.set_precision("velocity_x_1", 6);
   data.set_precision("velocity_y_1", 6);
   data.set_precision("temperature_1", 6);
-  data.set_precision("streamfunction_1", 6);
-  data.set_precision("vorticity_1", 6);
   data.set_precision("skewness", 6);
   data.set_precision("dpressure_14", 6);
   data.set_precision("dpressure_51", 6);
@@ -320,21 +279,27 @@ right_wall_boundary_id(right_wall_boundary_id)
   data.set_precision("average_vorticity_metric", 6);
 }
 
+
+
 template <int dim>
-void MIT<dim>::compute_benchmark_data()
+void MIT<dim>::update
+(const double                          time,
+ const unsigned int                    step_number,
+ const Entities::FE_VectorField<dim>  &velocity,
+ const Entities::FE_ScalarField<dim>  &pressure,
+ const Entities::FE_ScalarField<dim>  &temperature)
 {
   // Compute benchmark data
-  compute_point_data();
-  compute_wall_data();
-  compute_global_data();
+  compute_point_data(velocity, pressure, temperature);
+  compute_wall_data(temperature);
+  compute_global_data(velocity);
 
   // Update column's values
-  data.add_value("time", time_stepping.get_current_time());
+  data.add_value("time", time);
+  data.add_value("step", step_number);
   data.add_value("velocity_x_1", velocity_at_p1[0]);
   data.add_value("velocity_y_1", velocity_at_p1[1]);
   data.add_value("temperature_1", temperature_at_p1);
-  data.add_value("streamfunction_1", stream_function_at_p1);
-  data.add_value("vorticity_1", vorticity_at_p1);
   data.add_value("skewness", skewness_metric);
   data.add_value("dpressure_14", pressure_differences[0]);
   data.add_value("dpressure_51", pressure_differences[1]);
@@ -345,63 +310,65 @@ void MIT<dim>::compute_benchmark_data()
   data.add_value("average_vorticity_metric", average_vorticity_metric);
 }
 
+
+
 template <int dim>
-void MIT<dim>::print_data_to_file(std::string file_name)
+void MIT<dim>::write_text(std::ostream &file) const
 {
-  if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
-  {
-    file_name += ".txt";
-
-    std::ofstream file(file_name);
-
-    data.write_text(
-      file,
-      TableHandler::TextOutputFormat::org_mode_table);
-  }
+  data.write_text(file, TableHandler::TextOutputFormat::org_mode_table);
 }
 
 
 template<typename Stream, int dim>
 Stream& operator<<(Stream &stream, const MIT<dim> &mit)
 {
-  stream << std::noshowpos << std::scientific << std::setprecision(6)
-         << "ux_1 = "
+  stream << std::scientific << std::setprecision(6)
+         << "    "
+         << "u_x(x_1) = "
+         << std::setw(8)
          << mit.velocity_at_p1[0]
-         << ", T_1 = "
+         << ", T(x_1) = "
+         << std::setw(8)
          << mit.temperature_at_p1
-         << ", p_14 = "
+         << std::endl
+         << "    "
+         << "\u0394p_14 = "
+         << std::setw(8)
          << mit.pressure_differences[0]
-         << ", Nu = "
+         << ", Nusselt = "
          << mit.nusselt_numbers.first
-         << ", u = "
+         << std::endl
+         << "    "
+         << "velocity metric = "
+         << std::setw(8)
          << mit.average_velocity_metric
-         << ", w = "
-         << mit.average_vorticity_metric;
+         << ", vorticity metric = "
+         << std::setw(8)
+         << mit.average_vorticity_metric
+         << std::defaultfloat;
 
   return stream;
 }
 
 template <int dim>
-void MIT<dim>::compute_point_data()
+void MIT<dim>::compute_point_data
+(const Entities::FE_VectorField<dim>  &velocity,
+ const Entities::FE_ScalarField<dim>  &pressure,
+ const Entities::FE_ScalarField<dim>  &temperature)
 {
-  TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Point data");
-
   // Obtaining data at sample point 1
-  velocity_at_p1        = velocity->point_value(sample_points[0]);
-  temperature_at_p1     = temperature->point_value(sample_points[0]);
-  stream_function_at_p1 = 0.0/*compute_stream_function()*/;
-  vorticity_at_p1       = 0.0/*compute_vorticity()*/;
+  velocity_at_p1        = velocity.point_value(sample_points[0]);
+  temperature_at_p1     = temperature.point_value(sample_points[0]);
 
   // Computing skewness metric
-  const double temperature_at_p2 = temperature->point_value(sample_points[1]);
-
+  const double temperature_at_p2 = temperature.point_value(sample_points[1]);
   skewness_metric = temperature_at_p1 + temperature_at_p2;
 
   // Computing pressure differences
-  const double pressure_at_p1 = pressure->point_value(sample_points[0]);
-  const double pressure_at_p3 = pressure->point_value(sample_points[2]);
-  const double pressure_at_p4 = pressure->point_value(sample_points[3]);
-  const double pressure_at_p5 = pressure->point_value(sample_points[4]);
+  const double pressure_at_p1 = pressure.point_value(sample_points[0]);
+  const double pressure_at_p3 = pressure.point_value(sample_points[2]);
+  const double pressure_at_p4 = pressure.point_value(sample_points[3]);
+  const double pressure_at_p5 = pressure.point_value(sample_points[4]);
 
   pressure_differences[0] = pressure_at_p1 - pressure_at_p4;
   pressure_differences[1] = pressure_at_p5 - pressure_at_p1;
@@ -409,16 +376,13 @@ void MIT<dim>::compute_point_data()
 }
 
 template <int dim>
-void MIT<dim>::compute_wall_data()
+void MIT<dim>::compute_wall_data(const Entities::FE_ScalarField<dim>  &temperature)
 {
-  TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Wall data");
-
   // Quadrature formula
-  const QGauss<dim-1>   face_quadrature_formula(temperature->fe_degree() + 1);
+  const QGauss<dim-1>   face_quadrature_formula(temperature.fe_degree() + 1);
 
   // Finite element values
-  FEFaceValues<dim> face_fe_values(*mapping,
-                                   temperature->get_finite_element(),
+  FEFaceValues<dim> face_fe_values(temperature.get_finite_element(),
                                    face_quadrature_formula,
                                    update_gradients |
                                    update_JxW_values |
@@ -437,18 +401,18 @@ void MIT<dim>::compute_wall_data()
   double left_boundary_integral  = 0.0;
   double right_boundary_integral = 0.0;
 
-  for (const auto &cell : temperature->get_dof_handler().active_cell_iterators())
+  for (const auto &cell : temperature.get_dof_handler().active_cell_iterators())
     if (cell->is_locally_owned() && cell->at_boundary())
       for (const auto &face : cell->face_iterators())
-        if (face->at_boundary() &&
-            (face->boundary_id() == left_wall_boundary_id ||
-             face->boundary_id() == right_wall_boundary_id))
+        if (face->at_boundary())
+          if (face->boundary_id() == left_wall_boundary_id ||
+              face->boundary_id() == right_wall_boundary_id)
           {
             // Initialize the finite element values
             face_fe_values.reinit(cell, face);
 
             // Get the temperature gradients at the quadrature points
-            face_fe_values.get_function_gradients(temperature->solution,
+            face_fe_values.get_function_gradients(temperature.solution,
                                                   temperature_gradients);
 
             // Get the normal vectors at the quadrature points
@@ -473,22 +437,26 @@ void MIT<dim>::compute_wall_data()
           }
 
   // Gather the values of each processor
-  left_boundary_integral   = Utilities::MPI::sum(left_boundary_integral,
-                                                   mpi_communicator);
-  right_boundary_integral  = Utilities::MPI::sum(right_boundary_integral,
-                                                  mpi_communicator);
+  const Triangulation<dim>  &tria = temperature.get_triangulation();
+  const parallel::TriangulationBase<dim> *tria_ptr =
+      dynamic_cast<const parallel::TriangulationBase<dim> *>(&tria);
+  if (tria_ptr != nullptr)
+  {
+    left_boundary_integral   = Utilities::MPI::sum(left_boundary_integral,
+                                                   tria_ptr->get_communicator());
+    right_boundary_integral  = Utilities::MPI::sum(right_boundary_integral,
+                                                   tria_ptr->get_communicator());
+  }
 
-  //Compute and store the Nusselt numbers of the walls
+  // Compute and store the Nusselt numbers of the walls
   nusselt_numbers = std::make_pair(left_boundary_integral/height,
                                    right_boundary_integral/height);
 }
 
 template <int dim>
-void MIT<dim>::compute_global_data()
+void MIT<dim>::compute_global_data(const Entities::FE_VectorField<dim>  &velocity)
 {
-  TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Global data");
-
-  // Defining the type to contain the vorticity during assembly
+   // Defining the type to contain the vorticity during assembly
   using CurlType = typename FEValuesViews::Vector< dim >::curl_type;
 
   // Initiate the average velocity and vorticity metrics
@@ -496,14 +464,13 @@ void MIT<dim>::compute_global_data()
   average_vorticity_metric  = 0.0;
 
   // Quadrature formula
-  const QGauss<dim>   quadrature_formula(velocity->fe_degree() + 1);
+  const QGauss<dim>   quadrature_formula(velocity.fe_degree() + 1);
 
   // Finite element values
-  FEValues<dim> fe_values(*mapping,
-                          velocity->get_finite_element(),
+  FEValues<dim> fe_values(velocity.get_finite_element(),
                           quadrature_formula,
-                          update_values |
-                          update_gradients |
+                          update_values|
+                          update_gradients|
                           update_JxW_values);
 
   // Number of quadrature points
@@ -514,7 +481,7 @@ void MIT<dim>::compute_global_data()
   std::vector<Tensor<1, dim>> velocity_values(n_q_points);
   std::vector<CurlType> vorticity_values(n_q_points);
 
-  for (const auto &cell : velocity->get_dof_handler().active_cell_iterators())
+  for (const auto &cell : velocity.get_dof_handler().active_cell_iterators())
     if (cell->is_locally_owned())
     {
       // Initialize the finite element values
@@ -525,9 +492,9 @@ void MIT<dim>::compute_global_data()
 
       // Get the velocity and vorticity values at each quadrature
       // point
-      fe_values[velocities].get_function_values(velocity->solution,
+      fe_values[velocities].get_function_values(velocity.solution,
                                                 velocity_values);
-      fe_values[velocities].get_function_curls(velocity->solution,
+      fe_values[velocities].get_function_curls(velocity.solution,
                                                vorticity_values);
 
       // Numerical integration (Loop over all quadrature points)
@@ -545,10 +512,16 @@ void MIT<dim>::compute_global_data()
     }
 
   // Gather the values of each processor
-  average_velocity_metric   = Utilities::MPI::sum(average_velocity_metric,
-                                                  mpi_communicator);
-  average_vorticity_metric  = Utilities::MPI::sum(average_vorticity_metric,
-                                                  mpi_communicator);
+  const Triangulation<dim>  &tria = velocity.get_triangulation();
+  const parallel::TriangulationBase<dim> *tria_ptr =
+      dynamic_cast<const parallel::TriangulationBase<dim> *>(&tria);
+  if (tria_ptr != nullptr)
+  {
+    average_velocity_metric = Utilities::MPI::sum(average_velocity_metric,
+                                                  tria_ptr->get_communicator());
+    average_vorticity_metric = Utilities::MPI::sum(average_vorticity_metric,
+                                                   tria_ptr->get_communicator());
+  }
 
   // Compute the global averages
   average_velocity_metric   = std::sqrt(average_velocity_metric/(2.0 * area));
@@ -1294,16 +1267,11 @@ template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
 (dealii::ConditionalOStream &, const RMHD::BenchmarkData::DFGBechmarkRequests<2> &);
 
 template class RMHD::BenchmarkData::MIT<2>;
-template class RMHD::BenchmarkData::MIT<3>;
 
 template std::ostream & RMHD::BenchmarkData::operator<<
 (std::ostream &, const RMHD::BenchmarkData::MIT<2> &);
-template std::ostream & RMHD::BenchmarkData::operator<<
-(std::ostream &, const RMHD::BenchmarkData::MIT<3> &);
 template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
 (dealii::ConditionalOStream &, const RMHD::BenchmarkData::MIT<2> &);
-template dealii::ConditionalOStream & RMHD::BenchmarkData::operator<<
-(dealii::ConditionalOStream &, const RMHD::BenchmarkData::MIT<3> &);
 
 template class RMHD::BenchmarkData::ChristensenBenchmark<2>;
 template class RMHD::BenchmarkData::ChristensenBenchmark<3>;

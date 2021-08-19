@@ -373,7 +373,7 @@ private:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  BenchmarkData::DFGBechmarkRequests<dim>        benchmark_request;
+  BenchmarkData::DFGBechmarkRequests<dim>        benchmark_requests;
 
   EquationData::VelocityInitialCondition<dim>   velocity_initial_condition;
 
@@ -421,7 +421,7 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->mapping,
               this->pcout,
               this->computing_timer),
-benchmark_request(parameters.Re),
+benchmark_requests(parameters.Re, cylinder_bndry_id),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
@@ -562,13 +562,12 @@ void DFG<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  benchmark_request.update(this->time_stepping.get_current_time(),
+  benchmark_requests.update(this->time_stepping.get_current_time(),
                            this->time_stepping.get_step_number(),
                            *velocity,
-                           *pressure,
-                           cylinder_bndry_id);
+                           *pressure);
 
-  *this->pcout << benchmark_request << std::endl;
+  *this->pcout << benchmark_requests << std::endl;
 }
 
 template <int dim>
@@ -747,7 +746,7 @@ void DFG<dim>::run()
     try
     {
       std::ofstream fstream(filename.string());
-      benchmark_request.write_text(fstream);
+      benchmark_requests.write_text(fstream);
     }
     catch (std::exception &exc)
     {

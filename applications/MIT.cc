@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <iomanip>
@@ -178,14 +179,11 @@ private:
 
   HeatEquation<dim>                             heat_equation;
 
-  BenchmarkData::MIT<dim>                       mit_benchmark;
+  BenchmarkData::MIT<dim>                       benchmark_requests;
 
   EquationData::GravityVector<dim>              gravity_vector;
 
   double                                        cfl_number;
-
-  std::ofstream                                 cfl_output_file;
-
 
   const types::boundary_id  left_bndry_id = 1;
   const types::boundary_id  right_bndry_id = 2;
@@ -242,17 +240,8 @@ heat_equation(parameters.heat_equation_parameters,
               this->mapping,
               this->pcout,
               this->computing_timer),
-mit_benchmark(velocity,
-              pressure,
-              temperature,
-              time_stepping,
-              1,
-              2,
-              this->mapping,
-              this->pcout,
-              this->computing_timer),
-gravity_vector(parameters.time_discretization_parameters.start_time),
-cfl_output_file("MIT_cfl_number.csv")
+benchmark_requests(left_bndry_id, right_bndry_id),
+gravity_vector(parameters.time_discretization_parameters.start_time)
 {
   *this->pcout << parameters << std::endl << std::endl;
 
@@ -272,7 +261,6 @@ cfl_output_file("MIT_cfl_number.csv")
   this->container.add_entity(navier_stokes.phi, false);
   this->container.add_entity(temperature, false);
 
-  cfl_output_file << "Time" << "," << "CFL" << std::endl;
 }
 
 template <>
@@ -467,12 +455,13 @@ void MIT<dim>::postprocessing()
 
   // Computes all the benchmark's data. See documentation of the
   // class for further information.
-  mit_benchmark.compute_benchmark_data();
+  benchmark_requests.update(this->time_stepping.get_current_time(),
+                             this->time_stepping.get_step_number(),
+                             *velocity,
+                             *pressure,
+                             *temperature);
 
-  /*! @attention For some reason, a run time error happens when I try
-      to only use one pcout */
-  *this->pcout << "    ";
-  *this->pcout << mit_benchmark << std::endl;
+  *this->pcout << benchmark_requests << std::endl;
   *this->pcout << "    CFL = "
                << cfl_number
                << ", Norms: ("
@@ -484,10 +473,6 @@ void MIT<dim>::postprocessing()
                << heat_equation.get_rhs_norm()
                << ")"
                << std::endl;
-
-  if (time_stepping.get_step_number() % 10 == 0)
-    cfl_output_file << time_stepping.get_current_time() << ","
-                    << cfl_number << std::endl;
 }
 
 template <int dim>
@@ -593,8 +578,77 @@ void MIT<dim>::run()
       output();
   }
 
-  // Prints the benchmark's data to the .txt file.
-  mit_benchmark.print_data_to_file("MIT_benchmark");
+
+  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+  {
+    if (!std::filesystem::exists(this->prm.graphical_output_directory))
+    {
+      try
+      {
+        std::filesystem::create_directories(this->prm.graphical_output_directory);
+      }
+      catch (std::exception &exc)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::cerr << "Exception in the creation of the output directory: "
+                  << std::endl
+                  << exc.what() << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+      catch (...)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                    << std::endl;
+        std::cerr << "Unknown exception in the creation of the output directory!"
+                  << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+    }
+
+    const std::filesystem::path path{this->prm.graphical_output_directory};
+
+    std::filesystem::path filename = path / "benchmark_data.txt";
+
+    try
+    {
+      std::ofstream fstream(filename.string());
+      benchmark_requests.write_text(fstream);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output file: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output file!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
 }
 
 } // namespace MITBenchmark
