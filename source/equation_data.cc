@@ -22,72 +22,6 @@ namespace GuermondNeumannBC
 } // namespace GuermondNeumannBC
 namespace Couette
 {
-
-template <int dim>
-VelocityExactSolution<dim>::VelocityExactSolution
-(const double t_0,
- const double Re,
- const double H,
- const double time)
-:
-Function<dim>(dim, time),
-t_0(t_0),
-Re(Re),
-H(H)
-{}
-
-template <int dim>
-void VelocityExactSolution<dim>::vector_value(
-  const Point<dim>  &point,
-  Vector<double>    &values) const
-{
-  const double y = point(1);
-
-  values[0] = t_0 * Re * y / H;
-  values[1] = 0.0;
-}
-
-template <int dim>
-Tensor<1, dim> VelocityExactSolution<dim>::gradient(
-  const Point<dim>  &/*point*/,
-  const unsigned int component) const
-{
-  Tensor<1, dim>  gradient;
-
-  // The gradient has to match that of dealii, i.e. from the right.
-  if (component == 0)
-  {
-    gradient[0] = 0.0;
-    gradient[1] = t_0 * Re / H;
-  }
-  else if (component == 1)
-  {
-    gradient[0] = 0.0;
-    gradient[1] = 0.0;
-  }
-
-  return gradient;
-}
-
-template <int dim>
-TractionVector<dim>::TractionVector
-(const double t_0,
- const double time)
-:
-TensorFunction<1, dim>(time),
-t_0(t_0)
-{}
-
-template <int dim>
-Tensor<1, dim> TractionVector<dim>::value(const Point<dim> &/*point*/) const
-{
-  Tensor<1, dim> traction_vector;
-
-  traction_vector[0] = t_0;
-  traction_vector[1] = 0.0;
-
-  return traction_vector;
-}
 } // namespace Couette
 namespace ThermalTGV
 {
@@ -183,13 +117,6 @@ void VelocityField<dim>::vector_value
 
 
 // explicit instantiation
-
-template class RMHD::EquationData::Couette::VelocityExactSolution<2>;
-template class RMHD::EquationData::Couette::VelocityExactSolution<3>;
-
-template class RMHD::EquationData::Couette::TractionVector<2>;
-template class RMHD::EquationData::Couette::TractionVector<3>;
-
 template class RMHD::EquationData::ThermalTGV::VelocityExactSolution<2>;
 template class RMHD::EquationData::ThermalTGV::VelocityExactSolution<3>;
 
