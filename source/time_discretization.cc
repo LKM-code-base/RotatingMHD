@@ -508,8 +508,8 @@ void VSIMEXMethod::update_coefficients()
   // method returns the coefficients of the Backward Euler scheme instead.
   if (get_step_number() < (get_order() - 1))
   {
-    // Hardcoded coefficients for Crank-Nicolson scheme
-    const double a = 0.5;
+    // Hardcoded coefficients for a Backward Euler first order scheme
+    const double a = 1.0;
 
     alpha[0] = 1.0;
     alpha[1] = - 1.0;
