@@ -91,7 +91,7 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
     build_preconditioner(preconditioner,
                          *system_matrix_ptr,
                          solver_parameters.preconditioner_parameters_ptr,
-                         (temperature->fe_degree > 1? true: false));
+                         (temperature->fe_degree() > 1? true: false));
   }
 
   AssertThrow(preconditioner != nullptr,
@@ -139,7 +139,7 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
     std::abort();
   }
 
-  temperature->constraints.distribute(distributed_temperature);
+  temperature->get_constraints().distribute(distributed_temperature);
 
   temperature->solution = distributed_temperature;
 

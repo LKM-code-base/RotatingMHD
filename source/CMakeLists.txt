@@ -16,6 +16,7 @@ SET(TARGET_SRC
     run_time_parameters.cc
     time_discretization.cc
     utility.cc
+    vector_tools.cc
     # incompressible navier stokes
     navier_stokes_projection.cc
     navier_stokes_projection/assemble_advection_matrix.cc

@@ -509,9 +509,9 @@ christensen_benchmark(velocity,
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
-  temperature->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
+  temperature->setup_vectors();
   initialize();
 
   // Stores all the fields to the SolutionTransfer container
@@ -578,18 +578,16 @@ void Christensen<dim>::setup_dofs()
   *(this->pcout) << "Spatial discretization:"
                  << std::endl
                  << " Number of velocity degrees of freedom    = "
-                 << (velocity->dof_handler)->n_dofs()
+                 << velocity->n_dofs()
                  << std::endl
                  << " Number of pressure degrees of freedom    = "
-                 << pressure->dof_handler->n_dofs()
+                 << pressure->n_dofs()
                  << std::endl
                  << " Number of temperature degrees of freedom = "
-                 << temperature->dof_handler->n_dofs()
+                 << temperature->n_dofs()
                  << std::endl
                  << " Number of total degrees of freedom       = "
-                 << (velocity->dof_handler->n_dofs() +
-                     pressure->dof_handler->n_dofs() +
-                     temperature->dof_handler->n_dofs())
+                 << (velocity->n_dofs() + pressure->n_dofs() + temperature->n_dofs())
                  << std::endl << std::endl;
 }
 
@@ -598,23 +596,29 @@ void Christensen<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
+  temperature->clear_boundary_conditions();
+
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+  temperature->setup_boundary_conditions();
+
   // Homogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  velocity->boundary_conditions.set_dirichlet_bcs(inner_boundary_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(outer_boundary_id);
+  velocity->set_dirichlet_boundary_condition(inner_boundary_id);
+  velocity->set_dirichlet_boundary_condition(outer_boundary_id);
 
   // The pressure itself has no boundary conditions. A datum needs to be
   // set to make the system matrix regular
-  pressure->boundary_conditions.set_datum_at_boundary();
+  pressure->set_datum_boundary_condition();
 
   // Inhomogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    inner_boundary_id,
-    temperature_boundary_conditions);
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    outer_boundary_id,
-    temperature_boundary_conditions);
+  temperature->set_dirichlet_boundary_condition(inner_boundary_id,
+                                                temperature_boundary_conditions);
+  temperature->set_dirichlet_boundary_condition(outer_boundary_id,
+                                                temperature_boundary_conditions);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -690,14 +694,14 @@ void Christensen<dim>::output()
 
   // Loading the DataOut instance with the solution vectors
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*velocity->dof_handler,
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*pressure->dof_handler,
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            temperature->solution,
                            "Temperature");
 
@@ -709,7 +713,7 @@ void Christensen<dim>::output()
   // triangulation.
 
   data_out.build_patches(*this->mapping,
-                         velocity->fe_degree,
+                         velocity->fe_degree(),
                          DataOut<dim>::curved_inner_cells);
 
 

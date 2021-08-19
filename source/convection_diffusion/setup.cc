@@ -42,58 +42,58 @@ void HeatEquation<dim>::setup_matrices()
   {
     #ifdef USE_PETSC_LA
       DynamicSparsityPattern
-      sparsity_pattern(temperature->locally_relevant_dofs);
+      sparsity_pattern(temperature->get_locally_relevant_dofs());
 
       DoFTools::make_sparsity_pattern(
-        *temperature->dof_handler,
+        temperature->get_dof_handler(),
         sparsity_pattern,
-        temperature->constraints,
+        temperature->get_constraints(),
         false,
         Utilities::MPI::this_mpi_process(mpi_communicator));
 
       SparsityTools::distribute_sparsity_pattern
       (sparsity_pattern,
-       temperature->locally_owned_dofs,
+       temperature->get_locally_owned_dofs(),
        mpi_communicator,
-       temperature->locally_relevant_dofs);
+       temperature->get_locally_relevant_dofs());
 
       mass_matrix.reinit
-      (temperature->locally_owned_dofs,
-       temperature->locally_owned_dofs,
+      (temperature->get_locally_owned_dofs(),
+       temperature->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       stiffness_matrix.reinit
-      (temperature->locally_owned_dofs,
-       temperature->locally_owned_dofs,
+      (temperature->get_locally_owned_dofs(),
+       temperature->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       mass_plus_stiffness_matrix.reinit
-      (temperature->locally_owned_dofs,
-       temperature->locally_owned_dofs,
+      (temperature->get_locally_owned_dofs(),
+       temperature->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       advection_matrix.reinit
-      (temperature->locally_owned_dofs,
-       temperature->locally_owned_dofs,
+      (temperature->get_locally_owned_dofs(),
+       temperature->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       system_matrix.reinit
-      (temperature->locally_owned_dofs,
-       temperature->locally_owned_dofs,
+      (temperature->get_locally_owned_dofs(),
+       temperature->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
 
     #else
       TrilinosWrappers::SparsityPattern
-      sparsity_pattern(temperature->locally_owned_dofs,
-                       temperature->locally_owned_dofs,
-                       temperature->locally_relevant_dofs,
+      sparsity_pattern(temperature->get_locally_owned_dofs(),
+                       temperature->get_locally_owned_dofs(),
+                       temperature->get_locally_relevant_dofs(),
                        mpi_communicator);
 
       DoFTools::make_sparsity_pattern(
-        *temperature->dof_handler,
+        temperature->get_dof_handler(),
         sparsity_pattern,
-        temperature->constraints,
+        temperature->get_constraints(),
         false,
         Utilities::MPI::this_mpi_process(mpi_communicator));
 

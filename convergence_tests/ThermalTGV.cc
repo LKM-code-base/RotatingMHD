@@ -150,7 +150,7 @@ void ThermalTGV<dim>::setup_dofs()
                 << this->triangulation.n_global_active_cells()
                 << std::endl
                 << "  Number of temperature degrees of freedom = "
-                << (temperature->dof_handler)->n_dofs()
+                << temperature->n_dofs()
                 << std::endl;
 }
 
@@ -161,10 +161,12 @@ void ThermalTGV<dim>::setup_constraints()
 
   temperature->clear_boundary_conditions();
 
+  temperature->setup_boundary_conditions();
+
   temperature_exact_solution->set_time(time_stepping.get_start_time());
 
-  temperature->boundary_conditions.set_periodic_bcs(0, 1, 0);
-  temperature->boundary_conditions.set_periodic_bcs(2, 3, 1);
+  temperature->set_periodic_boundary_condition(0, 1, 0);
+  temperature->set_periodic_boundary_condition(2, 3, 1);
 
   temperature->close_boundary_conditions();
   temperature->apply_boundary_conditions();
@@ -207,20 +209,16 @@ void ThermalTGV<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
-  this->compute_error(error,
-                      temperature,
-                      *temperature_exact_solution);
-
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            temperature->solution,
                            "temperature");
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            error,
                            "error");
 
-  data_out.build_patches(temperature->fe_degree);
+  data_out.build_patches(temperature->fe_degree());
 
   static int out_index = 0;
 
@@ -244,7 +242,7 @@ void ThermalTGV<dim>::solve(const unsigned int &level)
 {
   setup_dofs();
   setup_constraints();
-  temperature->reinit();
+  temperature->setup_vectors();
   error.reinit(temperature->solution);
   initialize();
 
@@ -264,9 +262,6 @@ void ThermalTGV<dim>::solve(const unsigned int &level)
 
     // Updates the functions and the constraints to t^{k}
     temperature_exact_solution->set_time(time_stepping.get_next_time());
-
-    temperature->boundary_conditions.set_time(time_stepping.get_next_time());
-    temperature->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
     heat_equation.solve();
@@ -294,9 +289,9 @@ void ThermalTGV<dim>::solve(const unsigned int &level)
     ExcMessage("Time mismatch between the time stepping class and the temperature function"));
 
   {
-    auto error_map = temperature->compute_error(*temperature_exact_solution, this->mapping);
+    auto error_map = temperature->compute_error(*temperature_exact_solution, *this->mapping);
 
-    convergence_data.update_table(*this->temperature->dof_handler,
+    convergence_data.update_table(this->temperature->get_dof_handler(),
                                   time_stepping.get_previous_step_size(),
                                   error_map);
   }

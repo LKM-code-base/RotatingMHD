@@ -86,6 +86,10 @@ _deps
 tests/applications/*/*.debug/
 tests/rotatingMHD/*.debug/
 tests/rotatingMHD/*/*.debug/
+tests/applications/*/*.release/
+tests/rotatingMHD/*.release/
+tests/rotatingMHD/*/*.release/
+
 
 # Eclipse
 .cproject

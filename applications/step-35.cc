@@ -175,8 +175,8 @@ evaluation_point(2.0, 3.0)
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   initialize();
   this->container.add_entity(velocity);
   this->container.add_entity(pressure, false);
@@ -213,14 +213,13 @@ void Step35Problem<dim>::setup_dofs()
   pressure->setup_dofs();
 
   *(this->pcout) << "Number of velocity degrees of freedom = "
-                 << (velocity->dof_handler)->n_dofs()
+                 << velocity->n_dofs()
                  << std::endl
                  << "Number of pressure degrees of freedom = "
-                 << pressure->dof_handler->n_dofs()
+                 << pressure->n_dofs()
                  << std::endl
                  << "Number of total degrees of freedom    = "
-                 << (pressure->dof_handler->n_dofs() +
-                     velocity->dof_handler->n_dofs())
+                 << (pressure->n_dofs() + velocity->n_dofs())
                  << std::endl << std::endl;
 }
 
@@ -229,12 +228,18 @@ void Step35Problem<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.set_dirichlet_bcs(1);
-  velocity->boundary_conditions.set_dirichlet_bcs(2, inflow_boundary_condition);
-  velocity->boundary_conditions.set_dirichlet_bcs(4);
-  velocity->boundary_conditions.set_tangential_flux_bcs(3);
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
 
-  pressure->boundary_conditions.set_dirichlet_bcs(3);
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
+  velocity->set_dirichlet_boundary_condition(1);
+  velocity->set_dirichlet_boundary_condition(2, inflow_boundary_condition);
+  velocity->set_dirichlet_boundary_condition(4);
+  velocity->set_tangential_component_boundary_condition(3);
+
+  pressure->set_dirichlet_boundary_condition(3);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -270,18 +275,18 @@ void Step35Problem<dim>::postprocessing()
   const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
   cell_point =
   GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
-                                           *velocity->dof_handler,
+                                           velocity->get_dof_handler(),
                                            evaluation_point);
   if (cell_point.first->is_locally_owned())
   {
     Vector<double> point_value_velocity(dim);
-    VectorTools::point_value(*velocity->dof_handler,
+    VectorTools::point_value(velocity->get_dof_handler(),
                              velocity->solution,
                              evaluation_point,
                              point_value_velocity);
 
     const double point_value_pressure
-    = VectorTools::point_value(*pressure->dof_handler,
+    = VectorTools::point_value(pressure->get_dof_handler(),
                                pressure->solution,
                                evaluation_point);
 
@@ -307,14 +312,14 @@ void Step35Problem<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*velocity->dof_handler,
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*pressure->dof_handler,
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 

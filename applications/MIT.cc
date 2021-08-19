@@ -261,9 +261,9 @@ cfl_output_file("MIT_cfl_number.csv")
   make_grid();
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
-  temperature->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
+  temperature->setup_vectors();
   initialize();
 
   // Stores all the fields to the SolutionTransfor container
@@ -368,18 +368,18 @@ void MIT<dim>::setup_dofs()
   *(this->pcout) << "Spatial discretization:"
                  << std::endl
                  << " Number of velocity degrees of freedom    = "
-                 << (velocity->dof_handler)->n_dofs()
+                 << velocity->n_dofs()
                  << std::endl
                  << " Number of pressure degrees of freedom    = "
-                 << pressure->dof_handler->n_dofs()
+                 << pressure->n_dofs()
                  << std::endl
                  << " Number of temperature degrees of freedom = "
-                 << temperature->dof_handler->n_dofs()
+                 << temperature->n_dofs()
                  << std::endl
                  << " Number of total degrees of freedom       = "
-                 << (velocity->dof_handler->n_dofs() +
-                     pressure->dof_handler->n_dofs() +
-                     temperature->dof_handler->n_dofs())
+                 << (velocity->n_dofs() +
+                     pressure->n_dofs() +
+                     temperature->n_dofs())
                  << std::endl << std::endl;
 }
 
@@ -388,28 +388,38 @@ void MIT<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
+  temperature->clear_boundary_conditions();
+
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+  temperature->setup_boundary_conditions();
+
   // Homogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  velocity->boundary_conditions.set_dirichlet_bcs(left_bndry_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(right_bndry_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(top_bndry_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(bottom_bndry_id);
+  velocity->set_dirichlet_boundary_condition(left_bndry_id);
+  velocity->set_dirichlet_boundary_condition(right_bndry_id);
+  velocity->set_dirichlet_boundary_condition(top_bndry_id);
+  velocity->set_dirichlet_boundary_condition(bottom_bndry_id);
 
   // The pressure itself has no boundary conditions, leading to a pure
   // Neumann problem. A datum ensures the well-posedness of the problem
   // and The Navier-Stokes solver will enforce a zero mean value
   // constraint.
-  pressure->boundary_conditions.set_datum_at_boundary();
+  pressure->set_datum_boundary_condition();
 
   // Inhomogeneous time dependent Dirichlet boundary conditions over
   // the side walls and homogeneous Neumann boundary conditions over
   // the bottom and top walls for the temperature field.
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    left_bndry_id, temperature_boundary_conditions, true);
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    right_bndry_id, temperature_boundary_conditions, true);
-  temperature->boundary_conditions.set_neumann_bcs(top_bndry_id);
-  temperature->boundary_conditions.set_neumann_bcs(bottom_bndry_id);
+  temperature->set_dirichlet_boundary_condition(left_bndry_id,
+                                                temperature_boundary_conditions,
+                                                true);
+  temperature->set_dirichlet_boundary_condition(right_bndry_id,
+                                                temperature_boundary_conditions,
+                                                true);
+  temperature->set_neumann_boundary_condition(top_bndry_id);
+  temperature->set_neumann_boundary_condition(bottom_bndry_id);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -440,7 +450,7 @@ void MIT<dim>::initialize()
 
     distributed_old_temperature = temperature->old_solution;
 
-    temperature->constraints.distribute(distributed_old_temperature);
+    temperature->get_constraints().distribute(distributed_old_temperature);
 
     temperature->old_solution   = distributed_old_temperature;
   }
@@ -493,14 +503,14 @@ void MIT<dim>::output()
 
   // Loading the DataOut instance with the solution vectors
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*velocity->dof_handler,
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*pressure->dof_handler,
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            temperature->solution,
                            "Temperature");
 
@@ -510,7 +520,7 @@ void MIT<dim>::output()
   // elements. In other words, the triangulation visualized in the
   // *.pvtu file is one globl refinement finer than the actual
   // triangulation.
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   // Writes the DataOut instance to the file.
   static int out_index = 0;
@@ -554,7 +564,7 @@ void MIT<dim>::run()
     time_stepping.update_coefficients();
 
     // Updates the functions and constraints to t^{k}
-    temperature->boundary_conditions.set_time(time_stepping.get_next_time());
+    temperature_boundary_conditions->set_time(time_stepping.get_next_time());
     temperature->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
