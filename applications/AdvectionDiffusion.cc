@@ -1,5 +1,4 @@
 #include <rotatingMHD/convection_diffusion_solver.h>
-#include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -13,16 +12,159 @@
 
 #include <memory>
 
-namespace RMHD
+
+namespace AdvectionDiffusion
 {
+
+using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+template <int dim>
+class TemperatureExactSolution : public Function<dim>
+{
+public:
+  TemperatureExactSolution(const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int = 0) const override;
+
+private:
+  /*!
+   * @brief The wave number.
+   */
+  const double k = M_PI;
+};
 
 
 
 template <int dim>
-class AdvectionDiffusion : public Problem <dim>
+TemperatureExactSolution<dim>::TemperatureExactSolution
+(const double time)
+:
+Function<dim>(1, time)
+{}
+
+
+
+template<int dim>
+double TemperatureExactSolution<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  return (std::sin(k * x) * std::sin(k * y) * std::sin(k * t));
+}
+
+
+
+template<int dim>
+Tensor<1, dim> TemperatureExactSolution<dim>::gradient
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  Tensor<1, dim>  return_value;
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  return_value[0] = k * std::cos(k * x) * std::sin(k * y) * std::sin(k * t);
+  return_value[1] = k * std::sin(k * x) * std::cos(k * y) * std::sin(k * t);
+
+  return return_value;
+}
+
+
+
+template <int dim>
+class VelocityExactSolution : public TensorFunction<1, dim>
 {
 public:
-  AdvectionDiffusion(const RunTimeParameters::ProblemParameters &parameters);
+  VelocityExactSolution(const double time = 0);
+
+  virtual Tensor<1, dim> value(const Point<dim>  &p) const override;
+};
+
+template <int dim>
+VelocityExactSolution<dim>::VelocityExactSolution
+(const double time)
+:
+TensorFunction<1, dim>(time)
+{}
+
+
+
+template <int dim>
+Tensor<1, dim> VelocityExactSolution<dim>::value
+(const Point<dim>  &point) const
+{
+  (void)point;
+
+  Tensor<1, dim>  return_value;
+
+  return_value[0] = 1.0;
+  return_value[1] = 0.0;
+
+  return return_value;
+}
+
+
+
+template <int dim>
+class SourceTerm : public Function<dim>
+{
+public:
+  SourceTerm(const double Pe,
+             const double time = 0);
+
+  virtual double value(const Point<dim> &point,
+                       const unsigned int component = 0) const override;
+
+private:
+  const double Pe;
+};
+
+
+
+template <int dim>
+SourceTerm<dim>::SourceTerm(const double Pe,
+                            const double time)
+:
+Function<dim>(1, time),
+Pe(Pe)
+{}
+
+
+
+template <int dim>
+double SourceTerm<dim>::value(const Point<dim> &point,
+                              const unsigned int /* component */) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  return (M_PI*std::cos(M_PI*x)*std::sin(M_PI*t)*std::sin(M_PI*y) //
+          + M_PI*std::cos(M_PI*t)*std::sin(M_PI*x)*std::sin(M_PI*y)  //
+          + (2*std::pow(M_PI,2)*std::sin(M_PI*t)*std::sin(M_PI*x)*std::sin(M_PI*y))/Pe);
+}
+
+}  // namespace EquationData
+
+
+template <int dim>
+class AdvectionDiffusionProblem : public Problem <dim>
+{
+public:
+  AdvectionDiffusionProblem(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
@@ -33,11 +175,9 @@ private:
 
   std::shared_ptr<Function<dim>>                exact_solution;
 
-  LinearAlgebra::MPI::Vector                    error_field;
-
   std::shared_ptr<TensorFunction<1,dim>>        velocity_field;
 
-  EquationData::AdvectionDiffusion::SourceTerm<dim> source_term;
+  EquationData::SourceTerm<dim>                 source_term;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
@@ -71,7 +211,7 @@ private:
 
 
 template <int dim>
-AdvectionDiffusion<dim>::AdvectionDiffusion(
+AdvectionDiffusionProblem<dim>::AdvectionDiffusionProblem(
   const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
@@ -80,9 +220,9 @@ scalar_field(std::make_shared<Entities::FE_ScalarField<dim>>(
   parameters.fe_degree_temperature,
   this->triangulation,
   "Scalar field")),
-exact_solution(std::make_shared<EquationData::AdvectionDiffusion::TemperatureExactSolution<dim>>(
+exact_solution(std::make_shared<EquationData::TemperatureExactSolution<dim>>(
   parameters.time_discretization_parameters.start_time)),
-velocity_field(std::make_shared<EquationData::AdvectionDiffusion::VelocityExactSolution<dim>>(
+velocity_field(std::make_shared<EquationData::VelocityExactSolution<dim>>(
   parameters.time_discretization_parameters.start_time)),
 source_term(parameters.Pe, parameters.time_discretization_parameters.start_time),
 time_stepping(parameters.time_discretization_parameters),
@@ -100,7 +240,7 @@ log_file("AdvectionDiffusion_Log.csv")
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::make_grid(
+void AdvectionDiffusionProblem<dim>::make_grid(
   const unsigned int &n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
@@ -116,7 +256,7 @@ void AdvectionDiffusion<dim>::make_grid(
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::setup_dofs()
+void AdvectionDiffusionProblem<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
@@ -132,7 +272,7 @@ void AdvectionDiffusion<dim>::setup_dofs()
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::setup_constraints()
+void AdvectionDiffusionProblem<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
@@ -151,7 +291,7 @@ void AdvectionDiffusion<dim>::setup_constraints()
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::initialize()
+void AdvectionDiffusionProblem<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -163,7 +303,7 @@ void AdvectionDiffusion<dim>::initialize()
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::postprocessing()
+void AdvectionDiffusionProblem<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
@@ -186,11 +326,11 @@ void AdvectionDiffusion<dim>::postprocessing()
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::process_solution(const unsigned int cycle)
+void AdvectionDiffusionProblem<dim>::process_solution(const unsigned int cycle)
 {
   const double current_time{time_stepping.get_current_time()};
 
-  using ExactSolution = EquationData::ThermalTGV::TemperatureExactSolution<dim>;
+  using ExactSolution = EquationData::TemperatureExactSolution<dim>;
 
   exact_solution->set_time(current_time);
 
@@ -244,7 +384,7 @@ void AdvectionDiffusion<dim>::process_solution(const unsigned int cycle)
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::output()
+void AdvectionDiffusionProblem<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
@@ -269,13 +409,12 @@ void AdvectionDiffusion<dim>::output()
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::solve(const unsigned int &/* level */)
+void AdvectionDiffusionProblem<dim>::solve(const unsigned int &/* level */)
 {
   advection_diffusion.set_source_term(source_term);
   setup_dofs();
   setup_constraints();
   scalar_field->setup_vectors();
-  error_field.reinit(scalar_field->solution);
   initialize();
 
   // Outputs the fields at t_0, i.e. the initial conditions.
@@ -328,7 +467,7 @@ void AdvectionDiffusion<dim>::solve(const unsigned int &/* level */)
 
 
 template <int dim>
-void AdvectionDiffusion<dim>::run()
+void AdvectionDiffusionProblem<dim>::run()
 {
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
@@ -404,7 +543,7 @@ void AdvectionDiffusion<dim>::run()
 
 
 
-} // namespace RMHD
+} // namespace AdvectionDiffusion
 
 
 
@@ -413,7 +552,7 @@ int main(int argc, char *argv[])
   try
   {
     using namespace dealii;
-    using namespace RMHD;
+    using namespace AdvectionDiffusion;
 
     Utilities::MPI::MPI_InitFinalize mpi_initialization(argc,
                                                         argv,
@@ -423,7 +562,7 @@ int main(int argc, char *argv[])
       "AdvectionDiffusion.prm",
       true);
 
-    AdvectionDiffusion<2> simulation(parameter_set);
+    AdvectionDiffusionProblem<2> simulation(parameter_set);
 
     simulation.run();
   }
