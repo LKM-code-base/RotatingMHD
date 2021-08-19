@@ -3,8 +3,8 @@
 
 #include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/finite_element_field.h>
-#include <rotatingMHD/time_discretization.h>
 #include <rotatingMHD/run_time_parameters.h>
+#include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/point.h>
 #include <deal.II/base/table_handler.h>
@@ -44,16 +44,38 @@ namespace BenchmarkData
  *
  */
 template <int dim>
-struct DFGBechmarkRequest
+struct DFGBechmarkRequests
 {
-
+public:
   /*!
    *
    * @brief The default constructor of the structure.
    *
    */
-  DFGBechmarkRequest(const double reynolds_number = 100.0);
+  DFGBechmarkRequests(const double reynolds_number = 100.0);
 
+  /*!
+   * @brief A method that updates @ref data_table with the step number,
+   * the current dimensionless time, @ref pressure_difference,
+   * @ref drag_coefficient and the @ref lift_coefficient.
+   */
+  void update(const double                         time,
+              const unsigned int                   step_number,
+              const Entities::FE_VectorField<dim> &velocity,
+              const Entities::FE_ScalarField<dim> &pressure,
+              const types::boundary_id             cylinder_boundary_id = 2);
+  /*!
+   * @brief Output of the benchmark data to the terminal.
+   */
+  template<typename Stream, int dim_>
+  friend Stream& operator<<(Stream &stream, const DFGBechmarkRequests<dim_> &dfg);
+
+  /*!
+   * @brief A method that outputs the @ref data_table into a file.
+   */
+  void write_text(std::ostream  &file) const;
+
+private:
   /*!
    * @brief The Reynolds number of the problem.
    *
@@ -146,8 +168,7 @@ struct DFGBechmarkRequest
   /*!
    * @brief This method computes the @ref pressure_difference.
    */
-  void compute_pressure_difference
-  (const std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure);
+  void compute_pressure_difference(const Entities::FE_ScalarField<dim> &pressure);
 
   /*!
    * @brief This method computes the @ref drag_coefficient and the
@@ -172,29 +193,23 @@ struct DFGBechmarkRequest
    *
    */
   void compute_drag_and_lift_coefficients
-  (const std::shared_ptr<Entities::FE_VectorField<dim>>  &velocity,
-   const std::shared_ptr<Entities::FE_ScalarField<dim>>  &pressure,
-   const types::boundary_id                             cylinder_boundary_id = 2);
+  (const Entities::FE_VectorField<dim>  &velocity,
+   const Entities::FE_ScalarField<dim>  &pressure,
+   const types::boundary_id             cylinder_boundary_id = 2);
 
-  /*!
-   * @brief A method that updates @ref data_table with the step number,
-   * the current dimensionless time, @ref pressure_difference,
-   * @ref drag_coefficient and the @ref lift_coefficient.
-   */
-  void update_table(TimeDiscretization::DiscreteTime  &time);
-
-  /*!
-   * @brief A method that prints @ref data_table with the step number,
-   * the current dimensionless time, @ref pressure_difference,
-   * @ref drag_coefficient and the @ref lift_coefficient.
-   */
-  void print_step_data();
-
-  /*!
-   * @brief A method that outputs the @ref data_table into a file.
-   */
-  void write_table_to_file(const std::string &file);
 };
+
+
+
+/*!
+ * @brief Method forwarding benchmark requests to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ */
+template<typename Stream, int dim>
+Stream& operator<<(Stream &stream, const DFGBechmarkRequests<dim> &prm);
+
+
 
 /*!
  * @class MIT
