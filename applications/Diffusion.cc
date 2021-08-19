@@ -1,5 +1,5 @@
 #include <rotatingMHD/convection_diffusion_solver.h>
-#include <rotatingMHD/entities_structs.h>
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
@@ -96,7 +96,7 @@ public:
 private:
   const RunTimeParameters::ProblemParameters    &parameters;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  scalar_field;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  scalar_field;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
@@ -131,7 +131,7 @@ Diffusion<dim>::Diffusion(
 :
 Problem<dim>(parameters),
 parameters(parameters),
-scalar_field(std::make_shared<Entities::ScalarEntity<dim>>(
+scalar_field(std::make_shared<Entities::FE_ScalarField<dim>>(
   parameters.fe_degree_temperature,
   this->triangulation,
   "Scalar field")),
@@ -321,7 +321,8 @@ void Diffusion<dim>::solve()
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
     // Updates the coefficients to their k-th value
-    *this->pcout << time_stepping << std::endl;
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
     time_stepping.update_coefficients();
 
     scalar_field->boundary_conditions.set_time(time_stepping.get_next_time());

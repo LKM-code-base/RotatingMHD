@@ -1,15 +1,43 @@
 # Listing of Parameters
 # ---------------------
 set FE's polynomial degree - Pressure (Taylor-Hood) = 1
+set FE's polynomial degree - Temperature            = 2
 set Mapping - Apply to interior cells               = false
-set Mapping - Polynomial degree                     = 2
-set Problem type                                    = hydrodynamic
+set Mapping - Polynomial degree                     = 1
+set Problem type                                    = boussinesq
 set Spatial dimension                               = 2
 set Verbose                                         = false
 
 
 subsection Dimensionless numbers
-  set Reynolds number         = 100.0
+  set Prandtl number          = 0.71
+  set Rayleigh number         = 3.4e5
+end
+
+
+subsection Heat equation solver parameters
+  set Convective term time discretization = semi-implicit
+  set Convective term weak form           = skew-symmetric
+  set Preconditioner update frequency     = 10
+  set Verbose                             = false
+
+
+  subsection Linear solver parameters
+    set Absolute tolerance           = 1e-11
+    set Maximum number of iterations = 1000
+    set Relative tolerance           = 1e-10
+
+
+    subsection Preconditioner parameters
+      set Preconditioner type      = ILU
+      set Fill-in level            = 2
+      set Absolute tolerance       = 1e-5
+      set Relative tolerance       = 1.01
+      set Overlap                  = 2
+    end
+
+  end
+
 end
 
 
@@ -17,13 +45,13 @@ subsection Navier-Stokes solver parameters
   set Convective term time discretization    = semi-implicit
   set Convective term weak form              = skew-symmetric
   set Incremental pressure-correction scheme = rotational
-  set Preconditioner update frequency        = 15
+  set Preconditioner update frequency        = 10
   set Verbose                                = false
 
 
   subsection Linear solver parameters - Correction step
     set Absolute tolerance           = 1e-11
-    set Maximum number of iterations = 200
+    set Maximum number of iterations = 1000
     set Relative tolerance           = 1e-10
 
 
@@ -39,7 +67,7 @@ subsection Navier-Stokes solver parameters
 
   subsection Linear solver parameters - Diffusion step
     set Absolute tolerance           = 1e-11
-    set Maximum number of iterations = 200
+    set Maximum number of iterations = 1000
     set Relative tolerance           = 1e-10
 
 
@@ -55,7 +83,7 @@ subsection Navier-Stokes solver parameters
 
   subsection Linear solver parameters - Poisson pre-step
     set Absolute tolerance           = 1e-11
-    set Maximum number of iterations = 200
+    set Maximum number of iterations = 1000
     set Relative tolerance           = 1e-10
 
 
@@ -71,7 +99,7 @@ subsection Navier-Stokes solver parameters
 
   subsection Linear solver parameters - Projection step
     set Absolute tolerance           = 1e-11
-    set Maximum number of iterations = 200
+    set Maximum number of iterations = 1000
     set Relative tolerance           = 1e-10
 
 
@@ -89,8 +117,8 @@ end
 
 
 subsection Output control parameters
-  set Graphical output directory = DFGResults/
-  set Graphical output frequency = 10
+  set Graphical output directory = MITResults/
+  set Graphical output frequency = 5
   set Terminal output frequency  = 1
 end
 
@@ -103,19 +131,19 @@ subsection Refinement control parameters
   set Maximum number of levels               = 5
   set Minimum number of levels               = 0
   set Number of initial adaptive refinements = 0
-  set Number of initial boundary refinements = 1
-  set Number of initial global refinements   = 2
+  set Number of initial boundary refinements = 0
+  set Number of initial global refinements   = 0
 end
 
 
 subsection Time stepping parameters
   set Adaptive time stepping        = false
   set Adaptive timestepping barrier = 2
-  set Final time                    = 3000.0
-  set Initial time step             = 2.5e-2
-  set Maximum number of time steps  = 10
-  set Maximum time step             = 5e-2
-  set Minimum time step             = 1e-2
+  set Final time                    = 1.0
+  set Initial time step             = 5e-2
+  set Maximum number of time steps  = 5
+  set Maximum time step             = 7e-2
+  set Minimum time step             = 2e-2
   set Start time                    = 0.0
   set Time stepping scheme          = BDF2
   set Verbose                       = false

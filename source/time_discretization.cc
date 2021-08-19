@@ -143,7 +143,6 @@ void TimeDiscretizationParameters::parse_parameters(ParameterHandler &prm)
            ExcLowerRange(adaptive_time_step_barrier, 0));
 
     n_maximum_steps = prm.get_integer("Maximum number of time steps");
-    Assert(n_maximum_steps > 0, ExcLowerRange(n_maximum_steps, 0));
 
     initial_time_step = prm.get_double("Initial time step");
     Assert(initial_time_step > 0,
@@ -262,26 +261,6 @@ Stream& operator<<(Stream &stream, const TimeDiscretizationParameters &prm)
 }
 
 template<typename Stream>
-Stream& operator<<(Stream &stream, const VSIMEXMethod &vsimex)
-{
-  stream << "Step = "
-         << std::right
-         << std::setw(6)
-         << vsimex.get_step_number()
-         << ","
-         << std::left
-         << " Current time = "
-         << std::scientific
-         << vsimex.get_current_time()
-         << ","
-         << " Next time step = "
-         << std::scientific
-         << vsimex.get_next_step_size();
-
-  return (stream);
-}
-
-template<typename Stream>
 void VSIMEXMethod::print_coefficients(Stream &stream, const std::string prefix) const
 {
   switch (beta.size())
@@ -350,30 +329,6 @@ void VSIMEXMethod::print_coefficients(Stream &stream, const std::string prefix) 
            << it;
     stream << " | ";
   }
-
-  stream << std::endl
-         << prefix.c_str() << "|  alpha_zero |     -      | ";
-  for (const auto it: previous_alpha_zeros)
-  {
-    stream << std::setw(10)
-           << std::setprecision(2)
-           << std::scientific
-           << std::right
-           << it;
-    stream << " | ";
-  }
-
-  stream << std::endl
-         << prefix.c_str() << "|old_step_size|     -      | ";
-  for (const auto it: previous_step_sizes)
-  {
-    stream << std::setw(10)
-           << std::setprecision(2)
-           << std::scientific
-           << std::right
-           << it;
-    stream << " | ";
-  }
   stream << std::endl;
 
   switch (beta.size())
@@ -392,7 +347,7 @@ void VSIMEXMethod::print_coefficients(Stream &stream, const std::string prefix) 
       break;
   }
 
-  stream << std::fixed << std::setprecision(0);
+  stream << std::defaultfloat;
 }
 
 std::string VSIMEXMethod::get_name() const
@@ -434,8 +389,6 @@ beta(order, 0.0),
 gamma(order+1, 0.0),
 eta(order, 0.0),
 omega(1.0),
-previous_alpha_zeros(order, 1.0),
-previous_step_sizes(order, 0.0),
 minimum_step_size(params.minimum_time_step),
 maximum_step_size(params.maximum_time_step),
 flag_coefficients_changed(true)
@@ -487,8 +440,6 @@ beta(other.beta),
 gamma(other.gamma),
 eta(other.eta),
 omega(other.omega),
-previous_alpha_zeros(other.previous_alpha_zeros),
-previous_step_sizes(other.previous_step_sizes),
 minimum_step_size(other.get_minimum_step_size()),
 maximum_step_size(other.get_maximum_step_size()),
 flag_coefficients_changed(true)
@@ -502,13 +453,8 @@ void VSIMEXMethod::clear()
     beta[i] = 0.0;
     gamma[i] = 0.0;
   }
-
   for (unsigned int i=0; i<order; ++i)
-  {
     eta[i] = 0.0;
-    previous_alpha_zeros[i] = 0.0;
-    previous_step_sizes[i] = 0.0;
-  }
 
   omega = 1.0;
 
@@ -524,8 +470,6 @@ void VSIMEXMethod::reinit()
   beta.resize(order, 0.0);
   gamma.resize(order+1, 0.0);
   eta.resize(order, 0.0);
-  previous_step_sizes.resize(order, 0.0);
-  previous_alpha_zeros.resize(order, 1.0);
 }
 
 void VSIMEXMethod::set_desired_next_step_size(const double time_step_size)
@@ -548,24 +492,6 @@ void VSIMEXMethod::update_coefficients()
     omega = get_next_step_size() / get_previous_step_size();
     AssertIsFinite(omega);
   }
-
-  // The elimination of the solenoidal velocity in the pressure
-  // correction scheme requires to store older values of
-  // \f$ \alpha_0\f$ and time steps. The following updates
-  // the std::vectors storing those values
-  for (unsigned int i = order-1; i > 0; --i)
-  {
-    previous_alpha_zeros[i]       = previous_alpha_zeros[i-1];
-    previous_step_sizes[i] = previous_step_sizes[i-1];
-  }
-
-  // and stores their previous values. The inline if considers the
-  // change from a first to second order scheme between the first and
-  // second time steps.
-  previous_alpha_zeros[0]       = (get_step_number() > 1)
-                            ? alpha[0]
-                            : (1.0 + 2.0 * vsimex_parameters[0])/2.0;
-  previous_step_sizes[0] = get_previous_step_size();
 
   // Checks if the time step size changes. If not, exit the method.
   // The second boolean, i.e. get_step_number() <= (get_order() - 1),
@@ -700,11 +626,6 @@ template std::ostream & RMHD::TimeDiscretization::operator<<
 (std::ostream &, const RMHD::TimeDiscretization::TimeDiscretizationParameters &);
 template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
 (dealii::ConditionalOStream &, const RMHD::TimeDiscretization::TimeDiscretizationParameters  &);
-
-template std::ostream & RMHD::TimeDiscretization::operator<<
-(std::ostream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
-template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
-(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::VSIMEXMethod &);
 
 template void RMHD::TimeDiscretization::VSIMEXMethod::print_coefficients
 (std::ostream &, const std::string prefix) const;

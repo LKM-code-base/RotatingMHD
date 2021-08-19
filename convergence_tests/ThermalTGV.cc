@@ -1,5 +1,5 @@
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -38,7 +38,7 @@ private:
 
   std::ofstream                                 log_file;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
   LinearAlgebra::MPI::Vector                    error;
 
@@ -80,7 +80,7 @@ ThermalTGV<dim>::ThermalTGV(
 Problem<dim>(parameters),
 parameters(parameters),
 log_file("ThermalTGV_Log.csv"),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_temperature,
+temperature(std::make_shared<Entities::FE_ScalarField<dim>>(parameters.fe_degree_temperature,
                                                           this->triangulation,
                                                           "Temperature")),
 time_stepping(parameters.time_discretization_parameters),
@@ -184,7 +184,7 @@ void ThermalTGV<dim>::postprocessing()
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
   std::cout.precision(1);
-  *this->pcout  << time_stepping
+  *this->pcout  << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
                 << " Norm = "
                 << std::noshowpos << std::scientific
                 << heat_equation.get_rhs_norm()

@@ -1,5 +1,4 @@
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
@@ -12,10 +11,10 @@
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <iostream>
 #include <fstream>
@@ -89,13 +88,11 @@ public:
   void run();
 
 private:
-  const RunTimeParameters::ProblemParameters    &params;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
-
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
   std::shared_ptr<EquationData::MIT::TemperatureBoundaryCondition<dim>>
                                                 temperature_boundary_conditions;
@@ -114,9 +111,13 @@ private:
 
   std::ofstream                                 cfl_output_file;
 
-  bool                                          flag_local_refinement;
 
-  void make_grid(const unsigned int n_global_refinements);
+  const types::boundary_id  left_bndry_id = 1;
+  const types::boundary_id  right_bndry_id = 2;
+  const types::boundary_id  top_bndry_id = 3;
+  const types::boundary_id  bottom_bndry_id = 4;
+
+  void make_grid();
 
   void setup_dofs();
 
@@ -135,16 +136,15 @@ template <int dim>
 MITBenchmark<dim>::MITBenchmark(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-params(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(
               parameters.fe_degree_velocity,
               this->triangulation,
               "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_pressure,
               this->triangulation,
               "Pressure")),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(
+temperature(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_temperature,
               this->triangulation,
               "Temperature")),
@@ -177,14 +177,13 @@ mit_benchmark(velocity,
               this->pcout,
               this->computing_timer),
 gravity_vector(parameters.time_discretization_parameters.start_time),
-cfl_output_file("MIT_cfl_number.csv"),
-flag_local_refinement(true)
+cfl_output_file("MIT_cfl_number.csv")
 {
   *this->pcout << parameters << std::endl << std::endl;
 
   AssertDimension(dim, 2);
   navier_stokes.set_gravity_vector(gravity_vector);
-  make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
+  make_grid();
   setup_dofs();
   setup_constraints();
   velocity->reinit();
@@ -201,31 +200,70 @@ flag_local_refinement(true)
   cfl_output_file << "Time" << "," << "CFL" << std::endl;
 }
 
-template <int dim>
-void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
+template <>
+void MITBenchmark<2>::make_grid()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
-  // Reads the structured mesh done in gmsh. This mesh is modelled after
-  // the one named "1R" by the benchmark's authors.
-  GridIn<dim> grid_in;
-  grid_in.attach_triangulation(this->triangulation);
-  std::ifstream triangulation_file("MIT.msh");
-  grid_in.read_msh(triangulation_file);
+  constexpr int dim = 2;
+  constexpr double tol = 1e-12;
+
+  Triangulation<dim>  tria;
+
+  GridGenerator::subdivided_hyper_rectangle(tria,
+                                            {16u, 16u*8u},
+                                            Point<dim>(0., 0.),
+                                            Point<dim>(1., 8.));
+
+  for (auto &face: tria.active_face_iterators())
+    if (face->at_boundary())
+    {
+      const Point<dim> center = face->center();
+
+      if (std::abs(center[1]) > tol && std::abs(center[1] - 8.0) > tol)
+      {
+        if (std::abs(center[0]) < tol)
+          face->set_boundary_id(left_bndry_id);
+        else if (std::abs(center[0] - 1.0) < tol)
+          face->set_boundary_id(right_bndry_id);
+        else
+          Assert(false, ExcInternalError());
+      }
+      else if (std::abs(center[1]) < tol)
+        face->set_boundary_id(bottom_bndry_id);
+      else if (std::abs(center[1] - 8.0) < tol)
+        face->set_boundary_id(top_bndry_id);
+      else
+        Assert(false, ExcInternalError());
+    }
+
+  // Transforms the mesh
+  auto transformation = [](const Point<dim> &point)
+      {
+        // Compute coordinate of Chebyshev node
+        const std::array<double, dim> chebyshev_coords
+          {0.5 - 0.5 * cos(point[0] * numbers::PI),
+           4.0 - 4.0 * cos(point[1] / 8.0 * numbers::PI)};
+        // Take the mean of the Chebyshev and the original coordinate
+        return Point<dim>(0.5 * (point[0] + chebyshev_coords[0]),
+                          0.5 * (point[1] + chebyshev_coords[1]));
+      };
+  GridTools::transform(transformation, tria);
+
+  this->triangulation.copy_triangulation(tria);
 
   // Performs global refinements
-  this->triangulation.refine_global(n_global_refinements);
+  this->triangulation.refine_global(prm.spatial_discretization_parameters.n_initial_global_refinements);
 
   // Performs a one level local refinement of the cells located at the
   // side walls
-  if (flag_local_refinement)
+  for (unsigned int i=0;
+        i<prm.spatial_discretization_parameters.n_initial_boundary_refinements;
+        ++i)
   {
-    for (const auto &cell : this->triangulation.active_cell_iterators())
-      if (cell->is_locally_owned() && cell->at_boundary())
-        for (const auto &face : cell->face_iterators())
-          if (face->boundary_id() == 1 || face->boundary_id() == 2)
-            cell->set_refine_flag();
-
+    for (auto &cell: this->triangulation.active_cell_iterators())
+      if (cell->at_boundary() && cell->is_locally_owned())
+        cell->set_refine_flag();
     this->triangulation.execute_coarsening_and_refinement();
   }
 
@@ -233,6 +271,11 @@ void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
                  << std::endl
                  << " Number of initial active cells           = "
                  << this->triangulation.n_global_active_cells()
+                 << std::endl
+                 << " Maximum aspect ratio                     = "
+                 << GridTools::compute_maximum_aspect_ratio(*this->mapping,
+                                                            this->triangulation,
+                                                            QGauss<dim>(2))
                  << std::endl << std::endl;
 }
 
@@ -272,10 +315,10 @@ void MITBenchmark<dim>::setup_constraints()
 
   // Homogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  velocity->boundary_conditions.set_dirichlet_bcs(1);
-  velocity->boundary_conditions.set_dirichlet_bcs(2);
-  velocity->boundary_conditions.set_dirichlet_bcs(3);
-  velocity->boundary_conditions.set_dirichlet_bcs(4);
+  velocity->boundary_conditions.set_dirichlet_bcs(left_bndry_id);
+  velocity->boundary_conditions.set_dirichlet_bcs(right_bndry_id);
+  velocity->boundary_conditions.set_dirichlet_bcs(top_bndry_id);
+  velocity->boundary_conditions.set_dirichlet_bcs(bottom_bndry_id);
 
   // The pressure itself has no boundary conditions, leading to a pure
   // Neumann problem. A datum ensures the well-posedness of the problem
@@ -287,11 +330,11 @@ void MITBenchmark<dim>::setup_constraints()
   // the side walls and homogeneous Neumann boundary conditions over
   // the bottom and top walls for the temperature field.
   temperature->boundary_conditions.set_dirichlet_bcs(
-    1, temperature_boundary_conditions, true);
+    left_bndry_id, temperature_boundary_conditions, true);
   temperature->boundary_conditions.set_dirichlet_bcs(
-    2, temperature_boundary_conditions, true);
-  temperature->boundary_conditions.set_neumann_bcs(3);
-  temperature->boundary_conditions.set_neumann_bcs(4);
+    right_bndry_id, temperature_boundary_conditions, true);
+  temperature->boundary_conditions.set_neumann_bcs(top_bndry_id);
+  temperature->boundary_conditions.set_neumann_bcs(bottom_bndry_id);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -341,12 +384,11 @@ void MITBenchmark<dim>::postprocessing()
   // class for further information.
   mit_benchmark.compute_benchmark_data();
 
-  std::cout.precision(1);
   /*! @attention For some reason, a run time error happens when I try
       to only use one pcout */
-  *this->pcout << time_stepping << ", ";
-  *this->pcout << mit_benchmark
-               << ", CFL = "
+  *this->pcout << "    ";
+  *this->pcout << mit_benchmark << std::endl;
+  *this->pcout << "    CFL = "
                << cfl_number
                << ", Norms: ("
                << std::noshowpos << std::scientific
@@ -355,11 +397,8 @@ void MITBenchmark<dim>::postprocessing()
                << navier_stokes.get_projection_step_rhs_norm()
                << ", "
                << heat_equation.get_rhs_norm()
-               << ") ["
-               << std::setw(5)
-               << std::fixed
-               << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-               << "%] \r";
+               << ")"
+               << std::endl;
 
   if (time_stepping.get_step_number() % 10 == 0)
     cfl_output_file << time_stepping.get_current_time() << ","
@@ -420,7 +459,12 @@ void MITBenchmark<dim>::update_solution_vectors()
 template <int dim>
 void MITBenchmark<dim>::run()
 {
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
+
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+               << std::endl;
+  while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -445,6 +489,8 @@ void MITBenchmark<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
 
     // Performs post-processing
     postprocessing();
@@ -475,10 +521,15 @@ int main(int argc, char *argv[])
       using namespace dealii;
       using namespace RMHD;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 2);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-      RunTimeParameters::ProblemParameters parameter_set("MIT.prm");
+      std::string parameter_filename;
+      if (argc >= 2)
+        parameter_filename = argv[1];
+      else
+        parameter_filename = "MIT.prm";
+
+      RunTimeParameters::ProblemParameters parameter_set(parameter_filename);
 
       MITBenchmark<2> simulation(parameter_set);
 

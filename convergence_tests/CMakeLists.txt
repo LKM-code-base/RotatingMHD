@@ -1,18 +1,14 @@
-PROJECT(applications)
-
 INCLUDE_DIRECTORIES(
     include
     ${CMAKE_SOURCE_DIR}/include
     )
 
 SET(SOURCE_FILES
-    Christensen.cc
-    DFG.cc
-    MIT.cc
-    step-35.cc
-    AdvectionDiffusion.cc
-    Diffusion.cc
-    DiffusionTest.cc
+    TGV.cc
+    Guermond.cc
+    GuermondNeumannBC.cc
+    Couette.cc
+    ThermalTGV.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})
