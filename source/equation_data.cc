@@ -18,118 +18,6 @@ namespace EquationData
 namespace GuermondNeumannBC
 {
 
-template <int dim>
-VelocityExactSolution<dim>::VelocityExactSolution(const double time)
-:
-Function<dim>(dim, time)
-{}
-
-template <int dim>
-void VelocityExactSolution<dim>::vector_value(
-                                        const Point<dim>  &point,
-                                        Vector<double>    &values) const
-{
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  values[0] = sin(x) * sin(y + t);
-  values[1] = cos(x) * cos(y + t);
-}
-
-template <int dim>
-Tensor<1, dim> VelocityExactSolution<dim>::gradient(
-  const Point<dim>  &point,
-  const unsigned int component) const
-{
-  Tensor<1, dim>  return_value;
-
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  // The gradient has to match that of dealii, i.e. from the right.
-  if (component == 0)
-  {
-    return_value[0] = cos(x) * sin(y + t);
-    return_value[1] = sin(x) * cos(y + t);
-  }
-  else if (component == 1)
-  {
-    return_value[0] = - sin(x) * cos(y + t);
-    return_value[1] = - cos(x) * sin(y + t);
-  }
-
-  return return_value;
-}
-
-template <int dim>
-PressureExactSolution<dim>::PressureExactSolution(const double time)
-:
-Function<dim>(1, time)
-{}
-
-template<int dim>
-double PressureExactSolution<dim>::value
-(const Point<dim> &point,
- const unsigned int /* component */) const
-{
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  return (cos(x) * sin(y + t));
-}
-
-template<int dim>
-Tensor<1, dim> PressureExactSolution<dim>::gradient
-(const Point<dim> &point,
- const unsigned int /* component */) const
-{
-  Tensor<1, dim>  return_value;
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  return_value[0] =  - sin(x) * sin(y + t);
-  return_value[1] = cos(x) * cos(y + t);
-
-  return return_value;
-}
-
-template <int dim>
-BodyForce<dim>::BodyForce
-(const double Re,
- const double time)
-:
-TensorFunction<1, dim>(time),
-Re(Re)
-{}
-
-template <int dim>
-Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
-{
-  // The commented out lines corresponds to the case where the convection
-  // term is ignored.
-  Tensor<1, dim> value;
-
-  const double t = this->get_time();
-  const double x = point(0);
-  const double y = point(1);
-
-  // With advection term
-  value[0] = (sin(x)*(Re*(cos(x) + cos(t + y)) - 1.*(-2. + Re)*sin(t + y)))/Re;
-  value[1] = (((2. + Re)*cos(x)*cos(t + y))/Re - 1.*(cos(x) + cos(t + y))*sin(t + y));
-
-  /*
-  // Without advection term
-  value[0] = ((sin(x)*(Re*cos(t + y) - 1.*(-2. + Re)*sin(t + y)))/Re);
-  value[1] = (cos(x)*((2. + Re)*cos(t + y) - 1.*Re*sin(t + y)))/Re;
-  */
-
-  return value;
-}
-
 
 } // namespace GuermondNeumannBC
 namespace Couette
@@ -295,14 +183,6 @@ void VelocityField<dim>::vector_value
 
 
 // explicit instantiation
-template class RMHD::EquationData::GuermondNeumannBC::VelocityExactSolution<2>;
-template class RMHD::EquationData::GuermondNeumannBC::VelocityExactSolution<3>;
-
-template class RMHD::EquationData::GuermondNeumannBC::PressureExactSolution<2>;
-template class RMHD::EquationData::GuermondNeumannBC::PressureExactSolution<3>;
-
-template class RMHD::EquationData::GuermondNeumannBC::BodyForce<2>;
-template class RMHD::EquationData::GuermondNeumannBC::BodyForce<3>;
 
 template class RMHD::EquationData::Couette::VelocityExactSolution<2>;
 template class RMHD::EquationData::Couette::VelocityExactSolution<3>;

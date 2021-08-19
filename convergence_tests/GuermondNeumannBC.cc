@@ -4,7 +4,6 @@
  * @brief The .cc file replicating the numerical test of section 10.3 of the Guermond paper.
  *
  */
-#include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -20,9 +19,184 @@
 
 #include <memory>
 
-namespace RMHD
+namespace GuermondNeumannBC
 {
-  using namespace dealii;
+
+using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+template <int dim>
+class VelocityExactSolution : public Function<dim>
+{
+public:
+  VelocityExactSolution(const double time = 0);
+
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int component) const;
+};
+
+
+
+template <int dim>
+VelocityExactSolution<dim>::VelocityExactSolution(const double time)
+:
+Function<dim>(dim, time)
+{}
+
+template <int dim>
+void VelocityExactSolution<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  values[0] = sin(x) * sin(y + t);
+  values[1] = cos(x) * cos(y + t);
+}
+
+
+
+template <int dim>
+Tensor<1, dim> VelocityExactSolution<dim>::gradient
+(const Point<dim>  &point,
+ const unsigned int component) const
+{
+  Tensor<1, dim>  return_value;
+
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  // The gradient has to match that of dealii, i.e. from the right.
+  if (component == 0)
+  {
+    return_value[0] = cos(x) * sin(y + t);
+    return_value[1] = sin(x) * cos(y + t);
+  }
+  else if (component == 1)
+  {
+    return_value[0] = - sin(x) * cos(y + t);
+    return_value[1] = - cos(x) * sin(y + t);
+  }
+
+  return return_value;
+}
+
+
+
+template <int dim>
+class PressureExactSolution : public Function<dim>
+{
+public:
+  PressureExactSolution(const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                      const unsigned int component = 0) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int = 0) const;
+};
+
+
+
+template <int dim>
+PressureExactSolution<dim>::PressureExactSolution(const double time)
+:
+Function<dim>(1, time)
+{}
+
+
+
+template<int dim>
+double PressureExactSolution<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  return (cos(x) * sin(y + t));
+}
+
+
+
+template<int dim>
+Tensor<1, dim> PressureExactSolution<dim>::gradient
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  Tensor<1, dim>  return_value;
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  return_value[0] =  - sin(x) * sin(y + t);
+  return_value[1] = cos(x) * cos(y + t);
+
+  return return_value;
+}
+
+
+
+template <int dim>
+class BodyForce: public TensorFunction<1, dim>
+{
+public:
+  BodyForce(const double Re,
+            const double time = 0);
+
+  virtual Tensor<1, dim> value(
+    const Point<dim>  &point) const override;
+
+private:
+  const double Re;
+};
+
+
+
+template <int dim>
+BodyForce<dim>::BodyForce
+(const double Re,
+ const double time)
+:
+TensorFunction<1, dim>(time),
+Re(Re)
+{}
+
+
+
+template <int dim>
+Tensor<1, dim> BodyForce<dim>::value(const Point<dim> &point) const
+{
+  // The lines commented out correspond to the case where the convection
+  // term is ignored.
+  Tensor<1, dim> value;
+
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  // With advection term
+  value[0] = (sin(x)*(Re*(cos(x) + cos(t + y)) - 1.*(-2. + Re)*sin(t + y)))/Re;
+  value[1] = (((2. + Re)*cos(x)*cos(t + y))/Re - 1.*(cos(x) + cos(t + y))*sin(t + y));
+
+  // Without advection term
+  // value[0] = ((sin(x)*(Re*cos(t + y) - 1.*(-2. + Re)*sin(t + y)))/Re);
+  // value[1] = (cos(x)*((2. + Re)*cos(t + y) - 1.*Re*sin(t + y)))/Re;
+
+  return value;
+}
+
+}  // namespace EquationData
 
 /*!
  * @class Guermond
@@ -31,10 +205,10 @@ namespace RMHD
  *
  */
 template <int dim>
-class Guermond : public Problem<dim>
+class GuermondNeumannProblem : public Problem<dim>
 {
 public:
-  Guermond(const RunTimeParameters::ProblemParameters &parameters);
+  GuermondNeumannProblem(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
@@ -48,22 +222,17 @@ private:
 
   std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
-  LinearAlgebra::MPI::Vector                    velocity_error;
-
-  LinearAlgebra::MPI::Vector                    pressure_error;
-
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  std::shared_ptr<EquationData::GuermondNeumannBC::VelocityExactSolution<dim>>
+  std::shared_ptr<EquationData::VelocityExactSolution<dim>>
                                                 velocity_exact_solution;
 
-  std::shared_ptr<EquationData::GuermondNeumannBC::PressureExactSolution<dim>>
+  std::shared_ptr<EquationData::PressureExactSolution<dim>>
                                                 pressure_exact_solution;
 
-  EquationData::GuermondNeumannBC::BodyForce<dim>
-                                                body_force;
+  EquationData::BodyForce<dim>                  body_force;
 
   ConvergenceAnalysisData<dim>                  velocity_convergence_table;
 
@@ -92,7 +261,7 @@ private:
 };
 
 template <int dim>
-Guermond<dim>::Guermond(const RunTimeParameters::ProblemParameters &parameters)
+GuermondNeumannProblem<dim>::GuermondNeumannProblem(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
@@ -112,10 +281,10 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->pcout,
               this->computing_timer),
 velocity_exact_solution(
-  std::make_shared<EquationData::GuermondNeumannBC::VelocityExactSolution<dim>>(
+  std::make_shared<EquationData::VelocityExactSolution<dim>>(
     parameters.time_discretization_parameters.start_time)),
 pressure_exact_solution(
-  std::make_shared<EquationData::GuermondNeumannBC::PressureExactSolution<dim>>(
+  std::make_shared<EquationData::PressureExactSolution<dim>>(
     parameters.time_discretization_parameters.start_time)),
 body_force(parameters.Re, parameters.time_discretization_parameters.start_time),
 velocity_convergence_table(velocity, *velocity_exact_solution),
@@ -133,7 +302,7 @@ flag_set_exact_pressure_constant(false)
 }
 
 template <int dim>
-void Guermond<dim>::
+void GuermondNeumannProblem<dim>::
 make_grid(const unsigned int &n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
@@ -147,7 +316,7 @@ make_grid(const unsigned int &n_global_refinements)
 }
 
 template <int dim>
-void Guermond<dim>::setup_dofs()
+void GuermondNeumannProblem<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
@@ -168,7 +337,7 @@ void Guermond<dim>::setup_dofs()
 }
 
 template <int dim>
-void Guermond<dim>::setup_constraints()
+void GuermondNeumannProblem<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
@@ -203,7 +372,7 @@ void Guermond<dim>::setup_constraints()
 }
 
 template <int dim>
-void Guermond<dim>::initialize()
+void GuermondNeumannProblem<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -218,15 +387,15 @@ void Guermond<dim>::initialize()
 }
 
 template <int dim>
-void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
+void GuermondNeumannProblem<dim>::postprocessing(const bool flag_point_evaluation)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
   if (flag_set_exact_pressure_constant)
   {
-    LinearAlgebra::MPI::Vector  analytical_pressure(pressure->solution);
+    RMHD::LinearAlgebra::MPI::Vector  analytical_pressure(pressure->solution);
     {
-      LinearAlgebra::MPI::Vector tmp_analytical_pressure(pressure->distributed_vector);
+      RMHD::LinearAlgebra::MPI::Vector tmp_analytical_pressure(pressure->distributed_vector);
 
       VectorTools::project(pressure->get_dof_handler(),
                           pressure->get_constraints(),
@@ -237,8 +406,8 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
       analytical_pressure = tmp_analytical_pressure;
     }
     {
-      LinearAlgebra::MPI::Vector distributed_analytical_pressure;
-      LinearAlgebra::MPI::Vector distributed_numerical_pressure;
+      RMHD::LinearAlgebra::MPI::Vector distributed_analytical_pressure;
+      RMHD::LinearAlgebra::MPI::Vector distributed_numerical_pressure;
 
       distributed_analytical_pressure.reinit(pressure->distributed_vector);
       distributed_numerical_pressure.reinit(distributed_analytical_pressure);
@@ -281,12 +450,11 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 }
 
 template <int dim>
-void Guermond<dim>::output()
+void GuermondNeumannProblem<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
   std::vector<std::string> names(dim, "velocity");
-  std::vector<std::string> error_name(dim, "velocity_error");
 
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
   component_interpretation(dim,
@@ -299,18 +467,9 @@ void Guermond<dim>::output()
                            names,
                            component_interpretation);
 
-  data_out.add_data_vector(velocity->get_dof_handler(),
-                           velocity_error,
-                           error_name,
-                           component_interpretation);
-
   data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
-
-  data_out.add_data_vector(pressure->get_dof_handler(),
-                           pressure_error,
-                           "pressure_error");
 
   data_out.build_patches(velocity->fe_degree());
 
@@ -326,22 +485,20 @@ void Guermond<dim>::output()
 }
 
 template <int dim>
-void Guermond<dim>::update_entities()
+void GuermondNeumannProblem<dim>::update_entities()
 {
   velocity->update_solution_vectors();
   pressure->update_solution_vectors();
 }
 
 template <int dim>
-void Guermond<dim>::solve(const unsigned int &level)
+void GuermondNeumannProblem<dim>::solve(const unsigned int &level)
 {
   navier_stokes.set_body_force(body_force);
   setup_dofs();
   setup_constraints();
   velocity->setup_vectors();
   pressure->setup_vectors();
-  velocity_error.reinit(velocity->solution);
-  pressure_error.reinit(pressure->solution);
   initialize();
 
   time_stepping.advance_time();
@@ -418,7 +575,7 @@ void Guermond<dim>::solve(const unsigned int &level)
 }
 
 template <int dim>
-void Guermond<dim>::run()
+void GuermondNeumannProblem<dim>::run()
 {
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
@@ -489,14 +646,14 @@ void Guermond<dim>::run()
   pressure_convergence_table.write_text(tablefilename.str() + "_Pressure");
 }
 
-} // namespace RMHD
+} // namespace GuermondNeumannBC
 
 int main(int argc, char *argv[])
 {
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace GuermondNeumannBC;
 
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
@@ -504,7 +661,7 @@ int main(int argc, char *argv[])
       RunTimeParameters::ProblemParameters parameter_set("GuermondNeumannBC.prm",
                                                          true);
 
-      Guermond<2> simulation(parameter_set);
+      GuermondNeumannProblem<2> simulation(parameter_set);
 
       simulation.run();
   }
