@@ -33,6 +33,11 @@ void NavierStokesProjection<dim>::solve()
   }
 
   phi->update_solution_vectors();
+
+  previous_alpha_zeros[1] = previous_alpha_zeros[0];
+  previous_alpha_zeros[0] = time_stepping.get_alpha()[0];
+  previous_step_sizes[1] = previous_step_sizes[0];
+  previous_step_sizes[0] = time_stepping.get_next_step_size();
 }
 
 template <int dim>
