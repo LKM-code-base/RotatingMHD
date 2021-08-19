@@ -84,10 +84,10 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
 
   const MappingQ<dim> mapping(3);
 
-  const QGauss<dim-1>   face_quadrature_formula(velocity->fe_degree + 1);
+  const QGauss<dim-1>   face_quadrature_formula(velocity->fe_degree() + 1);
 
   FEFaceValues<dim> velocity_face_fe_values(mapping,
-                                            velocity->fe,
+                                            velocity->get_finite_element(),
                                             face_quadrature_formula,
                                             update_values |
                                             update_gradients |
@@ -95,7 +95,7 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
                                             update_normal_vectors);
 
   FEFaceValues<dim> pressure_face_fe_values(mapping,
-                                            pressure->fe,
+                                            pressure->get_finite_element(),
                                             face_quadrature_formula,
                                             update_values);
 
@@ -109,7 +109,7 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
 
   Tensor<1, dim>              forces;
 
-  for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
+  for (const auto &cell : velocity->get_dof_handler().active_cell_iterators())
     if (cell->is_locally_owned() && cell->at_boundary() )
       for (const auto &face : cell->face_iterators())
         if (face->at_boundary() && face->boundary_id() == cylinder_boundary_id)
@@ -121,14 +121,14 @@ void DFGBechmarkRequest<dim>::compute_drag_and_lift_coefficients
                               cell->level(),
                               cell->index(),
                               // pointer to the pressure's DoFHandler
-                              pressure->dof_handler.get());
+                              &(pressure->get_dof_handler()));
 
             typename DoFHandler<dim>::active_face_iterator pressure_face(
                               &velocity->get_triangulation(),
                               face->level(),
                               face->index(),
                               // pointer to the pressure's DoFHandler
-                              pressure->dof_handler.get());
+                              &(pressure->get_dof_handler()));
 
             pressure_face_fe_values.reinit(pressure_cell, pressure_face);
 
@@ -224,7 +224,7 @@ MIT<dim>::MIT(
   const std::shared_ptr<ConditionalOStream>           external_pcout,
   const std::shared_ptr<TimerOutput>                  external_timer)
 :
-mpi_communicator(velocity->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 velocity(velocity),
 pressure(pressure),
@@ -420,11 +420,11 @@ void MIT<dim>::compute_wall_data()
   TimerOutput::Scope  t(*computing_timer, "MIT Benchmark: Wall data");
 
   // Quadrature formula
-  const QGauss<dim-1>   face_quadrature_formula(temperature->fe_degree + 1);
+  const QGauss<dim-1>   face_quadrature_formula(temperature->fe_degree() + 1);
 
   // Finite element values
   FEFaceValues<dim> face_fe_values(*mapping,
-                                   temperature->fe,
+                                   temperature->get_finite_element(),
                                    face_quadrature_formula,
                                    update_gradients |
                                    update_JxW_values |
@@ -443,7 +443,7 @@ void MIT<dim>::compute_wall_data()
   double left_boundary_integral  = 0.0;
   double right_boundary_integral = 0.0;
 
-  for (const auto &cell : (temperature->dof_handler)->active_cell_iterators())
+  for (const auto &cell : temperature->get_dof_handler().active_cell_iterators())
     if (cell->is_locally_owned() && cell->at_boundary())
       for (const auto &face : cell->face_iterators())
         if (face->at_boundary() &&
@@ -502,11 +502,11 @@ void MIT<dim>::compute_global_data()
   average_vorticity_metric  = 0.0;
 
   // Quadrature formula
-  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree() + 1);
 
   // Finite element values
   FEValues<dim> fe_values(*mapping,
-                          velocity->fe,
+                          velocity->get_finite_element(),
                           quadrature_formula,
                           update_values |
                           update_gradients |
@@ -520,7 +520,7 @@ void MIT<dim>::compute_global_data()
   std::vector<Tensor<1, dim>> velocity_values(n_q_points);
   std::vector<CurlType> vorticity_values(n_q_points);
 
-  for (const auto &cell : (velocity->dof_handler)->active_cell_iterators())
+  for (const auto &cell : velocity->get_dof_handler().active_cell_iterators())
     if (cell->is_locally_owned())
     {
       // Initialize the finite element values
@@ -577,7 +577,7 @@ ChristensenBenchmark<dim>::ChristensenBenchmark(
   const std::shared_ptr<ConditionalOStream>           external_pcout,
   const std::shared_ptr<TimerOutput>                  external_timer)
 :
-mpi_communicator(velocity->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 velocity(velocity),
 temperature(temperature),
@@ -769,11 +769,11 @@ void ChristensenBenchmark<dim>::compute_global_data()
   const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(2), dim);
 
   // Create pointer to the pertinent finite element
-  const FESystem<dim>* const magnetic_field_fe =
-              (case_number != 0) ? &magnetic_field->fe : &dummy_fe_system;
+  const FiniteElement<dim>* const magnetic_field_fe =
+              (case_number != 0) ? &magnetic_field->get_finite_element() : &dummy_fe_system;
 
   // Quadrature formula
-  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree() + 1);
 
   // Set up the lamba function for the local assembly operation
   auto worker =
@@ -799,21 +799,21 @@ void ChristensenBenchmark<dim>::compute_global_data()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->begin_active()),
+              velocity->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (velocity->dof_handler)->end()),
+              velocity->get_dof_handler().end()),
    worker,
    copier,
    AssemblyData::Benchmarks::Christensen::Scratch<dim>(
     *mapping,
     quadrature_formula,
-    velocity->fe,
+    velocity->get_finite_element(),
     update_JxW_values|
     update_values|
     update_quadrature_points,
     *magnetic_field_fe,
     update_values),
-   AssemblyData::Benchmarks::Christensen::Copy(velocity->fe.dofs_per_cell));
+   AssemblyData::Benchmarks::Christensen::Copy(velocity->get_finite_element().dofs_per_cell));
 
   // Gather the values of each processor
   mean_kinetic_energy_density = Utilities::MPI::sum(
@@ -1124,7 +1124,7 @@ double ChristensenBenchmark<dim>::compute_radial_velocity(
   const Point<dim> point = GeometricUtilities::Coordinates::from_spherical(spherical_coordinates);
 
   // Compute the radial velocity at the given spherical coordinates.
-  const Tensor<1,dim> local_velocity = velocity->point_value(point, mapping);
+  const Tensor<1,dim> local_velocity = velocity->point_value(point, *mapping);
 
   return local_velocity * point / radius;
 }
@@ -1247,8 +1247,8 @@ double ChristensenBenchmark<dim>::compute_azimuthal_gradient_of_radial_velocity(
   // longitude at the given spherical coordinates.
   const Point<dim> point = GeometricUtilities::Coordinates::from_spherical(spherical_coordinates);
 
-  const Tensor<1,dim> local_velocity          = velocity->point_value(point, mapping);
-  const Tensor<2,dim> local_velocity_gradient = velocity->point_gradient(point, mapping);
+  const Tensor<1,dim> local_velocity          = velocity->point_value(point, *mapping);
+  const Tensor<2,dim> local_velocity_gradient = velocity->point_gradient(point, *mapping);
 
   return (sin(polar_angle) *
           (radius * local_radial_basis_vector * local_velocity_gradient * local_azimuthal_basis_vector
@@ -1267,8 +1267,8 @@ void ChristensenBenchmark<dim>::compute_point_data()
   local_azimuthal_basis_vector[0] = -sin(sample_point_longitude);
   local_azimuthal_basis_vector[1] = cos(sample_point_longitude);
 
-  temperature_at_sample_point           = temperature->point_value(sample_point, mapping);
-  azimuthal_velocity_at_sample_point    = velocity->point_value(sample_point, mapping) *
+  temperature_at_sample_point           = temperature->point_value(sample_point, *mapping);
+  azimuthal_velocity_at_sample_point    = velocity->point_value(sample_point, *mapping) *
                                           local_azimuthal_basis_vector;
 
   /*

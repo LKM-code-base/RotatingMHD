@@ -59,7 +59,7 @@ void ConvergenceAnalysisData<dim>::update_table
   convergence_table.add_value("level", level);
   convergence_table.add_value("dt", time_step);
   convergence_table.add_value("cells", entity->get_triangulation().n_global_active_cells());
-  convergence_table.add_value("dofs", entity->dof_handler->n_dofs());
+  convergence_table.add_value("dofs", entity->n_dofs());
   convergence_table.add_value("hmax", GridTools::maximal_cell_diameter(entity->get_triangulation()));
 
   {
@@ -69,10 +69,10 @@ void ConvergenceAnalysisData<dim>::update_table
 
     {
       // Compute the error in the L2-norm.
-      const QGauss<dim>    quadrature_formula(entity->fe_degree + 1);
+      const QGauss<dim>    quadrature_formula(entity->fe_degree() + 1);
 
       VectorTools::integrate_difference
-      (*(entity->dof_handler),
+      (entity->get_dof_handler(),
        entity->solution,
        exact_solution,
        cellwise_difference,
@@ -87,7 +87,7 @@ void ConvergenceAnalysisData<dim>::update_table
 
       // Compute the error in the H1-norm.
       VectorTools::integrate_difference
-      (*(entity->dof_handler),
+      (entity->get_dof_handler(),
        entity->solution,
        exact_solution,
        cellwise_difference,
@@ -115,11 +115,11 @@ void ConvergenceAnalysisData<dim>::update_table
     {
       const QTrapez<1>     trapezoidal_rule;
       const QIterated<dim> linfty_quadrature_rule(trapezoidal_rule,
-                                                  entity->fe_degree);
+                                                  entity->fe_degree());
 
       // Compute the error in the Linfty-norm.
       VectorTools::integrate_difference
-      (*entity->dof_handler,
+      (entity->get_dof_handler(),
        entity->solution,
        exact_solution,
        cellwise_difference,

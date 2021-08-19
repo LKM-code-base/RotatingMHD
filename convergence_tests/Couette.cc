@@ -185,14 +185,13 @@ void Couette<dim>::setup_dofs()
   *this->pcout  << "  Number of active cells                = "
                 << this->triangulation.n_global_active_cells() << std::endl;
   *this->pcout  << "  Number of velocity degrees of freedom = "
-                << velocity->dof_handler->n_dofs()
+                << velocity->n_dofs()
                 << std::endl
                 << "  Number of pressure degrees of freedom = "
-                << pressure->dof_handler->n_dofs()
+                << pressure->n_dofs()
                 << std::endl
                 << "  Number of total degrees of freedom    = "
-                << (pressure->dof_handler->n_dofs() +
-                    velocity->dof_handler->n_dofs())
+                << (pressure->n_dofs() + velocity->n_dofs())
                 << std::endl;
 }
 
@@ -204,15 +203,18 @@ void Couette<dim>::setup_constraints()
   velocity->clear_boundary_conditions();
   pressure->clear_boundary_conditions();
 
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
   // The domain represents an infinite channel. In order to obtain the
   // analytical solution, periodic boundary conditions need to be
   // implemented.
-  velocity->boundary_conditions.set_periodic_bcs(0, 1, 0);
-  pressure->boundary_conditions.set_periodic_bcs(0, 1, 0);
+  velocity->set_periodic_boundary_condition(0, 1, 0);
+  pressure->set_periodic_boundary_condition(0, 1, 0);
   // No-slip boundary conditions on the lower plate
-  velocity->boundary_conditions.set_dirichlet_bcs(2);
+  velocity->set_dirichlet_boundary_condition(2);
   // The upper plate is displaced by a traction vector
-  velocity->boundary_conditions.set_neumann_bcs(3, traction_vector);
+  velocity->set_neumann_boundary_condition(3, traction_vector);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -260,10 +262,6 @@ void Couette<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
-  this->compute_error(error,
-                      velocity,
-                      *exact_solution);
-
   std::vector<std::string> names(dim, "velocity");
   std::vector<std::string> error_name(dim, "velocity_error");
 
@@ -273,19 +271,19 @@ void Couette<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            error,
                            error_name,
                            component_interpretation);
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 
@@ -310,8 +308,8 @@ void Couette<dim>::solve(const unsigned int &level)
 {
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   error.reinit(velocity->solution);
   initialize();
 

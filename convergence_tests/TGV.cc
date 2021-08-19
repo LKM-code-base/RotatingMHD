@@ -1,8 +1,6 @@
 /*!
- * @file Guermond
- *
- * @brief The .cc file replicating the numerical test of section 10.3 of the Guermond paper.
- *
+ *@file TGV
+ *@brief The .cc file solving the TGV benchmark.
  */
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
@@ -25,16 +23,16 @@ namespace RMHD
   using namespace dealii;
 
 /*!
- * @class Guermond
- *
+ * @class TGV
+ * @brief This class solves the Taylor-Green vortex benchmark
  * @todo Add documentation
- *
  */
 template <int dim>
-class Guermond : public Problem<dim>
+class TGV : public Problem<dim>
 {
 public:
-  Guermond(const RunTimeParameters::ProblemParameters &parameters);
+
+  TGV(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
@@ -56,22 +54,17 @@ private:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  std::shared_ptr<EquationData::GuermondNeumannBC::VelocityExactSolution<dim>>
+  std::shared_ptr<EquationData::TGV::VelocityExactSolution<dim>>
                                                 velocity_exact_solution;
 
-  std::shared_ptr<EquationData::GuermondNeumannBC::PressureExactSolution<dim>>
+  std::shared_ptr<EquationData::TGV::PressureExactSolution<dim>>
                                                 pressure_exact_solution;
-
-  EquationData::GuermondNeumannBC::BodyForce<dim>
-                                                body_force;
 
   ConvergenceAnalysisData<dim>                  velocity_convergence_table;
 
   ConvergenceAnalysisData<dim>                  pressure_convergence_table;
 
   double                                        cfl_number;
-
-  const bool                                    flag_set_exact_pressure_constant;
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -87,16 +80,15 @@ private:
 
   void update_entities();
 
-
   void solve(const unsigned int &level);
 };
 
 template <int dim>
-Guermond<dim>::Guermond(const RunTimeParameters::ProblemParameters &parameters)
+TGV<dim>::TGV(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
-log_file("GuermondNeumannBC_Log.csv"),
+log_file("TGV_Log.csv"),
 velocity(std::make_shared<Entities::FE_VectorField<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
                                                        "Velocity")),
@@ -112,18 +104,15 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->pcout,
               this->computing_timer),
 velocity_exact_solution(
-  std::make_shared<EquationData::GuermondNeumannBC::VelocityExactSolution<dim>>(
-    parameters.time_discretization_parameters.start_time)),
+  std::make_shared<EquationData::TGV::VelocityExactSolution<dim>>(
+    parameters.Re, parameters.time_discretization_parameters.start_time)),
 pressure_exact_solution(
-  std::make_shared<EquationData::GuermondNeumannBC::PressureExactSolution<dim>>(
-    parameters.time_discretization_parameters.start_time)),
-body_force(parameters.Re, parameters.time_discretization_parameters.start_time),
+  std::make_shared<EquationData::TGV::PressureExactSolution<dim>>(
+    parameters.Re, parameters.time_discretization_parameters.start_time)),
 velocity_convergence_table(velocity, *velocity_exact_solution),
-pressure_convergence_table(pressure, *pressure_exact_solution),
-flag_set_exact_pressure_constant(false)
+pressure_convergence_table(pressure, *pressure_exact_solution)
 {
   *this->pcout << parameters << std::endl << std::endl;
-
   log_file << "Step" << ","
            << "Time" << ","
            << "Norm_diffusion" << ","
@@ -133,7 +122,7 @@ flag_set_exact_pressure_constant(false)
 }
 
 template <int dim>
-void Guermond<dim>::
+void TGV<dim>::
 make_grid(const unsigned int &n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
@@ -143,68 +132,73 @@ make_grid(const unsigned int &n_global_refinements)
                             1.0,
                             true);
 
+  std::vector<GridTools::PeriodicFacePair<
+    typename parallel::distributed::Triangulation<dim>::cell_iterator>>
+    periodicity_vector;
+
+  GridTools::collect_periodic_faces(this->triangulation,
+                                    0,
+                                    1,
+                                    0,
+                                    periodicity_vector);
+  GridTools::collect_periodic_faces(this->triangulation,
+                                    2,
+                                    3,
+                                    1,
+                                    periodicity_vector);
+
+  this->triangulation.add_periodicity(periodicity_vector);
+
   this->triangulation.refine_global(n_global_refinements);
 }
 
 template <int dim>
-void Guermond<dim>::setup_dofs()
+void TGV<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
   velocity->setup_dofs();
   pressure->setup_dofs();
 
-  *this->pcout  << "  Number of active cells                = "
-                << this->triangulation.n_global_active_cells() << std::endl;
-  *this->pcout  << "  Number of velocity degrees of freedom = "
-                << (velocity->dof_handler)->n_dofs()
-                << std::endl
-                << "  Number of pressure degrees of freedom = "
-                << (pressure->dof_handler)->n_dofs()
-                << std::endl
-               << "  Number of total degrees of freedom    = "
-               << (pressure->dof_handler->n_dofs() +
-                   velocity->dof_handler->n_dofs())
+  *this->pcout << "  Number of active cells                = "
+               << this->triangulation.n_global_active_cells()
                << std::endl;
-}
+  *this->pcout << "  Number of velocity degrees of freedom = "
+               << velocity->n_dofs()
+               << std::endl
+               << "  Number of pressure degrees of freedom = "
+               << pressure->n_dofs()
+               << std::endl
+               << "  Number of total degrees of freedom    = "
+               << (pressure->n_dofs() +
+                   velocity->n_dofs())
+               << std::endl;}
 
 template <int dim>
-void Guermond<dim>::setup_constraints()
+void TGV<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
   velocity->clear_boundary_conditions();
   pressure->clear_boundary_conditions();
 
-  velocity_exact_solution->set_time(time_stepping.get_start_time());
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
 
-  // left boundary
-  velocity->boundary_conditions.set_neumann_bcs(0);
-  // right boundary
-  velocity->boundary_conditions.set_dirichlet_bcs(
-    1,
-    velocity_exact_solution,
-    true);
-  // bottom boundary
-  velocity->boundary_conditions.set_dirichlet_bcs(
-    2,
-    velocity_exact_solution,
-    true);
-  // top boundary
-  velocity->boundary_conditions.set_dirichlet_bcs(
-    3,
-    velocity_exact_solution,
-    true);
+  velocity->set_periodic_boundary_condition(0, 1, 0);
+  velocity->set_periodic_boundary_condition(2, 3, 1);
+  pressure->set_periodic_boundary_condition(0, 1, 0);
+  pressure->set_periodic_boundary_condition(2, 3, 1);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
 
   velocity->apply_boundary_conditions();
-  pressure->apply_boundary_conditions(/*check regularity? */ false);
+  pressure->apply_boundary_conditions();
 }
 
 template <int dim>
-void Guermond<dim>::initialize()
+void TGV<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -219,71 +213,26 @@ void Guermond<dim>::initialize()
 }
 
 template <int dim>
-void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
+void TGV<dim>::postprocessing(const bool flag_point_evaluation)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
-
-  if (flag_set_exact_pressure_constant)
-  {
-    LinearAlgebra::MPI::Vector  analytical_pressure(pressure->solution);
-    {
-      #ifdef USE_PETSC_LA
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs,
-                                this->mpi_communicator);
-      #else
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs);
-      #endif
-      VectorTools::project(*(pressure->dof_handler),
-                          pressure->constraints,
-                          QGauss<dim>(pressure->fe_degree + 2),
-                          *pressure_exact_solution,
-                          tmp_analytical_pressure);
-
-      analytical_pressure = tmp_analytical_pressure;
-    }
-    {
-      LinearAlgebra::MPI::Vector distributed_analytical_pressure;
-      LinearAlgebra::MPI::Vector distributed_numerical_pressure;
-      #ifdef USE_PETSC_LA
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                        this->mpi_communicator);
-      #else
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                               pressure->locally_relevant_dofs,
-                                               this->mpi_communicator,
-                                               true);
-      #endif
-      distributed_numerical_pressure.reinit(distributed_analytical_pressure);
-
-      distributed_analytical_pressure = analytical_pressure;
-      distributed_numerical_pressure  = pressure->solution;
-
-      distributed_numerical_pressure.add(
-        distributed_analytical_pressure.mean_value() -
-        distributed_numerical_pressure.mean_value());
-
-      pressure->solution = distributed_numerical_pressure;
-    }
-  }
 
   if (flag_point_evaluation)
   {
     std::cout.precision(1);
-    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
-                 << " Norms = ("
-                 << std::noshowpos << std::scientific
-                 << navier_stokes.get_diffusion_step_rhs_norm()
-                 << ", "
-                 << navier_stokes.get_projection_step_rhs_norm()
-                 << ") CFL = "
-                 << cfl_number
-                 << " ["
-                 << std::setw(5)
-                 << std::fixed
-                 << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-                 << "%] \r";
+    *this->pcout  << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                  << " Norms = ("
+                  << std::noshowpos << std::scientific
+                  << navier_stokes.get_diffusion_step_rhs_norm()
+                  << ", "
+                  << navier_stokes.get_projection_step_rhs_norm()
+                  << ") CFL = "
+                  << cfl_number
+                  << " ["
+                  << std::setw(5)
+                  << std::fixed
+                  << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
+                  << "%] \r";
 
     log_file << time_stepping.get_step_number() << ","
              << time_stepping.get_current_time() << ","
@@ -295,16 +244,9 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
 }
 
 template <int dim>
-void Guermond<dim>::output()
+void TGV<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
-
-  this->compute_error(velocity_error,
-                       velocity,
-                       *velocity_exact_solution);
-  this->compute_error(pressure_error,
-                       pressure,
-                       *pressure_exact_solution);
 
   std::vector<std::string> names(dim, "velocity");
   std::vector<std::string> error_name(dim, "velocity_error");
@@ -315,25 +257,25 @@ void Guermond<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity_error,
                            error_name,
                            component_interpretation);
 
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
 
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure_error,
                            "pressure_error");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 
@@ -342,29 +284,30 @@ void Guermond<dim>::output()
                                       out_index,
                                       this->mpi_communicator,
                                       5);
-
   out_index++;
 }
 
 template <int dim>
-void Guermond<dim>::update_entities()
+void TGV<dim>::update_entities()
 {
   velocity->update_solution_vectors();
   pressure->update_solution_vectors();
 }
 
 template <int dim>
-void Guermond<dim>::solve(const unsigned int &level)
+void TGV<dim>::solve(const unsigned int &level)
 {
-  navier_stokes.set_body_force(body_force);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   velocity_error.reinit(velocity->solution);
   pressure_error.reinit(pressure->solution);
   initialize();
 
+  // Advances the time to t^{k-1}, either t^0 or t^1
+  // This is needed since the boundary integral of the Poisson pre-step
+  // is not defined for this problem.
   time_stepping.advance_time();
 
   // Outputs the fields at t_0, i.e. the initial conditions.
@@ -396,8 +339,6 @@ void Guermond<dim>::solve(const unsigned int &level)
     // Updates the functions and the constraints to t^{k}
     velocity_exact_solution->set_time(time_stepping.get_next_time());
     pressure_exact_solution->set_time(time_stepping.get_next_time());
-
-    velocity->boundary_conditions.set_time(time_stepping.get_next_time());
     velocity->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
@@ -407,7 +348,7 @@ void Guermond<dim>::solve(const unsigned int &level)
     update_entities();
     time_stepping.advance_time();
 
-    // Snapshot stage
+    // Snapshot stage, all time calls should be done with get_current_time()
     postprocessing((time_stepping.get_step_number() %
                     this->prm.terminal_output_frequency == 0) ||
                     (time_stepping.get_current_time() ==
@@ -435,13 +376,17 @@ void Guermond<dim>::solve(const unsigned int &level)
     parameters.convergence_test_parameters.test_type ==
     		ConvergenceTest::ConvergenceTestType::spatial);
 
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
+
   log_file << "\n";
 
-  *this->pcout << std::endl << std::endl;
+  *this->pcout << std::endl;
+  *this->pcout << std::endl;
 }
 
 template <int dim>
-void Guermond<dim>::run()
+void TGV<dim>::run()
 {
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
@@ -502,9 +447,9 @@ void Guermond<dim>::run()
 
   std::ostringstream tablefilename;
   tablefilename << ((parameters.convergence_test_parameters.test_type ==
-  									 ConvergenceTest::ConvergenceTestType::spatial)
-                     ? "GuermondNeumannBC_SpatialTest"
-                     : ("GuermondNeumannBC_TemporalTest_Level" + std::to_string(parameters.spatial_discretization_parameters.n_initial_global_refinements)))
+  									ConvergenceTest::ConvergenceTestType::spatial)
+                     ? "TGV_SpatialTest"
+                     : ("TGV_TemporalTest_Level" + std::to_string(parameters.spatial_discretization_parameters.n_initial_global_refinements)))
                 << "_Re"
                 << parameters.Re;
 
@@ -524,10 +469,9 @@ int main(int argc, char *argv[])
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
-      RunTimeParameters::ProblemParameters parameter_set("GuermondNeumannBC.prm",
-                                                         true);
+      RunTimeParameters::ProblemParameters parameter_set("TGV.prm", true);
 
-      Guermond<2> simulation(parameter_set);
+      TGV<2> simulation(parameter_set);
 
       simulation.run();
   }

@@ -19,7 +19,7 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
   velocity_advection_matrix = 0.;
 
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(velocity->fe_degree + 1);
+  const QGauss<dim>   quadrature_formula(velocity->fe_degree() + 1);
 
   // Set up the lambda function for the local assembly operation
   using Scratch = typename AssemblyData::NavierStokesProjection::AdvectionMatrix::Scratch<dim>;
@@ -49,16 +49,16 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
                                              update_JxW_values;
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (*velocity->dof_handler).begin_active()),
+              velocity->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (*velocity->dof_handler).end()),
+              velocity->get_dof_handler().end()),
    worker,
    copier,
    Scratch(*mapping,
            quadrature_formula,
-           velocity->fe,
+           velocity->get_finite_element(),
            advection_update_flags),
-   AssemblyData::NavierStokesProjection::AdvectionMatrix::Copy(velocity->fe.dofs_per_cell));
+   Copy(velocity->get_finite_element().dofs_per_cell));
 
   // Compress global data
   velocity_advection_matrix.compress(VectorOperation::add);
@@ -228,7 +228,7 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_advection_matrix
 (const Copy &data)
 {
-  velocity->constraints.distribute_local_to_global(
+  velocity->get_constraints().distribute_local_to_global(
                                       data.local_matrix,
                                       data.local_dof_indices,
                                       velocity_advection_matrix);

@@ -40,7 +40,7 @@ void NavierStokesProjection<dim>::solve_projection_step
     build_preconditioner(projection_step_preconditioner,
                          phi_laplace_matrix,
                          solver_parameters.preconditioner_parameters_ptr,
-                         (phi->fe_degree > 1? true: false));
+                         (phi->fe_degree() > 1? true: false));
   }
 
   AssertThrow(projection_step_preconditioner != nullptr,
@@ -89,15 +89,15 @@ void NavierStokesProjection<dim>::solve_projection_step
     std::abort();
   }
 
-  phi->constraints.distribute(distributed_phi);
+  phi->get_constraints().distribute(distributed_phi);
 
   phi->solution = distributed_phi;
 
   if (flag_normalize_pressure)
   {
     const LinearAlgebra::MPI::Vector::value_type mean_value
-      = VectorTools::compute_mean_value(*phi->dof_handler,
-                                        QGauss<dim>(phi->fe.degree + 1),
+      = VectorTools::compute_mean_value(phi->get_dof_handler(),
+                                        QGauss<dim>(phi->fe_degree() + 1),
                                         phi->solution,
                                         0);
 
