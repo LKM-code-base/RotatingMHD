@@ -23,35 +23,6 @@ using namespace dealii;
 namespace EquationData
 {
 
-namespace Step35
-{
-
-template<int dim>
-using VelocityInitialCondition = Functions::ZeroFunction<dim>;
-
-template <int dim>
-class VelocityInflowBoundaryCondition : public Function<dim>
-{
-public:
-  VelocityInflowBoundaryCondition(const double time = 0);
-
-  virtual void vector_value(const Point<dim>  &p,
-                            Vector<double>    &values) const override;
-};
-
-template <int dim>
-class PressureInitialCondition : public Function<dim>
-{
-public:
-  PressureInitialCondition(const double time = 0);
-
-  virtual double value(const Point<dim> &p,
-                      const unsigned int component = 0) const override;
-};
-} // namespace Step35
-
-
-
 namespace TGV
 {
 template <int dim>

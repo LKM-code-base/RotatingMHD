@@ -1,4 +1,4 @@
-#include <rotatingMHD/equation_data.h>
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -12,23 +12,96 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <rotatingMHD/finite_element_field.h>
 
 #include <iostream>
 #include <fstream>
 #include <memory>
 #include <string>
 
-namespace RMHD
+namespace Step35
 {
 
 using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+template<int dim>
+using VelocityInitialCondition = Functions::ZeroFunction<dim>;
+
+
 
 template <int dim>
-class Step35 : public Problem<dim>
+class VelocityInflowBoundaryCondition : public Function<dim>
 {
 public:
-  Step35(const RunTimeParameters::ProblemParameters &parameters);
+  VelocityInflowBoundaryCondition(const double time = 0);
+
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+};
+
+
+
+template <int dim>
+VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
+(const double time)
+:
+Function<dim>(dim, time)
+{}
+
+
+
+template <int dim>
+void VelocityInflowBoundaryCondition<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
+{
+  const double Um = 1.5;
+  const double H  = 4.1;
+
+  values[0] = 4.0 * Um * point(1) * ( H - point(1) ) / ( H * H );
+  values[1] = 0.0;
+}
+
+
+
+template <int dim>
+class PressureInitialCondition : public Function<dim>
+{
+public:
+  PressureInitialCondition(const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                      const unsigned int component = 0) const override;
+};
+
+
+
+template <int dim>
+PressureInitialCondition<dim>::PressureInitialCondition(const double time)
+:
+Function<dim>(1, time)
+{}
+
+template<int dim>
+double PressureInitialCondition<dim>::value
+(const Point<dim> &p,
+ const unsigned int /* component */) const
+{
+  return (25.0 - p(0)) ;
+}
+
+
+
+}  // namespace EquationData
+
+template <int dim>
+class Step35Problem : public Problem<dim>
+{
+public:
+  Step35Problem(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 private:
@@ -42,13 +115,13 @@ private:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  std::shared_ptr<EquationData::Step35::VelocityInflowBoundaryCondition<dim>>
+  std::shared_ptr<EquationData::VelocityInflowBoundaryCondition<dim>>
                                                 inflow_boundary_condition;
 
-  std::shared_ptr<EquationData::Step35::VelocityInitialCondition<dim>>
+  std::shared_ptr<EquationData::VelocityInitialCondition<dim>>
                                                 velocity_initial_condition;
 
-  std::shared_ptr<EquationData::Step35::PressureInitialCondition<dim>>
+  std::shared_ptr<EquationData::PressureInitialCondition<dim>>
                                                 pressure_initial_condition;
 
   double                                        cfl_number;
@@ -71,7 +144,7 @@ private:
 };
 
 template <int dim>
-Step35<dim>::Step35(const RunTimeParameters::ProblemParameters &parameters)
+Step35Problem<dim>::Step35Problem(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
@@ -90,12 +163,12 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->pcout,
               this->computing_timer),
 inflow_boundary_condition(
-  std::make_shared<EquationData::Step35::VelocityInflowBoundaryCondition<dim>>(
+  std::make_shared<EquationData::VelocityInflowBoundaryCondition<dim>>(
     parameters.time_discretization_parameters.start_time)),
 velocity_initial_condition(
-  std::make_shared<EquationData::Step35::VelocityInitialCondition<dim>>(dim)),
+  std::make_shared<EquationData::VelocityInitialCondition<dim>>(dim)),
 pressure_initial_condition(
-  std::make_shared<EquationData::Step35::PressureInitialCondition<dim>>()),
+  std::make_shared<EquationData::PressureInitialCondition<dim>>()),
 evaluation_point(2.0, 3.0)
 {
   *this->pcout << parameters << std::endl << std::endl;
@@ -111,7 +184,7 @@ evaluation_point(2.0, 3.0)
 }
 
 template <int dim>
-void Step35<dim>::make_grid(const unsigned int n_global_refinements)
+void Step35Problem<dim>::make_grid(const unsigned int n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
@@ -132,7 +205,7 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 }
 
 template <int dim>
-void Step35<dim>::setup_dofs()
+void Step35Problem<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
@@ -152,7 +225,7 @@ void Step35<dim>::setup_dofs()
 }
 
 template <int dim>
-void Step35<dim>::setup_constraints()
+void Step35Problem<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
@@ -172,7 +245,7 @@ void Step35<dim>::setup_constraints()
 }
 
 template <int dim>
-void Step35<dim>::initialize()
+void Step35Problem<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -190,7 +263,7 @@ void Step35<dim>::initialize()
 }
 
 template <int dim>
-void Step35<dim>::postprocessing()
+void Step35Problem<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
@@ -223,7 +296,7 @@ void Step35<dim>::postprocessing()
 }
 
 template <int dim>
-void Step35<dim>::output()
+void Step35Problem<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
@@ -254,14 +327,14 @@ void Step35<dim>::output()
 }
 
 template <int dim>
-void Step35<dim>::update_solution_vectors()
+void Step35Problem<dim>::update_solution_vectors()
 {
   velocity->update_solution_vectors();
   pressure->update_solution_vectors();
 }
 
 template <int dim>
-void Step35<dim>::run()
+void Step35Problem<dim>::run()
 {
   const unsigned int n_steps = this->parameters.time_discretization_parameters.n_maximum_steps;
 
@@ -319,14 +392,14 @@ int main(int argc, char *argv[])
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace Step35;
 
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
       RunTimeParameters::ProblemParameters parameter_set("step-35.prm");
 
-      Step35<2> simulation(parameter_set);
+      Step35Problem<2> simulation(parameter_set);
       simulation.run();
   }
   catch (std::exception &exc)

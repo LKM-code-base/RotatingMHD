@@ -15,46 +15,6 @@ namespace RMHD
 namespace EquationData
 {
 
-namespace Step35
-{
-
-template <int dim>
-VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
-(const double time)
-:
-Function<dim>(dim, time)
-{}
-
-template <int dim>
-void VelocityInflowBoundaryCondition<dim>::vector_value
-(const Point<dim>  &point,
- Vector<double>    &values) const
-{
-  const double Um = 1.5;
-  const double H  = 4.1;
-
-  values[0] = 4.0 * Um * point(1) * ( H - point(1) ) / ( H * H );
-  values[1] = 0.0;
-}
-
-template <int dim>
-PressureInitialCondition<dim>::PressureInitialCondition(const double time)
-:
-Function<dim>(1, time)
-{}
-
-template<int dim>
-double PressureInitialCondition<dim>::value
-(const Point<dim> &p,
- const unsigned int /* component */) const
-{
-  return (25.0 - p(0)) ;
-}
-
-} // namespace Step35
-
-
-
 namespace TGV
 {
 
@@ -545,12 +505,6 @@ void VelocityField<dim>::vector_value
 
 
 // explicit instantiation
-template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<2>;
-template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<3>;
-
-template class RMHD::EquationData::Step35::PressureInitialCondition<2>;
-template class RMHD::EquationData::Step35::PressureInitialCondition<3>;
-
 template class RMHD::EquationData::TGV::VelocityExactSolution<2>;
 template class RMHD::EquationData::TGV::VelocityExactSolution<3>;
 
