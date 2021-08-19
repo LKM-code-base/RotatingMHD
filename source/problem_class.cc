@@ -93,62 +93,6 @@ void Problem<dim>::clear()
 
 
 
-template <int dim>
-void Problem<dim>::project_function
-(const Function<dim>                             &function,
- const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
- LinearAlgebra::MPI::Vector                      &vector)
-{
-  Assert(function.n_components == entity->n_components(),
-         ExcMessage("The number of components of the function does not those "
-                    "of the entity"));
-
-  #ifdef USE_PETSC_LA
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->get_locally_owned_dofs(), mpi_communicator);
-  #else
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->get_locally_owned_dofs());
-  #endif
-
-  VectorTools::project(*(this->mapping),
-                       entity->get_dof_handler(),
-                       entity->get_constraints(),
-                       QGauss<dim>(entity->fe_degree() + 2),
-                       function,
-                       tmp_vector);
-
-  vector = tmp_vector;
-}
-
-
-
-template <int dim>
-void Problem<dim>::interpolate_function
-(const Function<dim>                             &function,
- const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
- LinearAlgebra::MPI::Vector                      &vector)
-{
-  Assert(function.n_components == entity->n_components(),
-         ExcMessage("The number of components of the function does not those "
-                    "of the entity"));
-
-  #ifdef USE_PETSC_LA
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->get_locally_owned_dofs(), mpi_communicator);
-  #else
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->get_locally_owned_dofs());
-  #endif
-
-  VectorTools::interpolate(entity->get_dof_handler(),
-                           function,
-                           tmp_vector);
-
-  vector = tmp_vector;
-}
-
-
 
 template <int dim>
 void Problem<dim>::set_initial_conditions
@@ -199,39 +143,6 @@ void Problem<dim>::set_initial_conditions
     entity->old_solution     = tmp_old_solution;
   }
 
-}
-
-template <int dim>
-void Problem<dim>::compute_error(
-  LinearAlgebra::MPI::Vector                  &error_vector,
-  std::shared_ptr<Entities::FE_FieldBase<dim>>  entity,
-  Function<dim>                               &exact_solution)
-{
-  AssertThrow(error_vector.local_size() ==
-                entity->solution.local_size(),
-              ExcMessage("The vectors do not match in size"));
-
-  LinearAlgebra::MPI::Vector  distributed_solution_vector;
-  LinearAlgebra::MPI::Vector  distributed_error_vector;
-
-  distributed_solution_vector.reinit(entity->distributed_vector);
-  distributed_error_vector.reinit(entity->distributed_vector);
-
-  distributed_solution_vector = entity->solution;
-  VectorTools::interpolate(*mapping,
-                           entity->get_dof_handler(),
-                           exact_solution,
-                           distributed_error_vector);
-  entity->get_hanging_node_constraints().distribute(distributed_error_vector);
-
-  distributed_error_vector.add(-1.0, distributed_solution_vector);
-
-  for (unsigned int i = distributed_error_vector.local_range().first;
-       i < distributed_error_vector.local_range().second; ++i)
-    if (distributed_error_vector(i) < 0)
-      distributed_error_vector(i) *= -1.0;
-
-  error_vector = distributed_error_vector;
 }
 
 template <int dim>

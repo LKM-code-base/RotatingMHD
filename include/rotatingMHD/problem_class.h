@@ -158,24 +158,6 @@ protected:
   virtual void clear();
 
   /*!
-   * @brief Projects the @p function on the finite element space contained
-   * in the @p entity and saves the result in the @p vector.
-   */
-  void project_function
-  (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
-   LinearAlgebra::MPI::Vector                      &vector);
-
-  /*!
-   * @brief Interpolates the @p function on the finite element space contained
-   * in the @p entity and saves the result in the @p vector.
-   */
-  void interpolate_function
-  (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
-   LinearAlgebra::MPI::Vector                      &vector);
-
-  /*!
    * @brief Loads the initial conditions to the pertinent solution
    * vector
    * @details Projects the @ref function at simulation's start time
@@ -194,20 +176,6 @@ protected:
    Function<dim>                              &function,
    const TimeDiscretization::VSIMEXMethod     &time_stepping,
    const bool                                 boolean = false);
-
-  /*!
-   * @brief Computes the error of the numerical solution against
-   * the analytical solution.
-   *
-   * @details The error is calculated by subtracting the /f$ L_2/f$
-   * projection of the given function from the solution vector and
-   * computing the absolute value of the residum.
-   *
-   */
-  void compute_error
-  (LinearAlgebra::MPI::Vector                 &error_vector,
-   std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
-   Function<dim>                              &exact_solution);
 
   /*!
    *  @brief Computes the next time step according to the

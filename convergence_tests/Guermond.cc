@@ -287,13 +287,6 @@ void Guermond<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
-  this->compute_error(velocity_error,
-                      velocity,
-                      *velocity_exact_solution);
-  this->compute_error(pressure_error,
-                      pressure,
-                      *pressure_exact_solution);
-
   std::vector<std::string> names(dim, "velocity");
   std::vector<std::string> error_name(dim, "velocity_error");
 
