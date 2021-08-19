@@ -1,19 +1,19 @@
-#include <rotatingMHD/equation_data.h>
+#include <rotatingMHD/convergence_test.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
+#include <rotatingMHD/equation_data.h>
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/vector_tools.h>
 
 #include <deal.II/base/convergence_table.h>
 #include <deal.II/base/function.h>
-
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <rotatingMHD/convergence_test.h>
-#include <rotatingMHD/finite_element_field.h>
 
 #include <memory>
 
@@ -289,7 +289,9 @@ void ThermalTGV<dim>::solve(const unsigned int &level)
     ExcMessage("Time mismatch between the time stepping class and the temperature function"));
 
   {
-    auto error_map = temperature->compute_error(*temperature_exact_solution, *this->mapping);
+    auto error_map = RMHD::VectorTools::compute_error(*this->mapping,
+                                                      *temperature,
+                                                      *temperature_exact_solution);
 
     convergence_data.update_table(this->temperature->get_dof_handler(),
                                   time_stepping.get_previous_step_size(),

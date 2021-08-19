@@ -26,25 +26,13 @@ assemble_poisson_prestep_rhs()
   const FiniteElement<dim> * const temperature_fe_ptr =
           (temperature.get() != nullptr) ? &temperature->get_finite_element() : &dummy_fe;
 
-  // Set polynomial degree of the body force function.
-  // Hardcoded to match that of the velocity.
-  const int p_degree_body_force = velocity->fe_degree();
-
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = pressure->fe_degree() + p_degree_body_force - 1;
+  // Initiate the quadrature formula for exact numerical integration
+  const QGauss<dim>   quadrature_formula(pressure->fe_degree() + 1);
 
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim-1>   face_quadrature_formula(pressure->fe_degree() + 1);
 
-  // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = std::max(pressure->fe_degree() + p_degree_body_force,
-                                     pressure->fe_degree() + velocity->fe_degree() -2);
-
-  // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
-
-
-  // Set up the lamba function for the local assembly operation
+  // Set up the lambda function for the local assembly operation
   using Scratch = typename AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
@@ -56,7 +44,7 @@ assemble_poisson_prestep_rhs()
                                                data);
     };
 
-  // Set up the lamba function for the copy local to global operation
+  // Set up the lambda function for the copy local to global operation
   auto copier =
     [this](const Copy &data)
     {
