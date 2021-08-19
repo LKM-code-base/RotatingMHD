@@ -23,50 +23,6 @@ using namespace dealii;
 namespace EquationData
 {
 
-namespace Guermond
-{
-template <int dim>
-class VelocityExactSolution : public Function<dim>
-{
-public:
-  VelocityExactSolution(const double time = 0);
-
-  virtual void vector_value(const Point<dim>  &p,
-                            Vector<double>    &values) const override;
-
-  virtual Tensor<1, dim> gradient(const Point<dim> &point,
-                                  const unsigned int component) const;
-};
-
-template <int dim>
-class PressureExactSolution : public Function<dim>
-{
-public:
-  PressureExactSolution(const double time = 0);
-
-  virtual double value(const Point<dim> &p,
-                      const unsigned int component = 0) const override;
-
-  virtual Tensor<1, dim> gradient(const Point<dim> &point,
-                                  const unsigned int = 0) const;
-};
-
-template <int dim>
-class BodyForce: public TensorFunction<1, dim>
-{
-public:
-  BodyForce(const double Re,
-            const double time = 0);
-
-  virtual Tensor<1, dim> value(
-    const Point<dim>  &point) const override;
-
-private:
-  const double Re;
-};
-
-} // namespace Guermond
-
 namespace GuermondNeumannBC
 {
 template <int dim>
