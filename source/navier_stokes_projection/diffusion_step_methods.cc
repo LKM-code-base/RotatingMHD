@@ -1,6 +1,8 @@
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/utility.h>
 
+#include <limits>
+
 namespace RMHD
 {
 
@@ -58,11 +60,18 @@ solve_diffusion_step(const bool reinit_prec)
   /* The following pointer holds the address to the correct matrix
   depending on if the semi-implicit scheme is chosen or not */
   const LinearAlgebra::MPI::SparseMatrix  * system_matrix;
+  bool symmetric_system_matrix;
   if (parameters.convective_term_time_discretization ==
       RunTimeParameters::ConvectiveTermTimeDiscretization::semi_implicit)
+  {
     system_matrix = &velocity_system_matrix;
+    symmetric_system_matrix = false;
+  }
   else
+  {
     system_matrix = &velocity_mass_plus_laplace_matrix;
+    symmetric_system_matrix = true;
+  }
 
 
   const typename RunTimeParameters::LinearSolverParameters &solver_parameters
@@ -72,26 +81,32 @@ solve_diffusion_step(const bool reinit_prec)
     build_preconditioner(diffusion_step_preconditioner,
                          *system_matrix,
                          solver_parameters.preconditioner_parameters_ptr,
-                         (velocity->fe_degree > 1? true: false));
+                         (velocity->fe_degree > 1? true: false),
+                         symmetric_system_matrix);
   }
 
   AssertThrow(diffusion_step_preconditioner != nullptr,
               ExcMessage("The pointer to the diffusion step's preconditioner has not being initialized."));
 
+  const double rhs_norm{diffusion_step_rhs.l2_norm()};
+
   SolverControl solver_control(
     parameters.diffusion_step_solver_parameters.n_maximum_iterations,
-    std::max(solver_parameters.relative_tolerance * diffusion_step_rhs.l2_norm(),
+    std::max(solver_parameters.relative_tolerance * rhs_norm,
              solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
     LinearAlgebra::SolverGMRES solver(solver_control,
-                                      MPI_COMM_WORLD);
+                                      mpi_communicator);
   #else
     LinearAlgebra::SolverGMRES solver(solver_control);
   #endif
 
   try
   {
+    if (rhs_norm < std::numeric_limits<float>::epsilon())
+      distributed_velocity = 1.0;
+
     solver.solve(*system_matrix,
                  distributed_velocity,
                  diffusion_step_rhs,

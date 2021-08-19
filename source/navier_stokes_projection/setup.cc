@@ -139,14 +139,12 @@ void NavierStokesProjection<dim>::setup_matrices()
   // related to the diffusion step.
   {
     #ifdef USE_PETSC_LA
-      DynamicSparsityPattern
-      sparsity_pattern(velocity->locally_relevant_dofs);
+      DynamicSparsityPattern  sparsity_pattern(velocity->locally_relevant_dofs);
 
       DoFTools::make_sparsity_pattern(*(velocity->dof_handler),
                                       sparsity_pattern,
                                       velocity->constraints,
-                                      false,
-                                      Utilities::MPI::this_mpi_process(mpi_communicator));
+                                      false);
 
       SparsityTools::distribute_sparsity_pattern
       (sparsity_pattern,
@@ -224,20 +222,17 @@ void NavierStokesProjection<dim>::setup_matrices()
       DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
                                       pressure_sparsity_pattern,
                                       pressure->constraints,
-                                      false,
-                                      Utilities::MPI::this_mpi_process(mpi_communicator));
+                                      false);
 
       DoFTools::make_sparsity_pattern(*(phi->dof_handler),
                                       phi_sparsity_pattern,
                                       phi->constraints,
-                                      false,
-                                      Utilities::MPI::this_mpi_process(mpi_communicator));
+                                      false);
 
       DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
                                       projection_sparsity_pattern,
                                       pressure->hanging_nodes,
-                                      false,
-                                      Utilities::MPI::this_mpi_process(mpi_communicator));
+                                      false);
 
 
       SparsityTools::distribute_sparsity_pattern
@@ -337,12 +332,38 @@ setup_vectors()
 
   TimerOutput::Scope  t(*computing_timer, "Navier Stokes: Setup - Vectors");
 
-  poisson_prestep_rhs.reinit(pressure->distributed_vector);
+  #ifdef USE_PETSC_LA
+    poisson_prestep_rhs.reinit(pressure->locally_owned_dofs,
+                               mpi_communicator);
 
-  diffusion_step_rhs.reinit(velocity->distributed_vector);
+    diffusion_step_rhs.reinit(velocity->locally_owned_dofs,
+                              mpi_communicator);
 
-  projection_step_rhs.reinit(phi->distributed_vector);
-  correction_step_rhs.reinit(pressure->distributed_vector);
+    projection_step_rhs.reinit(pressure->locally_owned_dofs,
+                               mpi_communicator);
+
+    correction_step_rhs.reinit(pressure->locally_owned_dofs,
+                               mpi_communicator);
+  #else
+    poisson_prestep_rhs.reinit(pressure->locally_owned_dofs,
+                               pressure->locally_relevant_dofs,
+                               mpi_communicator,
+                               true);
+
+    diffusion_step_rhs.reinit(velocity->locally_owned_dofs,
+                              velocity->locally_relevant_dofs,
+                              mpi_communicator,
+                              true);
+
+    projection_step_rhs.reinit(pressure->locally_owned_dofs,
+                               pressure->locally_relevant_dofs,
+                               mpi_communicator,
+                               true);
+    correction_step_rhs.reinit(pressure->locally_owned_dofs,
+                               pressure->locally_relevant_dofs,
+                               mpi_communicator,
+                               true);
+  #endif
 
   if (parameters.verbose)
     *pcout << " done!" << std::endl;
