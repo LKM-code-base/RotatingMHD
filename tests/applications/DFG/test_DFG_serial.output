@@ -108,7 +108,7 @@ Number of total degrees of freedom    = 24168
 | Boundary conditions of the Velocity entity                      |
 +---------+------------+------------------------------------------+
 | Bdy. id |    Type    |              Function                    |
-| 0       | Dirichlet  | DFG::VelocityInflowBoundaryCondition<2>  |
+| 0       | Dirichlet  | DFGBenchmark::EquationData::VelocityInflowBoundaryCondition<2> |
 | 2       | Dirichlet  | ZeroFunction<2, double>                  |
 | 3       | Dirichlet  | ZeroFunction<2, double>                  |
 | Unconstrained boundary ids: 1                                   |
