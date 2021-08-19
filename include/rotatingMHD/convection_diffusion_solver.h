@@ -6,7 +6,6 @@
 #include <deal.II/base/tensor_function.h>
 
 #include <rotatingMHD/assembly_data.h>
-#include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
