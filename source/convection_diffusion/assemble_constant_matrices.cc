@@ -31,8 +31,8 @@ void HeatEquation<dim>::assemble_constant_matrices()
   using Scratch = typename AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator         &cell,
-           Scratch   &scratch,
-           AssemblyData::HeatEquation::ConstantMatrices::Copy           &data)
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_constant_matrices(cell,
                                              scratch,
