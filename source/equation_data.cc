@@ -565,50 +565,6 @@ void VelocityField<dim>::vector_value
 
 } // namespace ThermalTGV
 
-namespace MIT
-{
-
-template <int dim>
-TemperatureBoundaryCondition<dim>::TemperatureBoundaryCondition
-(const double time)
-:
-Function<dim>(1, time)
-{}
-
-template<int dim>
-double TemperatureBoundaryCondition<dim>::value
-(const Point<dim> &point,
- const unsigned int /* component */) const
-{
-  const double t = this->get_time();
-  const double x = point(0);
-
-  const double sign = ( x < 0.5 ) ? 1.0 : -1.0;
-
-  return ( sign * 0.5 * (1.0 - exp(- beta * t)));
-}
-
-
-template <int dim>
-GravityUnitVector<dim>::GravityUnitVector
-(const double time)
-:
-TensorFunction<1, dim>(time)
-{}
-
-template <int dim>
-Tensor<1, dim> GravityUnitVector<dim>::value(const Point<dim> &/*point*/) const
-{
-  Tensor<1, dim> value;
-
-  value[0] = 0.0;
-  value[1] = -1.0;
-
-  return value;
-}
-
-} // namespace MIT
-
 } // namespace EquationData
 
 } // namespace RMHD
@@ -662,9 +618,3 @@ template class RMHD::EquationData::ThermalTGV::TemperatureExactSolution<3>;
 
 template class RMHD::EquationData::ThermalTGV::VelocityField<2>;
 template class RMHD::EquationData::ThermalTGV::VelocityField<3>;
-
-template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<2>;
-template class RMHD::EquationData::MIT::TemperatureBoundaryCondition<3>;
-
-template class RMHD::EquationData::MIT::GravityUnitVector<2>;
-template class RMHD::EquationData::MIT::GravityUnitVector<3>;
