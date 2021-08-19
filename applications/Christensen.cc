@@ -1,35 +1,321 @@
+#include <rotatingMHD/angular_velocity.h>
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/equation_data.h>
-#include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
+#include <rotatingMHD/finite_element_field.h>
+#include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/geometric_utilities.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <rotatingMHD/finite_element_field.h>
 
 #include <iostream>
 #include <fstream>
 #include <memory>
 #include <string>
 #include <iomanip>
-namespace RMHD
+
+namespace ChristensenBenchmark
 {
 
 using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+/*!
+ * @class Omega
+ *
+ * @brief The angular velocity of the rotating frame of reference.
+ *
+ * @details Given by
+ * \f[
+ * \ \bs{\omega} = \ez
+ * \f]
+ * where \f$ \bs{\omega} \f$ is the angular velocity and
+ * \f$ \ez \f$ the unit vector in the \f$ z \f$-direction.
+ */
+template <int dim>
+class Omega: public AngularVelocity<dim>
+{
+public:
+  /*
+   * @brief Default constructor.
+   */
+  Omega(const double time = 0);
+
+  /*
+   * @brief Overloads the value method such that
+   * \f[
+   * \ \bs{\omega} = \ez\,.
+   * \f]
+   */
+  virtual typename AngularVelocity<dim>::value_type value() const override;
+
+};
+
+
+
+template <int dim>
+Omega<dim>::Omega(const double time)
+:
+AngularVelocity<dim>(time)
+{}
+
+
+
+template <int dim>
+typename AngularVelocity<dim>::value_type Omega<dim>::value() const
+{
+  typename AngularVelocity<dim>::value_type value;
+  value = 0;
+
+  if constexpr(dim == 2)
+    value[0] = 1.0;
+  else if constexpr(dim == 3)
+    value[2] = 1.0;
+
+  return (value);
+}
+
+/*!
+ * @class TemperatureInitialCondition
+ *
+ * @brief The initial temperature field of the Christensen benchmark.
+ *
+ * @details Given by
+ * \f[
+ * \vartheta = \frac{r_o r_i}{r} - r_i + \frac{210 A}{\sqrt{17920 \pi}}
+ * (1-3x^2+3x^4-x^6) \sin^4 \theta \cos 4 \phi
+ * \f]
+ * where \f$ \vartheta \f$ is the temperature field,
+ * \f$ r \f$ the radius,
+ * \f$ r_i \f$ the inner radius of the shell,
+ * \f$ r_o \f$ the outer radius,
+ * \f$ A \f$ the amplitude of the harmonic perturbation,
+ * \f$ x \f$ a quantitiy defined as \f$ x = 2r - r_i - r_o\f$,
+ * \f$ \theta \f$ the colatitude (polar angle) and
+ * \f$ \phi \f$ the longitude (azimuthal angle).
+ */
+template <int dim>
+class TemperatureInitialCondition : public Function<dim>
+{
+public:
+  TemperatureInitialCondition(const double inner_radius,
+                              const double outer_radius,
+                              const double A = 0.1,
+                              const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+private:
+  /*!
+   * @brief Inner radius of the shell.
+   */
+  const double inner_radius;
+
+  /*!
+   * @brief Outer radius of the shell.
+   */
+  const double outer_radius;
+
+  /*!
+   * @brief Amplitude of the harmonic perturbation.
+   */
+  const double A;
+};
+
+
+
+template <int dim>
+TemperatureInitialCondition<dim>::TemperatureInitialCondition
+(const double inner_radius,
+ const double outer_radius,
+ const double A,
+ const double time)
+:
+Function<dim>(1, time),
+inner_radius(inner_radius),
+outer_radius(outer_radius),
+A(A)
+{
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
+}
+
+
+
+template<int dim>
+double TemperatureInitialCondition<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  double temperature;
+
+  const std::array<double, dim> spherical_coordinates = GeometricUtilities::Coordinates::to_spherical(point);
+
+  // Radius
+  const double r        = spherical_coordinates[0];
+  // Azimuthal angle
+  const double phi      = spherical_coordinates[1];
+  // Polar angle
+  double theta;
+  if constexpr(dim == 2)
+    theta = numbers::PI_2;
+  else if constexpr(dim == 3)
+    theta = spherical_coordinates[2];
+
+  const double x_0    = 2. * r - inner_radius - outer_radius;
+
+  temperature = outer_radius * inner_radius / r
+                - inner_radius
+                + 210. * A / std::sqrt(17920. * M_PI) *
+                  (1. - 3. * x_0 * x_0 + 3. * std::pow(x_0, 4) - std::pow(x_0,6)) *
+                  pow(std::sin(theta), 4) *
+                  std::cos(4. * phi);
+
+  return temperature;
+}
+
+
+
+/*!
+ * @class TemperatureBoundaryCondition
+ *
+ * @brief The boundary conditions of the temperature field of the
+ * Christensen benchmark.
+ *
+ * @details At the inner boundary the temperature is set to \f$ 1.0 \f$
+ * and at the outer boundary to \f$ 0.0 \f$.
+ *
+ */
+template <int dim>
+class TemperatureBoundaryCondition : public Function<dim>
+{
+public:
+  TemperatureBoundaryCondition(const double inner_radius,
+                               const double outer_radius,
+                               const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+private:
+  /*!
+   * @brief Inner radius of the shell.
+   */
+  const double inner_radius;
+
+  /*!
+   * @brief Outer radius of the shell.
+   */
+  const double outer_radius;
+};
+
+
+
+template <int dim>
+TemperatureBoundaryCondition<dim>::TemperatureBoundaryCondition
+(const double inner_radius,
+ const double outer_radius,
+ const double time)
+:
+Function<dim>(1, time),
+inner_radius(inner_radius),
+outer_radius(outer_radius)
+{
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
+}
+
+
+
+template<int dim>
+double TemperatureBoundaryCondition<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  const double r = point.norm();
+
+  double value = (r > 0.5*(inner_radius + outer_radius)) ? 0.0 : 1.0;
+
+  return (value);
+}
+
+
+
+/*!
+ * @class GravityVector
+ *
+ * @brief The gravity field
+ *
+ * @details Given by the linear function
+ * \f[
+ * \ \bs{g} = \frac{1}{r_o} r\bs{e}_\textrm{r}
+ * \f]
+ * where \f$ \bs{g} \f$ is the gravity field,
+ * \f$ r_o \f$ the outer radius of the shell and
+ * \f$ \bs{r} \f$ the radius vector.
+ *
+ */
+template <int dim>
+class GravityVector: public TensorFunction<1, dim>
+{
+public:
+  GravityVector(const double outer_radius,
+                const double time = 0);
+
+  virtual Tensor<1, dim> value(const Point<dim> &point) const override;
+
+private:
+
+  /*!
+   * @brief Outer radius of the shell.
+   */
+  const double outer_radius;
+};
+
+
+
+template <int dim>
+GravityVector<dim>::GravityVector
+(const double outer_radius,
+ const double time)
+:
+TensorFunction<1, dim>(time),
+outer_radius(outer_radius)
+{}
+
+
+
+template <int dim>
+Tensor<1, dim> GravityVector<dim>::value(const Point<dim> &point) const
+{
+  Tensor<1, dim> value(point);
+
+  value /= -outer_radius;
+
+  return value;
+}
+
+
+}  // namespace EquationData
+
+
 
 /*!
  * @class Christensen
+ *
  * @brief Class solving the problem formulated in the Christensen benchmark.
+ *
  * @details The benchmark considers the case of a buoyancy-driven flow
  * for which the Boussinesq approximation is assumed to hold true,
  * <em> i. e.</em>, the fluid's behaviour is described by the following
@@ -75,9 +361,11 @@ using namespace dealii;
  * \f]
  * and the parameters are \f$ \Prandtl = 0.71 \f$ and
  * \f$ \Rayleigh = 3.4\times 10^5. \f$
+ *
  * @note The temperature's Dirichlet boundary conditions are implemented
  * with a factor \f$ [1-\exp(-10 t)] \f$ to smooth the dynamic response
  * of the system.
+ *
  * @todo Add a picture
  */
 template <int dim>
@@ -109,16 +397,15 @@ private:
 
   std::shared_ptr<Entities::FE_VectorField<dim>>  magnetic_field;
 
-  std::shared_ptr<EquationData::Christensen::TemperatureInitialCondition<dim>>
+  std::shared_ptr<EquationData::TemperatureInitialCondition<dim>>
                                                 temperature_initial_conditions;
 
-  std::shared_ptr<EquationData::Christensen::TemperatureBoundaryCondition<dim>>
+  std::shared_ptr<EquationData::TemperatureBoundaryCondition<dim>>
                                                 temperature_boundary_conditions;
 
-  EquationData::Christensen::GravityVector<dim> gravity_vector;
+  EquationData::GravityVector<dim>              gravity_vector;
 
-  EquationData::Christensen::AngularVelocity<dim>
-                                                angular_velocity;
+  EquationData::Omega<dim>                      angular_velocity;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
@@ -172,13 +459,13 @@ magnetic_field(std::make_shared<Entities::FE_VectorField<dim>>(
               this->triangulation,
               "Magnetic field")),
 temperature_initial_conditions(
-  std::make_shared<EquationData::Christensen::TemperatureInitialCondition<dim>>(
+  std::make_shared<EquationData::TemperatureInitialCondition<dim>>(
     inner_radius,
     outer_radius,
     A,
     parameters.time_discretization_parameters.start_time)),
 temperature_boundary_conditions(
-  std::make_shared<EquationData::Christensen::TemperatureBoundaryCondition<dim>>(
+  std::make_shared<EquationData::TemperatureBoundaryCondition<dim>>(
     inner_radius,
     outer_radius,
     parameters.time_discretization_parameters.start_time)),
@@ -502,17 +789,16 @@ void Christensen<dim>::run()
   }
 }
 
-} // namespace RMHD
+} // namespace ChristensenBenchmark
 
 int main(int argc, char *argv[])
 {
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace ChristensenBenchmark;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 2);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 2);
 
       RunTimeParameters::ProblemParameters parameter_set("Christensen.prm");
 
