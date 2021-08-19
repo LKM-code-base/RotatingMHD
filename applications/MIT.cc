@@ -1,7 +1,7 @@
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/equation_data.h>
-#include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
+#include <rotatingMHD/finite_element_field.h>
+#include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
@@ -14,21 +14,94 @@
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
-#include <rotatingMHD/finite_element_field.h>
 
 #include <iostream>
 #include <fstream>
 #include <memory>
 #include <string>
 #include <iomanip>
-namespace RMHD
+
+namespace MITBenchmark
 {
 
 using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+template <int dim>
+class TemperatureBoundaryCondition : public Function<dim>
+{
+public:
+  TemperatureBoundaryCondition(const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+private:
+  /*!
+   * @brief The exponential coefficient.
+   */
+  const double beta = 10.;
+};
+
+template <int dim>
+TemperatureBoundaryCondition<dim>::TemperatureBoundaryCondition
+(const double time)
+:
+Function<dim>(1, time)
+{}
+
+template <>
+double TemperatureBoundaryCondition<2>::value
+(const Point<2> &point,
+ const unsigned int /* component */) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+
+  const double sign = ( x < 0.5 ) ? 1.0 : -1.0;
+
+  return ( sign * 0.5 * (1.0 - exp(- beta * t)));
+}
+
+template <int dim>
+class GravityVector: public TensorFunction<1, dim>
+{
+public:
+  GravityVector(const double time = 0);
+
+  virtual Tensor<1, dim> value(const Point<dim>  &point) const override;
+};
+
+template <int dim>
+GravityVector<dim>::GravityVector
+(const double time)
+:
+TensorFunction<1, dim>(time)
+{}
+
+template <>
+Tensor<1, 2> GravityVector<2>::value(const Point<2> &/*point*/) const
+{
+  Tensor<1, 2> value;
+
+  value[0] = 0.0;
+  value[1] = -1.0;
+
+  return value;
+}
+
+} // namespace EquationData
+
+
 
 /*!
  * @class MITBenchmark
+ *
  * @brief Class solving the problem formulated in the MIT benchmark.
+ *
  * @details The benchmark considers the case of a buoyancy-driven flow
  * for which the Boussinesq approximation is assumed to hold true,
  * <em> i. e.</em>, the fluid's behaviour is described by the following
@@ -74,16 +147,18 @@ using namespace dealii;
  * \f]
  * and the parameters are \f$ \Prandtl = 0.71 \f$ and
  * \f$ \Rayleigh = 3.4\times 10^5. \f$
+ *
  * @note The temperature's Dirichlet boundary conditions are implemented
  * with a factor \f$ [1-\exp(-10 t)] \f$ to smooth the dynamic response
  * of the system.
+ *
  * @todo Add a picture
  */
 template <int dim>
-class MITBenchmark : public Problem<dim>
+class MIT : public Problem<dim>
 {
 public:
-  MITBenchmark(const RunTimeParameters::ProblemParameters &parameters);
+  MIT(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
@@ -94,7 +169,7 @@ private:
 
   std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
-  std::shared_ptr<EquationData::MIT::TemperatureBoundaryCondition<dim>>
+  std::shared_ptr<EquationData::TemperatureBoundaryCondition<dim>>
                                                 temperature_boundary_conditions;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
@@ -105,7 +180,7 @@ private:
 
   BenchmarkData::MIT<dim>                       mit_benchmark;
 
-  EquationData::MIT::GravityUnitVector<dim>     gravity_vector;
+  EquationData::GravityVector<dim>              gravity_vector;
 
   double                                        cfl_number;
 
@@ -133,7 +208,7 @@ private:
 };
 
 template <int dim>
-MITBenchmark<dim>::MITBenchmark(const RunTimeParameters::ProblemParameters &parameters)
+MIT<dim>::MIT(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 velocity(std::make_shared<Entities::FE_VectorField<dim>>(
@@ -149,7 +224,7 @@ temperature(std::make_shared<Entities::FE_ScalarField<dim>>(
               this->triangulation,
               "Temperature")),
 temperature_boundary_conditions(
-              std::make_shared<EquationData::MIT::TemperatureBoundaryCondition<dim>>(
+              std::make_shared<EquationData::TemperatureBoundaryCondition<dim>>(
               parameters.time_discretization_parameters.start_time)),
 time_stepping(parameters.time_discretization_parameters),
 navier_stokes(parameters.navier_stokes_parameters,
@@ -201,7 +276,7 @@ cfl_output_file("MIT_cfl_number.csv")
 }
 
 template <>
-void MITBenchmark<2>::make_grid()
+void MIT<2>::make_grid()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
@@ -280,7 +355,7 @@ void MITBenchmark<2>::make_grid()
 }
 
 template <int dim>
-void MITBenchmark<dim>::setup_dofs()
+void MIT<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
@@ -309,7 +384,7 @@ void MITBenchmark<dim>::setup_dofs()
 }
 
 template <int dim>
-void MITBenchmark<dim>::setup_constraints()
+void MIT<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
@@ -356,7 +431,7 @@ void MITBenchmark<dim>::setup_constraints()
 }
 
 template <int dim>
-void MITBenchmark<dim>::initialize()
+void MIT<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -371,7 +446,7 @@ void MITBenchmark<dim>::initialize()
   temperature->set_solution_vectors_to_zero();
 
   {
-    LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
+    RMHD::LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
 
     distributed_old_temperature = temperature->old_solution;
 
@@ -386,7 +461,7 @@ void MITBenchmark<dim>::initialize()
 }
 
 template <int dim>
-void MITBenchmark<dim>::postprocessing()
+void MIT<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
@@ -416,7 +491,7 @@ void MITBenchmark<dim>::postprocessing()
 }
 
 template <int dim>
-void MITBenchmark<dim>::output()
+void MIT<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
@@ -458,7 +533,7 @@ void MITBenchmark<dim>::output()
 }
 
 template <int dim>
-void MITBenchmark<dim>::update_solution_vectors()
+void MIT<dim>::update_solution_vectors()
 {
   // Sets the solution vectors at t^{k-j} to those at t^{k-j+1}
   velocity->update_solution_vectors();
@@ -467,7 +542,7 @@ void MITBenchmark<dim>::update_solution_vectors()
 }
 
 template <int dim>
-void MITBenchmark<dim>::run()
+void MIT<dim>::run()
 {
   const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
 
@@ -522,14 +597,14 @@ void MITBenchmark<dim>::run()
   mit_benchmark.print_data_to_file("MIT_benchmark");
 }
 
-} // namespace RMHD
+} // namespace MITBenchmark
 
 int main(int argc, char *argv[])
 {
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace MITBenchmark;
 
       Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
@@ -541,7 +616,7 @@ int main(int argc, char *argv[])
 
       RunTimeParameters::ProblemParameters parameter_set(parameter_filename);
 
-      MITBenchmark<2> simulation(parameter_set);
+      MIT<2> simulation(parameter_set);
 
       simulation.run();
 

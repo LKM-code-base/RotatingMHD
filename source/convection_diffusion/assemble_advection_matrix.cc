@@ -8,7 +8,7 @@
 namespace RMHD
 {
 
-using Copy = typename AssemblyData::HeatEquation::AdvectionMatrix::Copy;
+using Copy = AssemblyData::HeatEquation::AdvectionMatrix::Copy;
 
 template <int dim>
 void HeatEquation<dim>::assemble_advection_matrix()
@@ -28,18 +28,10 @@ void HeatEquation<dim>::assemble_advection_matrix()
   const FiniteElement<dim>* const velocity_fe =
               (velocity != nullptr) ? &velocity->get_finite_element() : &dummy_fe_system;
 
-  // Set polynomial degree of the velocity. If the velicity is given
-  // by a function the degree is hardcoded to 2.
-  const unsigned int velocity_fe_degree =
-                        (velocity != nullptr) ? velocity->fe_degree() : 2;
-
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = velocity_fe_degree + 2 * temperature->fe_degree() - 1;
-
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(temperature->fe_degree() + 1);
 
-  // Set up the lamba function for the local assembly operation
+  // Set up the lambda function for the local assembly operation
   using Scratch = typename AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
@@ -51,7 +43,7 @@ void HeatEquation<dim>::assemble_advection_matrix()
                                              data);
     };
 
-  // Set up the lamba function for the copy local to global operation
+  // Set up the lambda function for the copy local to global operation
   auto copier =
     [this](const Copy  &data)
     {

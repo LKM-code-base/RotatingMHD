@@ -151,8 +151,8 @@ Spatial discretization:
 | Bdy. id |    Type    |              Function                    |
 | 3       | Neumann    | ZeroFunction<2, double>                  |
 | 4       | Neumann    | ZeroFunction<2, double>                  |
-| 1       | Dirichlet  | MIT::TemperatureBoundaryCondition<2>     |
-| 2       | Dirichlet  | MIT::TemperatureBoundaryCondition<2>     |
+| 1       | Dirichlet  | MITBenchmark::EquationData::TemperatureBoundaryCondition<2> |
+| 2       | Dirichlet  | MITBenchmark::EquationData::TemperatureBoundaryCondition<2> |
 +---------+------------+------------------------------------------+
 Step =      0, Current time = 0.0e+00, Next time step = 5.0e-02
 +---------+------------+------------------------------------------+

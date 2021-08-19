@@ -1,9 +1,10 @@
 /*!
- *@file DFG
- *@brief The source file for solving the DFG benchmark.
+ * @file DFG
+ *
+ * @brief The source file for solving the DFG benchmark.
+ *
  */
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -24,10 +25,91 @@
 #include <iostream>
 #include <string>
 
-namespace RMHD
+namespace DFGBenchmark
 {
 
 using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+/*!
+ * @class VelocityInflowBoundaryCondition
+ *
+ * @brief The velocity profile at the inlet of the channel.
+ *
+ * @details The velocity profile is given by the following function
+ * \f[
+ * \bs{v}(y)= v_x(y) \ex= v_0 \left(\frac{2}{H}\right)^2 y (H-y) \ex \,,
+ * \f]
+ *
+ * where \f$ H \f$ denotes the height of the channel and \f$ v_0 \f$ is the
+ * maximum velocity in the middle of the channel. Typically, the maximum velocity is
+ * chosen as \f$ v_0=\frac{3}{2} \f$ such that the mean velocity is unity.
+ *
+ */
+template <int dim>
+class VelocityInflowBoundaryCondition : public Function<dim>
+{
+public:
+  /*!
+   * Default constructor.
+   */
+  VelocityInflowBoundaryCondition(const double time = 0,
+                                  const double maximum_velocity = 1.5,
+                                  const double height = 4.1);
+
+  /*!
+   * Overloading method evaluating the function.
+   */
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+
+private:
+  /*!
+   * The maximum velocity at the middle of the channel.
+   */
+  const double maximum_velocity;
+
+  /*!
+   * The height of the channel.
+   */
+  const double height;
+};
+
+template <int dim>
+VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
+(const double time,
+ const double maximum_velocity,
+ const double height)
+:
+Function<dim>(dim, time),
+maximum_velocity(maximum_velocity),
+height(height)
+{}
+
+
+
+template <int dim>
+void VelocityInflowBoundaryCondition<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
+{
+  values[0] = 4.0 * maximum_velocity * point(1) * ( height - point(1) )
+      / ( height * height );
+
+  for (unsigned d=1; d<dim; ++d)
+    values[d] = 0.0;
+}
+
+template<int dim>
+using VelocityInitialCondition = Functions::ZeroFunction<dim>;
+
+template<int dim>
+using PressureInitialCondition = Functions::ZeroFunction<dim>;
+
+}  // namespace EquationData
 
 /*!
  * @class DFG
@@ -279,6 +361,7 @@ public:
   DFG(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
+
 private:
 
   std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
@@ -291,11 +374,9 @@ private:
 
   BenchmarkData::DFGBechmarkRequest<dim>        benchmark_request;
 
-  EquationData::DFG::VelocityInitialCondition<dim>
-                                                velocity_initial_condition;
+  EquationData::VelocityInitialCondition<dim>   velocity_initial_condition;
 
-  EquationData::DFG::PressureInitialCondition<dim>
-                                                pressure_initial_condition;
+  EquationData::PressureInitialCondition<dim>   pressure_initial_condition;
 
   double                                        cfl_number;
 
@@ -448,7 +529,7 @@ void DFG<dim>::setup_constraints()
 
   velocity->set_dirichlet_boundary_condition
   (channel_inlet_bndry_id,
-   std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>
+   std::make_shared<EquationData::VelocityInflowBoundaryCondition<dim>>
    (time_stepping.get_start_time())
   );
 
@@ -629,14 +710,14 @@ void DFG<dim>::run()
 
 }
 
-} // namespace RMHD
+} // namespace DFGBenchmark
 
 int main(int argc, char *argv[])
 {
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace DFGBenchmark;
 
       Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 

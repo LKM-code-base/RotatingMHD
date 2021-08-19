@@ -1,6 +1,6 @@
+#include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/finite_element_field.h>
-#include <rotatingMHD/convection_diffusion_solver.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>

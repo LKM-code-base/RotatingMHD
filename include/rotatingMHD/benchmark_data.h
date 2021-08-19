@@ -1,10 +1,10 @@
 #ifndef INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 #define INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 
-#include <rotatingMHD/time_discretization.h>
-#include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/finite_element_field.h>
+#include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/point.h>
 #include <deal.II/base/table_handler.h>

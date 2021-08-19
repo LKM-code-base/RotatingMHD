@@ -21,18 +21,15 @@ void HeatEquation<dim>::assemble_constant_matrices()
   mass_matrix       = 0.;
   stiffness_matrix  = 0.;
 
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * temperature->fe_degree();
-
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(temperature->fe_degree()  + 1);
 
   // Set up the lamba function for the local assembly operation
   using Scratch = typename AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator         &cell,
-           Scratch  &scratch,
-           Copy     &data)
+           Scratch   &scratch,
+           AssemblyData::HeatEquation::ConstantMatrices::Copy           &data)
     {
       this->assemble_local_constant_matrices(cell,
                                              scratch,
