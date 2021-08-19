@@ -5,6 +5,8 @@
 namespace RMHD
 {
 
+using Copy = AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy;
+
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_poisson_prestep_rhs()
@@ -43,10 +45,11 @@ assemble_poisson_prestep_rhs()
 
 
   // Set up the lamba function for the local assembly operation
+  using Scratch = typename AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
-           AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>   &scratch,
-           AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy           &data)
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_poisson_prestep_rhs(cell,
                                                scratch,
@@ -55,7 +58,7 @@ assemble_poisson_prestep_rhs()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy &data)
+    [this](const Copy &data)
     {
       this->copy_local_to_global_poisson_prestep_rhs(data);
     };
@@ -64,6 +67,14 @@ assemble_poisson_prestep_rhs()
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
+  const UpdateFlags pressure_update_flags = update_gradients|
+                                            update_quadrature_points|
+                                            update_JxW_values;
+  const UpdateFlags pressure_face_update_flags = update_values|
+                                                 update_quadrature_points|
+                                                 update_normal_vectors|
+                                                 update_JxW_values;
+
   WorkStream::run(
     CellFilter(IteratorFilters::LocallyOwnedCell(),
                pressure->get_dof_handler().begin_active()),
@@ -71,24 +82,18 @@ assemble_poisson_prestep_rhs()
                pressure->get_dof_handler().end()),
     worker,
     copier,
-    AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim>(
-      *mapping,
-      quadrature_formula,
-      face_quadrature_formula,
-      velocity->get_finite_element(),
-      update_values,
-      update_hessians,
-      pressure->get_finite_element(),
-      update_JxW_values|
-      update_gradients |
-      update_quadrature_points,
-      update_JxW_values |
-      update_values |
-      update_quadrature_points |
-      update_normal_vectors,
-      *temperature_fe_ptr,
-      update_values),
-    AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy(pressure->get_finite_element().dofs_per_cell));
+    Scratch(*mapping,
+            quadrature_formula,
+            face_quadrature_formula,
+            velocity->get_finite_element(),
+            update_values,
+            update_hessians,
+            pressure->get_finite_element(),
+            pressure_update_flags,
+            pressure_face_update_flags,
+            *temperature_fe_ptr,
+            update_values),
+    Copy(pressure->get_finite_element().dofs_per_cell));
 
   // Compress global data
   poisson_prestep_rhs.compress(VectorOperation::add);
@@ -105,7 +110,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 (const typename DoFHandler<dim>::active_cell_iterator        &cell,
  AssemblyData::NavierStokesProjection::PoissonStepRHS::Scratch<dim> &scratch,
- AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy         &data)
+ Copy &data)
 {
   // Reset local data
   data.local_rhs = 0.;
@@ -284,9 +289,8 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
 
 template <int dim>
-void NavierStokesProjection<dim>::
-copy_local_to_global_poisson_prestep_rhs(
-  const AssemblyData::NavierStokesProjection::PoissonStepRHS::Copy  &data)
+void NavierStokesProjection<dim>::copy_local_to_global_poisson_prestep_rhs
+(const Copy &data)
 {
   pressure->get_constraints().distribute_local_to_global(
                                 data.local_rhs,

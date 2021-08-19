@@ -8,6 +8,8 @@
 namespace RMHD
 {
 
+using Copy = typename AssemblyData::HeatEquation::AdvectionMatrix::Copy;
+
 template <int dim>
 void HeatEquation<dim>::assemble_advection_matrix()
 {
@@ -38,10 +40,11 @@ void HeatEquation<dim>::assemble_advection_matrix()
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   // Set up the lamba function for the local assembly operation
+  using Scratch = typename AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
-           AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>&scratch,
-           AssemblyData::HeatEquation::AdvectionMatrix::Copy        &data)
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_advection_matrix(cell,
                                              scratch,
@@ -50,7 +53,7 @@ void HeatEquation<dim>::assemble_advection_matrix()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::HeatEquation::AdvectionMatrix::Copy  &data)
+    [this](const Copy  &data)
     {
       this->copy_local_to_global_advection_matrix(data);
     };
@@ -59,6 +62,10 @@ void HeatEquation<dim>::assemble_advection_matrix()
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
+  const UpdateFlags advection_update_flags = update_values|
+                                             update_gradients|
+                                             update_JxW_values |
+                                             update_quadrature_points;
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
               temperature->get_dof_handler().begin_active()),
@@ -66,17 +73,13 @@ void HeatEquation<dim>::assemble_advection_matrix()
               temperature->get_dof_handler().end()),
    worker,
    copier,
-   AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>(
-    *mapping,
-    quadrature_formula,
-    temperature->get_finite_element(),
-    update_values|
-    update_gradients|
-    update_JxW_values |
-    update_quadrature_points,
-    *velocity_fe,
-    update_values),
-   AssemblyData::HeatEquation::AdvectionMatrix::Copy(temperature->get_finite_element().dofs_per_cell));
+   Scratch(*mapping,
+           quadrature_formula,
+           temperature->get_finite_element(),
+           advection_update_flags,
+           *velocity_fe,
+           update_values),
+   Copy(temperature->get_finite_element().dofs_per_cell));
 
   // Compress global data
   advection_matrix.compress(VectorOperation::add);
@@ -89,7 +92,7 @@ template <int dim>
 void HeatEquation<dim>::assemble_local_advection_matrix
 (const typename DoFHandler<dim>::active_cell_iterator       &cell,
  AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>  &scratch,
- AssemblyData::HeatEquation::AdvectionMatrix::Copy          &data)
+ Copy &data)
 {
   // Reset local data
   data.local_matrix = 0.;
@@ -164,7 +167,7 @@ void HeatEquation<dim>::assemble_local_advection_matrix
 
 template <int dim>
 void HeatEquation<dim>::copy_local_to_global_advection_matrix
-(const AssemblyData::HeatEquation::AdvectionMatrix::Copy    &data)
+(const Copy &data)
 {
   temperature->get_constraints().distribute_local_to_global(
                                       data.local_matrix,

@@ -12,12 +12,10 @@ namespace RMHD
 
 template <int dim>
 PostprocessorScalarField<dim>::PostprocessorScalarField
-(const std::string &name,
- const unsigned int partition)
+(const std::string &name)
 :
 DataPostprocessor<dim>(),
-name(name),
-partition(partition)
+name(name)
 {}
 
 
@@ -86,12 +84,9 @@ UpdateFlags PostprocessorScalarField<dim>::get_needed_update_flags() const
 
 template <int dim>
 SphericalPostprocessorScalarField<dim>::SphericalPostprocessorScalarField
-(const std::string &name,
- const unsigned int partition)
+(const std::string &name)
 :
-DataPostprocessor<dim>(),
-name(name),
-partition(partition)
+DataPostprocessor<dim>()
 {}
 
 
@@ -208,12 +203,10 @@ UpdateFlags SphericalPostprocessorScalarField<dim>::get_needed_update_flags() co
 
 template <int dim>
 PostprocessorVectorField<dim>::PostprocessorVectorField
-(const std::string &name,
- const unsigned int partition)
+(const std::string &name)
 :
 DataPostprocessor<dim>(),
-name(name),
-partition(partition)
+name(name)
 {}
 
 
@@ -351,12 +344,10 @@ UpdateFlags PostprocessorVectorField<dim>::get_needed_update_flags() const
 
 template <int dim>
 SphericalPostprocessorVectorField<dim>::SphericalPostprocessorVectorField
-(const std::string &name,
- const unsigned int partition)
+(const std::string &name)
 :
 DataPostprocessor<dim>(),
-name(name),
-partition(partition)
+name(name)
 {}
 
 
