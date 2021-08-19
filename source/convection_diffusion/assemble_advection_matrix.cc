@@ -25,16 +25,16 @@ void HeatEquation<dim>::assemble_advection_matrix()
   const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(1), dim);
 
   // Create pointer to the pertinent finite element
-  const FESystem<dim>* const velocity_fe =
-              (velocity != nullptr) ? &velocity->fe : &dummy_fe_system;
+  const FiniteElement<dim>* const velocity_fe =
+              (velocity != nullptr) ? &velocity->get_finite_element() : &dummy_fe_system;
 
   // Set polynomial degree of the velocity. If the velicity is given
   // by a function the degree is hardcoded to 2.
   const unsigned int velocity_fe_degree =
-                        (velocity != nullptr) ? velocity->fe_degree : 2;
+                        (velocity != nullptr) ? velocity->fe_degree() : 2;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = velocity_fe_degree + 2 * temperature->fe_degree - 1;
+  const int p_degree = velocity_fe_degree + 2 * temperature->fe_degree() - 1;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -68,18 +68,18 @@ void HeatEquation<dim>::assemble_advection_matrix()
                                              update_quadrature_points;
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->begin_active()),
+              temperature->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->end()),
+              temperature->get_dof_handler().end()),
    worker,
    copier,
    Scratch(*mapping,
            quadrature_formula,
-           temperature->fe,
+           temperature->get_finite_element(),
            advection_update_flags,
            *velocity_fe,
            update_values),
-   Copy(temperature->fe.dofs_per_cell));
+   Copy(temperature->get_finite_element().dofs_per_cell));
 
   // Compress global data
   advection_matrix.compress(VectorOperation::add);
@@ -108,7 +108,7 @@ void HeatEquation<dim>::assemble_local_advection_matrix
                   cell->level(),
                   cell->index(),
                   //Pointer to the velocity's DoFHandler
-                  velocity->dof_handler.get());
+                  &velocity->get_dof_handler());
 
     scratch.velocity_fe_values.reinit(velocity_cell);
 
@@ -169,7 +169,7 @@ template <int dim>
 void HeatEquation<dim>::copy_local_to_global_advection_matrix
 (const Copy &data)
 {
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
                                       data.local_matrix,
                                       data.local_dof_indices,
                                       advection_matrix);

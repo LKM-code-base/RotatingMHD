@@ -22,7 +22,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
   stiffness_matrix  = 0.;
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * temperature->fe_degree;
+  const int p_degree = 2 * temperature->fe_degree();
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
@@ -31,8 +31,8 @@ void HeatEquation<dim>::assemble_constant_matrices()
   using Scratch = typename AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator         &cell,
-           Scratch   &scratch,
-           AssemblyData::HeatEquation::ConstantMatrices::Copy           &data)
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_constant_matrices(cell,
                                              scratch,
@@ -52,16 +52,16 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->begin_active()),
+              temperature->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->end()),
+              temperature->get_dof_handler().end()),
    worker,
    copier,
    Scratch(*mapping,
            quadrature_formula,
-           temperature->fe,
+           temperature->get_finite_element(),
            update_values|update_gradients|update_JxW_values),
-   Copy(temperature->fe.dofs_per_cell));
+   Copy(temperature->get_finite_element().dofs_per_cell));
 
   // Compress global data
   mass_matrix.compress(VectorOperation::add);
@@ -129,11 +129,11 @@ template <int dim>
 void HeatEquation<dim>::copy_local_to_global_constant_matrices
 (const Copy   &data)
 {
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
                                       data.local_mass_matrix,
                                       data.local_dof_indices,
                                       mass_matrix);
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       stiffness_matrix);

@@ -229,7 +229,7 @@ private:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const MPI_Comm                         &mpi_communicator;
+  const MPI_Comm                          mpi_communicator;
 
   /*!
    * @brief Pointer to a conditional output stream object.

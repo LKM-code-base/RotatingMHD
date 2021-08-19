@@ -157,14 +157,13 @@ void Guermond<dim>::setup_dofs()
   *this->pcout  << "  Number of active cells                = "
                 << this->triangulation.n_global_active_cells() << std::endl;
   *this->pcout  << "  Number of velocity degrees of freedom = "
-                << (velocity->dof_handler)->n_dofs()
+                << velocity->n_dofs()
                 << std::endl
                 << "  Number of pressure degrees of freedom = "
-                << (pressure->dof_handler)->n_dofs()
+                << pressure->n_dofs()
                 << std::endl
                << "  Number of total degrees of freedom    = "
-               << (pressure->dof_handler->n_dofs() +
-                   velocity->dof_handler->n_dofs())
+               << (pressure->n_dofs() + velocity->n_dofs())
                << std::endl;
 }
 
@@ -176,25 +175,25 @@ void Guermond<dim>::setup_constraints()
   velocity->clear_boundary_conditions();
   pressure->clear_boundary_conditions();
 
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
   velocity_exact_solution->set_time(time_stepping.get_start_time());
 
   // left boundary
-  velocity->boundary_conditions.set_neumann_bcs(0);
+  velocity->set_neumann_boundary_condition(0);
   // right boundary
-  velocity->boundary_conditions.set_dirichlet_bcs(
-    1,
-    velocity_exact_solution,
-    true);
+  velocity->set_dirichlet_boundary_condition(1,
+                                             velocity_exact_solution,
+                                             true);
   // bottom boundary
-  velocity->boundary_conditions.set_dirichlet_bcs(
-    2,
-    velocity_exact_solution,
-    true);
+  velocity->set_dirichlet_boundary_condition(2,
+                                             velocity_exact_solution,
+                                             true);
   // top boundary
-  velocity->boundary_conditions.set_dirichlet_bcs(
-    3,
-    velocity_exact_solution,
-    true);
+  velocity->set_dirichlet_boundary_condition(3,
+                                             velocity_exact_solution,
+                                             true);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -227,17 +226,11 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
   {
     LinearAlgebra::MPI::Vector  analytical_pressure(pressure->solution);
     {
-      #ifdef USE_PETSC_LA
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs,
-                                this->mpi_communicator);
-      #else
-        LinearAlgebra::MPI::Vector
-        tmp_analytical_pressure(pressure->locally_owned_dofs);
-      #endif
-      VectorTools::project(*(pressure->dof_handler),
-                          pressure->constraints,
-                          QGauss<dim>(pressure->fe_degree + 2),
+      LinearAlgebra::MPI::Vector tmp_analytical_pressure(pressure->distributed_vector);
+
+      VectorTools::project(pressure->get_dof_handler(),
+                          pressure->get_constraints(),
+                          QGauss<dim>(pressure->fe_degree() + 2),
                           *pressure_exact_solution,
                           tmp_analytical_pressure);
 
@@ -246,15 +239,8 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
     {
       LinearAlgebra::MPI::Vector distributed_analytical_pressure;
       LinearAlgebra::MPI::Vector distributed_numerical_pressure;
-      #ifdef USE_PETSC_LA
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                        this->mpi_communicator);
-      #else
-        distributed_analytical_pressure.reinit(pressure->locally_owned_dofs,
-                                               pressure->locally_relevant_dofs,
-                                               this->mpi_communicator,
-                                               true);
-      #endif
+
+      distributed_analytical_pressure.reinit(pressure->distributed_vector);
       distributed_numerical_pressure.reinit(distributed_analytical_pressure);
 
       distributed_analytical_pressure = analytical_pressure;
@@ -315,25 +301,25 @@ void Guermond<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity_error,
                            error_name,
                            component_interpretation);
 
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
 
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure_error,
                            "pressure_error");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 
@@ -359,8 +345,8 @@ void Guermond<dim>::solve(const unsigned int &level)
   navier_stokes.set_body_force(body_force);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   velocity_error.reinit(velocity->solution);
   pressure_error.reinit(pressure->solution);
   initialize();
@@ -396,8 +382,6 @@ void Guermond<dim>::solve(const unsigned int &level)
     // Updates the functions and the constraints to t^{k}
     velocity_exact_solution->set_time(time_stepping.get_next_time());
     pressure_exact_solution->set_time(time_stepping.get_next_time());
-
-    velocity->boundary_conditions.set_time(time_stepping.get_next_time());
     velocity->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}

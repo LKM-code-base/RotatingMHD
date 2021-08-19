@@ -165,14 +165,13 @@ void Guermond<dim>::setup_dofs()
                << this->triangulation.n_global_active_cells()
                << std::endl;
   *this->pcout << "  Number of velocity degrees of freedom = "
-               << (velocity->dof_handler)->n_dofs()
+               << velocity->n_dofs()
                << std::endl
                << "  Number of pressure degrees of freedom = "
-               << (pressure->dof_handler)->n_dofs()
+               << pressure->n_dofs()
                << std::endl
                << "  Number of total degrees of freedom    = "
-               << (pressure->dof_handler->n_dofs() +
-                   velocity->dof_handler->n_dofs())
+               << (pressure->n_dofs() + velocity->n_dofs())
                << std::endl;
 }
 
@@ -184,15 +183,17 @@ void Guermond<dim>::setup_constraints()
   velocity->clear_boundary_conditions();
   pressure->clear_boundary_conditions();
 
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
   velocity_exact_solution->set_time(time_stepping.get_start_time());
 
   for (const auto& boundary_id : this->triangulation.get_boundary_ids())
-    velocity->boundary_conditions.set_dirichlet_bcs(
-      boundary_id,
-      velocity_exact_solution,
-      true);
+    velocity->set_dirichlet_boundary_condition(boundary_id,
+                                               velocity_exact_solution,
+                                               true);
 
-  pressure->boundary_conditions.set_datum_at_boundary();
+  pressure->set_datum_boundary_condition();
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -230,22 +231,22 @@ void Guermond<dim>::postprocessing(const bool flag_point_evaluation)
     distributed_numerical_pressure.reinit(pressure->distributed_vector);
 
     VectorTools::interpolate(*this->mapping,
-                            *pressure->dof_handler,
+                            pressure->get_dof_handler(),
                             *pressure_exact_solution,
                             distributed_analytical_pressure);
-    pressure->hanging_nodes.distribute(distributed_analytical_pressure);
+    pressure->get_hanging_node_constraints().distribute(distributed_analytical_pressure);
     analytical_pressure = distributed_analytical_pressure;
     distributed_numerical_pressure = pressure->solution;
 
     const LinearAlgebra::MPI::Vector::value_type analytical_mean_value
-      = VectorTools::compute_mean_value(*pressure->dof_handler,
-                                        QGauss<dim>(pressure->fe.degree + 1),
+      = VectorTools::compute_mean_value(pressure->get_dof_handler(),
+                                        QGauss<dim>(pressure->fe_degree() + 1),
                                         analytical_pressure,
                                         0);
 
     const LinearAlgebra::MPI::Vector::value_type numerical_mean_value
-      = VectorTools::compute_mean_value(*pressure->dof_handler,
-                                        QGauss<dim>(pressure->fe.degree + 1),
+      = VectorTools::compute_mean_value(pressure->get_dof_handler(),
+                                        QGauss<dim>(pressure->fe_degree() + 1),
                                         pressure->solution,
                                         0);
 
@@ -301,22 +302,22 @@ void Guermond<dim>::output()
                            DataComponentInterpretation::component_is_part_of_vector);
 
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity_error,
                            error_name,
                            component_interpretation);
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure_error,
                            "pressure_error");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 
@@ -341,8 +342,8 @@ void Guermond<dim>::solve(const unsigned int &level)
   navier_stokes.set_body_force(body_force);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   velocity_error.reinit(velocity->solution);
   pressure_error.reinit(pressure->solution);
   initialize();
@@ -370,7 +371,7 @@ void Guermond<dim>::solve(const unsigned int &level)
     velocity_exact_solution->set_time(time_stepping.get_next_time());
     pressure_exact_solution->set_time(time_stepping.get_next_time());
 
-    velocity->boundary_conditions.set_time(time_stepping.get_next_time());
+    velocity_exact_solution->set_time(time_stepping.get_next_time());
     velocity->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}

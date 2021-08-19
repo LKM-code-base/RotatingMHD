@@ -23,22 +23,22 @@ assemble_poisson_prestep_rhs()
   const FE_Q<dim> dummy_fe(1);
 
   // Create pointer to the pertinent finite element
-  const FE_Q<dim> * const temperature_fe_ptr =
-          (temperature.get() != nullptr) ? &temperature->fe : &dummy_fe;
+  const FiniteElement<dim> * const temperature_fe_ptr =
+          (temperature.get() != nullptr) ? &temperature->get_finite_element() : &dummy_fe;
 
   // Set polynomial degree of the body force function.
   // Hardcoded to match that of the velocity.
-  const int p_degree_body_force = velocity->fe_degree;
+  const int p_degree_body_force = velocity->fe_degree();
 
   // Compute the highest polynomial degree from all the integrands
-  const int p_degree = pressure->fe_degree + p_degree_body_force - 1;
+  const int p_degree = pressure->fe_degree() + p_degree_body_force - 1;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
 
   // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = std::max(pressure->fe_degree + p_degree_body_force,
-                                     pressure->fe_degree + velocity->fe_degree -2);
+  const int face_p_degree = std::max(pressure->fe_degree() + p_degree_body_force,
+                                     pressure->fe_degree() + velocity->fe_degree() -2);
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
@@ -77,23 +77,23 @@ assemble_poisson_prestep_rhs()
 
   WorkStream::run(
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               (pressure->dof_handler)->begin_active()),
+               pressure->get_dof_handler().begin_active()),
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               (pressure->dof_handler)->end()),
+               pressure->get_dof_handler().end()),
     worker,
     copier,
     Scratch(*mapping,
             quadrature_formula,
             face_quadrature_formula,
-            velocity->fe,
+            velocity->get_finite_element(),
             update_values,
             update_hessians,
-            pressure->fe,
+            pressure->get_finite_element(),
             pressure_update_flags,
             pressure_face_update_flags,
             *temperature_fe_ptr,
             update_values),
-    Copy(pressure->fe.dofs_per_cell));
+    Copy(pressure->get_finite_element().dofs_per_cell));
 
   // Compress global data
   poisson_prestep_rhs.compress(VectorOperation::add);
@@ -140,7 +140,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
     temperature_cell(&pressure->get_triangulation(),
                      cell->level(),
                      cell->index(),
-                     (temperature->dof_handler).get());
+                     &temperature->get_dof_handler());
 
     scratch.temperature_fe_values.reinit(temperature_cell);
 
@@ -170,7 +170,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
     velocity_cell(&velocity->get_triangulation(),
                   cell->level(),
                   cell->index(),
-                  velocity->dof_handler.get());
+                  &velocity->get_dof_handler());
 
     scratch.velocity_fe_values.reinit(velocity_cell);
 
@@ -221,7 +221,7 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
 
       // Loop over the i-th column's rows of the local matrix
       // for the case of inhomogeneous Dirichlet boundary conditions
-      if (pressure->constraints.is_inhomogeneously_constrained(
+      if (pressure->get_constraints().is_inhomogeneously_constrained(
         data.local_dof_indices[i]))
         for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
           data.local_matrix_for_inhomogeneous_bc(j, i) +=
@@ -245,13 +245,13 @@ void NavierStokesProjection<dim>::assemble_local_poisson_prestep_rhs
         velocity_cell(&velocity->get_triangulation(),
                       cell->level(),
                       cell->index(),
-                      velocity->dof_handler.get());
+                      &velocity->get_dof_handler());
 
         typename DoFHandler<dim>::active_face_iterator
         velocity_face(&velocity->get_triangulation(),
                       face->level(),
                       face->index(),
-                      velocity->dof_handler.get());
+                      &velocity->get_dof_handler());
 
         const FEValuesExtractors::Vector  vector_extractor(0);
 
@@ -292,7 +292,7 @@ template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_poisson_prestep_rhs
 (const Copy &data)
 {
-  pressure->constraints.distribute_local_to_global(
+  pressure->get_constraints().distribute_local_to_global(
                                 data.local_rhs,
                                 data.local_dof_indices,
                                 poisson_prestep_rhs,
