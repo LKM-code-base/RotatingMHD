@@ -5,8 +5,6 @@
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/convergence_table.h>
-#include <deal.II/base/function.h>
-#include <deal.II/fe/mapping_q.h>
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -14,36 +12,21 @@
 
 #include <memory>
 
-namespace ThermalTGV
+
+namespace AdvectionDiffusion
 {
 
 using namespace dealii;
 using namespace RMHD;
 
-
 namespace EquationData
 {
-template <int dim>
-class VelocityExactSolution : public TensorFunction<1, dim>
-{
-public:
-  VelocityExactSolution(const double time = 0);
-
-  virtual Tensor<1, dim> value(const Point<dim>  &p) const override;
-
-private:
-  /*!
-   * @brief The wave number.
-   */
-  const double k = 2. * M_PI;
-};
 
 template <int dim>
 class TemperatureExactSolution : public Function<dim>
 {
 public:
-  TemperatureExactSolution(const double Pe,
-                           const double time = 0);
+  TemperatureExactSolution(const double time = 0);
 
   virtual double value(const Point<dim> &p,
                        const unsigned int component = 0) const override;
@@ -53,67 +36,18 @@ public:
 
 private:
   /*!
-   * @brief The Peclet number.
-   */
-  const double Pe;
-
-  /*!
    * @brief The wave number.
    */
-  const double k = 2. * M_PI;
-};
-
-
-
-template <int dim>
-VelocityExactSolution<dim>::VelocityExactSolution
-(const double time)
-:
-TensorFunction<1, dim>(time)
-{}
-
-template <int dim>
-Tensor<1, dim> VelocityExactSolution<dim>::value
-(const Point<dim>  &point) const
-{
-  Tensor<1, dim>  return_value;
-
-  const double x = point(0);
-  const double y = point(1);
-
-  return_value[0] = cos(k * x) * cos(k * y);
-  return_value[1] = sin(k * x) * sin(k * y);
-
-  return return_value;
-}
-
-
-
-template <int dim>
-class VelocityField : public Function<dim>
-{
-public:
-  VelocityField(const double time = 0);
-
-  virtual void vector_value(const Point<dim>  &p,
-                            Vector<double>    &values) const override;
-private:
-
-  /*!
-   * @brief The wave number.
-   */
-  const double k = 2. * M_PI;
+  const double k = M_PI;
 };
 
 
 
 template <int dim>
 TemperatureExactSolution<dim>::TemperatureExactSolution
-(const double Pe,
- const double time)
+(const double time)
 :
-Function<dim>(1, time),
-Pe(Pe)
+Function<dim>(1, time)
 {}
 
 
@@ -127,9 +61,7 @@ double TemperatureExactSolution<dim>::value
   const double x = point(0);
   const double y = point(1);
 
-  const double F = exp(-2.0 * k * k  / Pe * t);
-
-  return (F *(cos(k * x) * sin(k * y)));
+  return (std::sin(k * x) * std::sin(k * y) * std::sin(k * t));
 }
 
 
@@ -144,10 +76,8 @@ Tensor<1, dim> TemperatureExactSolution<dim>::gradient
   const double x = point(0);
   const double y = point(1);
 
-  const double F = exp(-2.0 * k * k  / Pe * t);
-
-  return_value[0] = - F * k * sin(k * x) * sin(k * y);
-  return_value[1] = + F * k * cos(k * x) * cos(k * y);
+  return_value[0] = k * std::cos(k * x) * std::sin(k * y) * std::sin(k * t);
+  return_value[1] = k * std::sin(k * x) * std::cos(k * y) * std::sin(k * t);
 
   return return_value;
 }
@@ -155,62 +85,109 @@ Tensor<1, dim> TemperatureExactSolution<dim>::gradient
 
 
 template <int dim>
-VelocityField<dim>::VelocityField
+class VelocityExactSolution : public TensorFunction<1, dim>
+{
+public:
+  VelocityExactSolution(const double time = 0);
+
+  virtual Tensor<1, dim> value(const Point<dim>  &p) const override;
+};
+
+template <int dim>
+VelocityExactSolution<dim>::VelocityExactSolution
 (const double time)
 :
-Function<dim>(dim, time)
+TensorFunction<1, dim>(time)
 {}
 
 
 
 template <int dim>
-void VelocityField<dim>::vector_value
-(const Point<dim>  &point,
- Vector<double>    &values) const
+Tensor<1, dim> VelocityExactSolution<dim>::value
+(const Point<dim>  &point) const
 {
+  (void)point;
+
+  Tensor<1, dim>  return_value;
+
+  return_value[0] = 1.0;
+  return_value[1] = 0.0;
+
+  return return_value;
+}
+
+
+
+template <int dim>
+class SourceTerm : public Function<dim>
+{
+public:
+  SourceTerm(const double Pe,
+             const double time = 0);
+
+  virtual double value(const Point<dim> &point,
+                       const unsigned int component = 0) const override;
+
+private:
+  const double Pe;
+};
+
+
+
+template <int dim>
+SourceTerm<dim>::SourceTerm(const double Pe,
+                            const double time)
+:
+Function<dim>(1, time),
+Pe(Pe)
+{}
+
+
+
+template <int dim>
+double SourceTerm<dim>::value(const Point<dim> &point,
+                              const unsigned int /* component */) const
+{
+  const double t = this->get_time();
   const double x = point(0);
   const double y = point(1);
 
-  values[0] = cos(k * x) * cos(k * y);
-  values[1] = sin(k * x) * sin(k * y);
+  return (M_PI*std::cos(M_PI*x)*std::sin(M_PI*t)*std::sin(M_PI*y) //
+          + M_PI*std::cos(M_PI*t)*std::sin(M_PI*x)*std::sin(M_PI*y)  //
+          + (2*std::pow(M_PI,2)*std::sin(M_PI*t)*std::sin(M_PI*x)*std::sin(M_PI*y))/Pe);
 }
 
-} // namespace EquationData
+}  // namespace EquationData
 
 
-/*!
- * @class ThermalTGV
- *
- * @todo Add documentation
- *
- */
 template <int dim>
-class ThermalTGVProblem : public Problem<dim>
+class AdvectionDiffusionProblem : public Problem <dim>
 {
 public:
-  ThermalTGVProblem(const RunTimeParameters::ProblemParameters &parameters);
+  AdvectionDiffusionProblem(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
 private:
+  const RunTimeParameters::ProblemParameters    &parameters;
 
-  const RunTimeParameters::ProblemParameters   &parameters;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  scalar_field;
 
-  std::ofstream                                 log_file;
+  std::shared_ptr<Function<dim>>                exact_solution;
 
-  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
+  std::shared_ptr<TensorFunction<1,dim>>        velocity_field;
+
+  EquationData::SourceTerm<dim>                 source_term;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  std::shared_ptr<Function<dim>>								temperature_exact_solution;
-
-  std::shared_ptr<TensorFunction<1,dim>> 				velocity_exact_solution;
-
-  HeatEquation<dim>                             heat_equation;
+  HeatEquation<dim>                             advection_diffusion;
 
   ConvergenceTable                              convergence_table;
 
   double                                        cfl_number;
+
+  std::ofstream                                 log_file;
 
   void make_grid(const unsigned int &n_global_refinements);
 
@@ -220,6 +197,8 @@ private:
 
   void initialize();
 
+  void solve(const unsigned int &level);
+
   void postprocessing();
 
   void process_solution(const unsigned int cycle);
@@ -227,119 +206,104 @@ private:
   void output();
 
   void update_entities();
-
-  void solve(const unsigned int level);
 };
 
+
+
 template <int dim>
-ThermalTGVProblem<dim>::ThermalTGVProblem(
+AdvectionDiffusionProblem<dim>::AdvectionDiffusionProblem(
   const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
-log_file("ThermalTGV_Log.csv"),
-temperature(std::make_shared<Entities::FE_ScalarField<dim>>(parameters.fe_degree_temperature,
-                                                          this->triangulation,
-                                                          "Temperature")),
+scalar_field(std::make_shared<Entities::FE_ScalarField<dim>>(
+  parameters.fe_degree_temperature,
+  this->triangulation,
+  "Scalar field")),
+exact_solution(std::make_shared<EquationData::TemperatureExactSolution<dim>>(
+  parameters.time_discretization_parameters.start_time)),
+velocity_field(std::make_shared<EquationData::VelocityExactSolution<dim>>(
+  parameters.time_discretization_parameters.start_time)),
+source_term(parameters.Pe, parameters.time_discretization_parameters.start_time),
 time_stepping(parameters.time_discretization_parameters),
-temperature_exact_solution(
-  std::make_shared<EquationData::TemperatureExactSolution<dim>>(
-    parameters.Pe,
-    parameters.time_discretization_parameters.start_time)),
-velocity_exact_solution(
-  std::make_shared<EquationData::VelocityExactSolution<dim>>(
-    parameters.time_discretization_parameters.start_time)),
-heat_equation(parameters.heat_equation_parameters,
-              time_stepping,
-              temperature,
-              velocity_exact_solution,
-              this->mapping,
-              this->pcout,
-              this->computing_timer)
-{
-  *this->pcout << parameters << std::endl << std::endl;
+advection_diffusion(parameters.heat_equation_parameters,
+                    time_stepping,
+                    scalar_field,
+                    velocity_field,
+                    this->mapping,
+                    this->pcout,
+                    this->computing_timer),
+cfl_number(std::numeric_limits<double>::min()),
+log_file("AdvectionDiffusion_Log.csv")
+{}
 
-  log_file << "Step" << ","
-           << "Time" << ","
-           << "Norm" << ","
-           << "dt"   << std::endl;
-}
+
 
 template <int dim>
-void ThermalTGVProblem<dim>::
-make_grid(const unsigned int &n_global_refinements)
+void AdvectionDiffusionProblem<dim>::make_grid(
+  const unsigned int &n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
   GridGenerator::hyper_cube(this->triangulation,
                             0.0,
                             1.0,
-                            true);
-
-  std::vector<GridTools::PeriodicFacePair<
-    typename parallel::distributed::Triangulation<dim>::cell_iterator>>
-    periodicity_vector;
-
-  GridTools::collect_periodic_faces(this->triangulation,
-                                    0,
-                                    1,
-                                    0,
-                                    periodicity_vector);
-  GridTools::collect_periodic_faces(this->triangulation,
-                                    2,
-                                    3,
-                                    1,
-                                    periodicity_vector);
-
-  this->triangulation.add_periodicity(periodicity_vector);
+                            false);
 
   this->triangulation.refine_global(n_global_refinements);
 }
 
+
+
 template <int dim>
-void ThermalTGVProblem<dim>::setup_dofs()
+void AdvectionDiffusionProblem<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
-  temperature->setup_dofs();
+  scalar_field->setup_dofs();
   *this->pcout  << "  Number of active cells                   = "
                 << this->triangulation.n_global_active_cells()
                 << std::endl
                 << "  Number of temperature degrees of freedom = "
-                << temperature->n_dofs()
+                << scalar_field->n_dofs()
                 << std::endl;
 }
 
+
+
 template <int dim>
-void ThermalTGVProblem<dim>::setup_constraints()
+void AdvectionDiffusionProblem<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  temperature->clear_boundary_conditions();
+  scalar_field->clear_boundary_conditions();
 
-  temperature->setup_boundary_conditions();
+  scalar_field->setup_boundary_conditions();
 
-  temperature_exact_solution->set_time(time_stepping.get_start_time());
+  exact_solution->set_time(time_stepping.get_start_time());
 
-  temperature->set_periodic_boundary_condition(0, 1, 0);
-  temperature->set_periodic_boundary_condition(2, 3, 1);
+  scalar_field->set_dirichlet_boundary_condition(0);
 
-  temperature->close_boundary_conditions();
-  temperature->apply_boundary_conditions();
+  scalar_field->close_boundary_conditions();
+  scalar_field->apply_boundary_conditions();
 }
 
+
+
 template <int dim>
-void ThermalTGVProblem<dim>::initialize()
+void AdvectionDiffusionProblem<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
-  this->set_initial_conditions(temperature,
-                               *temperature_exact_solution,
+  this->set_initial_conditions(scalar_field,
+                               *exact_solution,
                                time_stepping);
 }
 
+
+
 template <int dim>
-void ThermalTGVProblem<dim>::postprocessing()
+void AdvectionDiffusionProblem<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
@@ -347,7 +311,7 @@ void ThermalTGVProblem<dim>::postprocessing()
   *this->pcout  << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
                 << " Norm = "
                 << std::noshowpos << std::scientific
-                << heat_equation.get_rhs_norm()
+                << advection_diffusion.get_rhs_norm()
                 << " Progress ["
                 << std::setw(5)
                 << std::fixed
@@ -356,44 +320,46 @@ void ThermalTGVProblem<dim>::postprocessing()
 
   log_file << time_stepping.get_step_number()     << ","
            << time_stepping.get_current_time()    << ","
-           << heat_equation.get_rhs_norm()        << ","
+           << advection_diffusion.get_rhs_norm()        << ","
            << time_stepping.get_next_step_size()  << std::endl;
 }
 
 
 template <int dim>
-void ThermalTGVProblem<dim>::process_solution(const unsigned int cycle)
+void AdvectionDiffusionProblem<dim>::process_solution(const unsigned int cycle)
 {
   const double current_time{time_stepping.get_current_time()};
 
   using ExactSolution = EquationData::TemperatureExactSolution<dim>;
 
+  exact_solution->set_time(current_time);
+
   Vector<float> difference_per_cell(this->triangulation.n_active_cells());
-  VectorTools::integrate_difference(temperature->get_dof_handler(),
-                                    temperature->solution,
-                                    ExactSolution(parameters.Pe, current_time),
+  VectorTools::integrate_difference(scalar_field->get_dof_handler(),
+                                    scalar_field->solution,
+                                    *exact_solution,
                                     difference_per_cell,
-                                    QGauss<dim>(temperature->fe_degree() + 1),
+                                    QGauss<dim>(scalar_field->fe_degree() + 1),
                                     VectorTools::L2_norm);
   const double L2_error =
     VectorTools::compute_global_error(this->triangulation,
                                       difference_per_cell,
                                       VectorTools::L2_norm);
-  VectorTools::integrate_difference(temperature->get_dof_handler(),
-                                    temperature->solution,
-                                    ExactSolution(parameters.Pe, current_time),
+  VectorTools::integrate_difference(scalar_field->get_dof_handler(),
+                                    scalar_field->solution,
+                                    *exact_solution,
                                     difference_per_cell,
-                                    QGauss<dim>(temperature->fe_degree() + 1),
+                                    QGauss<dim>(scalar_field->fe_degree() + 1),
                                     VectorTools::H1_seminorm);
   const double H1_error =
     VectorTools::compute_global_error(this->triangulation,
                                       difference_per_cell,
                                       VectorTools::H1_seminorm);
   const QTrapez<1>     q_trapez;
-  const QIterated<dim> q_iterated(q_trapez, temperature->fe_degree() * 2 + 1);
-  VectorTools::integrate_difference(temperature->get_dof_handler(),
-                                    temperature->solution,
-                                    ExactSolution(parameters.Pe, current_time),
+  const QIterated<dim> q_iterated(q_trapez, scalar_field->fe_degree() * 2 + 1);
+  VectorTools::integrate_difference(scalar_field->get_dof_handler(),
+                                    scalar_field->solution,
+                                    *exact_solution,
                                     difference_per_cell,
                                     q_iterated,
                                     VectorTools::Linfty_norm);
@@ -403,7 +369,7 @@ void ThermalTGVProblem<dim>::process_solution(const unsigned int cycle)
                                       VectorTools::Linfty_norm);
 
   const unsigned int n_active_cells = this->triangulation.n_global_active_cells();
-  const unsigned int n_dofs         = temperature->n_dofs();
+  const unsigned int n_dofs         = scalar_field->n_dofs();
 
   convergence_table.add_value("cycle", cycle);
   convergence_table.add_value("time_step", time_stepping.get_previous_step_size());
@@ -416,22 +382,23 @@ void ThermalTGVProblem<dim>::process_solution(const unsigned int cycle)
 }
 
 
+
 template <int dim>
-void ThermalTGVProblem<dim>::output()
+void AdvectionDiffusionProblem<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
-  DataOut<dim>        data_out;
+  DataOut<dim>  data_out;
 
-  data_out.add_data_vector(temperature->get_dof_handler(),
-                           temperature->solution,
-                           "temperature");
-  data_out.build_patches(temperature->fe_degree());
+  data_out.add_data_vector(scalar_field->get_dof_handler(),
+                           scalar_field->solution,
+                           "Scalar");
+  data_out.build_patches(scalar_field->fe_degree());
 
   static int out_index = 0;
 
   data_out.write_vtu_with_pvtu_record(this->prm.graphical_output_directory,
-                                      "solution",
+                                      "Solution",
                                       out_index,
                                       this->mpi_communicator,
                                       5);
@@ -439,24 +406,21 @@ void ThermalTGVProblem<dim>::output()
   out_index++;
 }
 
-template <int dim>
-void ThermalTGVProblem<dim>::update_entities()
-{
-  temperature->update_solution_vectors();
-}
+
 
 template <int dim>
-void ThermalTGVProblem<dim>::solve(const unsigned int /* level */)
+void AdvectionDiffusionProblem<dim>::solve(const unsigned int &/* level */)
 {
+  advection_diffusion.set_source_term(source_term);
   setup_dofs();
   setup_constraints();
-  temperature->setup_vectors();
+  scalar_field->setup_vectors();
   initialize();
 
   // Outputs the fields at t_0, i.e. the initial conditions.
   {
-    temperature->solution = temperature->old_solution;
-    temperature_exact_solution->set_time(time_stepping.get_start_time());
+    scalar_field->solution = scalar_field->old_solution;
+    exact_solution->set_time(time_stepping.get_start_time());
     output();
   }
 
@@ -468,14 +432,13 @@ void ThermalTGVProblem<dim>::solve(const unsigned int /* level */)
     time_stepping.update_coefficients();
 
     // Updates the functions and the constraints to t^{k}
-    temperature_exact_solution->set_time(time_stepping.get_next_time());
-    temperature->update_boundary_conditions();
+    exact_solution->set_time(time_stepping.get_next_time());
 
     // Solves the system, i.e. computes the fields at t^{k}
-    heat_equation.solve();
+    advection_diffusion.solve();
 
     // Advances the VSIMEXMethod instance to t^{k}
-    update_entities();
+    scalar_field->update_solution_vectors();
     time_stepping.advance_time();
 
     // Snapshot stage, all time calls should be done with get_next_time()
@@ -493,18 +456,18 @@ void ThermalTGVProblem<dim>::solve(const unsigned int /* level */)
       output();
   }
 
-  Assert(time_stepping.get_current_time() == temperature_exact_solution->get_time(),
+  Assert(time_stepping.get_current_time() == exact_solution->get_time(),
     ExcMessage("Time mismatch between the time stepping class and the temperature function"));
-
-
 
   log_file << "\n";
 
   *this->pcout << std::endl << std::endl;
 }
 
+
+
 template <int dim>
-void ThermalTGVProblem<dim>::run()
+void AdvectionDiffusionProblem<dim>::run()
 {
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
@@ -526,9 +489,9 @@ void ThermalTGVProblem<dim>::run()
 
       solve(level);
 
-      process_solution(level);
-
       this->triangulation.refine_global();
+
+      process_solution(level);
     }
     break;
   case ConvergenceTest::ConvergenceTestType::temporal:
@@ -575,52 +538,57 @@ void ThermalTGVProblem<dim>::run()
   *this->pcout << std::endl;
   if (this->pcout->is_active())
     convergence_table.write_text(this->pcout->get_stream());
+
 }
 
-} // namespace ThermalTGV
+
+
+} // namespace AdvectionDiffusion
+
+
 
 int main(int argc, char *argv[])
 {
   try
   {
-      using namespace dealii;
-      using namespace ThermalTGV;
+    using namespace dealii;
+    using namespace AdvectionDiffusion;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 1);
+    Utilities::MPI::MPI_InitFinalize mpi_initialization(argc,
+                                                        argv,
+                                                        1);
 
-      RunTimeParameters::ProblemParameters parameter_set("ThermalTGV.prm",
-                                                         true);
+    RunTimeParameters::ProblemParameters parameter_set(
+      "AdvectionDiffusion.prm",
+      true);
 
-      ThermalTGVProblem<2> simulation(parameter_set);
-      simulation.run();
+    AdvectionDiffusionProblem<2> simulation(parameter_set);
 
-
+    simulation.run();
   }
-  catch (std::exception &exc)
+  catch(std::exception& exc)
   {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Exception on processing: " << std::endl
-                << exc.what() << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      return 1;
+    std::cerr << std::endl << std::endl
+              << "----------------------------------------------------"
+              << std::endl;
+    std::cerr << "Exception on processing: " << std::endl
+              << exc.what() << std::endl
+              << "Aborting!" << std::endl
+              << "----------------------------------------------------"
+              << std::endl;
+    return 1;
   }
   catch (...)
   {
-      std::cerr << std::endl
-                << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      std::cerr << "Unknown exception!" << std::endl
-                << "Aborting!" << std::endl
-                << "----------------------------------------------------"
-                << std::endl;
-      return 1;
+    std::cerr << std::endl << std::endl
+              << "----------------------------------------------------"
+              << std::endl;
+    std::cerr << "Unknown exception!" << std::endl
+              << "Aborting!" << std::endl
+              << "----------------------------------------------------"
+              << std::endl;
+    return 1;
   }
+
   return 0;
 }
