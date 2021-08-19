@@ -543,3 +543,5 @@ template class RMHD::EquationData::ThermalTGV::TemperatureExactSolution<3>;
 
 template class RMHD::EquationData::ThermalTGV::VelocityField<2>;
 template class RMHD::EquationData::ThermalTGV::VelocityField<3>;
+
+
