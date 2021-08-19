@@ -53,33 +53,7 @@ double PressureInitialCondition<dim>::value
 
 } // namespace Step35
 
-namespace DFG
-{
 
-template <int dim>
-VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
-(const double time,
- const double maximum_velocity,
- const double height)
-:
-Function<dim>(dim, time),
-maximum_velocity(maximum_velocity),
-height(height)
-{}
-
-template <int dim>
-void VelocityInflowBoundaryCondition<dim>::vector_value
-(const Point<dim>  &point,
- Vector<double>    &values) const
-{
-  values[0] = 4.0 * maximum_velocity * point(1) * ( height - point(1) )
-      / ( height * height );
-
-  for (unsigned d=1; d<dim; ++d)
-    values[d] = 0.0;
-}
-
-} // namespace DFG
 
 namespace TGV
 {
@@ -576,9 +550,6 @@ template class RMHD::EquationData::Step35::VelocityInflowBoundaryCondition<3>;
 
 template class RMHD::EquationData::Step35::PressureInitialCondition<2>;
 template class RMHD::EquationData::Step35::PressureInitialCondition<3>;
-
-template class RMHD::EquationData::DFG::VelocityInflowBoundaryCondition<2>;
-template class RMHD::EquationData::DFG::VelocityInflowBoundaryCondition<3>;
 
 template class RMHD::EquationData::TGV::VelocityExactSolution<2>;
 template class RMHD::EquationData::TGV::VelocityExactSolution<3>;
