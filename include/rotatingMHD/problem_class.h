@@ -1,22 +1,18 @@
 #ifndef INCLUDE_ROTATINGMHD_PROBLEM_CLASS_H_
 #define INCLUDE_ROTATINGMHD_PROBLEM_CLASS_H_
 
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/time_discretization.h>
 #include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/function.h>
 #include <deal.II/base/timer.h>
-
 #include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/distributed/grid_refinement.h>
-
 #include <deal.II/fe/mapping_q.h>
-
 #include <deal.II/grid/grid_refinement.h>
-
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/solution_transfer.h>
-#include <rotatingMHD/finite_element_field.h>
 
 namespace RMHD
 {
@@ -34,19 +30,20 @@ using namespace dealii;
 template <int dim>
 struct SolutionTransferContainer
 {
+public:
   /*!
    * @brief A typedef for the std::pair composed of a pointer to a
    * @ref Entities::FE_FieldBase instance and a boolean.
    * @details The boolean indicates wheter the entity is to be
    * considered by the error estimation or not.
    */
-  using FE_Field = std::pair<Entities::FE_FieldBase<dim> *, bool>;
+  using FE_Field = std::pair<Entities::FE_FieldBase<dim>* const, bool>;
 
-  /*!
-   * @brief A std::vector with all the entities to be considered in
-   * a solution transfer
-   */
-  std::vector<FE_Field>  entities;
+  using SolutionTransferType =
+  parallel::distributed::SolutionTransfer<dim, LinearAlgebra::MPI::Vector>;
+
+  using TransferVectorType =
+  std::vector<const LinearAlgebra::MPI::Vector *>;
 
   /*!
    * @brief Default constructor.
@@ -76,15 +73,30 @@ struct SolutionTransferContainer
    * @details If no boolean is passed, it is assumed that the entity
    * is to be considered by the error estimation.
    */
-  void add_entity(std::shared_ptr<Entities::FE_FieldBase<dim>> entity, bool flag = true);
+  void add_entity(Entities::FE_FieldBase<dim> &entity, bool flag = true);
+
+  void serialize(const std::string &file_name) const;
+
+  const std::vector<FE_Field>& get_field_collection() const;
+
+  std::vector<SolutionTransferType>  get_transfer_objects() const;
+
+  std::vector<TransferVectorType>    get_transfer_vectors() const;
 
 private:
-
   /*!
    * @brief The size of the std::vector instance containing all the
    * Vector instances to be considered by the error estimation.
    */
-  unsigned int              error_vector_size;
+  unsigned int  error_vector_size;
+
+  const Triangulation<dim> *triangulation;
+
+  /*!
+   * @brief A std::vector with all the entities to be considered in
+   * a solution transfer
+   */
+  std::vector<FE_Field>  entities;
 };
 
 template <int dim>
@@ -92,6 +104,14 @@ inline unsigned int SolutionTransferContainer<dim>::get_error_vector_size() cons
 {
   return error_vector_size;
 }
+
+template <int dim>
+inline const std::vector<typename SolutionTransferContainer<dim>::FE_Field>&
+SolutionTransferContainer<dim>::get_field_collection() const
+{
+  return (entities);
+}
+
 
 template <int dim>
 inline bool SolutionTransferContainer<dim>::empty() const

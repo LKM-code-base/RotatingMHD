@@ -432,9 +432,9 @@ pressure_initial_condition()
   velocity->setup_vectors();
   pressure->setup_vectors();
   initialize();
-  this->container.add_entity(velocity);
-  this->container.add_entity(pressure, false);
-  this->container.add_entity(navier_stokes.phi, false);
+  this->container.add_entity(*velocity);
+  this->container.add_entity(*pressure, false);
+  this->container.add_entity(*navier_stokes.phi, false);
 }
 
 
