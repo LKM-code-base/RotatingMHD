@@ -365,6 +365,11 @@ public:
 
 private:
 
+  const types::boundary_id  channel_wall_bndry_id{3};
+  const types::boundary_id  cylinder_bndry_id{2};
+  const types::boundary_id  channel_inlet_bndry_id{0};
+  const types::boundary_id  channel_outlet_bndry_id{1};
+
   std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
   std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
@@ -380,11 +385,6 @@ private:
   EquationData::PressureInitialCondition<dim>   pressure_initial_condition;
 
   double                                        cfl_number;
-
-  const types::boundary_id  channel_wall_bndry_id = 3;
-  const types::boundary_id  cylinder_bndry_id = 2;
-  const types::boundary_id  channel_inlet_bndry_id = 0;
-  const types::boundary_id  channel_outlet_bndry_id = 1;
 
   void make_grid();
 

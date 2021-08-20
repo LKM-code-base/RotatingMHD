@@ -164,6 +164,11 @@ public:
   void run();
 
 private:
+  const types::boundary_id  left_bndry_id{1};
+  const types::boundary_id  right_bndry_id{2};
+  const types::boundary_id  top_bndry_id{3};
+  const types::boundary_id  bottom_bndry_id{4};
+
   std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
   std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
@@ -184,11 +189,6 @@ private:
   EquationData::GravityVector<dim>              gravity_vector;
 
   double                                        cfl_number;
-
-  const types::boundary_id  left_bndry_id = 1;
-  const types::boundary_id  right_bndry_id = 2;
-  const types::boundary_id  top_bndry_id = 3;
-  const types::boundary_id  bottom_bndry_id = 4;
 
   void make_grid();
 
