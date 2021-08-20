@@ -86,7 +86,8 @@ template <int dim>
 SphericalPostprocessorScalarField<dim>::SphericalPostprocessorScalarField
 (const std::string &name)
 :
-DataPostprocessor<dim>()
+DataPostprocessor<dim>(),
+name(name)
 {}
 
 
