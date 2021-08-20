@@ -132,15 +132,15 @@ Step =      0, Current time = 0.0e+00, Next time step = 2.5e-02
 | 1       | Dirichlet  | ZeroFunction<2, double>                  |
 +---------+------------+------------------------------------------+
 Step =      1, Current time = 2.5e-02, Next time step = 2.5e-02
-    dp = +8.585950e+01 C_d = +1.337508e+02 C_l = -2.073725e-01
-Step =      2, Current time = +5.000000e-02, Next time step = +2.500000e-02
-    dp = -3.621147e+01 C_d = -4.433768e+01 C_l = -1.150706e-02
-Step =      3, Current time = +7.500000e-02, Next time step = +2.500000e-02
-    dp = -3.651465e+00 C_d = -4.543315e+00 C_l = +1.233294e-01
-Step =      4, Current time = +1.000000e-01, Next time step = +2.500000e-02
-    dp = +9.222475e-01 C_d = +1.431875e+01 C_l = -3.942792e-02
-Step =      5, Current time = +1.250000e-01, Next time step = +2.500000e-02
-    dp = +3.299177e+00 C_d = +6.725427e+00 C_l = +2.810765e-02
+    Δp = 8.585950e+01, drag coeff. = 1.337508e+02, lift coeff. = -2.073725e-01
+Step =      2, Current time = 5.000000e-02, Next time step = 2.500000e-02
+    Δp = -3.621147e+01, drag coeff. = -4.433768e+01, lift coeff. = -1.150705e-02
+Step =      3, Current time = 7.500000e-02, Next time step = 2.500000e-02
+    Δp = -3.651465e+00, drag coeff. = -4.543315e+00, lift coeff. = 1.233294e-01
+Step =      4, Current time = 1.000000e-01, Next time step = 2.500000e-02
+    Δp = 9.222475e-01, drag coeff. = 1.431875e+01, lift coeff. = -3.942792e-02
+Step =      5, Current time = 1.250000e-01, Next time step = 2.500000e-02
+    Δp = 3.299177e+00, drag coeff. = 6.725427e+00, lift coeff. = 2.810765e-02
 Restarting...
-Solving until t = +3000...
-Step =      0, Current time = +0.000000e+00, Next time step = +2.500000e-02
+Solving until t = 3000...
+Step =      0, Current time = 0.000000e+00, Next time step = 2.500000e-02

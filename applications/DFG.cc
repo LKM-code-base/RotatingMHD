@@ -22,6 +22,7 @@
 #include <rotatingMHD/finite_element_field.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <iostream>
 #include <string>
 
@@ -364,6 +365,11 @@ public:
 
 private:
 
+  const types::boundary_id  channel_wall_bndry_id{3};
+  const types::boundary_id  cylinder_bndry_id{2};
+  const types::boundary_id  channel_inlet_bndry_id{0};
+  const types::boundary_id  channel_outlet_bndry_id{1};
+
   std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
   std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
@@ -372,18 +378,13 @@ private:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  BenchmarkData::DFGBechmarkRequest<dim>        benchmark_request;
+  BenchmarkData::DFGBechmarkRequests<dim>        benchmark_requests;
 
   EquationData::VelocityInitialCondition<dim>   velocity_initial_condition;
 
   EquationData::PressureInitialCondition<dim>   pressure_initial_condition;
 
   double                                        cfl_number;
-
-  const types::boundary_id  channel_wall_bndry_id = 3;
-  const types::boundary_id  cylinder_bndry_id = 2;
-  const types::boundary_id  channel_inlet_bndry_id = 0;
-  const types::boundary_id  channel_outlet_bndry_id = 1;
 
   void make_grid();
 
@@ -420,7 +421,7 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->mapping,
               this->pcout,
               this->computing_timer),
-benchmark_request(),
+benchmark_requests(parameters.Re, cylinder_bndry_id),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
@@ -490,11 +491,7 @@ void DFG<2>::make_grid()
                << this->triangulation.n_active_cells() << std::endl;
 }
 
-template <>
-void DFG<3>::make_grid()
-{
-  Assert(false, ExcNotImplemented());
-}
+
 
 template <int dim>
 void DFG<dim>::setup_dofs()
@@ -515,6 +512,8 @@ void DFG<dim>::setup_dofs()
                   velocity->n_dofs())
                << std::endl << std::endl;
 }
+
+
 
 template <int dim>
 void DFG<dim>::setup_constraints()
@@ -563,11 +562,12 @@ void DFG<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  benchmark_request.compute_pressure_difference(pressure);
-  benchmark_request.compute_drag_and_lift_coefficients(velocity,
-                                                       pressure);
-  benchmark_request.print_step_data();
-  benchmark_request.update_table(time_stepping);
+  benchmark_requests.update(this->time_stepping.get_current_time(),
+                           this->time_stepping.get_step_number(),
+                           *velocity,
+                           *pressure);
+
+  *this->pcout << benchmark_requests << std::endl;
 }
 
 template <int dim>
@@ -704,10 +704,76 @@ void DFG<dim>::run()
       output();
   }
 
-  benchmark_request.write_table_to_file("dfg_benchmark.tex");
+  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+  {
+    if (!std::filesystem::exists(this->prm.graphical_output_directory))
+    {
+      try
+      {
+        std::filesystem::create_directories(this->prm.graphical_output_directory);
+      }
+      catch (std::exception &exc)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::cerr << "Exception in the creation of the output directory: "
+                  << std::endl
+                  << exc.what() << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+      catch (...)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                    << std::endl;
+        std::cerr << "Unknown exception in the creation of the output directory!"
+                  << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+    }
 
-  *(this->pcout) << std::fixed;
+    const std::filesystem::path path{this->prm.graphical_output_directory};
 
+    std::filesystem::path filename = path / "benchmark_data.txt";
+
+    try
+    {
+      std::ofstream fstream(filename.string());
+      benchmark_requests.write_text(fstream);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output file: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output file!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
 }
 
 } // namespace DFGBenchmark
