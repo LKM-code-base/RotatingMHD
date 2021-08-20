@@ -363,7 +363,6 @@ void FE_FieldBase<dim, VectorType>::setup_vectors()
 
   const parallel::TriangulationBase<dim> *tria_ptr =
       dynamic_cast<const parallel::TriangulationBase<dim> *>(&triangulation);
-  AssertThrow(tria_ptr == nullptr, ExcInternalError());
 
   const MPI_Comm &mpi_communicator(tria_ptr->get_communicator());
   #ifdef USE_PETSC_LA
