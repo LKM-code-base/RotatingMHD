@@ -456,10 +456,10 @@ void MIT<dim>::postprocessing()
   // Computes all the benchmark's data. See documentation of the
   // class for further information.
   benchmark_requests.update(this->time_stepping.get_current_time(),
-                             this->time_stepping.get_step_number(),
-                             *velocity,
-                             *pressure,
-                             *temperature);
+                            this->time_stepping.get_step_number(),
+                            *velocity,
+                            *pressure,
+                            *temperature);
 
   *this->pcout << benchmark_requests << std::endl;
   *this->pcout << "    CFL = "

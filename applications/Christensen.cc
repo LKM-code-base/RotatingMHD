@@ -18,6 +18,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <string>
@@ -413,7 +414,7 @@ private:
 
   HeatEquation<dim>                             heat_equation;
 
-  BenchmarkData::ChristensenBenchmark<dim>      christensen_benchmark;
+  BenchmarkData::ChristensenBenchmark<dim>      benchmark_requests;
 
   double                                        cfl_number;
 
@@ -488,19 +489,10 @@ heat_equation(parameters.heat_equation_parameters,
               this->mapping,
               this->pcout,
               this->computing_timer),
-christensen_benchmark(velocity,
-                      temperature,
-                      magnetic_field,
-                      time_stepping,
-                      parameters,
-                      inner_radius,
-                      outer_radius,
-                      0,
-                      this->mapping,
-                      this->pcout,
-                      this->computing_timer)
+benchmark_requests(inner_radius, outer_radius)
 {
-  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
+  Assert(outer_radius > inner_radius,
+         ExcMessage("The outer radius has to be greater then the inner radius"));
 
   *this->pcout << parameters << std::endl;
 
@@ -527,7 +519,8 @@ christensen_benchmark(velocity,
            << "D_norm" << ","
            << "P_norm" << ","
            << "H_norm" << ","
-           << std::endl;}
+           << std::endl;
+}
 
 template <int dim>
 void Christensen<dim>::make_grid(const unsigned int n_global_refinements)
@@ -653,7 +646,11 @@ void Christensen<dim>::postprocessing()
 
   // Computes all the benchmark's data. See documentation of the
   // class for further information.
-  christensen_benchmark.compute_benchmark_data();
+  benchmark_requests.update(time_stepping.get_current_time(),
+                               time_stepping.get_step_number(),
+                               *velocity,
+                               *temperature,
+                               *this->mapping);
 
   // Outputs CFL number and norms of the right-hand sides
   *this->pcout << "CFL = " << std::scientific << std::setprecision(2)
@@ -667,7 +664,7 @@ void Christensen<dim>::postprocessing()
                << heat_equation.get_rhs_norm()
                << ")\n";
   // Outputs the benchmark's data to the terminal
-  *this->pcout << christensen_benchmark << std::endl << std::endl;
+  *this->pcout << benchmark_requests << std::endl << std::endl;
 
   log_file << time_stepping.get_step_number() << ","
            << time_stepping.get_current_time() << ","
@@ -678,7 +675,76 @@ void Christensen<dim>::postprocessing()
            << heat_equation.get_rhs_norm()
            << std::endl;
 
-  christensen_benchmark.print_data_to_file("Christensen_Benchmark");
+  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+  {
+    if (!std::filesystem::exists(this->prm.graphical_output_directory))
+    {
+      try
+      {
+        std::filesystem::create_directories(this->prm.graphical_output_directory);
+      }
+      catch (std::exception &exc)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::cerr << "Exception in the creation of the output directory: "
+                  << std::endl
+                  << exc.what() << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+      catch (...)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                    << std::endl;
+        std::cerr << "Unknown exception in the creation of the output directory!"
+                  << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+    }
+
+    const std::filesystem::path path{this->prm.graphical_output_directory};
+
+    std::filesystem::path filename = path / "benchmark_data.txt";
+
+    try
+    {
+      std::ofstream fstream(filename.string());
+      benchmark_requests.write_text(fstream);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output file: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output file!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
 }
 
 template <int dim>
@@ -791,6 +857,16 @@ void Christensen<dim>::run()
                    time_stepping.get_end_time()))
       output();
   }
+
+
+
+
+
+
+
+
+
+
 }
 
 } // namespace ChristensenBenchmark
