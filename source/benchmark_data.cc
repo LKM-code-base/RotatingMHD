@@ -5,23 +5,14 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/geometric_utilities.h>
-#include <deal.II/base/work_stream.h>
-
-#include <deal.II/fe/mapping_q.h>
+#include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
-#include <deal.II/fe/fe_nothing.h>
-
-#include <deal.II/grid/grid_tools.h>
-#include <deal.II/grid/filtered_iterator.h>
-
-#include <deal.II/numerics/vector_tools.h>
-
-DeclException0(ExcBoostNoConvergence);
 
 #include <boost/math/tools/roots.hpp>
 
 #include <fstream>
 #include <ostream>
+
 namespace RMHD
 {
 
@@ -29,6 +20,8 @@ using namespace dealii;
 
 namespace BenchmarkData
 {
+
+DeclException0(ExcBoostNoConvergence);
 
 template <>
 DFGBechmarkRequests<2>::DFGBechmarkRequests

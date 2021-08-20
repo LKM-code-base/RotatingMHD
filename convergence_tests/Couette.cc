@@ -2,7 +2,6 @@
  *@file Couette
  *@brief The source file solving the Couette flow problem.
  */
-#include <rotatingMHD/benchmark_data.h>
 #include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>

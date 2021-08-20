@@ -1,20 +1,12 @@
 #ifndef INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 #define INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 
-#include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/finite_element_field.h>
-#include <rotatingMHD/run_time_parameters.h>
-#include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/point.h>
+#include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_q1.h>
 #include <deal.II/base/table_handler.h>
-#include <deal.II/base/timer.h>
-#include <deal.II/base/utilities.h>
-#include <deal.II/distributed/tria.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/fe/fe_system.h>
 
 #include <iostream>
 #include <vector>
