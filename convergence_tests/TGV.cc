@@ -1,8 +1,9 @@
 /*!
- *@file TGV
- *@brief The .cc file solving the TGV benchmark.
+ * @file TGV
+ *
+ * @brief The .cc file solving the TGV benchmark.
+ *
  */
-#include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -18,21 +19,190 @@
 
 #include <memory>
 
-namespace RMHD
+namespace TGV
 {
-  using namespace dealii;
+
+using namespace dealii;
+using namespace RMHD;
+
+
+namespace EquationData
+{
+
+template <int dim>
+class VelocityExactSolution : public Function<dim>
+{
+public:
+  VelocityExactSolution(const double Re,
+                        const double time = 0);
+
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int component) const;
+
+private:
+  /*!
+   * @brief The Reynolds number.
+   */
+  const double Re;
+
+  /*!
+   * @brief The wave number.
+   */
+  const double k = 2. * M_PI;
+};
+
+
+
+template <int dim>
+VelocityExactSolution<dim>::VelocityExactSolution
+(const double Re,
+ const double time)
+:
+Function<dim>(dim, time),
+Re(Re)
+{}
+
+
+
+template <int dim>
+void VelocityExactSolution<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  const double F = exp(-2.0 * k * k / Re * t);
+
+  values[0] =   F * cos(k * x) * sin(k * y);
+  values[1] = - F * sin(k * x) * cos(k * y);
+}
+
+
+
+template <int dim>
+Tensor<1, dim> VelocityExactSolution<dim>::gradient
+(const Point<dim>  &point,
+ const unsigned int component) const
+{
+  Tensor<1, dim>  return_value;
+
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  const double F = exp(-2.0 * k * k / Re * t);
+
+  // The gradient has to match that of dealii, i.e. from the right.
+  if (component == 0)
+  {
+    return_value[0] = - F * k * sin(k * x) * sin(k * y);
+    return_value[1] =   F * k * cos(k * x) * cos(k * y);
+  }
+  else if (component == 1)
+  {
+    return_value[0] = - F * k * cos(k * x) * cos(k * y);
+    return_value[1] =   F * k * sin(k * x) * sin(k * y);
+  }
+
+  return return_value;
+}
+
+
+
+template <int dim>
+class PressureExactSolution : public Function<dim>
+{
+public:
+  PressureExactSolution(const double Re,
+                        const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+  virtual Tensor<1, dim> gradient(const Point<dim> &point,
+                                  const unsigned int = 0) const;
+
+private:
+  /*!
+   * @brief The Reynolds number.
+   */
+  const double Re;
+
+  /*!
+   * @brief The wave number.
+   */
+  const double k = 2. * M_PI;
+};
+
+
+
+template <int dim>
+PressureExactSolution<dim>::PressureExactSolution
+(const double Re,
+ const double time)
+:
+Function<dim>(1, time),
+Re(Re)
+{}
+
+
+
+template<int dim>
+double PressureExactSolution<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  const double F = exp(-2.0 * k * k / Re * t);
+
+  return (-0.25 * F * F *(cos(2. * k * x) + cos(2. * k * y)));
+}
+
+
+
+template<int dim>
+Tensor<1, dim> PressureExactSolution<dim>::gradient
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  Tensor<1, dim>  return_value;
+  const double t = this->get_time();
+  const double x = point(0);
+  const double y = point(1);
+
+  const double F = exp(-2.0 * k * k / Re * t);
+
+  return_value[0] = 0.5 * F * F * k * sin(2. * k * x);
+  return_value[1] = 0.5 * F * F * k * sin(2. * k * y);
+
+  return return_value;
+}
+
+}  // namespace EquationData
+
+
 
 /*!
  * @class TGV
+ *
  * @brief This class solves the Taylor-Green vortex benchmark
+ *
  * @todo Add documentation
  */
 template <int dim>
-class TGV : public Problem<dim>
+class TGVProblem : public Problem<dim>
 {
 public:
 
-  TGV(const RunTimeParameters::ProblemParameters &parameters);
+  TGVProblem(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
@@ -46,18 +216,14 @@ private:
 
   std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
-  LinearAlgebra::MPI::Vector                    velocity_error;
-
-  LinearAlgebra::MPI::Vector                    pressure_error;
-
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  std::shared_ptr<EquationData::TGV::VelocityExactSolution<dim>>
+  std::shared_ptr<EquationData::VelocityExactSolution<dim>>
                                                 velocity_exact_solution;
 
-  std::shared_ptr<EquationData::TGV::PressureExactSolution<dim>>
+  std::shared_ptr<EquationData::PressureExactSolution<dim>>
                                                 pressure_exact_solution;
 
   ConvergenceAnalysisData<dim>                  velocity_convergence_table;
@@ -84,7 +250,7 @@ private:
 };
 
 template <int dim>
-TGV<dim>::TGV(const RunTimeParameters::ProblemParameters &parameters)
+TGVProblem<dim>::TGVProblem(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
@@ -104,10 +270,10 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->pcout,
               this->computing_timer),
 velocity_exact_solution(
-  std::make_shared<EquationData::TGV::VelocityExactSolution<dim>>(
+  std::make_shared<EquationData::VelocityExactSolution<dim>>(
     parameters.Re, parameters.time_discretization_parameters.start_time)),
 pressure_exact_solution(
-  std::make_shared<EquationData::TGV::PressureExactSolution<dim>>(
+  std::make_shared<EquationData::PressureExactSolution<dim>>(
     parameters.Re, parameters.time_discretization_parameters.start_time)),
 velocity_convergence_table(velocity, *velocity_exact_solution),
 pressure_convergence_table(pressure, *pressure_exact_solution)
@@ -122,7 +288,7 @@ pressure_convergence_table(pressure, *pressure_exact_solution)
 }
 
 template <int dim>
-void TGV<dim>::
+void TGVProblem<dim>::
 make_grid(const unsigned int &n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
@@ -153,7 +319,7 @@ make_grid(const unsigned int &n_global_refinements)
 }
 
 template <int dim>
-void TGV<dim>::setup_dofs()
+void TGVProblem<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
@@ -175,7 +341,7 @@ void TGV<dim>::setup_dofs()
                << std::endl;}
 
 template <int dim>
-void TGV<dim>::setup_constraints()
+void TGVProblem<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
@@ -198,7 +364,7 @@ void TGV<dim>::setup_constraints()
 }
 
 template <int dim>
-void TGV<dim>::initialize()
+void TGVProblem<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -213,7 +379,7 @@ void TGV<dim>::initialize()
 }
 
 template <int dim>
-void TGV<dim>::postprocessing(const bool flag_point_evaluation)
+void TGVProblem<dim>::postprocessing(const bool flag_point_evaluation)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
@@ -244,7 +410,7 @@ void TGV<dim>::postprocessing(const bool flag_point_evaluation)
 }
 
 template <int dim>
-void TGV<dim>::output()
+void TGVProblem<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
@@ -262,18 +428,9 @@ void TGV<dim>::output()
                            names,
                            component_interpretation);
 
-  data_out.add_data_vector(velocity->get_dof_handler(),
-                           velocity_error,
-                           error_name,
-                           component_interpretation);
-
   data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
-
-  data_out.add_data_vector(pressure->get_dof_handler(),
-                           pressure_error,
-                           "pressure_error");
 
   data_out.build_patches(velocity->fe_degree());
 
@@ -288,21 +445,19 @@ void TGV<dim>::output()
 }
 
 template <int dim>
-void TGV<dim>::update_entities()
+void TGVProblem<dim>::update_entities()
 {
   velocity->update_solution_vectors();
   pressure->update_solution_vectors();
 }
 
 template <int dim>
-void TGV<dim>::solve(const unsigned int &level)
+void TGVProblem<dim>::solve(const unsigned int &level)
 {
   setup_dofs();
   setup_constraints();
   velocity->setup_vectors();
   pressure->setup_vectors();
-  velocity_error.reinit(velocity->solution);
-  pressure_error.reinit(pressure->solution);
   initialize();
 
   // Advances the time to t^{k-1}, either t^0 or t^1
@@ -386,7 +541,7 @@ void TGV<dim>::solve(const unsigned int &level)
 }
 
 template <int dim>
-void TGV<dim>::run()
+void TGVProblem<dim>::run()
 {
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
@@ -457,21 +612,21 @@ void TGV<dim>::run()
   pressure_convergence_table.write_text(tablefilename.str() + "_Pressure");
 }
 
-} // namespace RMHD
+} // namespace TGV
 
 int main(int argc, char *argv[])
 {
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace TGV;
 
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
       RunTimeParameters::ProblemParameters parameter_set("TGV.prm", true);
 
-      TGV<2> simulation(parameter_set);
+      TGVProblem<2> simulation(parameter_set);
 
       simulation.run();
   }
@@ -502,3 +657,4 @@ int main(int argc, char *argv[])
   }
   return 0;
 }
+
