@@ -471,9 +471,9 @@ void AdvectionDiffusionProblem<dim>::run()
 {
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
 
-  switch (parameters.convergence_test_parameters.test_type)
+  switch (parameters.convergence_test_parameters.type)
   {
-  case ConvergenceTest::ConvergenceTestType::spatial:
+  case ConvergenceTest::Type::spatial:
     for (unsigned int level = parameters.spatial_discretization_parameters.n_initial_global_refinements;
          level < (parameters.spatial_discretization_parameters.n_initial_global_refinements +
                   parameters.convergence_test_parameters.n_spatial_cycles);
@@ -494,7 +494,7 @@ void AdvectionDiffusionProblem<dim>::run()
       process_solution(level);
     }
     break;
-  case ConvergenceTest::ConvergenceTestType::temporal:
+  case ConvergenceTest::Type::temporal:
     for (unsigned int cycle = 0;
          cycle < parameters.convergence_test_parameters.n_temporal_cycles;
          ++cycle)
