@@ -4,7 +4,7 @@
 MESSAGE("====================================================")
 MESSAGE("=============== Configuring RotatingMHD ============")
 MESSAGE("========= An adaptive parallel flow solver =========")
-MESSAGE("========= for the rotating magnetohydrodynamics =====")
+MESSAGE("========= for rotating magnetohydrodynamics ========")
 MESSAGE("====================================================")
 ##
 # Is the cmake version sufficient?
@@ -30,81 +30,32 @@ ENDIF()
 # Are all dependencies fulfilled?
 ##
 
-#[[
-IF(NOT DEAL_II_WITH_TRILINOS OR NOT DEAL_II_WITH_P4EST)
+# p4est
+IF(NOT DEAL_II_WITH_P4EST)
+  MESSAGE(FATAL_ERROR "\n"
+  "RotatingMHD requires a deal.II installation built with support for p4est but it appears to be missing!"
+  "\n"
+    )
+ENDIF()
+
+# Trilinos or PETSc
+IF((NOT DEAL_II_WITH_TRILINOS) AND (NOT DEAL_II_WITH_PETSC))
 
    MESSAGE(FATAL_ERROR "\n"
-   "This library requires a deal.II installation built with support for Trilinos and p4est but one or both of these appears to be missing!"
+   "This library requires a deal.II installation built with support for Trilinos or PETSc but both of these appear to be missing!"
    "This library requires a deal.II library that was configured with the following options:\n"
    "     DEAL_II_WITH_P4EST = ON\n"
-   "     DEAL_II_WITH_TRILINOS = ON\n"
+   "     DEAL_II_WITH_PETSC = ON or DEAL_II_WITH_TRILINOS = ON\n"
    "However, the deal.II library found at ${DEAL_II_PATH} was configured with these options\n"
    "     DEAL_II_WITH_P4EST = ${DEAL_II_WITH_P4EST}\n"
    "     DEAL_II_WITH_TRILINOS = ${DEAL_II_WITH_TRILINOS}\n"
+   "     DEAL_II_WITH_PETSC = ${DEAL_II_WITH_PETSC}\n"
    "which conflict with the requirements.\n"
    "One or both of the aforementioned combinations of prerequisites are not met by your installation, but at least one is required for\n"
-   "this tutorial step.")
-
-   IF(NOT DEAL_II_WITH_TRILINOS)
-      MESSAGE(FATAL_ERROR
-              "\n-- deal.II was built without support for Trilinos!\n")
-   ENDIF()
-
-   IF(NOT DEAL_II_WITH_P4EST)
-      MESSAGE(FATAL_ERROR
-      "\n-- deal.II was built without support for p4est!\n")
-   ENDIF()
+   "this library.")
 
 ENDIF()
-]]
 
-# Set the source files to be compiled
-SET(TARGET_SRC
-    source/basic_parameters.cc
-    source/linear_solver_parameters.cc
-    source/assembly_data.cc
-    source/benchmark_data.cc
-    source/boundary_conditions.cc
-    source/convergence_test.cc
-    source/convection_diffusion.cc
-    source/discrete_time.cc
-    source/entities_structs.cc
-    source/equation_data.cc
-    source/problem_class.cc
-    source/run_time_parameters.cc
-    source/solver_class.cc
-    source/time_discretization.cc
-    source/utility.cc
-    source/navier_stokes_projection.cc
-    source/navier_stokes_projection/assemble_advection_matrix.cc
-    source/navier_stokes_projection/assemble_diffusion_rhs.cc
-    source/navier_stokes_projection/assemble_mass_and_laplace_matrices.cc
-    source/navier_stokes_projection/assemble_poisson_prestep_rhs.cc
-    source/navier_stokes_projection/assemble_projection_rhs.cc
-    source/navier_stokes_projection/assembly_data.cc
-    source/navier_stokes_projection/diffusion_step_methods.cc
-    source/navier_stokes_projection/poisson_prestep_methods.cc
-    source/navier_stokes_projection/projection_step_methods.cc
-    source/navier_stokes_projection/setup.cc
-    source/navier_stokes_projection/solve.cc
-    source/navier_stokes_projection/timestep_update.cc
-    source/convection_diffusion.cc
-    source/convection_diffusion/assemble_advection_matrix.cc
-    source/convection_diffusion/assemble_constant_matrices.cc
-    source/convection_diffusion/assemble_rhs.cc
-    source/convection_diffusion/assembly_data.cc
-    source/convection_diffusion/setup.cc
-    source/convection_diffusion/solve.cc
-)
-
-# Set the include directory and the name of the project
-INCLUDE_DIRECTORIES(include)
-
-PROJECT(rotatingMHD)
-
-ADD_LIBRARY(rotatingMHD  ${TARGET_SRC})
-
-# Define custom targets to easily switch the build type:
 ADD_CUSTOM_TARGET(debug
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
@@ -117,16 +68,18 @@ ADD_CUSTOM_TARGET(release
   COMMENT "Switch CMAKE_BUILD_TYPE to Release"
 )
 
+
+# Set the include directory and the name of the project
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
-
-DEAL_II_SETUP_TARGET(rotatingMHD)
-
+PROJECT(rotatingMHD)
+ENABLE_TESTING()
+INCLUDE_DIRECTORIES(include)
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
+ADD_SUBDIRECTORY(source)
 ADD_SUBDIRECTORY(applications)
-
-# Set up unit tests
-IF(EXISTS ${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt)
-  ENABLE_TESTING()
-  ADD_SUBDIRECTORY(tests)
-ENDIF()
+ADD_SUBDIRECTORY(convergence_tests)
+ADD_SUBDIRECTORY(tests/rotatingMHD)
+ADD_SUBDIRECTORY(tests/applications/DFG)
+ADD_SUBDIRECTORY(tests/applications/MIT)
 
 MESSAGE("====================================================")

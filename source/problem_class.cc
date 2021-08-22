@@ -20,7 +20,7 @@ error_vector_size(0)
 
 template<int dim>
 void SolutionTransferContainer<dim>::add_entity(
-std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag)
+std::shared_ptr<Entities::FE_FieldBase<dim>> entity, bool flag)
 {
   entities.emplace_back(std::make_pair(entity.get(), flag));
   if (flag)
@@ -43,7 +43,7 @@ pcout(std::make_shared<ConditionalOStream>(std::cout,
 computing_timer(
   std::make_shared<TimerOutput>(mpi_communicator,
                                 *pcout,
-                                TimerOutput::summary,
+                                (prm.verbose? TimerOutput::summary: TimerOutput::never),
                                 TimerOutput::wall_times))
 {
   if (!std::filesystem::exists(prm.graphical_output_directory) &&
@@ -93,83 +93,29 @@ void Problem<dim>::clear()
 
 
 
-template <int dim>
-void Problem<dim>::project_function
-(const Function<dim>                             &function,
- const std::shared_ptr<Entities::EntityBase<dim>> entity,
- LinearAlgebra::MPI::Vector                      &vector)
-{
-  Assert(function.n_components == entity->n_components,
-         ExcMessage("The number of components of the function does not those "
-                    "of the entity"));
-  #ifdef USE_PETSC_LA
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->locally_owned_dofs, mpi_communicator);
-  #else
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->locally_owned_dofs);
-  #endif
-
-  VectorTools::project(*(this->mapping),
-                      *(entity->dof_handler),
-                       entity->constraints,
-                       QGauss<dim>(entity->fe_degree + 2),
-                       function,
-                       tmp_vector);
-
-  vector = tmp_vector;
-}
-
-
-
-template <int dim>
-void Problem<dim>::interpolate_function
-(const Function<dim>                             &function,
- const std::shared_ptr<Entities::EntityBase<dim>> entity,
- LinearAlgebra::MPI::Vector                      &vector)
-{
-  Assert(function.n_components == entity->n_components,
-         ExcMessage("The number of components of the function does not those "
-                    "of the entity"));
-  #ifdef USE_PETSC_LA
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->locally_owned_dofs, mpi_communicator);
-  #else
-    LinearAlgebra::MPI::Vector
-    tmp_vector(entity->locally_owned_dofs);
-  #endif
-
-  VectorTools::interpolate(*entity->dof_handler,
-                           function,
-                           tmp_vector);
-
-  vector = tmp_vector;
-}
-
-
 
 template <int dim>
 void Problem<dim>::set_initial_conditions
-(std::shared_ptr<Entities::EntityBase<dim>> entity,
+(std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
  Function<dim>                              &function,
  const TimeDiscretization::VSIMEXMethod     &time_stepping,
  const bool                                 boolean)
 {
   #ifdef USE_PETSC_LA
     LinearAlgebra::MPI::Vector
-    tmp_old_solution(entity->locally_owned_dofs, mpi_communicator);
+    tmp_old_solution(entity->get_locally_owned_dofs(), mpi_communicator);
   #else
     LinearAlgebra::MPI::Vector
-    tmp_old_solution(entity->locally_owned_dofs);
+    tmp_old_solution(entity->get_locally_owned_dofs());
   #endif
 
   function.set_time(time_stepping.get_start_time());
 
   if (!boolean)
   {
-    VectorTools::project(*entity->dof_handler,
-                          entity->constraints,
-                          QGauss<dim>(entity->fe_degree + 2),
+    VectorTools::project(entity->get_dof_handler(),
+                         entity->get_constraints(),
+                          QGauss<dim>(entity->fe_degree() + 2),
                           function,
                           tmp_old_solution);
 
@@ -179,56 +125,24 @@ void Problem<dim>::set_initial_conditions
   {
     LinearAlgebra::MPI::Vector tmp_old_old_solution(tmp_old_solution);
 
-    VectorTools::project(*entity->dof_handler,
-                          entity->constraints,
-                          QGauss<dim>(entity->fe_degree + 2),
+    VectorTools::project(entity->get_dof_handler(),
+                         entity->get_constraints(),
+                          QGauss<dim>(entity->fe_degree() + 2),
                           function,
                           tmp_old_old_solution);
 
     function.advance_time(time_stepping.get_next_step_size());
 
-    VectorTools::project(*entity->dof_handler,
-                          entity->constraints,
-                          QGauss<dim>(entity->fe_degree + 2),
+    VectorTools::project(entity->get_dof_handler(),
+                         entity->get_constraints(),
+                          QGauss<dim>(entity->fe_degree() + 2),
                           function,
                           tmp_old_solution);
 
     entity->old_old_solution = tmp_old_old_solution;
     entity->old_solution     = tmp_old_solution;
   }
-}
 
-template <int dim>
-void Problem<dim>::compute_error(
-  LinearAlgebra::MPI::Vector                  &error_vector,
-  std::shared_ptr<Entities::EntityBase<dim>>  entity,
-  Function<dim>                               &exact_solution)
-{
-  AssertThrow(error_vector.local_size() ==
-                entity->solution.local_size(),
-              ExcMessage("The vectors do not match in size"));
-
-  LinearAlgebra::MPI::Vector  distributed_solution_vector;
-  LinearAlgebra::MPI::Vector  distributed_error_vector;
-
-  distributed_solution_vector.reinit(entity->distributed_vector);
-  distributed_error_vector.reinit(entity->distributed_vector);
-
-  distributed_solution_vector = entity->solution;
-  VectorTools::interpolate(*mapping,
-                           *entity->dof_handler,
-                           exact_solution,
-                           distributed_error_vector);
-  entity->hanging_nodes.distribute(distributed_error_vector);
-
-  distributed_error_vector.add(-1.0, distributed_solution_vector);
-
-  for (unsigned int i = distributed_error_vector.local_range().first;
-       i < distributed_error_vector.local_range().second; ++i)
-    if (distributed_error_vector(i) < 0)
-      distributed_error_vector(i) *= -1.0;
-
-  error_vector = distributed_error_vector;
 }
 
 template <int dim>
@@ -262,7 +176,7 @@ void Problem<dim>::adaptive_mesh_refinement()
 
   /*! Initiates the objects responsible for the solution transfer */
   for (auto const &entity: container.entities)
-    solution_transfers.emplace_back(*(entity.first->dof_handler));
+    solution_transfers.emplace_back(entity.first->get_dof_handler());
 
   {
     TimerOutput::Scope t(*computing_timer,
@@ -291,8 +205,8 @@ void Problem<dim>::adaptive_mesh_refinement()
       if (container.entities[i].second)
       {
         KellyErrorEstimator<dim>::estimate(
-          *(container.entities[i].first->dof_handler),
-          QGauss<dim-1>(container.entities[i].first->fe_degree + 1),
+          container.entities[i].first->get_dof_handler(),
+          QGauss<dim-1>(container.entities[i].first->fe_degree() + 1),
           std::map<types::boundary_id, const Function<dim> *>(),
           container.entities[i].first->solution,
           estimated_errors_per_cell[j],
@@ -375,7 +289,7 @@ void Problem<dim>::adaptive_mesh_refinement()
   *pcout << "   Number of global active cells:      "
          << triangulation.n_global_active_cells() << std::endl;
 
-  std::vector<unsigned int> locally_active_cells(triangulation.n_global_levels());
+  std::vector<types::global_cell_index> locally_active_cells(triangulation.n_global_levels());
   for (unsigned int level = 0; level < triangulation.n_levels(); ++level)
     for (auto cell: triangulation.active_cell_iterators_on_level(level))
       if (cell->is_locally_owned())
@@ -401,14 +315,14 @@ void Problem<dim>::adaptive_mesh_refinement()
              << (" Number of degrees of freedom of the \""
                 + (entity.first)->name + "\" entity")
              << " = "
-             << (entity.first)->dof_handler->n_dofs()
+             << (entity.first)->n_dofs()
              << std::endl;
 
-      n_total_dofs += (entity.first)->dof_handler->n_dofs();
+      n_total_dofs += entity.first->n_dofs();
     }
 
     (entity.first)->apply_boundary_conditions();
-    (entity.first)->reinit();
+    (entity.first)->setup_vectors();
   }
 
   *pcout << std::setw(60)
@@ -428,18 +342,7 @@ void Problem<dim>::adaptive_mesh_refinement()
       LinearAlgebra::MPI::Vector  distributed_tmp_old_solution;
       LinearAlgebra::MPI::Vector  distributed_tmp_old_old_solution;
 
-      #ifdef USE_PETSC_LA
-        distributed_tmp_solution.reinit(
-          (container.entities[i].first)->locally_owned_dofs,
-          (container.entities[i].first)->mpi_communicator);
-      #else
-        distributed_tmp_solution.reinit(
-          (container.entities[i].first)->locally_owned_dofs,
-          (container.entities[i].first)->locally_relevant_dofs,
-          (container.entities[i].first)->mpi_communicator,
-          true);
-      #endif
-
+      distributed_tmp_solution.reinit(container.entities[i].first->distributed_vector);
       distributed_tmp_old_solution.reinit(distributed_tmp_solution);
       distributed_tmp_old_old_solution.reinit(distributed_tmp_solution);
 
@@ -448,14 +351,17 @@ void Problem<dim>::adaptive_mesh_refinement()
       tmp[1] = &(distributed_tmp_old_solution);
       tmp[2] = &(distributed_tmp_old_old_solution);
 
-      // Interpolates and apply constraines to the temporary vectors
+      // Interpolate and apply constraints to the temporary vectors
       solution_transfers[i].interpolate(tmp);
 
-      (container.entities[i].first)->constraints.distribute(distributed_tmp_solution);
-      (container.entities[i].first)->constraints.distribute(distributed_tmp_old_solution);
-      (container.entities[i].first)->constraints.distribute(distributed_tmp_old_old_solution);
+      const AffineConstraints<LinearAlgebra::MPI::Vector::value_type> &
+      current_constraints = container.entities[i].first->get_constraints();
 
-      // Passes the interpolated vectors to the entities' vector instances
+      current_constraints.distribute(distributed_tmp_solution);
+      current_constraints.distribute(distributed_tmp_old_solution);
+      current_constraints.distribute(distributed_tmp_old_old_solution);
+
+      // Pass the interpolated vectors to the fields' vector instances
       (container.entities[i].first)->solution          = distributed_tmp_solution;
       (container.entities[i].first)->old_solution      = distributed_tmp_old_solution;
       (container.entities[i].first)->old_old_solution  = distributed_tmp_old_old_solution;

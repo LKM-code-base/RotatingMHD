@@ -6,21 +6,20 @@ INCLUDE_DIRECTORIES(
     )
 
 SET(SOURCE_FILES
-    DFG.cc
-    step-35.cc
-    TGV.cc
-    Guermond.cc
-    GuermondNeumannBC.cc
-    Couette.cc
-    ThermalTGV.cc
-    MIT.cc
     Christensen.cc
+    DFG.cc
+    MIT.cc
+    step-35.cc
+    AdvectionDiffusion.cc
+    Diffusion.cc
+    DiffusionTest.cc
     )
 
 FOREACH(sourcefile ${SOURCE_FILES})
     # string replace: cut off .cc from files
-    STRING(REPLACE ".cc" "" testname ${sourcefile} )
-    ADD_EXECUTABLE( ${testname} ${sourcefile})
-    DEAL_II_SETUP_TARGET(${testname})
-    TARGET_LINK_LIBRARIES(${testname} rotatingMHD stdc++fs)
-ENDFOREACH( sourcefile ${APP_SOURCES} )
+    STRING(REPLACE ".cc" "" executablename ${sourcefile} )
+    PROJECT(${executablename})
+    ADD_EXECUTABLE(${executablename} ${sourcefile})
+    DEAL_II_SETUP_TARGET(${executablename})
+    TARGET_LINK_LIBRARIES(${executablename} rotatingMHD stdc++fs)
+ENDFOREACH(sourcefile ${APP_SOURCES})

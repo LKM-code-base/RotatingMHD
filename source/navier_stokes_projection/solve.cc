@@ -33,6 +33,11 @@ void NavierStokesProjection<dim>::solve()
   }
 
   phi->update_solution_vectors();
+
+  previous_alpha_zeros[1] = previous_alpha_zeros[0];
+  previous_alpha_zeros[0] = time_stepping.get_alpha()[0];
+  previous_step_sizes[1] = previous_step_sizes[0];
+  previous_step_sizes[0] = time_stepping.get_next_step_size();
 }
 
 template <int dim>
@@ -121,7 +126,7 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
             build_preconditioner(correction_step_preconditioner,
                                  projection_mass_matrix,
                                  solver_parameters.preconditioner_parameters_ptr,
-                                 (pressure->fe_degree > 1? true: false));
+                                 (pressure->fe_degree() > 1? true: false));
           }
 
           AssertThrow(correction_step_preconditioner != nullptr,
@@ -180,10 +185,10 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           // The pressure's constraints are distributed to the
           // solution vector to consider the case of Dirichlet
           // boundary conditions on the pressure field.
-          if (!pressure->boundary_conditions.dirichlet_bcs.empty())
-            pressure->constraints.distribute(distributed_pressure);
+          if (!pressure->get_dirichlet_boundary_conditions().empty())
+            pressure->get_constraints().distribute(distributed_pressure);
           else
-            pressure->hanging_nodes.distribute(distributed_pressure);
+            pressure->get_hanging_node_constraints().distribute(distributed_pressure);
 
           // Pass the distributed vector to its ghost counterpart.
           pressure->solution = distributed_pressure;
@@ -193,8 +198,8 @@ void NavierStokesProjection<dim>::pressure_correction(const bool reinit_prec)
           if (flag_normalize_pressure)
           {
             const LinearAlgebra::MPI::Vector::value_type mean_value
-              = VectorTools::compute_mean_value(*pressure->dof_handler,
-                                                QGauss<dim>(pressure->fe.degree + 1),
+              = VectorTools::compute_mean_value(pressure->get_dof_handler(),
+                                                QGauss<dim>(pressure->fe_degree() + 1),
                                                 pressure->solution,
                                                 0);
 

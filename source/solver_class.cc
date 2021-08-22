@@ -47,9 +47,25 @@ time_stepping(time_stepping)
 
 
 
+template<int dim>
+ProjectionSolverBase<dim>::ProjectionSolverBase(
+  TimeDiscretization::VSIMEXMethod          &time_stepping,
+  const std::shared_ptr<Mapping<dim>>       external_mapping,
+  const std::shared_ptr<ConditionalOStream> external_pcout,
+  const std::shared_ptr<TimerOutput>        external_timer)
+:
+SolverBase<dim>(time_stepping,
+                external_mapping,
+                external_pcout,
+                external_timer)
+{}
+
 } // namespace RMHD
 
 
 
 template struct RMHD::SolverBase<2>;
 template struct RMHD::SolverBase<3>;
+
+template struct RMHD::ProjectionSolverBase<2>;
+template struct RMHD::ProjectionSolverBase<3>;

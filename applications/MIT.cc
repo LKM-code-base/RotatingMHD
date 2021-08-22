@@ -1,8 +1,7 @@
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/equation_data.h>
-#include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
+#include <rotatingMHD/finite_element_field.h>
+#include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
@@ -12,24 +11,98 @@
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <iomanip>
-namespace RMHD
+
+namespace MITBenchmark
 {
 
 using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+template <int dim>
+class TemperatureBoundaryCondition : public Function<dim>
+{
+public:
+  TemperatureBoundaryCondition(const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+private:
+  /*!
+   * @brief The exponential coefficient.
+   */
+  const double beta = 10.;
+};
+
+template <int dim>
+TemperatureBoundaryCondition<dim>::TemperatureBoundaryCondition
+(const double time)
+:
+Function<dim>(1, time)
+{}
+
+template <>
+double TemperatureBoundaryCondition<2>::value
+(const Point<2> &point,
+ const unsigned int /* component */) const
+{
+  const double t = this->get_time();
+  const double x = point(0);
+
+  const double sign = ( x < 0.5 ) ? 1.0 : -1.0;
+
+  return ( sign * 0.5 * (1.0 - exp(- beta * t)));
+}
+
+template <int dim>
+class GravityVector: public TensorFunction<1, dim>
+{
+public:
+  GravityVector(const double time = 0);
+
+  virtual Tensor<1, dim> value(const Point<dim>  &point) const override;
+};
+
+template <int dim>
+GravityVector<dim>::GravityVector
+(const double time)
+:
+TensorFunction<1, dim>(time)
+{}
+
+template <>
+Tensor<1, 2> GravityVector<2>::value(const Point<2> &/*point*/) const
+{
+  Tensor<1, 2> value;
+
+  value[0] = 0.0;
+  value[1] = -1.0;
+
+  return value;
+}
+
+} // namespace EquationData
+
+
 
 /*!
  * @class MITBenchmark
+ *
  * @brief Class solving the problem formulated in the MIT benchmark.
+ *
  * @details The benchmark considers the case of a buoyancy-driven flow
  * for which the Boussinesq approximation is assumed to hold true,
  * <em> i. e.</em>, the fluid's behaviour is described by the following
@@ -75,27 +148,34 @@ using namespace dealii;
  * \f]
  * and the parameters are \f$ \Prandtl = 0.71 \f$ and
  * \f$ \Rayleigh = 3.4\times 10^5. \f$
+ *
  * @note The temperature's Dirichlet boundary conditions are implemented
  * with a factor \f$ [1-\exp(-10 t)] \f$ to smooth the dynamic response
  * of the system.
+ *
  * @todo Add a picture
  */
 template <int dim>
-class MITBenchmark : public Problem<dim>
+class MIT : public Problem<dim>
 {
 public:
-  MITBenchmark(const RunTimeParameters::ProblemParameters &parameters);
+  MIT(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
 private:
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  const types::boundary_id  left_bndry_id{1};
+  const types::boundary_id  right_bndry_id{2};
+  const types::boundary_id  top_bndry_id{3};
+  const types::boundary_id  bottom_bndry_id{4};
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
-  std::shared_ptr<EquationData::MIT::TemperatureBoundaryCondition<dim>>
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
+
+  std::shared_ptr<EquationData::TemperatureBoundaryCondition<dim>>
                                                 temperature_boundary_conditions;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
@@ -104,17 +184,13 @@ private:
 
   HeatEquation<dim>                             heat_equation;
 
-  BenchmarkData::MIT<dim>                       mit_benchmark;
+  BenchmarkData::MIT<dim>                       benchmark_requests;
 
-  EquationData::MIT::GravityUnitVector<dim>     gravity_vector;
+  EquationData::GravityVector<dim>              gravity_vector;
 
   double                                        cfl_number;
 
-  std::ofstream                                 cfl_output_file;
-
-  bool                                          flag_local_refinement;
-
-  void make_grid(const unsigned int n_global_refinements);
+  void make_grid();
 
   void setup_dofs();
 
@@ -130,23 +206,23 @@ private:
 };
 
 template <int dim>
-MITBenchmark<dim>::MITBenchmark(const RunTimeParameters::ProblemParameters &parameters)
+MIT<dim>::MIT(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(
               parameters.fe_degree_velocity,
               this->triangulation,
               "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_pressure,
               this->triangulation,
               "Pressure")),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(
+temperature(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_temperature,
               this->triangulation,
               "Temperature")),
 temperature_boundary_conditions(
-              std::make_shared<EquationData::MIT::TemperatureBoundaryCondition<dim>>(
+              std::make_shared<EquationData::TemperatureBoundaryCondition<dim>>(
               parameters.time_discretization_parameters.start_time)),
 time_stepping(parameters.time_discretization_parameters),
 navier_stokes(parameters.navier_stokes_parameters,
@@ -164,29 +240,19 @@ heat_equation(parameters.heat_equation_parameters,
               this->mapping,
               this->pcout,
               this->computing_timer),
-mit_benchmark(velocity,
-              pressure,
-              temperature,
-              time_stepping,
-              1,
-              2,
-              this->mapping,
-              this->pcout,
-              this->computing_timer),
-gravity_vector(parameters.time_discretization_parameters.start_time),
-cfl_output_file("MIT_cfl_number.csv"),
-flag_local_refinement(true)
+benchmark_requests(left_bndry_id, right_bndry_id),
+gravity_vector(parameters.time_discretization_parameters.start_time)
 {
   *this->pcout << parameters << std::endl << std::endl;
 
   AssertDimension(dim, 2);
   navier_stokes.set_gravity_vector(gravity_vector);
-  make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
+  make_grid();
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
-  temperature->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
+  temperature->setup_vectors();
   initialize();
 
   // Stores all the fields to the SolutionTransfor container
@@ -195,34 +261,72 @@ flag_local_refinement(true)
   this->container.add_entity(navier_stokes.phi, false);
   this->container.add_entity(temperature, false);
 
-  cfl_output_file << "Time" << "," << "CFL" << std::endl;
 }
 
-template <int dim>
-void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
+template <>
+void MIT<2>::make_grid()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
-  // Reads the structured mesh done in gmsh. This mesh is modelled after
-  // the one named "1R" by the benchmark's authors.
-  GridIn<dim> grid_in;
-  grid_in.attach_triangulation(this->triangulation);
-  std::ifstream triangulation_file("MIT.msh");
-  grid_in.read_msh(triangulation_file);
+  constexpr int dim = 2;
+  constexpr double tol = 1e-12;
+
+  Triangulation<dim>  tria;
+
+  GridGenerator::subdivided_hyper_rectangle(tria,
+                                            {16u, 16u*8u},
+                                            Point<dim>(0., 0.),
+                                            Point<dim>(1., 8.));
+
+  for (auto &face: tria.active_face_iterators())
+    if (face->at_boundary())
+    {
+      const Point<dim> center = face->center();
+
+      if (std::abs(center[1]) > tol && std::abs(center[1] - 8.0) > tol)
+      {
+        if (std::abs(center[0]) < tol)
+          face->set_boundary_id(left_bndry_id);
+        else if (std::abs(center[0] - 1.0) < tol)
+          face->set_boundary_id(right_bndry_id);
+        else
+          Assert(false, ExcInternalError());
+      }
+      else if (std::abs(center[1]) < tol)
+        face->set_boundary_id(bottom_bndry_id);
+      else if (std::abs(center[1] - 8.0) < tol)
+        face->set_boundary_id(top_bndry_id);
+      else
+        Assert(false, ExcInternalError());
+    }
+
+  // Transforms the mesh
+  auto transformation = [](const Point<dim> &point)
+      {
+        // Compute coordinate of Chebyshev node
+        const std::array<double, dim> chebyshev_coords
+          {0.5 - 0.5 * cos(point[0] * numbers::PI),
+           4.0 - 4.0 * cos(point[1] / 8.0 * numbers::PI)};
+        // Take the mean of the Chebyshev and the original coordinate
+        return Point<dim>(0.5 * (point[0] + chebyshev_coords[0]),
+                          0.5 * (point[1] + chebyshev_coords[1]));
+      };
+  GridTools::transform(transformation, tria);
+
+  this->triangulation.copy_triangulation(tria);
 
   // Performs global refinements
-  this->triangulation.refine_global(n_global_refinements);
+  this->triangulation.refine_global(prm.spatial_discretization_parameters.n_initial_global_refinements);
 
   // Performs a one level local refinement of the cells located at the
   // side walls
-  if (flag_local_refinement)
+  for (unsigned int i=0;
+        i<prm.spatial_discretization_parameters.n_initial_boundary_refinements;
+        ++i)
   {
-    for (const auto &cell : this->triangulation.active_cell_iterators())
-      if (cell->is_locally_owned() && cell->at_boundary())
-        for (const auto &face : cell->face_iterators())
-          if (face->boundary_id() == 1 || face->boundary_id() == 2)
-            cell->set_refine_flag();
-
+    for (auto &cell: this->triangulation.active_cell_iterators())
+      if (cell->at_boundary() && cell->is_locally_owned())
+        cell->set_refine_flag();
     this->triangulation.execute_coarsening_and_refinement();
   }
 
@@ -230,11 +334,16 @@ void MITBenchmark<dim>::make_grid(const unsigned int n_global_refinements)
                  << std::endl
                  << " Number of initial active cells           = "
                  << this->triangulation.n_global_active_cells()
+                 << std::endl
+                 << " Maximum aspect ratio                     = "
+                 << GridTools::compute_maximum_aspect_ratio(*this->mapping,
+                                                            this->triangulation,
+                                                            QGauss<dim>(2))
                  << std::endl << std::endl;
 }
 
 template <int dim>
-void MITBenchmark<dim>::setup_dofs()
+void MIT<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
@@ -247,48 +356,58 @@ void MITBenchmark<dim>::setup_dofs()
   *(this->pcout) << "Spatial discretization:"
                  << std::endl
                  << " Number of velocity degrees of freedom    = "
-                 << (velocity->dof_handler)->n_dofs()
+                 << velocity->n_dofs()
                  << std::endl
                  << " Number of pressure degrees of freedom    = "
-                 << pressure->dof_handler->n_dofs()
+                 << pressure->n_dofs()
                  << std::endl
                  << " Number of temperature degrees of freedom = "
-                 << temperature->dof_handler->n_dofs()
+                 << temperature->n_dofs()
                  << std::endl
                  << " Number of total degrees of freedom       = "
-                 << (velocity->dof_handler->n_dofs() +
-                     pressure->dof_handler->n_dofs() +
-                     temperature->dof_handler->n_dofs())
+                 << (velocity->n_dofs() +
+                     pressure->n_dofs() +
+                     temperature->n_dofs())
                  << std::endl << std::endl;
 }
 
 template <int dim>
-void MITBenchmark<dim>::setup_constraints()
+void MIT<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
+  temperature->clear_boundary_conditions();
+
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+  temperature->setup_boundary_conditions();
+
   // Homogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  velocity->boundary_conditions.set_dirichlet_bcs(1);
-  velocity->boundary_conditions.set_dirichlet_bcs(2);
-  velocity->boundary_conditions.set_dirichlet_bcs(3);
-  velocity->boundary_conditions.set_dirichlet_bcs(4);
+  velocity->set_dirichlet_boundary_condition(left_bndry_id);
+  velocity->set_dirichlet_boundary_condition(right_bndry_id);
+  velocity->set_dirichlet_boundary_condition(top_bndry_id);
+  velocity->set_dirichlet_boundary_condition(bottom_bndry_id);
 
   // The pressure itself has no boundary conditions, leading to a pure
   // Neumann problem. A datum ensures the well-posedness of the problem
   // and The Navier-Stokes solver will enforce a zero mean value
   // constraint.
-  pressure->boundary_conditions.set_datum_at_boundary();
+  pressure->set_datum_boundary_condition();
 
   // Inhomogeneous time dependent Dirichlet boundary conditions over
   // the side walls and homogeneous Neumann boundary conditions over
   // the bottom and top walls for the temperature field.
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    1, temperature_boundary_conditions, true);
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    2, temperature_boundary_conditions, true);
-  temperature->boundary_conditions.set_neumann_bcs(3);
-  temperature->boundary_conditions.set_neumann_bcs(4);
+  temperature->set_dirichlet_boundary_condition(left_bndry_id,
+                                                temperature_boundary_conditions,
+                                                true);
+  temperature->set_dirichlet_boundary_condition(right_bndry_id,
+                                                temperature_boundary_conditions,
+                                                true);
+  temperature->set_neumann_boundary_condition(top_bndry_id);
+  temperature->set_neumann_boundary_condition(bottom_bndry_id);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -300,7 +419,7 @@ void MITBenchmark<dim>::setup_constraints()
 }
 
 template <int dim>
-void MITBenchmark<dim>::initialize()
+void MIT<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -315,11 +434,11 @@ void MITBenchmark<dim>::initialize()
   temperature->set_solution_vectors_to_zero();
 
   {
-    LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
+    RMHD::LinearAlgebra::MPI::Vector distributed_old_temperature(temperature->distributed_vector);
 
     distributed_old_temperature = temperature->old_solution;
 
-    temperature->constraints.distribute(distributed_old_temperature);
+    temperature->get_constraints().distribute(distributed_old_temperature);
 
     temperature->old_solution   = distributed_old_temperature;
   }
@@ -330,20 +449,20 @@ void MITBenchmark<dim>::initialize()
 }
 
 template <int dim>
-void MITBenchmark<dim>::postprocessing()
+void MIT<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
   // Computes all the benchmark's data. See documentation of the
   // class for further information.
-  mit_benchmark.compute_benchmark_data();
+  benchmark_requests.update(this->time_stepping.get_current_time(),
+                            this->time_stepping.get_step_number(),
+                            *velocity,
+                            *pressure,
+                            *temperature);
 
-  std::cout.precision(1);
-  /*! @attention For some reason, a run time error happens when I try
-      to only use one pcout */
-  *this->pcout << time_stepping << ", ";
-  *this->pcout << mit_benchmark
-               << ", CFL = "
+  *this->pcout << benchmark_requests << std::endl;
+  *this->pcout << "    CFL = "
                << cfl_number
                << ", Norms: ("
                << std::noshowpos << std::scientific
@@ -352,19 +471,12 @@ void MITBenchmark<dim>::postprocessing()
                << navier_stokes.get_projection_step_rhs_norm()
                << ", "
                << heat_equation.get_rhs_norm()
-               << ") ["
-               << std::setw(5)
-               << std::fixed
-               << time_stepping.get_next_time()/time_stepping.get_end_time() * 100.
-               << "%] \r";
-
-  if (time_stepping.get_step_number() % 10 == 0)
-    cfl_output_file << time_stepping.get_current_time() << ","
-                    << cfl_number << std::endl;
+               << ")"
+               << std::endl;
 }
 
 template <int dim>
-void MITBenchmark<dim>::output()
+void MIT<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
@@ -376,14 +488,14 @@ void MITBenchmark<dim>::output()
 
   // Loading the DataOut instance with the solution vectors
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*velocity->dof_handler,
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*pressure->dof_handler,
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            temperature->solution,
                            "Temperature");
 
@@ -393,7 +505,7 @@ void MITBenchmark<dim>::output()
   // elements. In other words, the triangulation visualized in the
   // *.pvtu file is one globl refinement finer than the actual
   // triangulation.
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   // Writes the DataOut instance to the file.
   static int out_index = 0;
@@ -406,7 +518,7 @@ void MITBenchmark<dim>::output()
 }
 
 template <int dim>
-void MITBenchmark<dim>::update_solution_vectors()
+void MIT<dim>::update_solution_vectors()
 {
   // Sets the solution vectors at t^{k-j} to those at t^{k-j+1}
   velocity->update_solution_vectors();
@@ -415,9 +527,14 @@ void MITBenchmark<dim>::update_solution_vectors()
 }
 
 template <int dim>
-void MITBenchmark<dim>::run()
+void MIT<dim>::run()
 {
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
+
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+               << std::endl;
+  while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -432,7 +549,7 @@ void MITBenchmark<dim>::run()
     time_stepping.update_coefficients();
 
     // Updates the functions and constraints to t^{k}
-    temperature->boundary_conditions.set_time(time_stepping.get_next_time());
+    temperature_boundary_conditions->set_time(time_stepping.get_next_time());
     temperature->update_boundary_conditions();
 
     // Solves the system, i.e. computes the fields at t^{k}
@@ -442,6 +559,8 @@ void MITBenchmark<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
 
     // Performs post-processing
     postprocessing();
@@ -459,25 +578,99 @@ void MITBenchmark<dim>::run()
       output();
   }
 
-  // Prints the benchmark's data to the .txt file.
-  mit_benchmark.print_data_to_file("MIT_benchmark");
+
+  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+  {
+    if (!std::filesystem::exists(this->prm.graphical_output_directory))
+    {
+      try
+      {
+        std::filesystem::create_directories(this->prm.graphical_output_directory);
+      }
+      catch (std::exception &exc)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::cerr << "Exception in the creation of the output directory: "
+                  << std::endl
+                  << exc.what() << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+      catch (...)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                    << std::endl;
+        std::cerr << "Unknown exception in the creation of the output directory!"
+                  << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+    }
+
+    const std::filesystem::path path{this->prm.graphical_output_directory};
+
+    std::filesystem::path filename = path / "benchmark_data.txt";
+
+    try
+    {
+      std::ofstream fstream(filename.string());
+      benchmark_requests.write_text(fstream);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output file: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output file!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
 }
 
-} // namespace RMHD
+} // namespace MITBenchmark
 
 int main(int argc, char *argv[])
 {
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace MITBenchmark;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 2);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-      RunTimeParameters::ProblemParameters parameter_set("MIT.prm");
+      std::string parameter_filename;
+      if (argc >= 2)
+        parameter_filename = argv[1];
+      else
+        parameter_filename = "MIT.prm";
 
-      MITBenchmark<2> simulation(parameter_set);
+      RunTimeParameters::ProblemParameters parameter_set(parameter_filename);
+
+      MIT<2> simulation(parameter_set);
 
       simulation.run();
 

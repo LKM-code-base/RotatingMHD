@@ -72,7 +72,7 @@ solve_diffusion_step(const bool reinit_prec)
     build_preconditioner(diffusion_step_preconditioner,
                          *system_matrix,
                          solver_parameters.preconditioner_parameters_ptr,
-                         (velocity->fe_degree > 1? true: false));
+                         (velocity->fe_degree() > 1? true: false));
   }
 
   AssertThrow(diffusion_step_preconditioner != nullptr,
@@ -121,7 +121,7 @@ solve_diffusion_step(const bool reinit_prec)
     std::abort();
   }
 
-  velocity->constraints.distribute(distributed_velocity);
+  velocity->get_constraints().distribute(distributed_velocity);
 
   velocity->solution = distributed_velocity;
 

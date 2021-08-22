@@ -29,7 +29,7 @@ void NavierStokesProjection<dim>::setup()
 
   // If the pressure correction variable @ref phi only has Neumann
   // boundary conditions, its solution is defined only up to a constant.
-  if (phi->boundary_conditions.dirichlet_bcs.empty())
+  if (phi->get_dirichlet_boundary_conditions().empty())
     flag_normalize_pressure = true;
 
   // If the matrices and vector are assembled, the sum of the mass and
@@ -48,33 +48,37 @@ void NavierStokesProjection<dim>::setup_phi()
   // Extract owned and relevant degrees of freedom and populate
   // AffineConstraint instance of the hanging nodes
   phi->setup_dofs();
-
-  // Initiate the solution vectors
-  phi->reinit();
+  phi->setup_vectors();
 
   // Clears the boundary conditions
   phi->clear_boundary_conditions();
+  phi->setup_boundary_conditions();
 
   // Copy the pressure boundary conditions
-  phi->boundary_conditions.copy(pressure->boundary_conditions);
+  Entities::BoundaryConditionsBase<dim> &phi_boundary_conditions =
+      phi->get_boundary_conditions();
+  const Entities::BoundaryConditionsBase<dim> &pressure_boundary_conditions =
+      pressure->get_boundary_conditions();
+
+  phi_boundary_conditions.copy(pressure_boundary_conditions);
 
   // Inhomogeneous Dirichlet boundary conditions in the pressure space
   // translate to homogeneous Dirichlet boundary conditions in the
   // phi space
-  for (auto &dirichlet_bc : phi->boundary_conditions.dirichlet_bcs)
+  for (auto &dirichlet_bc : phi_boundary_conditions.dirichlet_bcs)
     dirichlet_bc.second = std::make_shared<Functions::ZeroFunction<dim>>();
 
   // The velocity field has to be constrained over all the boundary.
   // If it is not, the following sets homogeneous Neumann boundary
   // conditions on the unconstrained boundaries.
   std::vector<types::boundary_id> unconstrained_boundary_ids =
-    velocity->boundary_conditions.get_unconstrained_boundary_ids();
+    velocity->get_boundary_conditions().get_unconstrained_boundary_ids();
 
   // An exception is made if there is a Dirichlet boundary condition
   // on the pressure.
   for (const auto &unconstrained_boundary_id: unconstrained_boundary_ids)
-    if (pressure->boundary_conditions.dirichlet_bcs.find(unconstrained_boundary_id)
-          != pressure->boundary_conditions.dirichlet_bcs.end())
+    if (pressure_boundary_conditions.dirichlet_bcs.find(unconstrained_boundary_id)
+          != pressure_boundary_conditions.dirichlet_bcs.end())
       unconstrained_boundary_ids.erase(
         std::remove(unconstrained_boundary_ids.begin(),
                     unconstrained_boundary_ids.end(),
@@ -89,7 +93,7 @@ void NavierStokesProjection<dim>::setup_phi()
     for (const auto &unconstrained_boundary_id: unconstrained_boundary_ids)
     {
       *pcout << unconstrained_boundary_id << ", ";
-      velocity->boundary_conditions.set_neumann_bcs(unconstrained_boundary_id);
+      velocity->set_neumann_boundary_condition(unconstrained_boundary_id);
     }
     *pcout << "\b\b}. Homogeneous Neumann boundary conditions will be"
               " assumed in order to properly constraint the problem.\n"
@@ -98,13 +102,13 @@ void NavierStokesProjection<dim>::setup_phi()
 
   // Neumann boundary conditions in the velocity space translate into
   // homogeneous Dirichlet boundary conditions in the phi space
-  for (auto &neumann_bc : velocity->boundary_conditions.neumann_bcs)
-    phi->boundary_conditions.set_dirichlet_bcs(neumann_bc.first);
+  for (const auto &neumann_bc : velocity->get_neumann_boundary_conditions())
+    phi->set_dirichlet_boundary_condition(neumann_bc.first);
 
   // The remaining unconstrained boundaries in the phi space are set to
   // homogeneous Neumann boundary conditions
-  for (const auto &unconstrained_boundary_id: phi->boundary_conditions.get_unconstrained_boundary_ids())
-    phi->boundary_conditions.set_neumann_bcs(unconstrained_boundary_id);
+  for (const auto &unconstrained_boundary_id: phi_boundary_conditions.get_unconstrained_boundary_ids())
+    phi->set_neumann_boundary_condition(unconstrained_boundary_id);
 
   // Close and apply boundary conditions
   phi->close_boundary_conditions();
@@ -140,56 +144,56 @@ void NavierStokesProjection<dim>::setup_matrices()
   {
     #ifdef USE_PETSC_LA
       DynamicSparsityPattern
-      sparsity_pattern(velocity->locally_relevant_dofs);
+      sparsity_pattern(velocity->get_locally_relevant_dofs());
 
-      DoFTools::make_sparsity_pattern(*(velocity->dof_handler),
+      DoFTools::make_sparsity_pattern(velocity->get_dof_handler(),
                                       sparsity_pattern,
-                                      velocity->constraints,
+                                      velocity->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
       SparsityTools::distribute_sparsity_pattern
       (sparsity_pattern,
-       velocity->locally_owned_dofs,
+       velocity->get_locally_owned_dofs(),
        mpi_communicator,
-       velocity->locally_relevant_dofs);
+       velocity->get_locally_relevant_dofs());
 
       velocity_mass_plus_laplace_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       velocity_system_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       velocity_mass_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       velocity_laplace_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
       velocity_advection_matrix.reinit
-      (velocity->locally_owned_dofs,
-       velocity->locally_owned_dofs,
+      (velocity->get_locally_owned_dofs(),
+       velocity->get_locally_owned_dofs(),
        sparsity_pattern,
        mpi_communicator);
 
     #else
       TrilinosWrappers::SparsityPattern
-      sparsity_pattern(velocity->locally_owned_dofs,
-                       velocity->locally_owned_dofs,
-                       velocity->locally_relevant_dofs,
+      sparsity_pattern(velocity->get_locally_owned_dofs(),
+                       velocity->get_locally_owned_dofs(),
+                       velocity->get_locally_relevant_dofs(),
                        mpi_communicator);
 
-      DoFTools::make_sparsity_pattern(*(velocity->dof_handler),
+      DoFTools::make_sparsity_pattern(velocity->get_dof_handler(),
                                       sparsity_pattern,
-                                      velocity->constraints,
+                                      velocity->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
@@ -213,102 +217,102 @@ void NavierStokesProjection<dim>::setup_matrices()
   {
     #ifdef USE_PETSC_LA
       DynamicSparsityPattern
-      pressure_sparsity_pattern(pressure->locally_relevant_dofs);
+      pressure_sparsity_pattern(pressure->get_locally_relevant_dofs());
 
       DynamicSparsityPattern
-      phi_sparsity_pattern(phi->locally_relevant_dofs);
+      phi_sparsity_pattern(phi->get_locally_relevant_dofs());
 
       DynamicSparsityPattern
-      projection_sparsity_pattern(pressure->locally_relevant_dofs);
+      projection_sparsity_pattern(pressure->get_locally_relevant_dofs());
 
-      DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
+      DoFTools::make_sparsity_pattern(pressure->get_dof_handler(),
                                       pressure_sparsity_pattern,
-                                      pressure->constraints,
+                                      pressure->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
-      DoFTools::make_sparsity_pattern(*(phi->dof_handler),
+      DoFTools::make_sparsity_pattern(phi->get_dof_handler(),
                                       phi_sparsity_pattern,
-                                      phi->constraints,
+                                      phi->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
-      DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
+      DoFTools::make_sparsity_pattern(pressure->get_dof_handler(),
                                       projection_sparsity_pattern,
-                                      pressure->hanging_nodes,
+                                      pressure->get_hanging_node_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
 
       SparsityTools::distribute_sparsity_pattern
       (pressure_sparsity_pattern,
-       pressure->locally_owned_dofs,
+       pressure->get_locally_owned_dofs(),
        mpi_communicator,
-       pressure->locally_relevant_dofs);
+       pressure->get_locally_relevant_dofs());
 
       SparsityTools::distribute_sparsity_pattern
       (phi_sparsity_pattern,
-       phi->locally_owned_dofs,
+       phi->get_locally_owned_dofs(),
        mpi_communicator,
        phi->locally_relevant_dofs);
 
       SparsityTools::distribute_sparsity_pattern
       (projection_sparsity_pattern,
-       pressure->locally_owned_dofs,
+       pressure->get_locally_owned_dofs(),
        mpi_communicator,
-       pressure->locally_relevant_dofs);
+       pressure->get_locally_relevant_dofs());
 
       pressure_laplace_matrix.reinit
-      (pressure->locally_owned_dofs,
-       pressure->locally_owned_dofs,
+      (pressure->get_locally_owned_dofs(),
+       pressure->get_locally_owned_dofs(),
        pressure_sparsity_pattern,
        mpi_communicator);
       phi_laplace_matrix.reinit
-      (phi->locally_owned_dofs,
-       phi->locally_owned_dofs,
+      (phi->get_locally_owned_dofs(),
+       phi->get_locally_owned_dofs(),
        phi_sparsity_pattern,
        mpi_communicator);
       projection_mass_matrix.reinit
-      (pressure->locally_owned_dofs,
-       pressure->locally_owned_dofs,
+      (pressure->get_locally_owned_dofs(),
+       pressure->get_locally_owned_dofs(),
        projection_sparsity_pattern,
        mpi_communicator);
 
 
     #else
       TrilinosWrappers::SparsityPattern
-      pressure_sparsity_pattern(pressure->locally_owned_dofs,
-                                pressure->locally_owned_dofs,
-                                pressure->locally_relevant_dofs,
+      pressure_sparsity_pattern(pressure->get_locally_owned_dofs(),
+                                pressure->get_locally_owned_dofs(),
+                                pressure->get_locally_relevant_dofs(),
                                 mpi_communicator);
 
       TrilinosWrappers::SparsityPattern
-      phi_sparsity_pattern(phi->locally_owned_dofs,
-                           phi->locally_owned_dofs,
-                           phi->locally_relevant_dofs,
+      phi_sparsity_pattern(phi->get_locally_owned_dofs(),
+                           phi->get_locally_owned_dofs(),
+                           phi->get_locally_relevant_dofs(),
                            mpi_communicator);
 
       TrilinosWrappers::SparsityPattern
-      projection_sparsity_pattern(pressure->locally_owned_dofs,
-                                  pressure->locally_owned_dofs,
-                                  pressure->locally_relevant_dofs,
+      projection_sparsity_pattern(pressure->get_locally_owned_dofs(),
+                                  pressure->get_locally_owned_dofs(),
+                                  pressure->get_locally_relevant_dofs(),
                                   mpi_communicator);
 
-      DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
+      DoFTools::make_sparsity_pattern(pressure->get_dof_handler(),
                                       pressure_sparsity_pattern,
-                                      pressure->constraints,
+                                      pressure->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
-      DoFTools::make_sparsity_pattern(*(phi->dof_handler),
+      DoFTools::make_sparsity_pattern(phi->get_dof_handler(),
                                       phi_sparsity_pattern,
-                                      phi->constraints,
+                                      phi->get_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
-      DoFTools::make_sparsity_pattern(*(pressure->dof_handler),
+      DoFTools::make_sparsity_pattern(pressure->get_dof_handler(),
                                       projection_sparsity_pattern,
-                                      pressure->hanging_nodes,
+                                      pressure->get_hanging_node_constraints(),
                                       false,
                                       Utilities::MPI::this_mpi_process(mpi_communicator));
 
@@ -362,8 +366,8 @@ assemble_constant_matrices()
 
 
 template <int dim>
-void NavierStokesProjection<dim>::set_body_force(
-  RMHD::EquationData::VectorFunction<dim> &body_force)
+void NavierStokesProjection<dim>::set_body_force
+(TensorFunction<1, dim> &body_force)
 {
   body_force_ptr = &body_force;
 }
@@ -371,8 +375,8 @@ void NavierStokesProjection<dim>::set_body_force(
 
 
 template <int dim>
-void NavierStokesProjection<dim>::set_gravity_vector(
-  RMHD::EquationData::VectorFunction<dim> &gravity_vector)
+void NavierStokesProjection<dim>::set_gravity_vector
+(TensorFunction<1, dim> &gravity_vector)
 {
   gravity_vector_ptr = &gravity_vector;
 }
@@ -380,8 +384,8 @@ void NavierStokesProjection<dim>::set_gravity_vector(
 
 
 template <int dim>
-void NavierStokesProjection<dim>::set_angular_velocity_vector(
-  RMHD::EquationData::AngularVelocity<dim> &angular_velocity_vector)
+void NavierStokesProjection<dim>::set_angular_velocity_vector
+(RMHD::AngularVelocity<dim> &angular_velocity_vector)
 {
   angular_velocity_vector_ptr = &angular_velocity_vector;
 }
@@ -500,14 +504,14 @@ template void RMHD::NavierStokesProjection<3>::setup_vectors();
 template void RMHD::NavierStokesProjection<2>::assemble_constant_matrices();
 template void RMHD::NavierStokesProjection<3>::assemble_constant_matrices();
 
-template void RMHD::NavierStokesProjection<2>::set_body_force(RMHD::EquationData::VectorFunction<2> &);
-template void RMHD::NavierStokesProjection<3>::set_body_force(RMHD::EquationData::VectorFunction<3> &);
+template void RMHD::NavierStokesProjection<2>::set_body_force(TensorFunction<1, 2> &);
+template void RMHD::NavierStokesProjection<3>::set_body_force(TensorFunction<1, 3> &);
 
-template void RMHD::NavierStokesProjection<2>::set_gravity_vector(RMHD::EquationData::VectorFunction<2> &);
-template void RMHD::NavierStokesProjection<3>::set_gravity_vector(RMHD::EquationData::VectorFunction<3> &);
+template void RMHD::NavierStokesProjection<2>::set_gravity_vector(TensorFunction<1, 2> &);
+template void RMHD::NavierStokesProjection<3>::set_gravity_vector(TensorFunction<1, 3> &);
 
-template void RMHD::NavierStokesProjection<2>::set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<2> &);
-template void RMHD::NavierStokesProjection<3>::set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<3> &);
+template void RMHD::NavierStokesProjection<2>::set_angular_velocity_vector(RMHD::AngularVelocity<2> &);
+template void RMHD::NavierStokesProjection<3>::set_angular_velocity_vector(RMHD::AngularVelocity<3> &);
 
 template void RMHD::NavierStokesProjection<2>::clear();
 template void RMHD::NavierStokesProjection<3>::clear();

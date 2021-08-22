@@ -1,7 +1,6 @@
 #ifndef INCLUDE_ROTATINGMHD_PROBLEM_CLASS_H_
 #define INCLUDE_ROTATINGMHD_PROBLEM_CLASS_H_
 
-#include <rotatingMHD/entities_structs.h>
 #include <rotatingMHD/time_discretization.h>
 #include <rotatingMHD/run_time_parameters.h>
 
@@ -17,6 +16,7 @@
 
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/solution_transfer.h>
+#include <rotatingMHD/finite_element_field.h>
 
 namespace RMHD
 {
@@ -36,17 +36,17 @@ struct SolutionTransferContainer
 {
   /*!
    * @brief A typedef for the std::pair composed of a pointer to a
-   * @ref Entities::EntityBase instance and a boolean.
+   * @ref Entities::FE_FieldBase instance and a boolean.
    * @details The boolean indicates wheter the entity is to be
    * considered by the error estimation or not.
    */
-  using EntityEntry = std::pair<Entities::EntityBase<dim> *, bool>;
+  using FE_Field = std::pair<Entities::FE_FieldBase<dim> *, bool>;
 
   /*!
    * @brief A std::vector with all the entities to be considered in
    * a solution transfer
    */
-  std::vector<EntityEntry>  entities;
+  std::vector<FE_Field>  entities;
 
   /*!
    * @brief Default constructor.
@@ -71,12 +71,12 @@ struct SolutionTransferContainer
   bool empty() const;
 
   /*!
-   * @brief Adds the passed on EntityBase instance and flag to the
+   * @brief Adds the passed on FE_FieldBase instance and flag to the
    * entities struct member.
    * @details If no boolean is passed, it is assumed that the entity
    * is to be considered by the error estimation.
    */
-  void add_entity(std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag = true);
+  void add_entity(std::shared_ptr<Entities::FE_FieldBase<dim>> entity, bool flag = true);
 
 private:
 
@@ -158,24 +158,6 @@ protected:
   virtual void clear();
 
   /*!
-   * @brief Projects the @p function on the finite element space contained
-   * in the @p entity and saves the result in the @p vector.
-   */
-  void project_function
-  (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::EntityBase<dim>> entity,
-   LinearAlgebra::MPI::Vector                      &vector);
-
-  /*!
-   * @brief Interpolates the @p function on the finite element space contained
-   * in the @p entity and saves the result in the @p vector.
-   */
-  void interpolate_function
-  (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::EntityBase<dim>> entity,
-   LinearAlgebra::MPI::Vector                      &vector);
-
-  /*!
    * @brief Loads the initial conditions to the pertinent solution
    * vector
    * @details Projects the @ref function at simulation's start time
@@ -190,24 +172,10 @@ protected:
    * apply the constraints instead of projection?
    */
   void set_initial_conditions
-  (std::shared_ptr<Entities::EntityBase<dim>> entity,
+  (std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
    Function<dim>                              &function,
    const TimeDiscretization::VSIMEXMethod     &time_stepping,
    const bool                                 boolean = false);
-
-  /*!
-   * @brief Computes the error of the numerical solution against
-   * the analytical solution.
-   *
-   * @details The error is calculated by subtracting the /f$ L_2/f$
-   * projection of the given function from the solution vector and
-   * computing the absolute value of the residum.
-   *
-   */
-  void compute_error
-  (LinearAlgebra::MPI::Vector                 &error_vector,
-   std::shared_ptr<Entities::EntityBase<dim>> entity,
-   Function<dim>                              &exact_solution);
 
   /*!
    *  @brief Computes the next time step according to the

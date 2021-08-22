@@ -1,10 +1,9 @@
 /*!
- *@file Couette
- *@brief The source file solving the Couette flow problem.
+ * @file Couette
+ *
+ * @brief The source file solving the Couette flow problem.
+ *
  */
-#include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -16,16 +15,178 @@
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 #include <rotatingMHD/convergence_test.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <memory>
 
-namespace RMHD
+namespace Couette
 {
-  using namespace dealii;
+
+using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
 
 /*!
- * @class Couette
+ * @class VelocityExactSolution
+ *
+ * @brief The velocity's exact solution for the Couette flow, where the
+ * displacement of the top plate is driven by a traction vector.
+ *
+ * @details It is given by
+ * \f[ \bs{u} = t_0 \Reynolds \dfrac{y}{H} \bs{e}_\mathrm{x}, \f]
+ * where \f$ t_0 \f$, \f$ \Reynolds \f$, \f$ H \f$, \f$ y \f$ and
+ * \f$ \bs{e}_\mathrm{x} \f$ are the traction vector magnitude, the
+ * Reynolds number, the height of the channel, the \f$ y \f$-component
+ * of the position vector and the unit vector in the \f$ x \f$-direction.
+ *
+ */
+template <int dim>
+class VelocityExactSolution : public Function<dim>
+{
+public:
+  VelocityExactSolution(const double t_0,
+                        const double Re,
+                        const double H = 1.0,
+                        const double time = 0.0);
+
+  virtual void vector_value(
+    const Point<dim>  &p,
+    Vector<double>    &values) const override;
+
+  virtual Tensor<1, dim> gradient(
+    const Point<dim> &point,
+    const unsigned int component) const override;
+
+private:
+  /*!
+   * @brief The magnitude of the applied traction vector.
+   */
+  const double t_0;
+
+  /*!
+   * @brief The Reynolds number.
+   */
+  const double Re;
+
+  /*!
+   * @brief The height of the channel.
+   */
+  const double H;
+};
+
+
+template <int dim>
+VelocityExactSolution<dim>::VelocityExactSolution
+(const double t_0,
+ const double Re,
+ const double H,
+ const double time)
+:
+Function<dim>(dim, time),
+t_0(t_0),
+Re(Re),
+H(H)
+{}
+
+
+
+template <int dim>
+void VelocityExactSolution<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
+{
+  const double y = point(1);
+
+  values[0] = t_0 * Re * y / H;
+  values[1] = 0.0;
+}
+
+
+
+template <int dim>
+Tensor<1, dim> VelocityExactSolution<dim>::gradient
+(const Point<dim>  &/*point*/,
+ const unsigned int component) const
+{
+  Tensor<1, dim>  gradient;
+
+  // The gradient has to match that of dealii, i.e. from the right.
+  if (component == 0)
+  {
+    gradient[0] = 0.0;
+    gradient[1] = t_0 * Re / H;
+  }
+  else if (component == 1)
+  {
+    gradient[0] = 0.0;
+    gradient[1] = 0.0;
+  }
+
+  return gradient;
+}
+
+
+
+/*!
+ * @class TractionVector
+ *
+ * @brief The traction vector applied on the top plate of the Couette flow.
+ *
+ * @details It is given by \f[ \bs{t} = t_0 \bs{e}_\mathrm{x}, \f]
+ * where \f$ t_0 \f$ and \f$ \bs{e}_\mathrm{x} \f$ are the
+ * magnitude of the traction and the unit vector in the \f$ x \f$-direction.
+ *
+ */
+template <int dim>
+class TractionVector : public TensorFunction<1,dim>
+{
+public:
+  TractionVector(const double t_0, const double time = 0.);
+
+  virtual Tensor<1, dim> value(const Point<dim> &point) const override;
+
+private:
+  /*!
+   * @brief The magnitude of the applied traction vector.
+   */
+  const double t_0;
+};
+
+
+
+template <int dim>
+TractionVector<dim>::TractionVector
+(const double t_0,
+ const double time)
+:
+TensorFunction<1, dim>(time),
+t_0(t_0)
+{}
+
+
+
+template <int dim>
+Tensor<1, dim> TractionVector<dim>::value(const Point<dim> &/*point*/) const
+{
+  Tensor<1, dim> traction_vector;
+
+  traction_vector[0] = t_0;
+  traction_vector[1] = 0.0;
+
+  return traction_vector;
+}
+
+
+}  // namespace EquationData
+
+
+/*!
+ * @class CouetteFlowProblem
+ *
  * @brief This class solves the Couette flow problem.
+ *
  * @details The Couette flow was chosen as a test problem to verify the
  * correct implementation of the Neumann boundary conditions in the
  * @ref NavierStokesProjection solver. The problem considers stationary
@@ -49,15 +210,17 @@ namespace RMHD
  * where \f$ \Reynolds \f$ and \f$ H \f$ are the Reynolds
  * number and the height of the channel. The stationary solution is
  * obtained at around \f$ t ~ H^2 \Reynolds \f$.
+ *
  * @note Periodic boundary conditions are implemented in order to
  * simulate an infinitely long channel.
+ *
  */
 template <int dim>
-class Couette : public Problem<dim>
+class CouetteFlowProblem : public Problem<dim>
 {
 public:
 
-  Couette(const RunTimeParameters::ProblemParameters &parameters);
+  CouetteFlowProblem(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 
@@ -65,11 +228,9 @@ private:
 
   const RunTimeParameters::ProblemParameters   &parameters;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
-
-  LinearAlgebra::MPI::Vector                    error;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
@@ -77,10 +238,10 @@ private:
 
   const double                                  t_0;
 
-  std::shared_ptr<EquationData::Couette::VelocityExactSolution<dim>>
+  std::shared_ptr<EquationData::VelocityExactSolution<dim>>
                                                 exact_solution;
 
-  std::shared_ptr<EquationData::Couette::TractionVector<dim>>
+  std::shared_ptr<EquationData::TractionVector<dim>>
                                                 traction_vector;
 
   ConvergenceAnalysisData<dim>                  convergence_table;
@@ -105,14 +266,14 @@ private:
 };
 
 template <int dim>
-Couette<dim>::Couette(const RunTimeParameters::ProblemParameters &parameters)
+CouetteFlowProblem<dim>::CouetteFlowProblem(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velocity,
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
                                                        "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
                                                        "Pressure")),
 time_stepping(parameters.time_discretization_parameters),
@@ -125,12 +286,12 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->computing_timer),
 t_0(1.0),
 exact_solution(
-  std::make_shared<EquationData::Couette::VelocityExactSolution<dim>>(
+  std::make_shared<EquationData::VelocityExactSolution<dim>>(
     t_0,
     parameters.Re,
     1.0)),
 traction_vector(
-  std::make_shared<EquationData::Couette::TractionVector<dim>>(t_0)),
+  std::make_shared<EquationData::TractionVector<dim>>(t_0)),
 convergence_table(velocity, *exact_solution)
 {
   // The Couette flow is a 2-dimensional problem.
@@ -140,7 +301,7 @@ convergence_table(velocity, *exact_solution)
 }
 
 template <int dim>
-void Couette<dim>::
+void CouetteFlowProblem<dim>::
 make_grid(const unsigned int &n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
@@ -175,7 +336,7 @@ make_grid(const unsigned int &n_global_refinements)
 }
 
 template <int dim>
-void Couette<dim>::setup_dofs()
+void CouetteFlowProblem<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
@@ -185,34 +346,36 @@ void Couette<dim>::setup_dofs()
   *this->pcout  << "  Number of active cells                = "
                 << this->triangulation.n_global_active_cells() << std::endl;
   *this->pcout  << "  Number of velocity degrees of freedom = "
-                << velocity->dof_handler->n_dofs()
+                << velocity->n_dofs()
                 << std::endl
                 << "  Number of pressure degrees of freedom = "
-                << pressure->dof_handler->n_dofs()
+                << pressure->n_dofs()
                 << std::endl
                 << "  Number of total degrees of freedom    = "
-                << (pressure->dof_handler->n_dofs() +
-                    velocity->dof_handler->n_dofs())
+                << (pressure->n_dofs() + velocity->n_dofs())
                 << std::endl;
 }
 
 template <int dim>
-void Couette<dim>::setup_constraints()
+void CouetteFlowProblem<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
   velocity->clear_boundary_conditions();
   pressure->clear_boundary_conditions();
 
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
   // The domain represents an infinite channel. In order to obtain the
   // analytical solution, periodic boundary conditions need to be
   // implemented.
-  velocity->boundary_conditions.set_periodic_bcs(0, 1, 0);
-  pressure->boundary_conditions.set_periodic_bcs(0, 1, 0);
+  velocity->set_periodic_boundary_condition(0, 1, 0);
+  pressure->set_periodic_boundary_condition(0, 1, 0);
   // No-slip boundary conditions on the lower plate
-  velocity->boundary_conditions.set_dirichlet_bcs(2);
+  velocity->set_dirichlet_boundary_condition(2);
   // The upper plate is displaced by a traction vector
-  velocity->boundary_conditions.set_neumann_bcs(3, traction_vector);
+  velocity->set_neumann_boundary_condition(3, traction_vector);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -222,7 +385,7 @@ void Couette<dim>::setup_constraints()
 }
 
 template <int dim>
-void Couette<dim>::initialize()
+void CouetteFlowProblem<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -235,12 +398,12 @@ void Couette<dim>::initialize()
 }
 
 template <int dim>
-void Couette<dim>::postprocessing()
+void CouetteFlowProblem<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
   std::cout.precision(1);
-  *this->pcout << time_stepping
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
                << " Norms = ("
                << std::noshowpos << std::scientific
                << navier_stokes.get_diffusion_step_rhs_norm()
@@ -256,16 +419,11 @@ void Couette<dim>::postprocessing()
 }
 
 template <int dim>
-void Couette<dim>::output()
+void CouetteFlowProblem<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
-  this->compute_error(error,
-                      velocity,
-                      *exact_solution);
-
   std::vector<std::string> names(dim, "velocity");
-  std::vector<std::string> error_name(dim, "velocity_error");
 
   std::vector<DataComponentInterpretation::DataComponentInterpretation>
     component_interpretation(
@@ -273,19 +431,15 @@ void Couette<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*(velocity->dof_handler),
-                           error,
-                           error_name,
-                           component_interpretation);
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "pressure");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 
@@ -299,20 +453,19 @@ void Couette<dim>::output()
 }
 
 template <int dim>
-void Couette<dim>::update_entities()
+void CouetteFlowProblem<dim>::update_entities()
 {
   velocity->update_solution_vectors();
   pressure->update_solution_vectors();
 }
 
 template <int dim>
-void Couette<dim>::solve(const unsigned int &level)
+void CouetteFlowProblem<dim>::solve(const unsigned int &level)
 {
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
-  error.reinit(velocity->solution);
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   initialize();
 
   // Outputs the fields at t_0, i.e. the initial conditions.
@@ -365,7 +518,7 @@ void Couette<dim>::solve(const unsigned int &level)
 }
 
 template <int dim>
-void Couette<dim>::run()
+void CouetteFlowProblem<dim>::run()
 {
   // Set ups the initial triangulation
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
@@ -438,24 +591,23 @@ void Couette<dim>::run()
   convergence_table.write_text(tablefilename.str() + "_Velocity");
 }
 
-} // namespace RMHD
+} // namespace Couette
 
 int main(int argc, char *argv[])
 {
   try
   {
-      using namespace dealii;
-      using namespace RMHD;
+    using namespace dealii;
+    using namespace Couette;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 1);
+    Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-      RunTimeParameters::ProblemParameters parameter_set("Couette.prm",
-                                                         true);
+    RunTimeParameters::ProblemParameters parameter_set("Couette.prm",
+                                                       true);
 
-      Couette<2> simulation(parameter_set);
+    CouetteFlowProblem<2> simulation(parameter_set);
 
-      simulation.run();
+    simulation.run();
 
   }
   catch (std::exception &exc)

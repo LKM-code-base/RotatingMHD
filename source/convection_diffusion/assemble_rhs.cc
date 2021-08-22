@@ -8,6 +8,8 @@
 namespace RMHD
 {
 
+using Copy = AssemblyData::HeatEquation::RightHandSide::Copy;
+
 template <int dim>
 void HeatEquation<dim>::assemble_rhs()
 {
@@ -24,49 +26,30 @@ void HeatEquation<dim>::assemble_rhs()
   const FESystem<dim> dummy_fe_system(FE_Nothing<dim>(2), dim);
 
   // Create pointer to the pertinent finite element
-  const FESystem<dim>* const velocity_fe =
-              (velocity != nullptr) ? &velocity->fe : &dummy_fe_system;
-
-  // Set polynomial degree of the velocity. If the velicity is given
-  // by a function the degree is hardcoded to 2.
-  const unsigned int velocity_fe_degree =
-                        (velocity != nullptr) ? velocity->fe_degree : 2;
-
-  // Set polynomial degree of the source function.
-  // Hardcoded to match that of the velocity.
-  const int p_degree_source_function = temperature->fe_degree;
-
-  // Set polynomial degree of the Neumann boundary condition function.
-  // Hardcoded to match that of the velocity.
-  const int p_degree_neumann_function = temperature->fe_degree;
-
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = std::max(temperature->fe_degree + p_degree_source_function,
-                                2 * temperature->fe_degree + velocity_fe_degree - 1);
+  const FiniteElement<dim>* const velocity_fe =
+              (velocity != nullptr) ? &velocity->get_finite_element() : &dummy_fe_system;
 
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
-
-  // Compute the highest polynomial degree from all the boundary integrands
-  const int face_p_degree = temperature->fe_degree + p_degree_neumann_function;
+  const QGauss<dim>   quadrature_formula(temperature->fe_degree() + 1);
 
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim-1>   face_quadrature_formula(std::ceil(0.5 * double(face_p_degree + 1)));
+  const QGauss<dim-1>   face_quadrature_formula(temperature->fe_degree() + 1);
 
-  // Set up the lamba function for the local assembly operation
+  // Set up the lambda function for the local assembly operation
+  using Scratch = typename AssemblyData::HeatEquation::RightHandSide::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator     &cell,
-           AssemblyData::HeatEquation::RightHandSide::Scratch<dim>  &scratch,
-           AssemblyData::HeatEquation::RightHandSide::Copy          &data)
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_rhs(cell,
                                scratch,
                                data);
     };
 
-  // Set up the lamba function for the copy local to global operation
+  // Set up the lambda function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::HeatEquation::RightHandSide::Copy    &data)
+    [this](const Copy &data)
     {
       this->copy_local_to_global_rhs(data);
     };
@@ -75,28 +58,29 @@ void HeatEquation<dim>::assemble_rhs()
   using CellFilter =
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
 
+  const UpdateFlags temperature_update_flags = update_values|
+                                               update_gradients|
+                                               update_quadrature_points|
+                                               update_JxW_values;
+  const UpdateFlags temperature_face_update_flags = update_values|
+                                                    update_quadrature_points|
+                                                    update_JxW_values;
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->begin_active()),
+              temperature->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->end()),
+              temperature->get_dof_handler().end()),
    worker,
    copier,
-   AssemblyData::HeatEquation::RightHandSide::Scratch<dim>(
-    *mapping,
-    quadrature_formula,
-    face_quadrature_formula,
-    temperature->fe,
-    update_JxW_values |
-    update_values|
-    update_gradients|
-    update_quadrature_points,
-    update_JxW_values |
-    update_values |
-    update_quadrature_points,
-    *velocity_fe,
-    update_values),
-   AssemblyData::HeatEquation::RightHandSide::Copy(temperature->fe.dofs_per_cell));
+   Scratch(*mapping,
+           quadrature_formula,
+           face_quadrature_formula,
+           temperature->get_finite_element(),
+           temperature_update_flags,
+           temperature_face_update_flags,
+           *velocity_fe,
+           update_values),
+   Copy(temperature->get_finite_element().dofs_per_cell));
 
   // Compress global data
   rhs.compress(VectorOperation::add);
@@ -113,11 +97,14 @@ void HeatEquation<dim>::assemble_rhs()
 }
 
 template <int dim>
-void HeatEquation<dim>::assemble_local_rhs(
-  const typename DoFHandler<dim>::active_cell_iterator      &cell,
-  AssemblyData::HeatEquation::RightHandSide::Scratch<dim>   &scratch,
-  AssemblyData::HeatEquation::RightHandSide::Copy           &data)
+void HeatEquation<dim>::assemble_local_rhs
+(const typename DoFHandler<dim>::active_cell_iterator     &cell,
+ AssemblyData::HeatEquation::RightHandSide::Scratch<dim>  &scratch,
+ Copy &data)
 {
+  const typename Entities::ScalarBoundaryConditions<dim>::NeumannBCMapping
+  &neumann_bcs = temperature->get_neumann_boundary_conditions();
+
   // Reset local data
   data.local_rhs                          = 0.;
   data.local_matrix_for_inhomogeneous_bc  = 0.;
@@ -198,7 +185,7 @@ void HeatEquation<dim>::assemble_local_rhs(
                     cell->level(),
                     cell->index(),
                     // Pointer to the velocity's DoFHandler
-                    velocity->dof_handler.get());
+                    &velocity->get_dof_handler());
 
     scratch.velocity_fe_values.reinit(velocity_cell);
 
@@ -290,7 +277,7 @@ void HeatEquation<dim>::assemble_local_rhs(
 
       // Loop over the i-th column's rows of the local matrix
       // for the case of inhomogeneous Dirichlet boundary conditions
-      if (temperature->constraints.is_inhomogeneously_constrained(
+      if (temperature->get_constraints().is_inhomogeneously_constrained(
             data.local_dof_indices[i]))
         for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
         {
@@ -325,63 +312,60 @@ void HeatEquation<dim>::assemble_local_rhs(
   } // Loop over quadrature points
 
   // Loop over the faces of the cell
-  if (cell->at_boundary())
-    for (const auto &face : cell->face_iterators())
-      if (face->at_boundary() &&
-          temperature->boundary_conditions.neumann_bcs.find(face->boundary_id())
-          != temperature->boundary_conditions.neumann_bcs.end())
-      {
-        // Neumann boundary condition
-        scratch.temperature_fe_face_values.reinit(cell, face);
-
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-          time_stepping.get_current_time() - time_stepping.get_previous_step_size());
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-          scratch.temperature_fe_face_values.get_quadrature_points(),
-          scratch.old_old_neumann_bc_values);
-
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-          time_stepping.get_current_time() + time_stepping.get_next_step_size());
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-          scratch.temperature_fe_face_values.get_quadrature_points(),
-          scratch.neumann_bc_values);
-
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->set_time(
-          time_stepping.get_current_time());
-        temperature->boundary_conditions.neumann_bcs[face->boundary_id()]->value_list(
-          scratch.temperature_fe_face_values.get_quadrature_points(),
-          scratch.old_neumann_bc_values);
-
-        // Loop over face quadrature points
-        for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
+  if (!neumann_bcs.empty())
+    if (cell->at_boundary())
+      for (const auto &face : cell->face_iterators())
+        if (face->at_boundary() &&
+            neumann_bcs.find(face->boundary_id()) != neumann_bcs.end())
         {
-          // Extract the test function's values at the face quadrature points
-          for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-            scratch.face_phi[i] =
-              scratch.temperature_fe_face_values.shape_value(i,q);
+          // Neumann boundary condition
+          scratch.temperature_fe_face_values.reinit(cell, face);
 
-          // Loop over the degrees of freedom
-          for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
-            data.local_rhs(i) +=
-              scratch.face_phi[i] * (
-                gamma[0] *
-                scratch.neumann_bc_values[q]
-                +
-                gamma[1] *
-                scratch.old_neumann_bc_values[q]
-                +
-                gamma[2] *
-                scratch.old_old_neumann_bc_values[q]) *
-              scratch.temperature_fe_face_values.JxW(q);
-        } // Loop over face quadrature points
-      } // Loop over the faces of the cell
+          const types::boundary_id  boundary_id{face->boundary_id()};
+          const std::vector<Point<dim>> face_quadrature_points{scratch.temperature_fe_face_values.get_quadrature_points()};
+
+          neumann_bcs.at(boundary_id)->set_time(time_stepping.get_previous_time());
+          neumann_bcs.at(boundary_id)->value_list(face_quadrature_points,
+                                                  scratch.old_old_neumann_bc_values);
+
+          neumann_bcs.at(boundary_id)->set_time(time_stepping.get_current_time());
+          neumann_bcs.at(boundary_id)->value_list(face_quadrature_points,
+                                                  scratch.old_neumann_bc_values);
+
+          neumann_bcs.at(boundary_id)->set_time(time_stepping.get_next_time());
+          neumann_bcs.at(boundary_id)->value_list(face_quadrature_points,
+                                                  scratch.neumann_bc_values);
+
+          // Loop over face quadrature points
+          for (unsigned int q = 0; q < scratch.n_face_q_points; ++q)
+          {
+            // Extract the test function's values at the face quadrature points
+            for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+              scratch.face_phi[i] =
+                scratch.temperature_fe_face_values.shape_value(i,q);
+
+            // Loop over the degrees of freedom
+            for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
+              data.local_rhs(i) +=
+                scratch.face_phi[i] * (
+                  gamma[0] *
+                  scratch.neumann_bc_values[q]
+                  +
+                  gamma[1] *
+                  scratch.old_neumann_bc_values[q]
+                  +
+                  gamma[2] *
+                  scratch.old_old_neumann_bc_values[q]) *
+                scratch.temperature_fe_face_values.JxW(q);
+          } // Loop over face quadrature points
+        } // Loop over the faces of the cell
 } // assemble_local_rhs
 
 template <int dim>
 void HeatEquation<dim>::copy_local_to_global_rhs
-(const AssemblyData::HeatEquation::RightHandSide::Copy  &data)
+(const Copy  &data)
 {
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
     data.local_rhs,
     data.local_dof_indices,
     rhs,

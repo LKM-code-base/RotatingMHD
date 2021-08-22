@@ -6,8 +6,7 @@
 #include <deal.II/base/tensor_function.h>
 
 #include <rotatingMHD/assembly_data.h>
-#include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/equation_data.h>
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
@@ -60,7 +59,7 @@ public:
   HeatEquation
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>        external_pcout =
@@ -70,7 +69,7 @@ public:
 
   /*!
    * @brief The constructor of the HeatEquation class for the case
-   * where the velocity field is given by a VectorEntity instance.
+   * where the velocity field is given by a FE_VectorField instance.
    *
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
@@ -78,8 +77,8 @@ public:
   HeatEquation
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
-   std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+   std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
+   std::shared_ptr<Entities::FE_VectorField<dim>>     &velocity,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>        external_pcout =
@@ -97,7 +96,7 @@ public:
   HeatEquation
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
-   std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+   std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
    std::shared_ptr<TensorFunction<1, dim>>          &velocity,
    const std::shared_ptr<Mapping<dim>>              external_mapping =
        std::shared_ptr<Mapping<dim>>(),
@@ -110,7 +109,7 @@ public:
    *  the heat equation problem.
    *
    *  @details Initializes the vector and matrices using the information
-   *  contained in the ScalarEntity and VectorEntity structs passed on
+   *  contained in the FE_ScalarField and FE_VectorField structs passed on
    *  in the constructor (The temperature and the velocity respectively).
    */
   void setup();
@@ -149,7 +148,7 @@ private:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const MPI_Comm                                &mpi_communicator;
+  const MPI_Comm                                 mpi_communicator;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
@@ -174,12 +173,12 @@ private:
   /*!
    * @brief A shared pointer to the entity of the scalar field.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
   /*!
    * @brief A shared pointer to the entity of velocity field.
    */
-  std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<const Entities::FE_VectorField<dim>>  velocity;
 
   /*!
    * @brief A shared pointer to the TensorFunction of the velocity field.

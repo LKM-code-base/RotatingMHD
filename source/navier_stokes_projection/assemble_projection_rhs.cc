@@ -5,6 +5,8 @@
 namespace RMHD
 {
 
+using Copy = AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy;
+
 template <int dim>
 void NavierStokesProjection<dim>::
 assemble_projection_step_rhs()
@@ -18,24 +20,22 @@ assemble_projection_step_rhs()
   projection_step_rhs = 0.;
   correction_step_rhs = 0.;
 
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = velocity->fe_degree + pressure->fe_degree - 1;
-
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(pressure->fe_degree() + 1);
 
-  // Set up the lamba function for the local assembly operation
+  // Set up the lambda function for the local assembly operation
+  using Scratch = typename AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator &cell,
-           AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>    &scratch,
-           AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy            &data)
+           Scratch  &scratch,
+           Copy     &data)
     {
       this->assemble_local_projection_step_rhs(cell,
                                                scratch,
                                                data);
     };
 
-  // Set up the lamba function for the copy local to global operation
+  // Set up the lambda function for the copy local to global operation
   auto copier =
     [this](const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy  &data)
     {
@@ -48,20 +48,18 @@ assemble_projection_step_rhs()
 
   WorkStream::run(
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               (pressure->dof_handler)->begin_active()),
+               pressure->get_dof_handler().begin_active()),
     CellFilter(IteratorFilters::LocallyOwnedCell(),
-               (pressure->dof_handler)->end()),
+               pressure->get_dof_handler().end()),
     worker,
     copier,
-    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>(
-      *mapping,
-      quadrature_formula,
-      velocity->fe,
-      update_gradients,
-      pressure->fe,
-      update_JxW_values |
-      update_values),
-    AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy(pressure->fe.dofs_per_cell));
+    Scratch(*mapping,
+            quadrature_formula,
+            velocity->get_finite_element(),
+            update_gradients,
+            pressure->get_finite_element(),
+            update_values|update_JxW_values),
+    Copy(pressure->get_finite_element().dofs_per_cell));
 
   // Compress global data
   projection_step_rhs.compress(VectorOperation::add);
@@ -82,7 +80,7 @@ template <int dim>
 void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
  AssemblyData::NavierStokesProjection::ProjectionStepRHS::Scratch<dim>  &scratch,
- AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy          &data)
+ Copy &data)
 {
   // Reset local data
   data.local_projection_step_rhs = 0.;
@@ -102,7 +100,7 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
   velocity_cell(&velocity->get_triangulation(),
                  cell->level(),
                  cell->index(),
-                velocity->dof_handler.get());
+                &velocity->get_dof_handler());
 
   scratch.velocity_fe_values.reinit(velocity_cell);
 
@@ -137,16 +135,15 @@ void NavierStokesProjection<dim>::assemble_local_projection_step_rhs
 }
 
 template <int dim>
-void NavierStokesProjection<dim>::
-copy_local_to_global_projection_step_rhs(
-  const AssemblyData::NavierStokesProjection::ProjectionStepRHS::Copy   &data)
+void NavierStokesProjection<dim>::copy_local_to_global_projection_step_rhs
+(const Copy &data)
 {
-  phi->constraints.distribute_local_to_global
+  phi->get_constraints().distribute_local_to_global
   (data.local_projection_step_rhs,
    data.local_dof_indices,
    projection_step_rhs);
 
-  pressure->hanging_nodes.distribute_local_to_global
+  pressure->get_hanging_node_constraints().distribute_local_to_global
   (data.local_correction_step_rhs,
    data.local_dof_indices,
    correction_step_rhs);

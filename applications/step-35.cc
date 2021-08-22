@@ -1,5 +1,4 @@
-#include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/equation_data.h>
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -19,36 +18,110 @@
 #include <memory>
 #include <string>
 
-namespace RMHD
+namespace Step35
 {
 
 using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+template<int dim>
+using VelocityInitialCondition = Functions::ZeroFunction<dim>;
+
+
 
 template <int dim>
-class Step35 : public Problem<dim>
+class VelocityInflowBoundaryCondition : public Function<dim>
 {
 public:
-  Step35(const RunTimeParameters::ProblemParameters &parameters);
+  VelocityInflowBoundaryCondition(const double time = 0);
+
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+};
+
+
+
+template <int dim>
+VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
+(const double time)
+:
+Function<dim>(dim, time)
+{}
+
+
+
+template <int dim>
+void VelocityInflowBoundaryCondition<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
+{
+  const double Um = 1.5;
+  const double H  = 4.1;
+
+  values[0] = 4.0 * Um * point(1) * ( H - point(1) ) / ( H * H );
+  values[1] = 0.0;
+}
+
+
+
+template <int dim>
+class PressureInitialCondition : public Function<dim>
+{
+public:
+  PressureInitialCondition(const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                      const unsigned int component = 0) const override;
+};
+
+
+
+template <int dim>
+PressureInitialCondition<dim>::PressureInitialCondition(const double time)
+:
+Function<dim>(1, time)
+{}
+
+template<int dim>
+double PressureInitialCondition<dim>::value
+(const Point<dim> &p,
+ const unsigned int /* component */) const
+{
+  return (25.0 - p(0)) ;
+}
+
+
+
+}  // namespace EquationData
+
+template <int dim>
+class Step35Problem : public Problem<dim>
+{
+public:
+  Step35Problem(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
 private:
   const RunTimeParameters::ProblemParameters   &parameters;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  std::shared_ptr<EquationData::Step35::VelocityInflowBoundaryCondition<dim>>
+  std::shared_ptr<EquationData::VelocityInflowBoundaryCondition<dim>>
                                                 inflow_boundary_condition;
 
-  std::shared_ptr<EquationData::Step35::VelocityInitialCondition<dim>>
+  std::shared_ptr<EquationData::VelocityInitialCondition<dim>>
                                                 velocity_initial_condition;
 
-  std::shared_ptr<EquationData::Step35::PressureInitialCondition<dim>>
+  std::shared_ptr<EquationData::PressureInitialCondition<dim>>
                                                 pressure_initial_condition;
 
   double                                        cfl_number;
@@ -68,19 +141,17 @@ private:
   void output();
 
   void update_solution_vectors();
-
-  void sample_point_data(const Point<dim> &point) const;
 };
 
 template <int dim>
-Step35<dim>::Step35(const RunTimeParameters::ProblemParameters &parameters)
+Step35Problem<dim>::Step35Problem(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
 parameters(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(parameters.fe_degree_velocity,
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(parameters.fe_degree_velocity,
                                                        this->triangulation,
                                                        "velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(parameters.fe_degree_pressure,
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(parameters.fe_degree_pressure,
                                                        this->triangulation,
                                                        "pressure")),
 time_stepping(parameters.time_discretization_parameters),
@@ -92,20 +163,20 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->pcout,
               this->computing_timer),
 inflow_boundary_condition(
-  std::make_shared<EquationData::Step35::VelocityInflowBoundaryCondition<dim>>(
+  std::make_shared<EquationData::VelocityInflowBoundaryCondition<dim>>(
     parameters.time_discretization_parameters.start_time)),
 velocity_initial_condition(
-  std::make_shared<EquationData::Step35::VelocityInitialCondition<dim>>(dim)),
+  std::make_shared<EquationData::VelocityInitialCondition<dim>>(dim)),
 pressure_initial_condition(
-  std::make_shared<EquationData::Step35::PressureInitialCondition<dim>>()),
+  std::make_shared<EquationData::PressureInitialCondition<dim>>()),
 evaluation_point(2.0, 3.0)
 {
   *this->pcout << parameters << std::endl << std::endl;
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   initialize();
   this->container.add_entity(velocity);
   this->container.add_entity(pressure, false);
@@ -113,7 +184,7 @@ evaluation_point(2.0, 3.0)
 }
 
 template <int dim>
-void Step35<dim>::make_grid(const unsigned int n_global_refinements)
+void Step35Problem<dim>::make_grid(const unsigned int n_global_refinements)
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
@@ -134,7 +205,7 @@ void Step35<dim>::make_grid(const unsigned int n_global_refinements)
 }
 
 template <int dim>
-void Step35<dim>::setup_dofs()
+void Step35Problem<dim>::setup_dofs()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - DoFs");
 
@@ -142,28 +213,33 @@ void Step35<dim>::setup_dofs()
   pressure->setup_dofs();
 
   *(this->pcout) << "Number of velocity degrees of freedom = "
-                 << (velocity->dof_handler)->n_dofs()
+                 << velocity->n_dofs()
                  << std::endl
                  << "Number of pressure degrees of freedom = "
-                 << pressure->dof_handler->n_dofs()
+                 << pressure->n_dofs()
                  << std::endl
                  << "Number of total degrees of freedom    = "
-                 << (pressure->dof_handler->n_dofs() +
-                     velocity->dof_handler->n_dofs())
+                 << (pressure->n_dofs() + velocity->n_dofs())
                  << std::endl << std::endl;
 }
 
 template <int dim>
-void Step35<dim>::setup_constraints()
+void Step35Problem<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.set_dirichlet_bcs(1);
-  velocity->boundary_conditions.set_dirichlet_bcs(2, inflow_boundary_condition);
-  velocity->boundary_conditions.set_dirichlet_bcs(4);
-  velocity->boundary_conditions.set_tangential_flux_bcs(3);
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
 
-  pressure->boundary_conditions.set_dirichlet_bcs(3);
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+
+  velocity->set_dirichlet_boundary_condition(1);
+  velocity->set_dirichlet_boundary_condition(2, inflow_boundary_condition);
+  velocity->set_dirichlet_boundary_condition(4);
+  velocity->set_tangential_component_boundary_condition(3);
+
+  pressure->set_dirichlet_boundary_condition(3);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -174,7 +250,7 @@ void Step35<dim>::setup_constraints()
 }
 
 template <int dim>
-void Step35<dim>::initialize()
+void Step35Problem<dim>::initialize()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Initial conditions");
 
@@ -192,15 +268,40 @@ void Step35<dim>::initialize()
 }
 
 template <int dim>
-void Step35<dim>::postprocessing()
+void Step35Problem<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  sample_point_data(evaluation_point);
+  const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
+  cell_point =
+  GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
+                                           velocity->get_dof_handler(),
+                                           evaluation_point);
+  if (cell_point.first->is_locally_owned())
+  {
+    Vector<double> point_value_velocity(dim);
+    VectorTools::point_value(velocity->get_dof_handler(),
+                             velocity->solution,
+                             evaluation_point,
+                             point_value_velocity);
+
+    const double point_value_pressure
+    = VectorTools::point_value(pressure->get_dof_handler(),
+                               pressure->solution,
+                               evaluation_point);
+
+    *this->pcout << "   Velocity = ("
+                 << std::showpos << std::scientific
+                 << point_value_velocity[0]
+                 << ", "
+                 << point_value_velocity[1]
+                 << ") Pressure = "
+                 << point_value_pressure  << std::noshowpos << std::endl;
+  }
 }
 
 template <int dim>
-void Step35<dim>::output()
+void Step35Problem<dim>::output()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Graphical output");
 
@@ -211,14 +312,14 @@ void Step35<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*velocity->dof_handler,
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*pressure->dof_handler,
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 
@@ -231,16 +332,22 @@ void Step35<dim>::output()
 }
 
 template <int dim>
-void Step35<dim>::update_solution_vectors()
+void Step35Problem<dim>::update_solution_vectors()
 {
   velocity->update_solution_vectors();
   pressure->update_solution_vectors();
 }
 
 template <int dim>
-void Step35<dim>::run()
+void Step35Problem<dim>::run()
 {
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  const unsigned int n_steps = this->parameters.time_discretization_parameters.n_maximum_steps;
+
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+               << std::endl;
+
+  while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -248,8 +355,7 @@ void Step35<dim>::run()
     cfl_number = navier_stokes.get_cfl_number();
 
     // Updates the time step, i.e sets the value of t^{k}
-    time_stepping.set_desired_next_step_size(
-      this->compute_next_time_step(time_stepping, cfl_number));
+    time_stepping.set_desired_next_step_size(this->compute_next_time_step(time_stepping, cfl_number));
 
     // Updates the coefficients to their k-th value
     time_stepping.update_coefficients();
@@ -260,6 +366,8 @@ void Step35<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
 
     // Snapshot stage
     if (time_stepping.get_step_number() %
@@ -282,37 +390,6 @@ void Step35<dim>::run()
 
 }
 
-template <int dim>
-void Step35<dim>::sample_point_data(const Point<dim> &point) const
-{
-  const std::pair<typename DoFHandler<dim>::active_cell_iterator,Point<dim>>
-  cell_point =
-  GridTools::find_active_cell_around_point(StaticMappingQ1<dim, dim>::mapping,
-                                           *velocity->dof_handler,
-                                           point);
-  if (cell_point.first->is_locally_owned())
-  {
-    Vector<double> point_value_velocity(dim);
-    VectorTools::point_value(*velocity->dof_handler,
-                            velocity->solution,
-                            point,
-                            point_value_velocity);
-
-    const double point_value_pressure
-    = VectorTools::point_value(*pressure->dof_handler,
-                              pressure->solution,
-                              point);
-
-    std::cout << time_stepping
-              << " Velocity = ("
-              << std::showpos << std::scientific
-              << point_value_velocity[0]
-              << ", "
-              << point_value_velocity[1]
-              << ") Pressure = "
-              << point_value_pressure  << std::noshowpos << std::endl;
-  }
-}
 } // namespace RMHD
 
 int main(int argc, char *argv[])
@@ -320,14 +397,14 @@ int main(int argc, char *argv[])
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace Step35;
 
       Utilities::MPI::MPI_InitFinalize mpi_initialization(
         argc, argv, 1);
 
       RunTimeParameters::ProblemParameters parameter_set("step-35.prm");
 
-      Step35<2> simulation(parameter_set);
+      Step35Problem<2> simulation(parameter_set);
       simulation.run();
   }
   catch (std::exception &exc)
