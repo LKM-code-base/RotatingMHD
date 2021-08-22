@@ -49,15 +49,19 @@ time_stepping(time_stepping)
 
 template<int dim>
 ProjectionSolverBase<dim>::ProjectionSolverBase(
-  TimeDiscretization::VSIMEXMethod          &time_stepping,
-  const std::shared_ptr<Mapping<dim>>       external_mapping,
-  const std::shared_ptr<ConditionalOStream> external_pcout,
-  const std::shared_ptr<TimerOutput>        external_timer)
+  TimeDiscretization::VSIMEXMethod                &time_stepping,
+  std::shared_ptr<Entities::FE_VectorField<dim>>  &vector,
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  &lagrange_multiplier,
+  const std::shared_ptr<Mapping<dim>>             external_mapping,
+  const std::shared_ptr<ConditionalOStream>       external_pcout,
+  const std::shared_ptr<TimerOutput>              external_timer)
 :
 SolverBase<dim>(time_stepping,
                 external_mapping,
                 external_pcout,
-                external_timer)
+                external_timer),
+vector(vector),
+lagrange_multiplier(lagrange_multiplier)
 {}
 
 } // namespace RMHD

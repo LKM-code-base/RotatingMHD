@@ -1,6 +1,8 @@
 #ifndef INCLUDE_ROTATINGMHD_SOLVER_CLASS_H_
 #define INCLUDE_ROTATINGMHD_SOLVER_CLASS_H_
 
+#include <rotatingMHD/finite_element_field.h>
+#include <rotatingMHD/global.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/conditional_ostream.h>
@@ -186,14 +188,14 @@ public:
  * @param external_timer See the documentation for @ref SolverBase
  */
 ProjectionSolverBase(
-  TimeDiscretization::VSIMEXMethod              &time_stepping,
-  std::shared_ptr<Entities::VectorEntity<dim>>  &vector,
-  std::shared_ptr<Entities::ScalarEntity<dim>>  &lagrange_multiplier,
-  const std::shared_ptr<Mapping<dim>>           external_mapping =
+  TimeDiscretization::VSIMEXMethod                &time_stepping,
+  std::shared_ptr<Entities::FE_VectorField<dim>>  &vector,
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  &lagrange_multiplier,
+  const std::shared_ptr<Mapping<dim>>             external_mapping =
     std::shared_ptr<Mapping<dim>>(),
-  const std::shared_ptr<ConditionalOStream>     external_pcout =
+  const std::shared_ptr<ConditionalOStream>       external_pcout =
     std::shared_ptr<ConditionalOStream>(),
-  const std::shared_ptr<TimerOutput>            external_timer =
+  const std::shared_ptr<TimerOutput>              external_timer =
     std::shared_ptr<TimerOutput>());
 
 
@@ -202,7 +204,7 @@ ProjectionSolverBase(
  * diffusion and projection step.
  *
  */
-std::shared_ptr<Entities::ScalarEntity<dim>>  auxiliary_scalar;
+std::shared_ptr<Entities::FE_ScalarField<dim>>  auxiliary_scalar;
 
 /**
  * @brief Sets the internal supply term shared pointer equal to
@@ -211,7 +213,7 @@ std::shared_ptr<Entities::ScalarEntity<dim>>  auxiliary_scalar;
  * @param supply_term The external supply term pointer.
  */
 void set_supply_term(
-  std::shared_ptr<RMHD::EquationData::VectorFunction<dim>> supply_term);
+  std::shared_ptr<TensorFunction<1, dim>> supply_term);
 
 /**
  * @brief Returns the norm of the right hand side of the diffusion step.
@@ -236,14 +238,14 @@ protected:
  * divergence-free condition is imposed.
  *
  */
-std::shared_ptr<Entities::VectorEntity<dim>>  vector;
+std::shared_ptr<Entities::FE_VectorField<dim>>  vector;
 
 /**
  * @brief A shared pointer to the lagrange multiplier which imposes
  * the divergence-free condition on the @ref vector.
  *
  */
-std::shared_ptr<Entities::ScalarEntity<dim>>  lagrange_multiplier;
+std::shared_ptr<Entities::FE_ScalarField<dim>>  lagrange_multiplier;
 
 /**
  * @brief A shared pointer to the supply term function.
