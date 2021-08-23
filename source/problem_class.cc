@@ -51,6 +51,59 @@ void SolutionTransferContainer<dim>::serialize
 }
 
 
+template<int dim>
+void SolutionTransferContainer<dim>::deserialize
+(Triangulation<dim> &tria,
+ const std::string  &file_name)
+{
+  AssertThrow(&tria == &(*triangulation),
+              ExcMessage("Input triangulation is equal to that of the finite "
+                         "element fields."));
+
+  // Cast pointer
+  parallel::distributed::Triangulation<dim> *dist_triangulation =
+      dynamic_cast<parallel::distributed::Triangulation<dim> *>(&tria);
+
+  AssertThrow(dist_triangulation != nullptr,
+              ExcInternalError());
+
+  try
+  {
+    dist_triangulation->load(file_name);
+  }
+  catch (...)
+  {
+      AssertThrow(false,
+                  ExcMessage("Cannot open snapshot mesh file or read the"
+                             "triangulation stored there."));
+  }
+
+  for (auto &entity: entities)
+  {
+    entity.first->setup_dofs();
+    entity.first->setup_vectors();
+
+    VectorType  distributed_solution(entity.first->distributed_vector);
+    VectorType  distributed_old_solution(entity.first->distributed_vector);
+    VectorType  distributed_old_old_solution(entity.first->distributed_vector);
+
+    DeserializeVectorType x_solution(3);
+    x_solution[0] = &distributed_solution;
+    x_solution[1] = &distributed_old_solution;
+    x_solution[2] = &distributed_old_old_solution;
+
+    SolutionTransferType solution_transfer(entity.first->get_dof_handler());
+
+    solution_transfer.deserialize(x_solution);
+
+    entity.first->solution = distributed_solution;
+    entity.first->old_solution = distributed_old_solution;
+    entity.first->old_old_solution = distributed_old_old_solution;
+  }
+}
+
+
+
 
 template<int dim>
 void SolutionTransferContainer<dim>::add_entity

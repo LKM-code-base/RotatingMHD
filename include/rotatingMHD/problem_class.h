@@ -39,11 +39,17 @@ public:
    */
   using FE_Field = std::pair<Entities::FE_FieldBase<dim>* const, bool>;
 
+  using VectorType = LinearAlgebra::MPI::Vector;
+
   using SolutionTransferType =
   parallel::distributed::SolutionTransfer<dim, LinearAlgebra::MPI::Vector>;
 
   using TransferVectorType =
   std::vector<const LinearAlgebra::MPI::Vector *>;
+
+  using DeserializeVectorType =
+  std::vector<LinearAlgebra::MPI::Vector *>;
+
 
   /*!
    * @brief Default constructor.
@@ -76,6 +82,9 @@ public:
   void add_entity(Entities::FE_FieldBase<dim> &entity, bool flag = true);
 
   void serialize(const std::string &file_name) const;
+
+  void deserialize(Triangulation<dim> &tria,
+                   const std::string  &file_name);
 
   const std::vector<FE_Field>& get_field_collection() const;
 
