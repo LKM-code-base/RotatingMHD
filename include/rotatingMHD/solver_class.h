@@ -16,8 +16,12 @@ namespace RMHD
 
 
 
-using namespace dealii;
+namespace Solvers
+{
 
+
+
+using namespace dealii;
 
 
 
@@ -43,7 +47,7 @@ public:
  *    Mapping class, which is copied in an internal member.
  *    If no pointer is passed on to the constructor, a
  *    first order instance of the MappingQ class is created.
- * @param external_pcout A shared pointer to an instance of the
+* @param external_pcout A shared pointer to an instance of the
  *    ConditionalOStream class, which is copied in an internal member.
  *    If no pointer is passed on to the constructor, an instance is
  *    created, which outputs its calls to the zeroth process.
@@ -189,8 +193,6 @@ public:
  */
 ProjectionSolverBase(
   TimeDiscretization::VSIMEXMethod                &time_stepping,
-  std::shared_ptr<Entities::FE_VectorField<dim>>  &vector,
-  std::shared_ptr<Entities::FE_ScalarField<dim>>  &lagrange_multiplier,
   const std::shared_ptr<Mapping<dim>>             external_mapping =
     std::shared_ptr<Mapping<dim>>(),
   const std::shared_ptr<ConditionalOStream>       external_pcout =
@@ -234,24 +236,25 @@ double get_projection_step_rhs_norm() const;
 protected:
 
 /**
- * @brief A shared pointer to the vector field on which the
- * divergence-free condition is imposed.
- *
- */
-std::shared_ptr<Entities::FE_VectorField<dim>>  vector;
-
-/**
- * @brief A shared pointer to the lagrange multiplier which imposes
- * the divergence-free condition on the @ref vector.
- *
- */
-std::shared_ptr<Entities::FE_ScalarField<dim>>  lagrange_multiplier;
-
-/**
  * @brief A shared pointer to the supply term function.
  *
  */
-std::shared_ptr<TensorFunction<1, dim>>       supply_term;
+std::shared_ptr<TensorFunction<1, dim>>         supply_term;
+
+
+/**
+  * @brief A vector containing the \f$ \alpha_0 \f$ of the previous
+  * time steps.
+  */
+std::array<double, 2> previous_alpha_zeros  = {1.0, 1.0};
+
+/**
+  * @brief A vector containing the sizes of the previous time steps.
+  * @details The DiscreteTime class stores only the previous time step.
+  * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
+  * is the order of the scheme.
+  */
+std::array<double, 2> previous_step_sizes   = {0.0, 0.0};
 
 /**
  * @brief The system matrix of the diffusion step.
@@ -316,13 +319,7 @@ LinearAlgebra::MPI::Vector        diffusion_step_rhs;
  * scheme step.
  *
  */
-double                            norm_diffusion_rhs;
-
-/**
- * @brief The preconditioner of the diffusion step.
- *
- */
-std::shared_ptr<LinearAlgebra::PreconditionBase> diffusion_step_preconditioner;
+double                            norm_diffusion_step_rhs;
 
 /**
  * @brief The system matrix of the projection step.
@@ -349,7 +346,14 @@ LinearAlgebra::MPI::Vector        projection_step_rhs;
  * scheme step.
  *
  */
-double                            norm_projection_rhs;
+double                            norm_projection_step_rhs;
+
+/**
+ * @brief The preconditioner of the diffusion step.
+ *
+ */
+std::shared_ptr<LinearAlgebra::PreconditionBase> diffusion_step_preconditioner;
+
 
 /**
  * @brief The preconditioner of the projection step
@@ -357,13 +361,43 @@ double                            norm_projection_rhs;
  */
 std::shared_ptr<LinearAlgebra::PreconditionBase> projection_step_preconditioner;
 
-/**
-  * @brief Assemble the matrices which change only if the triangulation is
-  * refined or coarsened.
+/*!
+  * @brief A flag indicating if the auxiliary scalar field  \f$ \phi\f$
+  * is to be initiated.
+  * @details The initiation is done by the @ref setup_phi method.
   */
-void assemble_constant_matrices();
+bool                                  flag_setup_auxiliary_scalar;
 
+/**
+  * @brief A method initiating the auxiliary scalar field  \f$ \phi\f$.
+  * @details Extracts its locally owned and relevant degrees of freedom;
+  * sets its boundary conditions and applies them to its AffineConstraints
+  * instance.
+  */
+virtual void setup_auxiliary_scalar() = 0;
 };
+
+
+
+// inline functions
+template <int dim>
+inline double ProjectionSolverBase<dim>::get_diffusion_step_rhs_norm() const
+{
+  return (norm_diffusion_step_rhs);
+}
+
+
+
+// inline functions
+template <int dim>
+inline double ProjectionSolverBase<dim>::get_projection_step_rhs_norm() const
+{
+  return (norm_projection_step_rhs);
+}
+
+
+
+} // namespace Solvers
 
 
 

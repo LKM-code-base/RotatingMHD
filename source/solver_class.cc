@@ -7,6 +7,11 @@ namespace RMHD
 
 
 
+namespace Solvers
+{
+
+
+
 using namespace dealii;
 
 
@@ -19,7 +24,8 @@ SolverBase<dim>::SolverBase(
   const std::shared_ptr<TimerOutput>        external_timer)
 :
 mpi_communicator(MPI_COMM_WORLD),
-time_stepping(time_stepping)
+time_stepping(time_stepping),
+flag_matrices_were_updated(true)
 {
   // Initiating the internal Mapping instance.
   if (external_mapping.get() != nullptr)
@@ -50,8 +56,6 @@ time_stepping(time_stepping)
 template<int dim>
 ProjectionSolverBase<dim>::ProjectionSolverBase(
   TimeDiscretization::VSIMEXMethod                &time_stepping,
-  std::shared_ptr<Entities::FE_VectorField<dim>>  &vector,
-  std::shared_ptr<Entities::FE_ScalarField<dim>>  &lagrange_multiplier,
   const std::shared_ptr<Mapping<dim>>             external_mapping,
   const std::shared_ptr<ConditionalOStream>       external_pcout,
   const std::shared_ptr<TimerOutput>              external_timer)
@@ -60,16 +64,35 @@ SolverBase<dim>(time_stepping,
                 external_mapping,
                 external_pcout,
                 external_timer),
-vector(vector),
-lagrange_multiplier(lagrange_multiplier)
-{}
+norm_diffusion_step_rhs(std::numeric_limits<double>::min()),
+norm_projection_step_rhs(std::numeric_limits<double>::min()),
+flag_setup_auxiliary_scalar(true)
+{
+  // Explicitly set the supply term's pointer to null
+  supply_term = nullptr;
+}
+
+
+
+template <int dim>
+void ProjectionSolverBase<dim>::set_supply_term(
+  std::shared_ptr<TensorFunction<1, dim>> supply_term)
+{
+  this->supply_term = supply_term;
+}
+
+
+
+} // namespace Solvers
+
+
 
 } // namespace RMHD
 
 
 
-template struct RMHD::SolverBase<2>;
-template struct RMHD::SolverBase<3>;
+template struct RMHD::Solvers::SolverBase<2>;
+template struct RMHD::Solvers::SolverBase<3>;
 
-template struct RMHD::ProjectionSolverBase<2>;
-template struct RMHD::ProjectionSolverBase<3>;
+template struct RMHD::Solvers::ProjectionSolverBase<2>;
+template struct RMHD::Solvers::ProjectionSolverBase<3>;
