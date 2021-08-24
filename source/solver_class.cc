@@ -64,21 +64,21 @@ SolverBase<dim>(time_stepping,
                 external_mapping,
                 external_pcout,
                 external_timer),
-norm_diffusion_step_rhs(std::numeric_limits<double>::min()),
-norm_projection_step_rhs(std::numeric_limits<double>::min()),
+norm_diffusion_step_rhs(std::numeric_limits<double>::lowest()),
+norm_projection_step_rhs(std::numeric_limits<double>::lowest()),
 flag_setup_auxiliary_scalar(true)
 {
   // Explicitly set the supply term's pointer to null
-  supply_term = nullptr;
+  ptr_supply_term = nullptr;
 }
 
 
 
 template <int dim>
 void ProjectionSolverBase<dim>::set_supply_term(
-  std::shared_ptr<TensorFunction<1, dim>> supply_term)
+  TensorFunction<1, dim> &supply_term)
 {
-  this->supply_term = supply_term;
+  ptr_supply_term = &supply_term;
 }
 
 
