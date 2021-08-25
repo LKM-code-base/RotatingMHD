@@ -8,6 +8,14 @@
 #include <deal.II/fe/fe_values.h>
 #include <deal.II/lac/vector.h>
 
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/serialization/binary_object.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/vector.hpp>
+
 #include <iomanip>
 #include <functional>
 #include <fstream>
@@ -377,6 +385,12 @@ std::string VSIMEXMethod::get_name() const
   return (name);
 }
 
+VSIMEXMethod::VSIMEXMethod()
+:
+DiscreteTime(),
+type(VSIMEXScheme::BDF2)
+{}
+
 VSIMEXMethod::VSIMEXMethod(const TimeDiscretizationParameters &params)
 :
 DiscreteTime(params.start_time,
@@ -617,6 +631,21 @@ void VSIMEXMethod::extrapolate_list
                                          old_old_values[i]);
 }
 
+template<typename Archive>
+void VSIMEXMethod::serialize(Archive &ar, const unsigned int /* version */)
+{
+  ar & boost::serialization::base_object<DiscreteTime>(*this);
+  ar & boost::serialization::make_binary_object(&type, sizeof(type));
+  ar & vsimex_parameters;
+  ar & alpha;
+  ar & beta;
+  ar & gamma;
+  ar & eta;
+  ar & omega;
+  ar & minimum_step_size;
+  ar & maximum_step_size;
+}
+
 } // namespace TimeDiscretiation
 
 } // namespace RMHD
@@ -661,3 +690,13 @@ template void RMHD::TimeDiscretization::VSIMEXMethod::extrapolate
 (const Tensor<2,3> &,
  const Tensor<2,3> &,
  Tensor<2,3> &) const;
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::serialize
+(boost::archive::binary_oarchive &, const unsigned int);
+template void RMHD::TimeDiscretization::VSIMEXMethod::serialize
+(boost::archive::binary_iarchive &, const unsigned int);
+
+template void RMHD::TimeDiscretization::VSIMEXMethod::serialize
+(boost::archive::text_oarchive &, const unsigned int);
+template void RMHD::TimeDiscretization::VSIMEXMethod::serialize
+(boost::archive::text_iarchive &, const unsigned int);
