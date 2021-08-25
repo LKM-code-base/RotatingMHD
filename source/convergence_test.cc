@@ -273,7 +273,7 @@ void ConvergenceResults::update
   }
   if (h_max < std::numeric_limits<double>::max())
   {
-    table.add_value("cell diameter", h_max);
+    table.add_value("h", h_max);
     h_max_specified = true;
   }
   if (time_step > std::numeric_limits<double>::lowest())
@@ -331,8 +331,8 @@ void ConvergenceResults::format_columns()
   }
   if (h_max_specified)
   {
-    table.set_scientific("cell diameter", true);
-    table.set_precision("cell diameter", 2);
+    table.set_scientific("h", true);
+    table.set_precision("h", 2);
   }
   if (L2_error_specified)
   {
@@ -357,7 +357,7 @@ void ConvergenceResults::format_columns()
   switch (type)
   {
     case Type::spatial:
-      column.assign("cell diameter");
+      column.assign("h");
       evaluate_convergence = true;
       break;
     case Type::temporal:
@@ -376,18 +376,21 @@ void ConvergenceResults::format_columns()
 
   if (evaluate_convergence)
 	{
-    table.omit_column_from_convergence_rate_evaluation("level");
-
-    if (n_dofs_specified)
-      table.omit_column_from_convergence_rate_evaluation("dofs");
-    if (n_cells_specified)
-      table.omit_column_from_convergence_rate_evaluation("cells");
-    if (n_levels_specified)
-      table.omit_column_from_convergence_rate_evaluation("refinements");
-    table.omit_column_from_convergence_rate_evaluation("time step");
-    table.omit_column_from_convergence_rate_evaluation("cell diameter");
-    table.evaluate_all_convergence_rates(column,
-                                         ConvergenceTable::reduction_rate_log2);
+    if (L2_error_specified)
+      table.evaluate_convergence_rates("L2",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       1);
+    if (Linfty_error_specified)
+      table.evaluate_convergence_rates("Linfty",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       1);
+    if (H1_error_specified)
+      table.evaluate_convergence_rates("H1",
+                                       column,
+                                       ConvergenceTable::reduction_rate_log2,
+                                       1);
 	}
 }
 
