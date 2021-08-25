@@ -384,13 +384,10 @@ void ConvergenceResults::format_columns()
       table.omit_column_from_convergence_rate_evaluation("cells");
     if (n_levels_specified)
       table.omit_column_from_convergence_rate_evaluation("refinements");
-
-    if (column == "cell diameter" && time_step_specified)
-      table.omit_column_from_convergence_rate_evaluation("time step");
-    else if (column == "time step" && h_max_specified)
-      table.omit_column_from_convergence_rate_evaluation("cell diameter");
-
-    table.evaluate_all_convergence_rates(column, ConvergenceTable::reduction_rate_log2);
+    table.omit_column_from_convergence_rate_evaluation("time step");
+    table.omit_column_from_convergence_rate_evaluation("cell diameter");
+    table.evaluate_all_convergence_rates(column,
+                                         ConvergenceTable::reduction_rate_log2);
 	}
 }
 

@@ -740,9 +740,15 @@ void GuermondNeumannProblem<dim>::run()
     }
   }
 
+  *this->pcout << "Velocity convergence table" << std::endl;
+  *this->pcout << std::string("=", 80) << std::endl;
   *this->pcout << velocity_convergence_table << std::endl;
   *this->pcout << std::endl;
+
+  *this->pcout << "Pressure convergence table" << std::endl;
+  *this->pcout << std::string("=", 80) << std::endl;
   *this->pcout << pressure_convergence_table << std::endl;
+  *this->pcout << std::endl;
 }
 
 } // namespace GuermondNeumannBC

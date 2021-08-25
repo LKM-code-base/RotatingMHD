@@ -18,6 +18,7 @@
 #include <deal.II/numerics/data_out.h>
 
 #include <filesystem>
+#include <iomanip>
 #include <string>
 #include <sstream>
 #include <memory>
@@ -710,9 +711,15 @@ void TGVProblem<dim>::run()
     }
   }
 
+  *this->pcout << "Velocity convergence table" << std::endl;
+  *this->pcout << std::string("=", 80) << std::endl;
   *this->pcout << velocity_convergence_table << std::endl;
   *this->pcout << std::endl;
+
+  *this->pcout << "Pressure convergence table" << std::endl;
+  *this->pcout << std::string("=", 80) << std::endl;
   *this->pcout << pressure_convergence_table << std::endl;
+  *this->pcout << std::endl;
 }
 
 } // namespace TGV
