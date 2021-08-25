@@ -1,43 +1,54 @@
-#include <deal.II/base/mpi.h>
-
 #include <rotatingMHD/discrete_time.h>
 
 #include <iostream>
+#include <sstream>
 
-namespace RMHD
-{
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 
-namespace TimeDiscretization
+void test()
 {
+  std::stringstream ss;
 
-void discrete_time_test()
-{
-  DiscreteTime timestepping(0.0, 1.0);
-  std::cout << timestepping << std::endl;
-  while (!timestepping.is_at_end())
+  using namespace RMHD::TimeDiscretization;
   {
-    timestepping.set_desired_next_step_size(0.1);
-    timestepping.advance_time();
+    DiscreteTime timestepping(0.0, 1.0);
     std::cout << timestepping << std::endl;
+    while (!timestepping.is_at_end())
+    {
+      timestepping.set_desired_next_step_size(0.1);
+      timestepping.advance_time();
+      std::cout << timestepping << std::endl;
+    }
+
+    boost::archive::text_oarchive oa{ss};
+    oa << timestepping;
+  }
+  {
+    // deserialize
+    boost::archive::text_iarchive ia{ss};
+    DiscreteTime  timestepping;
+    ia >> timestepping;
+    std::cout << timestepping << std::endl;
+
+    timestepping.set_end_time(2.0);
+    while (!timestepping.is_at_end())
+    {
+      timestepping.set_desired_next_step_size(0.1);
+      timestepping.advance_time();
+      std::cout << timestepping << std::endl;
+    }
   }
   return;
 }
 
-}  // namespace TimeDiscretization
 
-}  // namespace RMHD
 
-int
-main(int argc, char ** argv)
+int main(void)
 {
   try
   {
-    dealii::Utilities::MPI::MPI_InitFinalize mpi(argc, argv, 1);
-
-    dealii::deallog.depth_console(0);
-
-    RMHD::TimeDiscretization::discrete_time_test();
-
+    test();
 
   }
   catch(std::exception & exc)
