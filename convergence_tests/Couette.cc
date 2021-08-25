@@ -664,9 +664,9 @@ void CouetteFlowProblem<dim>::run()
   }
 
   *this->pcout << "Velocity convergence table" << std::endl;
-  *this->pcout << std::string("=", 80) << std::endl;
+  *this->pcout << std::string(80, '=') << std::endl;
   *this->pcout << velocity_convergence_table << std::endl;
-  *this->pcout << std::endl;
+
 }
 
 } // namespace Couette
@@ -680,8 +680,13 @@ int main(int argc, char *argv[])
 
     Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-    RunTimeParameters::ProblemParameters parameter_set("Couette.prm",
-                                                       true);
+    std::string parameter_filename;
+    if (argc >= 2)
+      parameter_filename = argv[1];
+    else
+      parameter_filename = "Guermond.prm";
+
+    RunTimeParameters::ProblemParameters parameter_set(parameter_filename, true);
 
     CouetteFlowProblem<2> simulation(parameter_set);
 

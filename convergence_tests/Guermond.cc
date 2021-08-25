@@ -743,12 +743,12 @@ void GuermondProblem<dim>::run()
   }
 
   *this->pcout << "Velocity convergence table" << std::endl;
-  *this->pcout << std::string("=", 80) << std::endl;
+  *this->pcout << std::string(80, '=') << std::endl;
   *this->pcout << velocity_convergence_table << std::endl;
   *this->pcout << std::endl;
 
   *this->pcout << "Pressure convergence table" << std::endl;
-  *this->pcout << std::string("=", 80) << std::endl;
+  *this->pcout << std::string(80, '=') << std::endl;
   *this->pcout << pressure_convergence_table << std::endl;
   *this->pcout << std::endl;
 }
@@ -762,11 +762,15 @@ int main(int argc, char *argv[])
       using namespace dealii;
       using namespace Guermond;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 1);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-      RunTimeParameters::ProblemParameters parameter_set("Guermond.prm",
-                                                         true);
+      std::string parameter_filename;
+      if (argc >= 2)
+        parameter_filename = argv[1];
+      else
+        parameter_filename = "Guermond.prm";
+
+      RunTimeParameters::ProblemParameters parameter_set(parameter_filename, true);
 
       GuermondProblem<2> simulation(parameter_set);
 
