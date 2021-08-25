@@ -195,9 +195,12 @@ void FE_FieldBase<dim, VectorType>::close_boundary_conditions(const bool print_s
   if (!print_summary)
     return;
 
-  if (dynamic_cast<const parallel::distributed::Triangulation<dim> *>(&triangulation))
+  const parallel::TriangulationBase<dim> *tria_ptr =
+      dynamic_cast<const parallel::TriangulationBase<dim> *>(&triangulation);
+
+  if (tria_ptr != nullptr)
   {
-    if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+    if (Utilities::MPI::this_mpi_process(tria_ptr->get_communicator()) == 0)
       boundary_conditions->print_summary(std::cout, this->name);
   }
   else
@@ -213,11 +216,14 @@ void FE_FieldBase<dim, VectorType>::send_point_data
  const Point<dim>  &point,
  const bool         point_found) const
 {
-  if (!dynamic_cast<const parallel::distributed::Triangulation<dim> *>(&triangulation))
+  const parallel::TriangulationBase<dim> *tria_ptr =
+      dynamic_cast<const parallel::TriangulationBase<dim> *>(&triangulation);
+
+  if (tria_ptr == nullptr)
     return;
 
   // ensure that at least one processor found things
-  const MPI_Comm  mpi_communicator(MPI_COMM_WORLD);
+  const MPI_Comm &mpi_communicator(tria_ptr->get_communicator());
   const int n_procs = Utilities::MPI::sum(point_found ? 1 : 0, mpi_communicator);
   AssertThrow(n_procs > 0,
               ExcMessage("While trying to evaluate the solution at point " +
@@ -250,10 +256,14 @@ void FE_FieldBase<dim, VectorType>::send_point_data_vector
  const Point<dim>  &point,
  const bool         point_found) const
 {
-  if (!dynamic_cast<const parallel::distributed::Triangulation<dim> *>(&triangulation))
+  const parallel::TriangulationBase<dim> *tria_ptr =
+      dynamic_cast<const parallel::TriangulationBase<dim> *>(&triangulation);
+
+  if (tria_ptr == nullptr)
     return;
+
   // ensure that at least one processor found things
-  const MPI_Comm  mpi_communicator(MPI_COMM_WORLD);
+  const MPI_Comm &mpi_communicator(tria_ptr->get_communicator());
   const int n_procs = Utilities::MPI::sum(point_found ? 1 : 0, mpi_communicator);
   AssertThrow(n_procs > 0,
               ExcMessage("While trying to evaluate the solution at point " +
@@ -351,8 +361,10 @@ void FE_FieldBase<dim, VectorType>::setup_vectors()
 {
   Assert(!flag_setup_dofs, ExcMessage("Setup dofs was not called."));
 
-  const MPI_Comm  mpi_communicator(MPI_COMM_WORLD);
+  const parallel::TriangulationBase<dim> *tria_ptr =
+      dynamic_cast<const parallel::TriangulationBase<dim> *>(&triangulation);
 
+  const MPI_Comm &mpi_communicator(tria_ptr->get_communicator());
   #ifdef USE_PETSC_LA
     solution.reinit(locally_owned_dofs,
                     locally_relevant_dofs,
@@ -867,11 +879,19 @@ void FE_ScalarField<dim, VectorType>::apply_boundary_conditions(const bool check
     // Chooses the degree of freedom with the smallest index. If no
     // admissible degree of freedom was found in a given processor, its
     // value is set the number of degree of freedom
-    const MPI_Comm  mpi_communicator(MPI_COMM_WORLD);
-    const types::global_dof_index global_idx =
-        Utilities::MPI::min((local_idx != numbers::invalid_dof_index)?
-                            local_idx: this->dof_handler->n_dofs(),
-                            mpi_communicator);
+    types::global_dof_index global_idx;
+
+    // ensure that at least one processor found things
+    const parallel::TriangulationBase<dim> *tria_ptr =
+        dynamic_cast<const parallel::TriangulationBase<dim> *>(&this->triangulation);
+    if (tria_ptr != nullptr)
+    {
+      global_idx =
+          Utilities::MPI::min((local_idx != numbers::invalid_dof_index)? local_idx: this->dof_handler->n_dofs(),
+                              tria_ptr->get_communicator());
+    }
+    else
+      global_idx = local_idx;
 
     // Checks that an admissable degree of freedom was found
     AssertThrow(global_idx < this->dof_handler->n_dofs(),
@@ -942,27 +962,32 @@ FE_ScalarField<dim, VectorType>::point_value
   }
 
   // ensure that at least one processor found things
-  const MPI_Comm  mpi_communicator(MPI_COMM_WORLD);
-  const int n_procs = Utilities::MPI::sum(point_found ? 1 : 0, mpi_communicator);
-  AssertThrow(n_procs > 0,
-              ExcMessage("While trying to evaluate the solution at point " +
-                         Utilities::to_string(point[0]) + ", " +
-                         Utilities::to_string(point[1]) +
-                         (dim == 3 ?
-                             ", " + Utilities::to_string(point[2]) :
-                             "") +
-                         "), " +
-                         "no processors reported that the point lies inside the " +
-                         "set of cells they own. Are you trying to evaluate the " +
-                         "solution at a point that lies outside of the domain?"));
+  const parallel::TriangulationBase<dim> *tria_ptr =
+      dynamic_cast<const parallel::TriangulationBase<dim> *>(&this->triangulation);
+  if (tria_ptr != nullptr)
+  {
+    const MPI_Comm  &mpi_communicator(tria_ptr->get_communicator());
+    const int n_procs = Utilities::MPI::sum(point_found ? 1 : 0, mpi_communicator);
+    AssertThrow(n_procs > 0,
+                ExcMessage("While trying to evaluate the solution at point " +
+                           Utilities::to_string(point[0]) + ", " +
+                           Utilities::to_string(point[1]) +
+                           (dim == 3 ?
+                               ", " + Utilities::to_string(point[2]) :
+                               "") +
+                           "), " +
+                           "no processors reported that the point lies inside the " +
+                           "set of cells they own. Are you trying to evaluate the " +
+                           "solution at a point that lies outside of the domain?"));
 
-  // Reduce all collected values into local Vector
-  point_value = Utilities::MPI::sum(point_value,
-                                    mpi_communicator);
+    // Reduce all collected values into local Vector
+    point_value = Utilities::MPI::sum(point_value,
+                                      mpi_communicator);
 
-  // Normalize in cases where points are claimed by multiple processors
-  if (n_procs > 1)
-    point_value /= n_procs;
+    // Normalize in cases where points are claimed by multiple processors
+    if (n_procs > 1)
+      point_value /= n_procs;
+  }
 
   return (point_value);
 }
