@@ -5,11 +5,13 @@
 #include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/vector_tools.h>
 
-namespace RMHD
-{
+using namespace dealii;
+using namespace RMHD;
+
+// Testing methods inside namespace VectorTools in serial
 
 template<int dim>
-void vector_tools_scalar_field()
+void test_vector_field()
 {
   Triangulation<dim>            tria;
   Entities::FE_VectorField<dim, Vector<double>> field_01(1, tria, "Vector Field 01");
@@ -37,30 +39,30 @@ void vector_tools_scalar_field()
   field_01.close_boundary_conditions(false);
   field_01.apply_boundary_conditions(false);
 
-  VectorTools::project(field_01,
-                       *function_shared_ptr,
-                       field_01.solution);
-  VectorTools::interpolate(field_01,
-                           *function_shared_ptr,
-                           field_01.old_solution);
+  RMHD::VectorTools::project(field_01,
+                             *function_shared_ptr,
+                             field_01.solution);
+  RMHD::VectorTools::interpolate(field_01,
+                                 *function_shared_ptr,
+                                 field_01.old_solution);
 
   field_01.distributed_vector = field_01.solution;
   field_01.distributed_vector -= field_01.old_solution;
 
   std::cout << "Vector difference: " << field_01.distributed_vector.l2_norm() << std::endl;
 
-  const std::map<VectorTools::NormType, double> errors =
-      VectorTools::compute_error(field_01, *function_shared_ptr);
+  const std::map<RMHD::VectorTools::NormType, double> errors =
+      RMHD::VectorTools::compute_error(field_01, *function_shared_ptr);
 
-  std::cout << "L2 error: " << errors.at(VectorTools::NormType::L2_norm) << std::endl;
-  std::cout << "H1 error: " << errors.at(VectorTools::NormType::H1_norm) << std::endl;
-  std::cout << "Linfty error: " << errors.at(VectorTools::NormType::Linfty_norm) << std::endl;
+  std::cout << "L2 error: " << errors.at(RMHD::VectorTools::NormType::L2_norm) << std::endl;
+  std::cout << "H1 error: " << errors.at(RMHD::VectorTools::NormType::H1_norm) << std::endl;
+  std::cout << "Linfty error: " << errors.at(RMHD::VectorTools::NormType::Linfty_norm) << std::endl;
 }
 
 
 
 template<int dim>
-void vector_tools_vector_field()
+void test_scalar_field()
 {
   Triangulation<dim>            tria;
   Entities::FE_ScalarField<dim, Vector<double>> field_01(1, tria, "Scalar Field 01");
@@ -88,29 +90,27 @@ void vector_tools_vector_field()
   field_01.close_boundary_conditions(false);
   field_01.apply_boundary_conditions(false);
 
-  VectorTools::project(field_01,
-                       *function_shared_ptr,
-                       field_01.solution);
-  VectorTools::interpolate(field_01,
-                           *function_shared_ptr,
-                           field_01.old_solution);
+  RMHD::VectorTools::project(field_01,
+                             *function_shared_ptr,
+                             field_01.solution);
+  RMHD::VectorTools::interpolate(field_01,
+                                 *function_shared_ptr,
+                                 field_01.old_solution);
 
   field_01.distributed_vector = field_01.solution;
   field_01.distributed_vector -= field_01.old_solution;
 
   std::cout << "Vector difference: " << field_01.distributed_vector.l2_norm() << std::endl;
 
-  const std::map<VectorTools::NormType, double> errors =
-      VectorTools::compute_error(field_01, *function_shared_ptr);
+  const std::map<RMHD::VectorTools::NormType, double> errors =
+      RMHD::VectorTools::compute_error(field_01, *function_shared_ptr);
 
-  std::cout << "L2 error: " << errors.at(VectorTools::NormType::L2_norm) << std::endl;
-  std::cout << "H1 error: " << errors.at(VectorTools::NormType::H1_norm) << std::endl;
-  std::cout << "Linfty error: " << errors.at(VectorTools::NormType::Linfty_norm) << std::endl;
+  std::cout << "L2 error: " << errors.at(RMHD::VectorTools::NormType::L2_norm) << std::endl;
+  std::cout << "H1 error: " << errors.at(RMHD::VectorTools::NormType::H1_norm) << std::endl;
+  std::cout << "Linfty error: " << errors.at(RMHD::VectorTools::NormType::Linfty_norm) << std::endl;
 }
 
 
-
-}  // namespace RMHD
 
 int main(void)
 {
@@ -118,11 +118,11 @@ int main(void)
   {
     dealii::deallog.depth_console(0);
 
-    RMHD::vector_tools_scalar_field<2>();
-    RMHD::vector_tools_scalar_field<3>();
+    test_scalar_field<2>();
+    test_scalar_field<3>();
 
-    RMHD::vector_tools_vector_field<2>();
-    RMHD::vector_tools_vector_field<3>();
+    test_vector_field<2>();
+    test_vector_field<3>();
 
   }
   catch(std::exception & exc)
