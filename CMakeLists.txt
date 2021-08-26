@@ -78,7 +78,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/include)
 ADD_SUBDIRECTORY(source)
 ADD_SUBDIRECTORY(applications)
 ADD_SUBDIRECTORY(convergence_tests)
-# ADD_SUBDIRECTORY(tests/rotatingMHD)
+ADD_SUBDIRECTORY(tests/rotatingMHD)
 ADD_SUBDIRECTORY(tests/applications/)
 ADD_SUBDIRECTORY(tests/convergence_tests/)
 
