@@ -14,8 +14,8 @@ namespace
 template <int dim>
 void compute_body_force
 (TensorFunction<1, dim>* const  ptr,
- const std::vector<double>     &gamma,
  const std::vector<Point<dim>> &quadrature_points,
+ const std::vector<double>     &gamma,
  const double                   previous_time,
  const double                   current_time,
  const double                   next_time,
@@ -50,11 +50,11 @@ void compute_body_force
 
 template <int dim>
 void compute_buoyancy_term
-(const Entities::FE_ScalarField<dim> &temperature,
+(const TensorFunction<1, dim>* const  ptr,
+ const Entities::FE_ScalarField<dim> &temperature,
  const typename DoFHandler<dim>::active_cell_iterator &cell,
  const std::vector<Point<dim>>       &quadrature_points,
  const std::vector<double>           &eta,
- const TensorFunction<1, dim>* const  ptr,
  const double                         coefficient,
  FEValues<dim>                       &fe_values,
  std::vector<Tensor<1,dim>>          &buoyancy_term)
@@ -91,12 +91,14 @@ void compute_buoyancy_term
        eta[1] * old_old_temperature_values[q]);
 }
 
+
+
 template <int dim>
 void compute_coriolis_acceleration_term
 (AngularVelocity<dim>* const    ptr,
- const std::vector<double>     &eta,
  const std::vector<Tensor<1,dim>> &old_velocity_values,
  const std::vector<Tensor<1,dim>> &old_old_velocity_values,
+ const std::vector<double>     &eta,
  const double                   previous_time,
  const double                   current_time,
  const double                   coefficient,
@@ -265,18 +267,22 @@ void compute_advection_matrix_for_bc
  const Tensor<2,dim>                &old_old_gradient,
  const std::vector<double>          &eta,
  const double                        JxW_value,
- unsigned int                        i,
+ const unsigned int                  i,
  FullMatrix<double>                 &local_matrix)
 {
+  AssertDimension(phi.size(), local_matrix.m());
+  AssertDimension(grad_phi.size(), local_matrix.m());
+
+  const Tensor<1,dim> extrapolated_value = eta[0] * old_value + eta[1] * old_old_value;
+
   switch (weak_form)
   {
     case RunTimeParameters::ConvectiveTermWeakForm::standard:
     {
       // Loop over the i-th column's rows of the local matrix
-      for (std::size_t j=0; j<phi.size(); ++j)
+      for (std::size_t j=0; j<local_matrix.m(); ++j)
         local_matrix(j, i) +=
-              (phi[j] * grad_phi[i] *
-               (eta[0] * old_value + eta[1] * old_old_value) ) * JxW_value;
+          phi[j] * grad_phi[i] * extrapolated_value * JxW_value;
       break;
     }
     case RunTimeParameters::ConvectiveTermWeakForm::skewsymmetric:
@@ -284,15 +290,14 @@ void compute_advection_matrix_for_bc
       const double old_divergence = trace(old_gradient);
       const double old_old_divergence = trace(old_old_gradient);
 
+      const double extrapolated_divergence =
+          eta[0] * old_divergence + eta[1] * old_old_divergence;
+
       // Loop over the i-th column's rows of the local matrix
-      for (std::size_t j=0; j<phi.size(); ++j)
+      for (std::size_t j=0; j<local_matrix.m(); ++j)
         local_matrix(j, i) +=
-              (phi[j] * grad_phi[i] *
-               (eta[0] * old_value + eta[1] * old_old_value)
-               +
-               0.5 * (eta[0] * old_divergence + eta[1] * old_old_divergence) *
-               phi[j] * phi[i]) *
-              JxW_value;
+            (phi[j] * grad_phi[i] * extrapolated_value +
+             0.5 * extrapolated_divergence * phi[j] * phi[i]) * JxW_value;
       break;
     }
     case RunTimeParameters::ConvectiveTermWeakForm::divergence:
@@ -300,15 +305,14 @@ void compute_advection_matrix_for_bc
       const double old_divergence = trace(old_gradient);
       const double old_old_divergence = trace(old_old_gradient);
 
+      const double extrapolated_divergence =
+          eta[0] * old_divergence + eta[1] * old_old_divergence;
+
       // Loop over the i-th column's rows of the local matrix
-      for (std::size_t j=0; j<phi.size(); ++j)
+      for (std::size_t j=0; j<local_matrix.m(); ++j)
         local_matrix(j, i) +=
-              (phi[j] * grad_phi[i] *
-               (eta[0] * old_value + eta[1] * old_value)
-               +
-               (eta[0] * old_divergence + eta[1] * old_old_divergence) *
-               phi[j] * phi[i]) *
-              JxW_value;
+            (phi[j] * grad_phi[i] * extrapolated_value +
+             extrapolated_divergence * phi[j] * phi[i]) * JxW_value;
       break;
     }
     case RunTimeParameters::ConvectiveTermWeakForm::rotational:
@@ -322,12 +326,9 @@ void compute_advection_matrix_for_bc
         curl_phi[0] = grad_phi[i][1][0] - grad_phi[i][0][1];
 
         // Loop over the i-th column's rows of the local matrix
-        for (std::size_t j=0; j<phi.size(); ++j)
+        for (std::size_t j=0; j<local_matrix.m(); ++j)
           local_matrix(j, i) +=
-              (phi[j] * curl_phi[0] *
-               cross_product_2d(-eta[0] * old_value
-                                -eta[1] * old_old_value)
-              ) * JxW_value;
+            phi[j] * curl_phi[0] * cross_product_2d(-extrapolated_value) * JxW_value;
       }
       else if constexpr(dim == 3)
       {
@@ -336,12 +337,9 @@ void compute_advection_matrix_for_bc
         curl_phi[2] = grad_phi[i][1][0] - grad_phi[i][0][1];
 
         // Loop over the i-th column's rows of the local matrix
-        for (std::size_t j=0; j<phi.size(); ++j)
+        for (std::size_t j=0; j<local_matrix.m(); ++j)
           local_matrix(j, i) +=
-            (phi[j] *
-             cross_product_3d(curl_phi,
-                              eta[0] * old_value + eta[1] * old_old_value)
-            ) * JxW_value;
+            phi[j] * cross_product_3d(curl_phi, extrapolated_value) * JxW_value;
       }
       break;
     }
@@ -354,6 +352,8 @@ void compute_advection_matrix_for_bc
 }  // namespace
 
 using Copy = AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy;
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::
@@ -444,6 +444,8 @@ assemble_diffusion_step_rhs()
            << std::endl;
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
 (const typename DoFHandler<dim>::active_cell_iterator                 &cell,
@@ -524,8 +526,8 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   if (body_force_ptr != nullptr)
   {
     compute_body_force(body_force_ptr,
-                       gamma,
                        scratch.velocity_fe_values.get_quadrature_points(),
+                       gamma,
                        time_stepping.get_previous_time(),
                        time_stepping.get_current_time(),
                        time_stepping.get_next_time(),
@@ -535,11 +537,11 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   // Buoyancy term
   if (temperature != nullptr)
   {
-    compute_buoyancy_term(*temperature,
+    compute_buoyancy_term(gravity_vector_ptr,
+                          *temperature,
                           cell,
                           scratch.velocity_fe_values.get_quadrature_points(),
                           beta,
-                          gravity_vector_ptr,
                           parameters.C3,
                           scratch.temperature_fe_values,
                           buoyancy_term);
@@ -549,9 +551,9 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
   if (angular_velocity_vector_ptr != nullptr)
   {
     compute_coriolis_acceleration_term(angular_velocity_vector_ptr,
-                                       beta,
                                        scratch.old_velocity_values,
                                        scratch.old_old_velocity_values,
+                                       beta,
                                        time_stepping.get_previous_time(),
                                        time_stepping.get_current_time(),
                                        parameters.C1,
@@ -608,22 +610,13 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
       data.local_rhs(i) +=
-                    (scratch.div_phi[i] *
-                     pressure_gradient_term[q]
-                     -
-                     scalar_product(scratch.grad_phi[i],
-                                    diffusion_term[q])
-                     +
+                    (scratch.div_phi[i] * pressure_gradient_term[q] -
+                     scalar_product(scratch.grad_phi[i], diffusion_term[q]) +
                      scratch.phi[i] *
-                     (body_force_term[q]
-                      -
-                      buoyancy_term[q]
-                      -
-                      coriolis_acceleration_term[q]
-                      -
-                      acceleration_term[q]
-                      -
-                      advection_term[q])) *
+                     (body_force_term[q] - buoyancy_term[q] -
+                      coriolis_acceleration_term[q] - acceleration_term[q] -
+                      advection_term[q])
+                    ) *
                     scratch.velocity_fe_values.JxW(q);
 
       // Loop over the i-th column's rows of the local matrix
@@ -710,7 +703,9 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                 scratch.velocity_fe_face_values.JxW(q);
           } // Loop over face quadrature points
         } // Loop over the faces of the cell
-} // assemble_local_diffusion_step_rhs
+}
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_diffusion_step_rhs

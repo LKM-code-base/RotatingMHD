@@ -442,21 +442,9 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<double>         old_old_temperature_values;
 
-  std::vector<Tensor<1,dim>>  velocity_values;
-
-  std::vector<Tensor<1,dim>>  old_velocity_values;
-
-  std::vector<Tensor<1,dim>>  old_old_velocity_values;
-
   std::vector<Tensor<1,dim>>  old_temperature_gradients;
 
   std::vector<Tensor<1,dim>>  old_old_temperature_gradients;
-
-  std::vector<double>         source_term_values;
-
-  std::vector<double>         old_source_term_values;
-
-  std::vector<double>         old_old_source_term_values;
 
   std::vector<double>         neumann_bc_values;
 

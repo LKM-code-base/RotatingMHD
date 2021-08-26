@@ -67,6 +67,8 @@ void NavierStokesProjection<dim>::assemble_velocity_advection_matrix()
     *pcout << " done!" << std::endl;
 }
 
+
+
 template <int dim>
 void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
 (const typename DoFHandler<dim>::active_cell_iterator  &cell,
@@ -221,7 +223,9 @@ void NavierStokesProjection<dim>::assemble_local_velocity_advection_matrix
     }; // End of switch
   } // Loop over quadrature points
 
-} // assemble_local_velocity_advection_matrix
+}
+
+
 
 template <int dim>
 void NavierStokesProjection<dim>::copy_local_to_global_velocity_advection_matrix
@@ -232,7 +236,8 @@ void NavierStokesProjection<dim>::copy_local_to_global_velocity_advection_matrix
                                       data.local_dof_indices,
                                       velocity_advection_matrix);
 }
-}
+
+} // namespace RMHD
 
 // explicit instantiations
 template void RMHD::NavierStokesProjection<2>::assemble_velocity_advection_matrix();
