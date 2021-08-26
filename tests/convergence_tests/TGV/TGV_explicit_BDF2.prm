@@ -113,9 +113,9 @@ end
 subsection Time stepping parameters
   set Adaptive time stepping        = false
   set Final time                    = 1.0
-  set Initial time step             = 1e-1
+  set Initial time step             = 1e-2
   set Maximum number of time steps  = 0
-  set Maximum time step             = 1e-1
+  set Maximum time step             = 1e-2
   set Minimum time step             = 1e-6
   set Time stepping scheme          = BDF2
 end
