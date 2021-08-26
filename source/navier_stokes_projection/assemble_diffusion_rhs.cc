@@ -768,7 +768,7 @@ void NavierStokesProjection<dim>::assemble_local_diffusion_step_rhs
                                                       scratch.old_temperature_values);
     scratch.temperature_fe_values.get_function_values(temperature->old_old_solution,
                                                       scratch.old_old_temperature_values);
-    gravity_vector_ptr->value_list(scratch.temperature_fe_values.get_quadrature_points(),
+    gravity_vector_ptr->value_list(scratch.velocity_fe_values.get_quadrature_points(),
                                    scratch.gravity_vector_values);
 
     // Loop over quadrature points
