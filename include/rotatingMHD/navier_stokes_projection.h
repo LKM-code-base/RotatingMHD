@@ -645,7 +645,12 @@ private:
    */
   void assemble_local_diffusion_step_rhs(
     const typename DoFHandler<dim>::active_cell_iterator                 &cell,
-    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::HDScratch<dim> &scratch,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data);
+
+  void assemble_local_diffusion_step_rhs(
+    const typename DoFHandler<dim>::active_cell_iterator                 &cell,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::HDCScratch<dim> &scratch,
     AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data);
 
   /*!

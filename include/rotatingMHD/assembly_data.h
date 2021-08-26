@@ -196,6 +196,145 @@ namespace DiffusionStepRHS
 using Copy = Generic::RightHandSide::Copy;
 
 template <int dim>
+struct HDScratch : ScratchBase<dim>
+{
+  HDScratch(const Mapping<dim>        &mapping,
+            const Quadrature<dim>     &quadrature_formula,
+            const Quadrature<dim-1>   &face_quadrature_formula,
+            const FiniteElement<dim>  &velocity_fe,
+            const UpdateFlags         velocity_update_flags,
+            const UpdateFlags         velocity_face_update_flags,
+            const FiniteElement<dim>  &pressure_fe,
+            const UpdateFlags         pressure_update_flags);
+
+  HDScratch(const HDScratch<dim>    &data);
+
+  using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
+
+  FEValues<dim>               velocity_fe_values;
+
+  FEFaceValues<dim>           velocity_fe_face_values;
+
+  FEValues<dim>               pressure_fe_values;
+
+  const unsigned int          n_face_q_points;
+
+  std::vector<double>         old_pressure_values;
+
+  std::vector<double>         old_phi_values;
+
+  std::vector<double>         old_old_phi_values;
+
+  std::vector<Tensor<1,dim>>  old_velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_old_velocity_values;
+
+  std::vector<Tensor<2,dim>>  old_velocity_gradients;
+
+  std::vector<Tensor<2,dim>>  old_old_velocity_gradients;
+
+  std::vector<Tensor<1,dim>>  neumann_bc_values;
+
+  std::vector<Tensor<1,dim>>  old_neumann_bc_values;
+
+  std::vector<Tensor<1,dim>>  old_old_neumann_bc_values;
+
+  std::vector<Tensor<1,dim>>  phi;
+
+  std::vector<Tensor<2,dim>>  grad_phi;
+
+  std::vector<double>         div_phi;
+
+  std::vector<Tensor<1,dim>>  face_phi;
+};
+
+
+
+template <int dim>
+struct HDCScratch : HDScratch<dim>
+{
+  HDCScratch(const Mapping<dim>        &mapping,
+             const Quadrature<dim>     &quadrature_formula,
+             const Quadrature<dim-1>   &face_quadrature_formula,
+             const FiniteElement<dim>  &velocity_fe,
+             const UpdateFlags         velocity_update_flags,
+             const UpdateFlags         velocity_face_update_flags,
+             const FiniteElement<dim>  &pressure_fe,
+             const UpdateFlags         pressure_update_flags,
+             const FiniteElement<dim>  &temperature_fe,
+             const UpdateFlags         temperature_update_flags);
+
+  HDCScratch(const HDCScratch<dim>    &data);
+
+  FEValues<dim>               temperature_fe_values;
+
+  std::vector<double>         old_temperature_values;
+  std::vector<double>         old_old_temperature_values;
+
+  std::vector<Tensor<1,dim>>  gravity_vector_values;
+};
+
+
+
+template <int dim>
+struct MHDScratch : HDScratch<dim>
+{
+  MHDScratch(const Mapping<dim>        &mapping,
+             const Quadrature<dim>     &quadrature_formula,
+             const Quadrature<dim-1>   &face_quadrature_formula,
+             const FiniteElement<dim>  &velocity_fe,
+             const UpdateFlags         velocity_update_flags,
+             const UpdateFlags         velocity_face_update_flags,
+             const FiniteElement<dim>  &pressure_fe,
+             const UpdateFlags         pressure_update_flags,
+             const FiniteElement<dim>  &magnetic_fe,
+             const UpdateFlags         magnetic_update_flags);
+
+  MHDScratch(const MHDScratch<dim>    &data);
+
+  FEValues<dim>               magnetic_fe_values;
+
+  std::vector<Tensor<1, dim>> old_magnetic_field_values;
+  std::vector<Tensor<1, dim>> old_old_magnetic_field_values;
+
+  std::vector<typename HDScratch<dim>::curl_type> old_magnetic_field_curls;
+  std::vector<typename HDScratch<dim>::curl_type> old_old_magnetic_field_curls;
+
+};
+
+
+
+template <int dim>
+struct MHDCScratch : HDCScratch<dim>
+{
+  MHDCScratch(const Mapping<dim>        &mapping,
+              const Quadrature<dim>     &quadrature_formula,
+              const Quadrature<dim-1>   &face_quadrature_formula,
+              const FiniteElement<dim>  &velocity_fe,
+              const UpdateFlags         velocity_update_flags,
+              const UpdateFlags         velocity_face_update_flags,
+              const FiniteElement<dim>  &pressure_fe,
+              const UpdateFlags         pressure_update_flags,
+              const FiniteElement<dim>  &temperature_fe,
+              const UpdateFlags         temperature_update_flags,
+              const FiniteElement<dim>  &magnetic_fe,
+              const UpdateFlags         magnetic_update_flags);
+
+  MHDCScratch(const MHDCScratch<dim>    &data);
+
+  FEValues<dim>               magnetic_fe_values;
+
+  std::vector<Tensor<1, dim>> old_magnetic_field_values;
+  std::vector<Tensor<1, dim>> old_old_magnetic_field_values;
+
+  std::vector<typename HDCScratch<dim>::curl_type> old_magnetic_field_curls;
+  std::vector<typename HDCScratch<dim>::curl_type> old_old_magnetic_field_curls;
+
+};
+
+
+
+template <int dim>
 struct Scratch : ScratchBase<dim>
 {
   Scratch(const Mapping<dim>        &mapping,
