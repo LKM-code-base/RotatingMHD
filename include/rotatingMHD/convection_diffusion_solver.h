@@ -331,14 +331,18 @@ private:
   void copy_local_to_global_advection_matrix(
     const AssemblyData::HeatEquation::AdvectionMatrix::Copy &data);
 
-
   /*!
    * @brief This method assembles the right-hand side on a single cell.
    */
   void assemble_local_rhs(
     const typename DoFHandler<dim>::active_cell_iterator    &cell,
-    AssemblyData::HeatEquation::RightHandSide::Scratch<dim> &scratch,
+    AssemblyData::HeatEquation::RightHandSide::CDScratch<dim> &scratch,
     AssemblyData::HeatEquation::RightHandSide::Copy         &data);
+  void assemble_local_rhs(
+    const typename DoFHandler<dim>::active_cell_iterator    &cell,
+    AssemblyData::HeatEquation::RightHandSide::HDCDScratch<dim> &scratch,
+    AssemblyData::HeatEquation::RightHandSide::Copy         &data);
+
   /*!
    * @brief This method copies the local right-hand side into its global
    * conterpart.

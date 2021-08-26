@@ -36,6 +36,8 @@ phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell)
 {}
 
+
+
 template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim> &data)
 :
@@ -67,6 +69,8 @@ Generic::Matrix::Scratch<dim>(mapping,
 phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell)
 {}
+
+
 
 template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim> &data)
@@ -106,6 +110,8 @@ phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell),
 curl_phi(this->dofs_per_cell)
 {}
+
+
 
 template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim> &data)
@@ -382,6 +388,8 @@ local_projection_step_rhs(dofs_per_cell),
 local_correction_step_rhs(dofs_per_cell)
 {}
 
+
+
 template <int dim>
 Scratch<dim>::Scratch
 (const Mapping<dim>        &mapping,
@@ -406,6 +414,8 @@ pressure_fe_values(
 velocity_divergences(this->n_q_points),
 phi(this->dofs_per_cell)
 {}
+
+
 
 template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim> &data)
@@ -485,6 +495,8 @@ normal_vectors(n_face_q_points),
 grad_phi(this->dofs_per_cell),
 face_phi(this->dofs_per_cell)
 {}
+
+
 
 template <int dim>
 Scratch<dim>::Scratch(const Scratch<dim> &data)

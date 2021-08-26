@@ -556,24 +556,20 @@ namespace RightHandSide
 using Copy = Generic::RightHandSide::Copy;
 
 template <int dim>
-struct Scratch : ScratchBase<dim>
+struct CDScratch : ScratchBase<dim>
 {
-  Scratch(const Mapping<dim>        &mapping,
+  CDScratch(const Mapping<dim>        &mapping,
           const Quadrature<dim>     &quadrature_formula,
           const Quadrature<dim-1>   &face_quadrature_formula,
           const FiniteElement<dim>  &temperature_fe,
           const UpdateFlags         temperature_update_flags,
-          const UpdateFlags         temperature_face_update_flags,
-          const FiniteElement<dim>  &velocity_fe,
-          const UpdateFlags         velocity_update_flags);
+          const UpdateFlags         temperature_face_update_flags);
 
-  Scratch(const Scratch<dim>    &data);
+  CDScratch(const CDScratch<dim>    &data);
 
   FEValues<dim>               temperature_fe_values;
 
   FEFaceValues<dim>           temperature_fe_face_values;
-
-  FEValues<dim>               velocity_fe_values;
 
   const unsigned int          n_face_q_points;
 
@@ -596,6 +592,27 @@ struct Scratch : ScratchBase<dim>
   std::vector<Tensor<1,dim>>  grad_phi;
 
   std::vector<double>         face_phi;
+};
+
+template <int dim>
+struct HDCDScratch : CDScratch<dim>
+{
+  HDCDScratch(const Mapping<dim>        &mapping,
+              const Quadrature<dim>     &quadrature_formula,
+              const Quadrature<dim-1>   &face_quadrature_formula,
+              const FiniteElement<dim>  &temperature_fe,
+              const UpdateFlags         temperature_update_flags,
+              const UpdateFlags         temperature_face_update_flags,
+              const FiniteElement<dim>  &velocity_fe,
+              const UpdateFlags         velocity_update_flags);
+
+  HDCDScratch(const HDCDScratch<dim>    &data);
+
+  FEValues<dim>               velocity_fe_values;
+
+  std::vector<Tensor<1,dim>>  old_velocity_values;
+  std::vector<Tensor<1,dim>>  old_old_velocity_values;
+
 };
 
 } // namespace RightHandSide
