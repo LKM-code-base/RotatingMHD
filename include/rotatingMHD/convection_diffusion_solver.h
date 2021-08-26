@@ -5,11 +5,11 @@
 #include <deal.II/base/timer.h>
 #include <deal.II/base/tensor_function.h>
 
-#include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/convection_diffusion/assembly_data.h>
 
 #include <memory>
 #include <string>

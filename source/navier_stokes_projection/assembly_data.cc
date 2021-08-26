@@ -5,7 +5,7 @@
  *      Author: sg
  */
 
-#include <rotatingMHD/assembly_data.h>
+#include <rotatingMHD/navier_stokes_projection/assembly_data.h>
 
 namespace RMHD
 {

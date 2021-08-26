@@ -5,11 +5,11 @@
 #include <deal.II/base/timer.h>
 
 #include <rotatingMHD/angular_velocity.h>
-#include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/navier_stokes_projection/assembly_data.h>
 
 #include <array>
 #include <memory>

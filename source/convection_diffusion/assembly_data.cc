@@ -1,4 +1,4 @@
-#include <rotatingMHD/assembly_data.h>
+#include <rotatingMHD/convection_diffusion/assembly_data.h>
 
 namespace RMHD
 {
