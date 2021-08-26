@@ -3,14 +3,14 @@
 
 # Applications
 applications/Christensen
-applications/Couette
 applications/DFG
-applications/Guermond
-applications/GuermondNeumannBC
 applications/MIT
-applications/TGV
-applications/ThermalTGV
 applications/step-35
+convergence_tests/Couette
+convergence_tests/Guermond
+convergence_tests/GuermondNeumannBC
+convergence_tests/TGV
+convergence_tests/ThermalTGV
 
 # Compiled Object files
 *.slo

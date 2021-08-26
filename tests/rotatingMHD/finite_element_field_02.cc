@@ -1,21 +1,23 @@
-#include <rotatingMHD/finite_element_field.h>
-
 #include <deal.II/base/function_lib.h>
+#include <deal.II/base/mpi.h>
 #include <deal.II/base/tensor_function.h>
 #include <deal.II/grid/grid_generator.h>
 
-namespace RMHD
-{
+#include <rotatingMHD/finite_element_field.h>
 
-namespace Entities
-{
+// Test of functionality of classes FE_ScalarField and FE_VectorField in serial
+
+using namespace dealii;
+using namespace RMHD;
+using VectorType = RMHD::LinearAlgebra::MPI::Vector;
 
 template<int dim>
-void fe_scalar_field_test()
+void test_scalar_field()
 {
-  Triangulation<dim>            tria;
-  FE_ScalarField<dim, Vector<double>> field_01(1, tria, "Scalar Field 01");
-  FE_ScalarField<dim, Vector<double>> field_02(field_01, "Scalar Field 02");
+  parallel::distributed::Triangulation<dim> tria(MPI_COMM_WORLD);
+
+  Entities::FE_ScalarField<dim, VectorType> field_01(1, tria, "Scalar Field 01");
+  Entities::FE_ScalarField<dim, VectorType> field_02(field_01, "Scalar Field 02");
 
   GridGenerator::hyper_cube(tria, 0.0, 1.0, true);
 
@@ -31,8 +33,10 @@ void fe_scalar_field_test()
   field_01.set_periodic_boundary_condition(0, 1, 0);
   field_01.set_dirichlet_boundary_condition(2, ptr01, true);
   field_01.set_neumann_boundary_condition(3, ptr02);
-  field_01.close_boundary_conditions(true);
-  field_01.apply_boundary_conditions(true);
+
+  const bool flag_output{dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0};
+  field_01.close_boundary_conditions(flag_output);
+  field_01.apply_boundary_conditions(flag_output);
 
   field_02.setup_dofs();
   field_02.setup_vectors();
@@ -49,21 +53,23 @@ void fe_scalar_field_test()
       bc_02.get_unconstrained_boundary_ids();
   for (const auto id: unconstrained_boundary_ids)
     field_02.set_neumann_boundary_condition(id, ptr01, true);
-  field_02.close_boundary_conditions(true);
-  field_02.apply_boundary_conditions(true);
+  field_02.close_boundary_conditions(flag_output);
+  field_02.apply_boundary_conditions(flag_output);
 }
 
 
 template<int dim>
-void fe_scalar_field_ptr_test()
+void test_scalar_field_ptr()
 {
-  Triangulation<dim>            tria;
+  parallel::distributed::Triangulation<dim> tria(MPI_COMM_WORLD);
 
-  std::shared_ptr<Entities::FE_ScalarField<dim, Vector<double>>> field_01 =
-      std::make_shared<FE_ScalarField<dim, Vector<double>>>(1, tria, "Scalar Field 01");
+  using VectorType = RMHD::LinearAlgebra::MPI::Vector;
 
-  std::shared_ptr<Entities::FE_ScalarField<dim, Vector<double>>> field_02 =
-      std::make_shared<Entities::FE_ScalarField<dim, Vector<double>>>(*field_01, "Scalar Field 02");
+  std::shared_ptr<Entities::FE_ScalarField<dim, VectorType>> field_01 =
+      std::make_shared<Entities::FE_ScalarField<dim, VectorType>>(1, tria, "Scalar Field 01");
+
+  std::shared_ptr<Entities::FE_ScalarField<dim, VectorType>> field_02 =
+      std::make_shared<Entities::FE_ScalarField<dim, VectorType>>(*field_01, "Scalar Field 02");
 
   GridGenerator::hyper_cube(tria, 0.0, 1.0, true);
 
@@ -79,8 +85,10 @@ void fe_scalar_field_ptr_test()
   field_01->set_periodic_boundary_condition(0, 1, 0);
   field_01->set_dirichlet_boundary_condition(2, ptr01, true);
   field_01->set_neumann_boundary_condition(3, ptr02);
-  field_01->close_boundary_conditions(true);
-  field_01->apply_boundary_conditions(true);
+
+  const bool flag_output{dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0};
+  field_01->close_boundary_conditions(flag_output);
+  field_01->apply_boundary_conditions(flag_output);
 
   field_02->setup_dofs();
   field_02->setup_vectors();
@@ -98,17 +106,18 @@ void fe_scalar_field_ptr_test()
   for (const auto id: unconstrained_boundary_ids)
     field_02->set_neumann_boundary_condition(id, ptr01, true);
 
-  field_02->close_boundary_conditions(true);
-  field_02->apply_boundary_conditions(true);
+  field_02->close_boundary_conditions(flag_output);
+  field_02->apply_boundary_conditions(flag_output);
 }
 
 
 template<int dim>
-void fe_vector_field_test()
+void test_vector_field()
 {
-  Triangulation<dim>            tria;
-  FE_VectorField<dim, Vector<double>> field_01(1, tria, "Vector Field 01");
-  FE_VectorField<dim, Vector<double>> field_02(field_01, "Vector Field 02");
+  parallel::distributed::Triangulation<dim> tria(MPI_COMM_WORLD);
+
+  Entities::FE_VectorField<dim, VectorType> field_01(1, tria, "Vector Field 01");
+  Entities::FE_VectorField<dim, VectorType> field_02(field_01, "Vector Field 02");
 
   GridGenerator::hyper_cube(tria, 0.0, 1.0, true);
 
@@ -134,8 +143,9 @@ void fe_vector_field_test()
     field_01.set_normal_component_boundary_condition(5, ptr04, true);
   }
 
-  field_01.close_boundary_conditions(true);
-  field_01.apply_boundary_conditions(true);
+  const bool flag_output{dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0};
+  field_01.close_boundary_conditions(flag_output);
+  field_01.apply_boundary_conditions(flag_output);
 
   field_02.setup_dofs();
   field_02.setup_vectors();
@@ -153,21 +163,21 @@ void fe_vector_field_test()
       bc_02.get_unconstrained_boundary_ids();
   for (const auto id: unconstrained_boundary_ids)
     field_02.set_neumann_boundary_condition(id, ptr02, true);
-  field_02.close_boundary_conditions(true);
-  field_02.apply_boundary_conditions(true);
+  field_02.close_boundary_conditions(flag_output);
+  field_02.apply_boundary_conditions(flag_output);
 }
 
 
 template<int dim>
-void fe_vector_field_ptr_test()
+void test_vector_field_ptr()
 {
-  Triangulation<dim>            tria;
+  parallel::distributed::Triangulation<dim> tria(MPI_COMM_WORLD);
 
-  std::shared_ptr<Entities::FE_VectorField<dim, Vector<double>>> field_01 =
-      std::make_shared<FE_VectorField<dim, Vector<double>>>(1, tria, "Vector Field 01");
+  std::shared_ptr<Entities::FE_VectorField<dim, VectorType>> field_01 =
+      std::make_shared<Entities::FE_VectorField<dim, VectorType>>(1, tria, "Vector Field 01");
 
-  std::shared_ptr<Entities::FE_VectorField<dim, Vector<double>>> field_02 =
-      std::make_shared<Entities::FE_VectorField<dim, Vector<double>>>(*field_01, "Vector Field 02");
+  std::shared_ptr<Entities::FE_VectorField<dim, VectorType>> field_02 =
+      std::make_shared<Entities::FE_VectorField<dim, VectorType>>(*field_01, "Vector Field 02");
 
   GridGenerator::hyper_cube(tria, 0.0, 1.0, true);
 
@@ -193,8 +203,9 @@ void fe_vector_field_ptr_test()
     field_01->set_tangential_component_boundary_condition(4, ptr03, true);
     field_01->set_normal_component_boundary_condition(5, ptr04, true);
   }
-  field_01->close_boundary_conditions(true);
-  field_01->apply_boundary_conditions(true);
+  const bool flag_output{dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0};
+  field_01->close_boundary_conditions(flag_output);
+  field_01->apply_boundary_conditions(flag_output);
 
   field_02->setup_dofs();
   field_02->setup_vectors();
@@ -212,33 +223,30 @@ void fe_vector_field_ptr_test()
   for (const auto id: unconstrained_boundary_ids)
     field_02->set_neumann_boundary_condition(id, ptr02, true);
 
-  field_02->close_boundary_conditions(true);
-  field_02->apply_boundary_conditions(true);
+  field_02->close_boundary_conditions(flag_output);
+  field_02->apply_boundary_conditions(flag_output);
 }
 
 
-}  // namespace Entities
 
-}  // namespace RMHD
-
-int main(void)
+int main(int argc, char *argv[])
 {
   try
   {
+    dealii::Utilities::MPI::MPI_InitFinalize  mpi_initialization(argc, argv, 1);
     dealii::deallog.depth_console(0);
 
-    RMHD::Entities::fe_scalar_field_test<2>();
-    RMHD::Entities::fe_scalar_field_test<3>();
+    test_scalar_field<2>();
+    test_scalar_field<3>();
 
-    RMHD::Entities::fe_scalar_field_ptr_test<2>();
-    RMHD::Entities::fe_scalar_field_ptr_test<3>();
+    test_scalar_field_ptr<2>();
+    test_scalar_field_ptr<3>();
 
-    RMHD::Entities::fe_vector_field_test<2>();
-    RMHD::Entities::fe_vector_field_test<3>();
+    test_vector_field<2>();
+    test_vector_field<3>();
 
-//    RMHD::Entities::fe_vector_field_ptr_test<2>();
-//    RMHD::Entities::fe_vector_field_ptr_test<3>();
-
+//    test_vector_field_ptr<2>();
+//    test_vector_field_ptr<3>();
   }
   catch(std::exception & exc)
   {
