@@ -128,11 +128,11 @@ int main(int argc, char *argv[])
 {
   try
   {
-    dealii::Utilities::MPI::MPI_InitFinalize  mpi_initialization(argc, argv, 1);
-    dealii::deallog.depth_console(0);
+    Utilities::MPI::MPI_InitFinalize  mpi_initialization(argc, argv, 1);
+    deallog.depth_console(0);
 
-    dealii::ConditionalOStream  pcout(std::cout,
-                                      dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+    ConditionalOStream  pcout(std::cout,
+                              dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
 
     test_scalar_field<2>(pcout);
     test_scalar_field<3>(pcout);

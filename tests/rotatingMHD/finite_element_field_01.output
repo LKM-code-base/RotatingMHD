@@ -14,6 +14,7 @@
 | 2       | Dirichlet  | ZeroFunction<2, double>                  |
 | 0, 1    | Periodic   | ---                                      |
 +---------+------------+------------------------------------------+
+Difference < 2e-15 ? true
 +---------+------------+------------------------------------------+
 | Boundary conditions of the Scalar Field 01 entity               |
 +---------+------------+------------------------------------------+
@@ -33,6 +34,7 @@
 | 2       | Dirichlet  | ZeroFunction<3, double>                  |
 | 0, 1    | Periodic   | ---                                      |
 +---------+------------+------------------------------------------+
+Difference < 2e-15 ? true
 +---------+------------+------------------------------------------+
 | Boundary conditions of the Scalar Field 01 entity               |
 +---------+------------+------------------------------------------+
@@ -49,6 +51,7 @@
 | 2       | Dirichlet  | ZeroFunction<2, double>                  |
 | 0, 1    | Periodic   | ---                                      |
 +---------+------------+------------------------------------------+
+Difference < 2e-15 ? true
 +---------+------------+------------------------------------------+
 | Boundary conditions of the Scalar Field 01 entity               |
 +---------+------------+------------------------------------------+
@@ -68,6 +71,7 @@
 | 2       | Dirichlet  | ZeroFunction<3, double>                  |
 | 0, 1    | Periodic   | ---                                      |
 +---------+------------+------------------------------------------+
+Difference < 2e-15 ? true
 +---------+------------+------------------------------------------+
 | Boundary conditions of the Vector Field 01 entity               |
 +---------+------------+------------------------------------------+
@@ -84,6 +88,7 @@
 | 2       | Dirichlet  | ZeroFunction<2, double>                  |
 | 0, 1    | Periodic   | ---                                      |
 +---------+------------+------------------------------------------+
+Difference < 2e-15 ? true
 +---------+------------+------------------------------------------+
 | Boundary conditions of the Vector Field 01 entity               |
 +---------+------------+------------------------------------------+
@@ -104,3 +109,42 @@
 | 2       | Dirichlet  | ZeroFunction<3, double>                  |
 | 0, 1    | Periodic   | ---                                      |
 +---------+------------+------------------------------------------+
+Difference < 2e-15 ? true
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector Field 01 entity               |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | ZeroTensorFunction<1, 2, double>         |
+| 2       | Dirichlet  | CutOffFunctionC1<2>                      |
+| 0, 1    | Periodic   | ---                                      |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector Field 02 entity               |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | ZeroTensorFunction<1, 2, double>         |
+| 2       | Dirichlet  | ZeroFunction<2, double>                  |
+| 0, 1    | Periodic   | ---                                      |
++---------+------------+------------------------------------------+
+Difference < 2e-15 ? true
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector Field 01 entity               |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | ZeroTensorFunction<1, 3, double>         |
+| 5       | Norm. flux | ConstantFunction<3, double>              |
+| 4       | Tang. flux | CosineFunction<3>                        |
+| 2       | Dirichlet  | CutOffFunctionC1<3>                      |
+| 0, 1    | Periodic   | ---                                      |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Vector Field 02 entity               |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | ZeroTensorFunction<1, 3, double>         |
+| 5       | Norm. flux | ConstantFunction<3, double>              |
+| 4       | Tang. flux | CosineFunction<3>                        |
+| 2       | Dirichlet  | ZeroFunction<3, double>                  |
+| 0, 1    | Periodic   | ---                                      |
++---------+------------+------------------------------------------+
+Difference < 2e-15 ? true
