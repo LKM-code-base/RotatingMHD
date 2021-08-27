@@ -182,7 +182,7 @@ private:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  HeatEquation<dim>                             heat_equation;
+  ConvectionDiffusionSolver<dim>                             heat_equation;
 
   BenchmarkData::MIT<dim>                       benchmark_requests;
 
