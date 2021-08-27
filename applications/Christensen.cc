@@ -412,7 +412,7 @@ private:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  HeatEquation<dim>                             heat_equation;
+  ConvectionDiffusionSolver<dim>                             heat_equation;
 
   BenchmarkData::ChristensenBenchmark<dim>      benchmark_requests;
 

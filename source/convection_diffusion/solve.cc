@@ -5,7 +5,7 @@ namespace RMHD
 {
 
 template <int dim>
-void HeatEquation<dim>::solve()
+void ConvectionDiffusionSolver<dim>::solve()
 {
   if (temperature->solution.size() != mass_matrix.m())
   {
@@ -26,7 +26,7 @@ void HeatEquation<dim>::solve()
 }
 
 template <int dim>
-void HeatEquation<dim>::assemble_linear_system()
+void ConvectionDiffusionSolver<dim>::assemble_linear_system()
 {
   // System matrix setup
   if (time_stepping.coefficients_changed() == true ||
@@ -59,7 +59,7 @@ void HeatEquation<dim>::assemble_linear_system()
 }
 
 template <int dim>
-void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
+void ConvectionDiffusionSolver<dim>::solve_linear_system(const bool reinit_preconditioner)
 {
   if (parameters.verbose)
   *pcout << "  Heat Equation: Solving linear system...";
@@ -154,11 +154,11 @@ void HeatEquation<dim>::solve_linear_system(const bool reinit_preconditioner)
 } // namespace RMHD
 
 // explicit instantiations
-template void RMHD::HeatEquation<2>::solve();
-template void RMHD::HeatEquation<3>::solve();
+template void RMHD::ConvectionDiffusionSolver<2>::solve();
+template void RMHD::ConvectionDiffusionSolver<3>::solve();
 
-template void RMHD::HeatEquation<2>::assemble_linear_system();
-template void RMHD::HeatEquation<3>::assemble_linear_system();
+template void RMHD::ConvectionDiffusionSolver<2>::assemble_linear_system();
+template void RMHD::ConvectionDiffusionSolver<3>::assemble_linear_system();
 
-template void RMHD::HeatEquation<2>::solve_linear_system(const bool);
-template void RMHD::HeatEquation<3>::solve_linear_system(const bool);
+template void RMHD::ConvectionDiffusionSolver<2>::solve_linear_system(const bool);
+template void RMHD::ConvectionDiffusionSolver<3>::solve_linear_system(const bool);

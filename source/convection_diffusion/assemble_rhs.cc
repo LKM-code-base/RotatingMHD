@@ -11,7 +11,7 @@ namespace RMHD
 using Copy = AssemblyData::HeatEquation::RightHandSide::Copy;
 
 template <int dim>
-void HeatEquation<dim>::assemble_rhs()
+void ConvectionDiffusionSolver<dim>::assemble_rhs()
 {
   if (parameters.verbose)
     *pcout << "  Heat Equation: Assembling right hand side...";
@@ -97,7 +97,7 @@ void HeatEquation<dim>::assemble_rhs()
 }
 
 template <int dim>
-void HeatEquation<dim>::assemble_local_rhs
+void ConvectionDiffusionSolver<dim>::assemble_local_rhs
 (const typename DoFHandler<dim>::active_cell_iterator     &cell,
  AssemblyData::HeatEquation::RightHandSide::Scratch<dim>  &scratch,
  Copy &data)
@@ -362,7 +362,7 @@ void HeatEquation<dim>::assemble_local_rhs
 } // assemble_local_rhs
 
 template <int dim>
-void HeatEquation<dim>::copy_local_to_global_rhs
+void ConvectionDiffusionSolver<dim>::copy_local_to_global_rhs
 (const Copy  &data)
 {
   temperature->get_constraints().distribute_local_to_global(
@@ -375,20 +375,20 @@ void HeatEquation<dim>::copy_local_to_global_rhs
 } // namespace RMHD
 
 // explicit instantiations
-template void RMHD::HeatEquation<2>::assemble_rhs();
-template void RMHD::HeatEquation<3>::assemble_rhs();
+template void RMHD::ConvectionDiffusionSolver<2>::assemble_rhs();
+template void RMHD::ConvectionDiffusionSolver<3>::assemble_rhs();
 
-template void RMHD::HeatEquation<2>::assemble_local_rhs
+template void RMHD::ConvectionDiffusionSolver<2>::assemble_local_rhs
 (const typename DoFHandler<2>::active_cell_iterator         &,
  RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<2>&,
  RMHD::AssemblyData::HeatEquation::RightHandSide::Copy      &);
 
-template void RMHD::HeatEquation<3>::assemble_local_rhs
+template void RMHD::ConvectionDiffusionSolver<3>::assemble_local_rhs
 (const typename DoFHandler<3>::active_cell_iterator         &,
  RMHD::AssemblyData::HeatEquation::RightHandSide::Scratch<3>&,
  RMHD::AssemblyData::HeatEquation::RightHandSide::Copy      &);
 
-template void RMHD::HeatEquation<2>::copy_local_to_global_rhs
+template void RMHD::ConvectionDiffusionSolver<2>::copy_local_to_global_rhs
 (const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy &);
-template void RMHD::HeatEquation<3>::copy_local_to_global_rhs
+template void RMHD::ConvectionDiffusionSolver<3>::copy_local_to_global_rhs
 (const RMHD::AssemblyData::HeatEquation::RightHandSide::Copy &);

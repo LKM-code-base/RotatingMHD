@@ -45,7 +45,7 @@ using namespace dealii;
  */
 
 template <int dim>
-class HeatEquation
+class ConvectionDiffusionSolver
 {
 
 public:
@@ -56,7 +56,7 @@ public:
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
-  HeatEquation
+  ConvectionDiffusionSolver
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
    std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
@@ -74,7 +74,7 @@ public:
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
-  HeatEquation
+  ConvectionDiffusionSolver
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
    std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
@@ -93,7 +93,7 @@ public:
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
-  HeatEquation
+  ConvectionDiffusionSolver
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
    std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
@@ -348,7 +348,7 @@ private:
 };
 
 template <int dim>
-inline double HeatEquation<dim>::get_rhs_norm() const
+inline double ConvectionDiffusionSolver<dim>::get_rhs_norm() const
 {
   return (rhs_norm);
 }
