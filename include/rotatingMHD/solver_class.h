@@ -132,6 +132,13 @@ virtual void setup_matrices() = 0;
  *
  */
 virtual void setup_vectors() = 0;
+
+/*!
+ * @brief A pure virtual method to assemble the constant matrices of
+ * the solver
+ *
+ */
+virtual void assemble_constant_matrices() = 0;
 };
 
 
@@ -197,6 +204,30 @@ ProjectionSolverBase(
   const std::shared_ptr<TimerOutput>              external_timer =
     std::shared_ptr<TimerOutput>());
 
+
+/*!
+ * @brief A virtual method for the set-up of the solver's linear
+ * algebra.
+ *
+ */
+virtual void setup() override;
+
+/*!
+ * @brief A virtual method, which performs the solve operation for
+ * a single time step.
+ *
+ * @attention With the inclusion of a base Parameter struct/class, this
+ * method could be implemented in the base class.
+ */
+// virtual void solve() override;
+
+
+/*!
+ * @brief A pure virtual method, which clears the solver's linear
+ * algebra and resets all internal booleans.
+ *
+ */
+virtual void clear() override;
 
 /*!
  * @brief The auxiliary scalar field introduced to simplify the
@@ -301,7 +332,6 @@ LinearAlgebra::MPI::SparseMatrix  diffusion_step_mass_plus_stiffness_matrix;
  */
 LinearAlgebra::MPI::SparseMatrix  diffusion_step_advection_matrix;
 
-
 /*!
  * @brief Vector representing the right-hand side of the linear system
  * of the diffusion step.
@@ -328,7 +358,6 @@ double                            norm_diffusion_step_rhs;
  */
 LinearAlgebra::MPI::SparseMatrix  projection_step_system_matrix;
 
-
 /*!
  * @brief Vector representing the right-hand side of the linear system
  * of the projection step.
@@ -345,17 +374,43 @@ LinearAlgebra::MPI::Vector        projection_step_rhs;
 double                            norm_projection_step_rhs;
 
 /*!
+ * @brief The system matrix of the zeroth step.
+ *
+ * @details The system matrix corresponds to the stiffness matrix of the
+ * Lagrange multiplier field. Its entries only change if the
+ * spatial discretization changes. It is stored in memory because
+ * otherwise an assembly would be required if the timestep changes.
+ *
+ */
+LinearAlgebra::MPI::SparseMatrix  zeroth_step_system_matrix;
+
+/*!
+ * @brief Vector representing the right-hand side of the linear system
+ * of the zeroth step performed to compute admissible initial conditions
+ * for the Lagrange multiplier.
+ *
+ */
+LinearAlgebra::MPI::Vector        zeroth_step_rhs;
+
+/*!
  * @brief The preconditioner of the diffusion step.
  *
  */
 std::shared_ptr<LinearAlgebra::PreconditionBase> diffusion_step_preconditioner;
-
 
 /*!
  * @brief The preconditioner of the projection step
  *
  */
 std::shared_ptr<LinearAlgebra::PreconditionBase> projection_step_preconditioner;
+
+/*!
+ * @brief The preconditioner of the pre-step performed to compute admissible initial conditions
+ * for the Lagrange multiplier
+ *
+ */
+std::shared_ptr<LinearAlgebra::PreconditionBase> zeroth_step_preconditioner;
+
 
 /*!
   * @brief A flag indicating if the auxiliary scalar field  \f$ \phi\f$
@@ -365,12 +420,127 @@ std::shared_ptr<LinearAlgebra::PreconditionBase> projection_step_preconditioner;
 bool                                  flag_setup_auxiliary_scalar;
 
 /*!
-  * @brief A method initiating the auxiliary scalar field  \f$ \phi\f$.
+ * @brief A flag indicating if the mean value of the lagrange multiplier
+ * and the auxiliary scalar field \f$ \phi \f$ are to be constraint to
+ * zero.
+ *
+ */
+bool                                  flag_mean_value_constrain;
+
+/*!
+  * @brief A pure virtual method initiating the auxiliary scalar field
+  * \f$ \phi\f$.
   * @details Extracts its locally owned and relevant degrees of freedom;
   * sets its boundary conditions and applies them to its AffineConstraints
-  * instance.
+  * instance.magnetic field
   */
 virtual void setup_auxiliary_scalar() = 0;
+
+/*!
+ * @brief A pure virtual method that computes admissable initial
+ * conditions for the Lagrange multiplier by considering and solving
+ * the system of equations in its steady-state at \f$ t = 0 \f$.
+ *
+ */
+virtual void zeroth_step() = 0;
+
+/*!
+ * @brief A method performing the diffusion step.
+ *
+ * @param reinit_preconditioner A boolean indicating if the
+ * preconditioner is to be re-built.
+ */
+void diffusion_step(const bool reinit_preconditioner);
+
+/*!
+ * @brief A method performing the projection step.
+ *
+ * @param reinit_preconditioner A boolean indicating if the
+ * preconditioner is to be re-built.
+ */
+void projection_step(const bool reinit_preconditioner);
+
+/*!
+ * @brief A method performing the correction step.
+ *
+ * @param reinit_preconditioner A boolean indicating if the
+ * preconditioner is to be re-built.
+ */
+virtual void correction_step(const bool reinit_preconditioner) = 0;
+
+/*!
+ * @brief A virtual method, which assembles the constant matrices of
+ * the projection scheme.
+ *
+ */
+virtual void assemble_constant_matrices() override;
+
+/*!
+ * @brief A pure virtual method for the assembly of all constant
+ * matrices from vector valued variables.
+ *
+ */
+virtual void assemble_constant_matrices_vector_field() = 0;
+
+/*!
+ * @brief A pure virtual method for the assembly of all constant
+ * matrices from scalar valued variables.
+ *
+ */
+virtual void assemble_constant_matrices_scalar_fields() = 0;
+
+/*!
+ * @brief A pure virtual method assembling the right-hand side vector
+ * of the zeroth step.
+ *
+ */
+virtual void assemble_zeroth_step() = 0;
+
+/*!
+ * @brief A pure virtual method solving the zeroth step.
+ *
+ */
+virtual void solve_zeroth_step() = 0;
+
+/*!
+ * @brief A pure virtual method assembling the system matrix and the
+ * right-hand side vector of the diffusion step.
+ *
+ */
+virtual void assemble_diffusion_step() = 0;
+
+/*!
+ * @brief A pure virtual method solving the diffusion step.
+ *
+ * @param reinit_preconditioner A boolean indicating if the
+ * preconditioner is to be re-built.
+ *
+ * @attention With the inclusion of a base Parameter struct/class, this
+ * method could be implemented in the base class instead of it being
+ * a pure virtual method
+ *
+ */
+virtual void solve_diffusion_step(const bool reinit_preconditioner) = 0;
+
+/*!
+ * @brief A pure virtual method assembling the right-hand side vector
+ * of the projection step.
+ *
+ */
+virtual void assemble_projection_step() = 0;
+
+/*!
+ * @brief A pure virtual method solving the projection step.
+ *
+ * @param reinit_preconditioner A boolean indicating if the
+ * preconditioner is to be re-built.
+ *
+ * @attention With the inclusion of a base Parameter struct/class, this
+ * method could be implemented in the base class instead of it being
+ * a pure virtual method
+ */
+virtual void solve_projection_step(const bool reinit_preconditioner) = 0;
+
 };
 
 
