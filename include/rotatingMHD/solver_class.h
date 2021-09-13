@@ -3,6 +3,7 @@
 
 #include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/global.h>
+#include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/conditional_ostream.h>
@@ -67,13 +68,6 @@ SolverBase(
     std::shared_ptr<TimerOutput>());
 
 /*!
- * @brief A pure virtual method for the set-up of the solver's linear
- * algebra.
- *
- */
-virtual void setup() = 0;
-
-/*!
  * @brief A pure virtual method, which performs the solve operation for
  * a single time step.
  *
@@ -81,11 +75,11 @@ virtual void setup() = 0;
 virtual void solve() = 0;
 
 /*!
- * @brief A pure virtual method, which clears the solver's linear
+ * @brief A virtual method, which clears the solver's linear
  * algebra and resets all internal booleans.
  *
  */
-virtual void clear() = 0;
+virtual void clear();
 
 
 protected:
@@ -120,6 +114,13 @@ const TimeDiscretization::VSIMEXMethod  &time_stepping;
   * @brief A flag indicating if the internal matrices were updated.
   */
 bool                                    flag_matrices_were_updated;
+
+/*!
+ * @brief A pure virtual method for the set-up of the solver's linear
+ * algebra.
+ *
+ */
+virtual void setup() = 0;
 
 /*!
  * @brief A pure virtual method to set-up the matrices of the solver
@@ -183,34 +184,69 @@ virtual void assemble_constant_matrices() = 0;
  * it fulfills the boundary conditions.
  */
 template<int dim>
-class ProjectionSolverBase : SolverBase<dim>
+class ProjectionSolverBase : public SolverBase<dim>
 {
 public:
 
 /*!
  * @brief Construct a new ProjectionSolverBase instance
  *
+ * @details This constructor considers the case where both the vector
+ * field and the lagrange multiplier are instantiated outside the class.
+ *
+ * @param parameterss The @ref ProjectionSolverParametersBase instance,
+ * which encompases the main parameters of the solvers based on a
+ * projection scheme.
  * @param time_stepping See the documentation for @ref SolverBase
+ * @param vector_field The shared pointer to the @ref FE_VectorField
+ * instance, which represents the vector field on which the
+ * divergence-free condition is imposed
+ * @param lagrange_multiplier The shared pointer to the
+ * @ref FE_ScalarField instance, which represents the Lagrange
+ * multiplier imposing the divergence-free condition
  * @param external_mapping See the documentation for @ref SolverBase
  * @param external_pcout See the documentation for @ref SolverBase
  * @param external_timer See the documentation for @ref SolverBase
  */
 ProjectionSolverBase(
-  TimeDiscretization::VSIMEXMethod                &time_stepping,
-  const std::shared_ptr<Mapping<dim>>             external_mapping =
+  const RunTimeParameters::ProjectionSolverParametersBase &parameters,
+  TimeDiscretization::VSIMEXMethod                        &time_stepping,
+  std::shared_ptr<Entities::FE_VectorField<dim>>          &vector_field,
+  std::shared_ptr<Entities::FE_ScalarField<dim>>          &lagrange_multiplier,
+  const std::shared_ptr<Mapping<dim>>                     external_mapping =
     std::shared_ptr<Mapping<dim>>(),
-  const std::shared_ptr<ConditionalOStream>       external_pcout =
+  const std::shared_ptr<ConditionalOStream>               external_pcout =
     std::shared_ptr<ConditionalOStream>(),
-  const std::shared_ptr<TimerOutput>              external_timer =
+  const std::shared_ptr<TimerOutput>                      external_timer =
     std::shared_ptr<TimerOutput>());
 
-
 /*!
- * @brief A virtual method for the set-up of the solver's linear
- * algebra.
+ * @brief Construct a new ProjectionSolverBase object
  *
+ * @details This constructor considers the case where only the vector
+ * field is instantiated outside the class.
+ *
+ * @param parameterss The @ref ProjectionSolverParametersBase instance,
+ * which encompases the main parameters of the solvers based on a
+ * projection scheme.
+ * @param time_stepping See the documentation for @ref SolverBase
+ * @param vector_field The shared pointer to the @ref FE_VectorField
+ * instance, which represents the vector field on which the
+ * divergence-free condition is imposed
+ * @param external_mapping See the documentation for @ref SolverBase
+ * @param external_pcout See the documentation for @ref SolverBase
+ * @param external_timer See the documentation for @ref SolverBase
  */
-virtual void setup() override;
+ProjectionSolverBase(
+  const RunTimeParameters::ProjectionSolverParametersBase &parameters,
+  TimeDiscretization::VSIMEXMethod                        &time_stepping,
+  std::shared_ptr<Entities::FE_VectorField<dim>>          &vector_field,
+  const std::shared_ptr<Mapping<dim>>                     external_mapping =
+    std::shared_ptr<Mapping<dim>>(),
+  const std::shared_ptr<ConditionalOStream>               external_pcout =
+    std::shared_ptr<ConditionalOStream>(),
+  const std::shared_ptr<TimerOutput>                      external_timer =
+    std::shared_ptr<TimerOutput>());
 
 /*!
  * @brief A virtual method, which performs the solve operation for
@@ -219,7 +255,7 @@ virtual void setup() override;
  * @attention With the inclusion of a base Parameter struct/class, this
  * method could be implemented in the base class.
  */
-// virtual void solve() override;
+virtual void solve() override;
 
 
 /*!
@@ -261,6 +297,28 @@ double get_diffusion_step_rhs_norm() const;
 double get_projection_step_rhs_norm() const;
 
 protected:
+
+/*!
+ * @brief A reference to the @ref ProjectionSolverParametersBase instance,
+ * which encompases all the main parameters for a solver based on a
+ * projection scheme.
+ *
+ */
+const RunTimeParameters::ProjectionSolverParametersBase &projection_solver_parameters;
+
+/*!
+ * @brief A shared pointer to the @ref FE_VectorField representing the
+ * vector field on which the divergence-free condition is to be imposed.
+ *
+ */
+std::shared_ptr<Entities::FE_VectorField<dim>>  vector_field;
+
+/*!
+ * @brief A shared pointer to the @ref FE_ScalarField representing the
+ * Lagrange multiplier, which imposes the divergence-free condition.
+ *
+ */
+std::shared_ptr<Entities::FE_ScalarField<dim>>  lagrange_multiplier;
 
 /*!
  * @brief A pointer to the supply term function.
@@ -428,6 +486,13 @@ bool                                  flag_setup_auxiliary_scalar;
 bool                                  flag_mean_value_constrain;
 
 /*!
+ * @brief A virtual method for the set-up of the solver's linear
+ * algebra.
+ *
+ */
+virtual void setup() override;
+
+/*!
   * @brief A pure virtual method initiating the auxiliary scalar field
   * \f$ \phi\f$.
   * @details Extracts its locally owned and relevant degrees of freedom;
@@ -435,6 +500,34 @@ bool                                  flag_mean_value_constrain;
   * instance.magnetic field
   */
 virtual void setup_auxiliary_scalar() = 0;
+
+
+/*!
+ * @brief A virtual method, which sets up the linear algebra of the
+ * solver
+ *
+ */
+virtual void setup_matrices() override;
+
+/*!
+ * @brief A virtual method, which sets up the matrices related to the
+ * vector field.
+ *
+ */
+virtual void setup_matrices_vector_field();
+
+/*!
+ * @brief Set the up matrices scalar fields object
+ *
+ */
+virtual void setup_matrices_scalar_fields();
+
+/*!
+ * @brief A virtual method, which sets up the vectors of the projection
+ * solver
+ *
+ */
+virtual void setup_vectors() override;
 
 /*!
  * @brief A pure virtual method that computes admissable initial
@@ -500,7 +593,7 @@ virtual void assemble_zeroth_step() = 0;
  * @brief A pure virtual method solving the zeroth step.
  *
  */
-virtual void solve_zeroth_step() = 0;
+virtual std::pair<int, double> solve_zeroth_step();
 
 /*!
  * @brief A pure virtual method assembling the system matrix and the
@@ -510,7 +603,7 @@ virtual void solve_zeroth_step() = 0;
 virtual void assemble_diffusion_step() = 0;
 
 /*!
- * @brief A pure virtual method solving the diffusion step.
+ * @brief A virtual method solving the diffusion step.
  *
  * @param reinit_preconditioner A boolean indicating if the
  * preconditioner is to be re-built.
@@ -520,7 +613,8 @@ virtual void assemble_diffusion_step() = 0;
  * a pure virtual method
  *
  */
-virtual void solve_diffusion_step(const bool reinit_preconditioner) = 0;
+virtual std::pair<int, double> solve_diffusion_step(
+  const bool reinit_preconditioner);
 
 /*!
  * @brief A pure virtual method assembling the right-hand side vector
@@ -530,7 +624,7 @@ virtual void solve_diffusion_step(const bool reinit_preconditioner) = 0;
 virtual void assemble_projection_step() = 0;
 
 /*!
- * @brief A pure virtual method solving the projection step.
+ * @brief A virtual method solving the projection step.
  *
  * @param reinit_preconditioner A boolean indicating if the
  * preconditioner is to be re-built.
@@ -539,7 +633,8 @@ virtual void assemble_projection_step() = 0;
  * method could be implemented in the base class instead of it being
  * a pure virtual method
  */
-virtual void solve_projection_step(const bool reinit_preconditioner) = 0;
+virtual std::pair<int, double> solve_projection_step(
+  const bool reinit_preconditioner);
 
 };
 
