@@ -353,12 +353,6 @@ struct ProjectionSolverParametersBase
   friend Stream& operator<<(Stream &stream, const ProjectionSolverParametersBase &prm);
 
   /*!
-   * @brief Enumerator controlling the incremental pressure-correction
-   * scheme is to be implemented.
-   */
-  PressureCorrectionScheme          pressure_correction_scheme;
-
-  /*!
    * @brief Enumerator controlling which weak form of the convective
    * term is to be implemented
    */

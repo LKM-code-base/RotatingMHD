@@ -511,7 +511,6 @@ Stream& operator<<(Stream &stream, const DimensionlessNumbers &prm)
 
 ProjectionSolverParametersBase::ProjectionSolverParametersBase()
 :
-pressure_correction_scheme(PressureCorrectionScheme::rotational),
 convective_term_weak_form(ConvectiveTermWeakForm::skewsymmetric),
 convective_term_time_discretization(ConvectiveTermTimeDiscretization::semi_implicit),
 diffusion_step_solver_parameters("Diffusion step"),
