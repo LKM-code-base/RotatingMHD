@@ -1,6 +1,7 @@
 #ifndef INCLUDE_ROTATINGMHD_SOLVER_CLASS_H_
 #define INCLUDE_ROTATINGMHD_SOLVER_CLASS_H_
 
+#include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -573,14 +574,66 @@ virtual void assemble_constant_matrices() override;
  * matrices from vector valued variables.
  *
  */
-virtual void assemble_constant_matrices_vector_field() = 0;
+virtual void assemble_constant_matrices_vector_field();
 
 /*!
- * @brief A pure virtual method for the assembly of all constant
+ * @brief A virtual method for the element-wise assembly of the
+ * mass and stiffness matrices of vector-valued variables.
+ *
+ * @param cell The deal.ii entity, which manages the cell iteration.
+ * @param scratch The copy structure for the assembly of the mass and
+ * stiffness matrices of vector-valued finite elements.
+ * @param data The copy structure for the assembly of the mass and
+ * stiffness matrices of vector-valued finite elements.
+ */
+virtual void assemble_local_matrices_vector_field(
+ const typename DoFHandler<dim>::active_cell_iterator  &cell,
+ AssemblyData::ProjectionSolverBase::VectorFieldConstantMatrices::Scratch<dim> &scratch,
+ AssemblyData::ProjectionSolverBase::VectorFieldConstantMatrices::Copy &data);
+
+/*!
+ * @brief A virtual method for the mapping of local mass and stiffness
+ * matrices to the global mass and stiffness matrices of vector-valued
+ * finite elements.
+ *
+ * @param data The copy structure for the assembly of the mass and
+ * stiffness matrices of vector-valued finite elements.
+ */
+virtual void copy_local_to_global_matrices_vector_field(
+ const AssemblyData::ProjectionSolverBase::VectorFieldConstantMatrices::Copy &data);
+
+/*!
+ * @brief A virtual method for the assembly of all constant
  * matrices from scalar valued variables.
  *
  */
-virtual void assemble_constant_matrices_scalar_fields() = 0;
+virtual void assemble_constant_matrices_scalar_fields();
+
+/*!
+ * @brief A virtual method for the element-wise assembly of the
+ * mass and stiffness matrices of scalar-valued variables.
+ *
+ * @param cell The deal.ii entity, which manages the cell iteration.
+ * @param scratch The scratch structure for the assembly of the mass and
+ * stiffness matrices of scalar-valued finite elements
+ * @param data The copy structure for the assembly of the mass and
+ * stiffness matrices of scalar-valued finite elements
+ */
+virtual void assemble_local_matrices_scalar_fields(
+ const typename DoFHandler<dim>::active_cell_iterator  &cell,
+ AssemblyData::ProjectionSolverBase::ScalarFieldsConstantMatrices::Scratch<dim> &scratch,
+ AssemblyData::ProjectionSolverBase::ScalarFieldsConstantMatrices::Copy &data);
+
+/*!
+ * @brief A virtual method for the mapping of local mass and stiffness
+ * matrices to the global mass and stiffness matrices of scalar-valued
+ * finite elements.
+ *
+ * @param data The copy structure for the assembly of the mass and
+ * stiffness matrices of scalar-valued finite elements.
+ */
+virtual void copy_local_to_global_matrices_scalar_fields(
+ const AssemblyData::ProjectionSolverBase::ScalarFieldsConstantMatrices::Copy &data);
 
 /*!
  * @brief A pure virtual method assembling the right-hand side vector
