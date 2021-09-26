@@ -39,6 +39,15 @@ SET(TARGET_SRC
     convection_diffusion/assembly_data.cc
     convection_diffusion/setup.cc
     convection_diffusion/solve.cc
+    # magnetic induction
+    magnetic_induction.cc
+    magnetic_induction/assembly_advection_matrix.cc
+    magnetic_induction/assembly_data.cc
+    magnetic_induction/assembly_diffusion_step_rhs.cc
+    magnetic_induction/assembly_projection_step_rhs.cc
+    magnetic_induction/assembly_zeroth_step_rhs.cc
+    magnetic_induction/setup.cc
+    magnetic_induction/solve.cc
 )
 ADD_LIBRARY(rotatingMHD SHARED ${TARGET_SRC})
 DEAL_II_SETUP_TARGET(rotatingMHD)
