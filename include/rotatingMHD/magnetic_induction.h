@@ -145,7 +145,7 @@ std::shared_ptr<const Entities::FE_VectorField<dim>>  velocity;
  * the velocity field.
  *
  */
-TensorFunction<1,dim>                                 ptr_velocity_function;
+TensorFunction<1,dim>                                 *ptr_velocity_function;
 
 /*!
  * @brief
@@ -224,10 +224,42 @@ void assemble_diffusion_step() override;
 void assemble_diffusion_step_rhs() override;
 
 /*!
+ * @brief This method assembles the local right-hand side of the
+ * diffusion step on a single cell.
+ */
+void assemble_local_diffusion_step_rhs(
+  const typename DoFHandler<dim>::active_cell_iterator              &cell,
+  AssemblyData::MagneticInduction::DiffusionStepRHS::Scratch<dim>  &scratch,
+  AssemblyData::MagneticInduction::DiffusionStepRHS::Copy          &data);
+
+/*!
+ * @brief This method copies the local right-hand side of the diffusion
+ * step into the global vector.
+ */
+void copy_local_to_global_diffusion_step_rhs(
+  const AssemblyData::MagneticInduction::DiffusionStepRHS::Copy  &data);
+
+/*!
  * @brief
  *
  */
 void assemble_projection_step_rhs() override;
+
+/*!
+ * @brief This method assembles the local right-hand side of the
+ * projection step on a single cell.
+ */
+void assemble_local_projection_step_rhs(
+  const typename DoFHandler<dim>::active_cell_iterator              &cell,
+  AssemblyData::MagneticInduction::ProjectionStepRHS::Scratch<dim>  &scratch,
+  AssemblyData::MagneticInduction::ProjectionStepRHS::Copy          &data);
+
+/*!
+ * @brief This method copies the local right-hand side of the projection
+ * step into the global vector.
+ */
+void copy_local_to_global_projection_step_rhs(
+  const AssemblyData::MagneticInduction::ProjectionStepRHS::Copy  &data);
 
 /*!
  * @brief
@@ -236,10 +268,43 @@ void assemble_projection_step_rhs() override;
 void assemble_zeroth_step_rhs() override;
 
 /*!
+ * @brief This method assembles the local right-hand side of the zeroth
+ * step on a single cell.
+ */
+void assemble_local_zeroth_step_rhs(
+  const typename DoFHandler<dim>::active_cell_iterator          &cell,
+  AssemblyData::MagneticInduction::ZerothStepRHS::Scratch<dim>  &scratch,
+  AssemblyData::MagneticInduction::ZerothStepRHS::Copy          &data);
+
+/*!
+ * @brief This method copies the local right-hand side of the zeroth
+ * step into the global vector.
+ */
+void copy_local_to_global_zeroth_step_rhs(
+  const AssemblyData::MagneticInduction::ZerothStepRHS::Copy  &data);
+
+/*!
  * @brief
  *
  */
 void assemble_advection_matrix();
+
+/*!
+ * @brief This method assembles the local advection matrix on a
+ * single cell.
+ */
+void assemble_local_advection_matrix(
+  const typename DoFHandler<dim>::active_cell_iterator            &cell,
+  AssemblyData::MagneticInduction::AdvectionMatrix::Scratch<dim>  &scratch,
+  AssemblyData::MagneticInduction::AdvectionMatrix::Copy          &data);
+
+/*!
+ * @brief This method copies the local advection matrix into the
+ * global matrix.
+ */
+void copy_local_to_global_advection_matrix(
+  const AssemblyData::MagneticInduction::AdvectionMatrix::Copy  &data);
+
 };
 
 
