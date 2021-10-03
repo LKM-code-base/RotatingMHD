@@ -658,6 +658,8 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  magnetic_field_face_laplacians;
 
+  std::vector<Tensor<1,dim>>  normal_vectors;
+
   std::vector<Tensor<1,dim>>  supply_term_values;
 
   std::vector<double>         face_phi;
@@ -688,7 +690,9 @@ struct Scratch : ScratchBase<dim>
           const FiniteElement<dim>  &magnetic_field_fe,
           const UpdateFlags         magnetic_field_update_flags,
           const FiniteElement<dim>  &pseudo_pressure_fe,
-          const UpdateFlags         pseudo_pressure_update_flags);
+          const UpdateFlags         pseudo_pressure_update_flags,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags);
 
   Scratch(const Scratch<dim>    &data);
 
@@ -697,6 +701,8 @@ struct Scratch : ScratchBase<dim>
   FEValues<dim>               magnetic_field_fe_values;
 
   FEValues<dim>               pseudo_pressure_fe_values;
+
+  FEValues<dim>               velocity_fe_values;
 
   std::vector<Tensor<1,dim>>  old_magnetic_field_values;
 
@@ -714,6 +720,8 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<curl_type>      old_old_magnetic_field_curls;
 
+  std::vector<Tensor<1,dim>>  velocity_values;
+
   std::vector<Tensor<1,dim>>  old_velocity_values;
 
   std::vector<Tensor<1,dim>>  old_old_velocity_values;
@@ -721,6 +729,8 @@ struct Scratch : ScratchBase<dim>
   std::vector<double>         old_velocity_divergences;
 
   std::vector<double>         old_old_velocity_divergences;
+
+  std::vector<Tensor<2,dim>>  velocity_gradients;
 
   std::vector<Tensor<2,dim>>  old_velocity_gradients;
 
@@ -762,14 +772,14 @@ struct Scratch : ScratchBase<dim>
           const Quadrature<dim>     &quadrature_formula,
           const FiniteElement<dim>  &magnetic_field_fe,
           const UpdateFlags         magnetic_field_update_flags,
-          const FiniteElement<dim>  &pseudo_pressure_fe,
-          const UpdateFlags         pseudo_pressure_update_flags);
+          const FiniteElement<dim>  &auxiliary_scalar_fe,
+          const UpdateFlags         auxiliary_scalar_update_flags);
 
   Scratch(const Scratch<dim>    &data);
 
   FEValues<dim>       magnetic_field_fe_values;
 
-  FEValues<dim>       pseudo_pressure_fe_values;
+  FEValues<dim>       auxiliary_scalar_fe_values;
 
   std::vector<double> magnetic_field_divergences;
 

@@ -127,6 +127,7 @@ pseudo_pressure_fe_face_values(
   pseudo_pressure_face_update_flags),
 n_face_q_points(face_quadrature_formula.size()),
 magnetic_field_face_laplacians(n_face_q_points),
+normal_vectors(n_face_q_points),
 supply_term_values(this->n_q_points),
 face_phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell)
@@ -172,12 +173,14 @@ namespace DiffusionStepRHS
 
 template <int dim>
 Scratch<dim>::Scratch
-(const Mapping<dim>        &mapping,
- const Quadrature<dim>     &quadrature_formula,
- const FiniteElement<dim>  &magnetic_field_fe,
- const UpdateFlags         magnetic_field_update_flags,
- const FiniteElement<dim>  &pseudo_pressure_fe,
- const UpdateFlags         pseudo_pressure_update_flags)
+(const Mapping<dim>         &mapping,
+ const Quadrature<dim>      &quadrature_formula,
+ const FiniteElement<dim>   &magnetic_field_fe,
+ const UpdateFlags          magnetic_field_update_flags,
+ const FiniteElement<dim>   &pseudo_pressure_fe,
+ const UpdateFlags          pseudo_pressure_update_flags,
+ const FiniteElement<dim>   &velocity_fe,
+ const UpdateFlags          velocity_update_flags)
 :
 ScratchBase<dim>(quadrature_formula,
                  magnetic_field_fe),
@@ -191,6 +194,11 @@ pseudo_pressure_fe_values(
   pseudo_pressure_fe,
   quadrature_formula,
   pseudo_pressure_update_flags),
+velocity_fe_values(
+  mapping,
+  velocity_fe,
+  quadrature_formula,
+  velocity_update_flags),
 old_magnetic_field_values(this->n_q_points),
 old_old_magnetic_field_values(this->n_q_points),
 old_magnetic_field_divergences(this->n_q_points),
@@ -199,10 +207,12 @@ old_magnetic_field_gradients(this->n_q_points),
 old_old_magnetic_field_gradients(this->n_q_points),
 old_magnetic_field_curls(this->n_q_points),
 old_old_magnetic_field_curls(this->n_q_points),
+velocity_values(this->n_q_points),
 old_velocity_values(this->n_q_points),
 old_old_velocity_values(this->n_q_points),
 old_velocity_divergences(this->n_q_points),
 old_old_velocity_divergences(this->n_q_points),
+velocity_gradients(this->n_q_points),
 old_velocity_gradients(this->n_q_points),
 old_old_velocity_gradients(this->n_q_points),
 old_pseudo_pressure_values(this->n_q_points),
@@ -230,6 +240,11 @@ pseudo_pressure_fe_values(
   data.pseudo_pressure_fe_values.get_fe(),
   data.pseudo_pressure_fe_values.get_quadrature(),
   data.pseudo_pressure_fe_values.get_update_flags()),
+velocity_fe_values(
+  data.velocity_fe_values.get_mapping(),
+  data.velocity_fe_values.get_fe(),
+  data.velocity_fe_values.get_quadrature(),
+  data.velocity_fe_values.get_update_flags()),
 old_magnetic_field_values(this->n_q_points),
 old_old_magnetic_field_values(this->n_q_points),
 old_magnetic_field_divergences(this->n_q_points),
@@ -270,21 +285,21 @@ Scratch<dim>::Scratch
  const Quadrature<dim>     &quadrature_formula,
  const FiniteElement<dim>  &magnetic_field_fe,
  const UpdateFlags         magnetic_field_update_flags,
- const FiniteElement<dim>  &pseudo_pressure_fe,
- const UpdateFlags         pseudo_pressure_update_flags)
+ const FiniteElement<dim>  &auxiliary_scalar_fe,
+ const UpdateFlags         auxiliary_scalar_update_flags)
 :
 ScratchBase<dim>(quadrature_formula,
-                 pseudo_pressure_fe),
+                 auxiliary_scalar_fe),
 magnetic_field_fe_values(
   mapping,
   magnetic_field_fe,
   quadrature_formula,
   magnetic_field_update_flags),
-pseudo_pressure_fe_values(
+auxiliary_scalar_fe_values(
   mapping,
-  pseudo_pressure_fe,
+  auxiliary_scalar_fe,
   quadrature_formula,
-  pseudo_pressure_update_flags),
+  auxiliary_scalar_update_flags),
 magnetic_field_divergences(this->n_q_points),
 phi(this->dofs_per_cell)
 {}
@@ -300,11 +315,11 @@ magnetic_field_fe_values(
   data.magnetic_field_fe_values.get_fe(),
   data.magnetic_field_fe_values.get_quadrature(),
   data.magnetic_field_fe_values.get_update_flags()),
-pseudo_pressure_fe_values(
-  data.pseudo_pressure_fe_values.get_mapping(),
-  data.pseudo_pressure_fe_values.get_fe(),
-  data.pseudo_pressure_fe_values.get_quadrature(),
-  data.pseudo_pressure_fe_values.get_update_flags()),
+auxiliary_scalar_fe_values(
+  data.auxiliary_scalar_fe_values.get_mapping(),
+  data.auxiliary_scalar_fe_values.get_fe(),
+  data.auxiliary_scalar_fe_values.get_quadrature(),
+  data.auxiliary_scalar_fe_values.get_update_flags()),
 magnetic_field_divergences(this->n_q_points),
 phi(this->dofs_per_cell)
 {}
