@@ -726,6 +726,8 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  old_old_velocity_values;
 
+  std::vector<double>         velocity_divergences;
+
   std::vector<double>         old_velocity_divergences;
 
   std::vector<double>         old_old_velocity_divergences;
@@ -736,15 +738,17 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<2,dim>>  old_old_velocity_gradients;
 
-  std::vector<double>         old_pseudo_pressure_values;
+  std::vector<Tensor<1,dim>>  old_pseudo_pressure_gradients;
 
-  std::vector<double>         old_auxiliary_scalar_values;
+  std::vector<Tensor<1,dim>>  old_auxiliary_scalar_gradients;
 
-  std::vector<double>         old_old_auxiliary_scalar_values;
+  std::vector<Tensor<1,dim>>  old_old_auxiliary_scalar_gradients;
 
   std::vector<Tensor<1,dim>>  supply_term_values;
 
   std::vector<Tensor<1,dim>>  phi;
+
+  std::vector<Tensor<2,dim>>  grad_phi;
 
   std::vector<double>         div_phi;
 
