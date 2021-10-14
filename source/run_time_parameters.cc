@@ -516,7 +516,7 @@ convective_term_time_discretization(ConvectiveTermTimeDiscretization::semi_impli
 diffusion_step_solver_parameters("Diffusion step"),
 projection_step_solver_parameters("Projection step"),
 correction_step_solver_parameters("Correction step"),
-zeroth_step_solver_parameters("Zeroth step"),
+initialization_step_solver_parameters("Initialization step"),
 preconditioner_update_frequency(10),
 verbose(false)
 {}
@@ -594,7 +594,7 @@ void ProjectionSolverParametersBase::declare_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  prm.enter_subsection("Linear solver parameters - Zeroth step");
+  prm.enter_subsection("Linear solver parameters - Initialization step");
   {
     LinearSolverParameters::declare_parameters(prm);
   }
@@ -655,9 +655,9 @@ void ProjectionSolverParametersBase::parse_parameters(ParameterHandler &prm)
   }
   prm.leave_subsection();
 
-  prm.enter_subsection("Linear solver parameters - Zeroth step");
+  prm.enter_subsection("Linear solver parameters - Initialization step");
   {
-    zeroth_step_solver_parameters.parse_parameters(prm);
+    initialization_step_solver_parameters.parse_parameters(prm);
   }
   prm.leave_subsection();
 }
@@ -714,7 +714,7 @@ Stream& operator<<(Stream &stream, const ProjectionSolverParametersBase &prm)
 
   stream << "\r";
 
-  stream << prm.zeroth_step_solver_parameters;
+  stream << prm.initialization_step_solver_parameters;
 
   stream << "\r";
 

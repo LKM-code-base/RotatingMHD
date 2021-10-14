@@ -386,7 +386,7 @@ struct ProjectionSolverParametersBase
    * @brief The parameters for the linear solver used in the
    * poisson pre-step.
    */
-  LinearSolverParameters            zeroth_step_solver_parameters;
+  LinearSolverParameters            initialization_step_solver_parameters;
 
   /*!
    * @brief Specifies the frequency of the update of the diffusion

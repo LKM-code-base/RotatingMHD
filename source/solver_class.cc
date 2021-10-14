@@ -40,13 +40,13 @@ time_stepping(time_stepping),
 flag_matrices_were_updated(true)
 {
   // Initiating the internal Mapping instance.
-  if (external_mapping.get() != nullptr)
+  if (external_mapping)
     mapping = external_mapping;
   else
     mapping = std::make_shared<MappingQ<dim>>(1);
 
   // Initiating the internal ConditionalOStream instance.
-  if (external_pcout.get() != nullptr)
+  if (external_pcout)
     pcout = external_pcout;
   else
     pcout = std::make_shared<ConditionalOStream>(
@@ -54,7 +54,7 @@ flag_matrices_were_updated(true)
       Utilities::MPI::this_mpi_process(mpi_communicator) == 0);
 
   // Initiating the internal TimerOutput instance.
-  if (external_timer.get() != nullptr)
+  if (external_timer)
     computing_timer = external_timer;
   else
     computing_timer = std::make_shared<TimerOutput>(
@@ -94,7 +94,7 @@ lagrange_multiplier(lagrange_multiplier),
 norm_diffusion_step_rhs(std::numeric_limits<double>::lowest()),
 norm_projection_step_rhs(std::numeric_limits<double>::lowest()),
 flag_setup_auxiliary_scalar(true),
-flag_mean_value_constrain(false)
+flag_mean_value_constraint(false)
 {
   // Explicitly set the supply term's pointer to null
   ptr_supply_term = nullptr;
@@ -120,7 +120,7 @@ vector_field(vector_field),
 norm_diffusion_step_rhs(std::numeric_limits<double>::lowest()),
 norm_projection_step_rhs(std::numeric_limits<double>::lowest()),
 flag_setup_auxiliary_scalar(true),
-flag_mean_value_constrain(false)
+flag_mean_value_constraint(false)
 {
   // Explicitly set the supply term's pointer to null
   ptr_supply_term = nullptr;
@@ -176,7 +176,6 @@ void ProjectionSolverBase<dim>::clear()
   // Preconditioners
   diffusion_step_preconditioner.reset();
   projection_step_preconditioner.reset();
-  zeroth_step_preconditioner.reset();
 
   // Matrices
   diffusion_step_system_matrix.clear();
@@ -185,20 +184,20 @@ void ProjectionSolverBase<dim>::clear()
   diffusion_step_mass_plus_stiffness_matrix.clear();
   diffusion_step_advection_matrix.clear();
   projection_step_system_matrix.clear();
-  zeroth_step_system_matrix.clear();
+  initialization_step_system_matrix.clear();
 
   // Vectors
   diffusion_step_rhs.clear();
   projection_step_rhs.clear();
-  zeroth_step_rhs.clear();
+  initialization_step_rhs.clear();
 
   // Norms
   norm_projection_step_rhs  = std::numeric_limits<double>::lowest();
   norm_diffusion_step_rhs   = std::numeric_limits<double>::lowest();
 
   // Flags
-  flag_setup_auxiliary_scalar       = true;
-  flag_mean_value_constrain         = false;
+  flag_setup_auxiliary_scalar = true;
+  flag_mean_value_constraint  = false;
 
   SolverBase<dim>::clear();
 }
@@ -226,12 +225,12 @@ void ProjectionSolverBase<dim>::setup()
   assemble_constant_matrices();
 
   if (auxiliary_scalar->get_dirichlet_boundary_conditions().empty())
-    flag_mean_value_constrain = true;
+    flag_mean_value_constraint = true;
 
   this->flag_matrices_were_updated = true;
 
   if (this->time_stepping.get_step_number() == 0)
-    zeroth_step();
+    initialization_step();
 }
 
 
@@ -336,7 +335,7 @@ void ProjectionSolverBase<dim>::setup_matrices_scalar_fields()
 {
   // Clear matrices
   projection_step_system_matrix.clear();
-  zeroth_step_system_matrix.clear();
+  initialization_step_system_matrix.clear();
 
   #ifdef USE_PETSC_LA
     // Initiate the sparsity patterns
@@ -370,7 +369,7 @@ void ProjectionSolverBase<dim>::setup_matrices_scalar_fields()
      auxiliary_scalar->locally_relevant_dofs);
 
     // Re-initiate the matrices
-    zeroth_step_system_matrix.reinit
+    initialization_step_system_matrix.reinit
     (lagrange_multiplier->get_locally_owned_dofs(),
      lagrange_multiplier->get_locally_owned_dofs(),
      lagrange_multiplier_sparsity_pattern,
@@ -413,7 +412,7 @@ void ProjectionSolverBase<dim>::setup_matrices_scalar_fields()
     lagrange_multiplier_sparsity_pattern.compress();
     auxiliary_scalar_sparsity_pattern.compress();
 
-    zeroth_step_system_matrix.reinit(lagrange_multiplier_sparsity_pattern);
+    initialization_step_system_matrix.reinit(lagrange_multiplier_sparsity_pattern);
     projection_step_system_matrix.reinit(auxiliary_scalar_sparsity_pattern);
 
   #endif
@@ -426,44 +425,46 @@ void ProjectionSolverBase<dim>::setup_vectors()
 {
   diffusion_step_rhs.reinit(vector_field->distributed_vector);
   projection_step_rhs.reinit(auxiliary_scalar->distributed_vector);
-  zeroth_step_rhs.reinit(lagrange_multiplier->distributed_vector);
+  initialization_step_rhs.reinit(lagrange_multiplier->distributed_vector);
 }
 
 
 
 template <int dim>
-void ProjectionSolverBase<dim>::zeroth_step()
+void ProjectionSolverBase<dim>::initialization_step()
 {
   if (ptr_supply_term != nullptr)
     ptr_supply_term->set_time(this->time_stepping.get_start_time());
 
-  assemble_zeroth_step();
+  assemble_initialization_step();
 
-  solve_zeroth_step();
+  solve_initialization_step();
 }
 
 
 
 template <int dim>
-std::pair<int, double> ProjectionSolverBase<dim>::solve_zeroth_step()
+std::pair<int, double> ProjectionSolverBase<dim>::solve_initialization_step()
 {
   LinearAlgebra::MPI::Vector distributed_lagrange_multiplier(lagrange_multiplier->distributed_vector);
   distributed_lagrange_multiplier = lagrange_multiplier->old_solution;
 
   const typename RunTimeParameters::LinearSolverParameters &solver_parameters
-    = projection_solver_parameters.zeroth_step_solver_parameters;
+    = projection_solver_parameters.initialization_step_solver_parameters;
 
-  build_preconditioner(zeroth_step_preconditioner,
-                       zeroth_step_system_matrix,
+  std::shared_ptr<LinearAlgebra::PreconditionBase> initialization_step_preconditioner;
+
+  build_preconditioner(initialization_step_preconditioner,
+                       initialization_step_system_matrix,
                        solver_parameters.preconditioner_parameters_ptr,
                        (lagrange_multiplier->fe_degree() > 1? true: false));
 
-  AssertThrow(zeroth_step_preconditioner != nullptr,
+  AssertThrow(initialization_step_preconditioner != nullptr,
               ExcMessage("The pointer to the Poisson pre-step's preconditioner has not being initialized."));
 
   SolverControl solver_control(
     solver_parameters.n_maximum_iterations,
-    std::max(solver_parameters.relative_tolerance * zeroth_step_rhs.l2_norm(),
+    std::max(solver_parameters.relative_tolerance * initialization_step_rhs.l2_norm(),
              solver_parameters.absolute_tolerance));
 
   #ifdef USE_PETSC_LA
@@ -475,17 +476,17 @@ std::pair<int, double> ProjectionSolverBase<dim>::solve_zeroth_step()
 
   try
   {
-    solver.solve(zeroth_step_system_matrix,
+    solver.solve(initialization_step_system_matrix,
                  distributed_lagrange_multiplier,
-                 zeroth_step_rhs,
-                 *zeroth_step_preconditioner);
+                 initialization_step_rhs,
+                 *initialization_step_preconditioner);
   }
   catch (std::exception &exc)
   {
     std::cerr << std::endl << std::endl
               << "----------------------------------------------------"
               << std::endl;
-    std::cerr << "Exception in the solve method of the zeroth step: " << std::endl
+    std::cerr << "Exception in the solve method of the initialization step: " << std::endl
               << exc.what() << std::endl
               << "Aborting!" << std::endl
               << "----------------------------------------------------"
@@ -497,7 +498,7 @@ std::pair<int, double> ProjectionSolverBase<dim>::solve_zeroth_step()
     std::cerr << std::endl << std::endl
               << "----------------------------------------------------"
                 << std::endl;
-    std::cerr << "Unknown exception in the solve method of the  zeroth step!" << std::endl
+    std::cerr << "Unknown exception in the solve method of the  initialization step!" << std::endl
               << "Aborting!" << std::endl
               << "----------------------------------------------------"
               << std::endl;
@@ -508,7 +509,7 @@ std::pair<int, double> ProjectionSolverBase<dim>::solve_zeroth_step()
 
   lagrange_multiplier->old_solution = distributed_lagrange_multiplier;
 
-  if (flag_mean_value_constrain)
+  if (flag_mean_value_constraint)
   {
     const LinearAlgebra::MPI::Vector::value_type mean_value
       = VectorTools::compute_mean_value(lagrange_multiplier->get_dof_handler(),
@@ -561,7 +562,7 @@ std::pair<int, double> ProjectionSolverBase<dim>::solve_diffusion_step(const boo
                          (vector_field->fe_degree() > 1? true: false));
   }
 
-  AssertThrow(diffusion_step_preconditioner != nullptr,
+  AssertThrow(diffusion_step_preconditioner,
               ExcMessage("The pointer to the diffusion step's preconditioner has not being initialized."));
 
   SolverControl solver_control(
@@ -642,7 +643,7 @@ std::pair<int, double>  ProjectionSolverBase<dim>::solve_projection_step(const b
                          (auxiliary_scalar->fe_degree() > 1? true: false));
   }
 
-  AssertThrow(projection_step_preconditioner != nullptr,
+  AssertThrow(projection_step_preconditioner,
               ExcMessage("The pointer to the projection step's preconditioner has not being initialized."));
 
   SolverControl solver_control(
@@ -692,7 +693,7 @@ std::pair<int, double>  ProjectionSolverBase<dim>::solve_projection_step(const b
 
   auxiliary_scalar->solution = distributed_auxiliary_scalar;
 
-  if (flag_mean_value_constrain)
+  if (flag_mean_value_constraint)
   {
     const LinearAlgebra::MPI::Vector::value_type mean_value
       = VectorTools::compute_mean_value(auxiliary_scalar->get_dof_handler(),
@@ -846,8 +847,8 @@ template <int dim>
 void ProjectionSolverBase<dim>::assemble_constant_matrices_scalar_fields()
 {
   // Reset data
-  zeroth_step_system_matrix     = 0.;
-  projection_step_system_matrix = 0.;
+  initialization_step_system_matrix = 0.;
+  projection_step_system_matrix     = 0.;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(lagrange_multiplier->fe_degree() + 1);
@@ -890,7 +891,7 @@ void ProjectionSolverBase<dim>::assemble_constant_matrices_scalar_fields()
     lagrange_multiplier->get_finite_element().dofs_per_cell));
 
   // Compress global data
-  zeroth_step_system_matrix.compress(VectorOperation::add);
+  initialization_step_system_matrix.compress(VectorOperation::add);
   projection_step_system_matrix.compress(VectorOperation::add);
 }
 
@@ -955,7 +956,7 @@ void ProjectionSolverBase<dim>::copy_local_to_global_matrices_scalar_fields(
   lagrange_multiplier->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
-                                      zeroth_step_system_matrix);
+                                      initialization_step_system_matrix);
   auxiliary_scalar->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
