@@ -439,6 +439,10 @@ void ProjectionSolverBase<dim>::initialization_step()
   assemble_initialization_step();
 
   solve_initialization_step();
+
+  // Clear linear algebra in order to free memory
+  initialization_step_system_matrix.clear();
+  initialization_step_rhs.clear();
 }
 
 
