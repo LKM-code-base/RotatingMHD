@@ -378,7 +378,6 @@ void ConvectionDiffusionSolver<dim>::assemble_local_rhs
                              time_stepping.get_previous_time(),
                              time_stepping.get_current_time(),
                              advection_term);
-  }
 
   // Loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
@@ -502,7 +501,7 @@ void ConvectionDiffusionSolver<dim>::assemble_local_rhs
 
 
 template <int dim>
-void HeatEquation<dim>::assemble_local_rhs
+void ConvectionDiffusionSolver<dim>::assemble_local_rhs
 (const typename DoFHandler<dim>::active_cell_iterator     &cell,
  HDCDScratch<dim> &scratch,
  Copy             &data)
@@ -719,7 +718,7 @@ template void ConvectionDiffusionSolver<2>::assemble_local_rhs
  CDScratch<2> &,
  Copy         &);
 template void ConvectionDiffusionSolver<3>::assemble_local_rhs
-(const typename DoFHandler<2>::active_cell_iterator &,
+(const typename DoFHandler<3>::active_cell_iterator &,
  CDScratch<3> &,
  Copy         &);
 
@@ -728,7 +727,7 @@ template void ConvectionDiffusionSolver<2>::assemble_local_rhs
  HDCDScratch<2> &,
  Copy         &);
 template void ConvectionDiffusionSolver<3>::assemble_local_rhs
-(const typename DoFHandler<2>::active_cell_iterator &,
+(const typename DoFHandler<3>::active_cell_iterator &,
  HDCDScratch<3> &,
  Copy         &);
 
@@ -738,5 +737,7 @@ template void ConvectionDiffusionSolver<3>::copy_local_to_global_rhs(const Copy 
 template void ConvectionDiffusionSolver<2>::assemble_rhs();
 template void ConvectionDiffusionSolver<3>::assemble_rhs();
 
-
 } // namespace RMHD
+
+
+
