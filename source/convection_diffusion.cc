@@ -8,7 +8,7 @@ namespace RMHD
 {
 
 template <int dim>
-HeatEquation<dim>::HeatEquation
+ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 (const RunTimeParameters::HeatEquationParameters  &parameters,
  TimeDiscretization::VSIMEXMethod                 &time_stepping,
  std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
@@ -60,7 +60,7 @@ flag_matrices_were_updated(true)
 }
 
 template <int dim>
-HeatEquation<dim>::HeatEquation
+ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 (const RunTimeParameters::HeatEquationParameters  &parameters,
  TimeDiscretization::VSIMEXMethod                 &time_stepping,
  std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
@@ -116,7 +116,7 @@ flag_matrices_were_updated(true)
 }
 
 template <int dim>
-HeatEquation<dim>::HeatEquation
+ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 (const RunTimeParameters::HeatEquationParameters  &parameters,
  TimeDiscretization::VSIMEXMethod                 &time_stepping,
  std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
@@ -175,5 +175,5 @@ flag_matrices_were_updated(true)
 
 // explicit instantiations
 
-template class RMHD::HeatEquation<2>;
-template class RMHD::HeatEquation<3>;
+template class RMHD::ConvectionDiffusionSolver<2>;
+template class RMHD::ConvectionDiffusionSolver<3>;

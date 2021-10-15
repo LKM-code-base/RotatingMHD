@@ -1,0 +1,60 @@
++------------------------------------------+----------------------+
+| Timestepping parameters                                         |
++------------------------------------------+----------------------+
+| IMEX scheme                              | CNAB                 |
+| Maximum number of time steps             | 100                  |
+| Adaptive timestepping                    | true                 |
+| Adaptive timestepping barrier            | 2                    |
+| Initial time step                        | 0.1                  |
+| Minimum time step                        | 0.01                 |
+| Maximum time step                        | 1                    |
+| Start time                               | 0                    |
+| Final time                               | 1                    |
+| Verbose                                  | false                |
++------------------------------------------+----------------------+
+Step =      0, Current time = 0.000000e+00, Next time step = 1.000000e-01
+    +-------------+------------+------------+------------+
+    |    Index    |     n      |    n-1     |     n-2    |
+    +-------------+------------+------------+------------+
+    |    alpha    |   1.00e+00 |  -1.00e+00 |   0.00e+00 | 
+    |    beta     |     -      |   1.00e+00 |   0.00e+00 | 
+    |    gamma    |   1.00e+00 |   0.00e+00 |   0.00e+00 | 
+    |  extra_pol  |     -      |   1.00e+00 |   0.00e+00 | 
+    +-------------+------------+------------+------------+
+Step =      1, Current time = 1.00e-01, Next time step = 1.00e-01
+    +-------------+------------+------------+------------+
+    |    Index    |     n      |    n-1     |     n-2    |
+    +-------------+------------+------------+------------+
+    |    alpha    |   1.00e+00 |  -1.00e+00 |   0.00e+00 | 
+    |    beta     |     -      |   1.50e+00 |  -5.00e-01 | 
+    |    gamma    |   5.00e-01 |   5.00e-01 |   0.00e+00 | 
+    |  extra_pol  |     -      |   2.00e+00 |  -1.00e+00 | 
+    +-------------+------------+------------+------------+
+Step =      2, Current time = 2.00e-01, Next time step = 1.00e-01
+Step =      3, Current time = 3.00e-01, Next time step = 1.00e-01
+Step =      4, Current time = 4.00e-01, Next time step = 1.00e-01
+Step =      5, Current time = 5.00e-01, Next time step = 1.00e-01
+Step =      6, Current time = 6.00e-01, Next time step = 1.00e-01
+Step =      7, Current time = 7.00e-01, Next time step = 1.00e-01
+Step =      8, Current time = 8.00e-01, Next time step = 1.00e-01
+Step =      9, Current time = 9.00e-01, Next time step = 1.00e-01
+Step =     10, Current time = 1.00e+00, Next time step = 0.00e+00
+Step =     10, Current time = 1.00e+00, Next time step = 2.00e-01
+    +-------------+------------+------------+------------+
+    |    Index    |     n      |    n-1     |     n-2    |
+    +-------------+------------+------------+------------+
+    |    alpha    |   1.00e+00 |  -1.00e+00 |   0.00e+00 | 
+    |    beta     |     -      |   2.00e+00 |  -1.00e+00 | 
+    |    gamma    |   5.00e-01 |   5.00e-01 |   0.00e+00 | 
+    |  extra_pol  |     -      |   3.00e+00 |  -2.00e+00 | 
+    +-------------+------------+------------+------------+
+Step =     11, Current time = 1.20e+00, Next time step = 2.00e-01
+Step =     11, Current time = 1.20e+00, Next time step = 2.00e-01
+Step =     12, Current time = 1.40e+00, Next time step = 2.00e-01
+Step =     12, Current time = 1.40e+00, Next time step = 2.00e-01
+Step =     13, Current time = 1.60e+00, Next time step = 2.00e-01
+Step =     13, Current time = 1.60e+00, Next time step = 2.00e-01
+Step =     14, Current time = 1.80e+00, Next time step = 2.00e-01
+Step =     14, Current time = 1.80e+00, Next time step = 2.00e-01
+Step =     15, Current time = 2.00e+00, Next time step = 0.00e+00
+Step =     15, Current time = 2.00e+00, Next time step = 0.00e+00

@@ -81,7 +81,83 @@ void compute_advection_term
       beta[1] * old_old_velocity_values[q] * old_old_temperature_gradients[q];
 }
 
+template <int dim>
+void compute_advection_term
+(const Entities::FE_VectorField<dim> &velocity,
+ const typename DoFHandler<dim>::active_cell_iterator &cell,
+ const std::vector<Tensor<1,dim>>    &old_temperature_gradients,
+ const std::vector<Tensor<1,dim>>    &old_old_temperature_gradients,
+ const std::vector<double>           &beta,
+ FEValues<dim>                       &fe_values,
+ std::vector<double>                 &advection_term)
+{
+  AssertDimension(old_temperature_gradients.size(), advection_term.size());
+  AssertDimension(old_old_temperature_gradients.size(), advection_term.size());
 
+  typename DoFHandler<dim>::active_cell_iterator
+  velocity_cell(&velocity.get_triangulation(),
+                cell->level(),
+                cell->index(),
+                &velocity.get_dof_handler());
+
+  fe_values.reinit(velocity_cell);
+
+  const FEValuesExtractors::Vector  vector_extractor(0);
+  std::vector<Tensor<1,dim>>  old_velocity_values(advection_term.size());
+  fe_values[vector_extractor].get_function_values(velocity.old_solution,
+                                                  old_velocity_values);
+
+  std::vector<Tensor<1,dim>>  old_old_velocity_values(advection_term.size());
+  fe_values[vector_extractor].get_function_values(velocity.old_old_solution,
+                                                  old_old_velocity_values);
+  // Loop over quadrature points
+  for (std::size_t q=0; q<advection_term.size(); ++q)
+    advection_term[q] =
+        beta[0] * old_velocity_values[q] * old_temperature_gradients[q] +
+        beta[1] * old_old_velocity_values[q] * old_old_temperature_gradients[q];
+}
+
+
+template <int dim>
+void compute_advection_matrix_for_bc
+(const Entities::FE_VectorField<dim> &velocity,
+ const typename DoFHandler<dim>::active_cell_iterator &cell,
+ const std::vector<double>         &phi,
+ const std::vector<Tensor<1,dim>>  &grad_phi,
+ const std::vector<double>         &eta,
+ const double                       JxW_value,
+ const unsigned int                 q,
+ const unsigned int                 i,
+ FEValues<dim>                     &fe_values,
+ FullMatrix<double>                &local_matrix)
+{
+  AssertDimension(phi.size(), local_matrix.m());
+  AssertDimension(grad_phi.size(), local_matrix.m());
+
+  typename DoFHandler<dim>::active_cell_iterator
+  velocity_cell(&velocity.get_triangulation(),
+                cell->level(),
+                cell->index(),
+                &velocity.get_dof_handler());
+
+  fe_values.reinit(velocity_cell);
+
+  const FEValuesExtractors::Vector  vector_extractor(0);
+
+  std::vector<Tensor<1,dim>>  old_velocity_values(fe_values.get_quadrature().size());
+  fe_values[vector_extractor].get_function_values(velocity.old_solution,
+                                                  old_velocity_values);
+
+  std::vector<Tensor<1,dim>>  old_old_velocity_values(fe_values.get_quadrature().size());
+  fe_values[vector_extractor].get_function_values(velocity.old_old_solution,
+                                                  old_old_velocity_values);
+
+  const Tensor<1,dim> extrapolated_velocity =
+      eta[0] * old_velocity_values[q] + eta[1] * old_old_velocity_values[q];
+
+  for (std::size_t j=0; j<phi.size(); ++j)
+    local_matrix(j,i) += phi[j] * (extrapolated_velocity * grad_phi[i]) * JxW_value;
+}
 
 template <int dim>
 void compute_advection_matrix_for_bc
@@ -116,7 +192,7 @@ void compute_advection_matrix_for_bc
 using namespace AssemblyData::HeatEquation::RightHandSide;
 
 template <int dim>
-void HeatEquation<dim>::assemble_rhs()
+void ConvectionDiffusionSolver<dim>::assemble_rhs()
 {
   if (parameters.verbose)
     *pcout << "  Heat Equation: Assembling right hand side...";
@@ -238,7 +314,7 @@ void HeatEquation<dim>::assemble_rhs()
 
 
 template <int dim>
-void HeatEquation<dim>::assemble_local_rhs
+void ConvectionDiffusionSolver<dim>::assemble_local_rhs
 (const typename DoFHandler<dim>::active_cell_iterator     &cell,
  CDScratch<dim> &scratch,
  Copy           &data)
@@ -302,6 +378,7 @@ void HeatEquation<dim>::assemble_local_rhs
                              time_stepping.get_previous_time(),
                              time_stepping.get_current_time(),
                              advection_term);
+  }
 
   // Loop over quadrature points
   for (unsigned int q = 0; q < scratch.n_q_points; ++q)
@@ -626,7 +703,7 @@ void HeatEquation<dim>::assemble_local_rhs
 
 
 template <int dim>
-void HeatEquation<dim>::copy_local_to_global_rhs
+void ConvectionDiffusionSolver<dim>::copy_local_to_global_rhs
 (const Copy  &data)
 {
   temperature->get_constraints().distribute_local_to_global(
@@ -637,20 +714,29 @@ void HeatEquation<dim>::copy_local_to_global_rhs
 }
 
 // explicit instantiations
-template void HeatEquation<2>::assemble_local_rhs
+template void ConvectionDiffusionSolver<2>::assemble_local_rhs
 (const typename DoFHandler<2>::active_cell_iterator &,
- CDScratch<2>&,
- Copy      &);
-
-template void HeatEquation<3>::assemble_local_rhs
-(const typename DoFHandler<3>::active_cell_iterator &,
+ CDScratch<2> &,
+ Copy         &);
+template void ConvectionDiffusionSolver<3>::assemble_local_rhs
+(const typename DoFHandler<2>::active_cell_iterator &,
  CDScratch<3> &,
  Copy         &);
 
-template void HeatEquation<2>::copy_local_to_global_rhs(const Copy &);
-template void HeatEquation<3>::copy_local_to_global_rhs(const Copy &);
+template void ConvectionDiffusionSolver<2>::assemble_local_rhs
+(const typename DoFHandler<2>::active_cell_iterator &,
+ HDCDScratch<2> &,
+ Copy         &);
+template void ConvectionDiffusionSolver<3>::assemble_local_rhs
+(const typename DoFHandler<2>::active_cell_iterator &,
+ HDCDScratch<3> &,
+ Copy         &);
 
-template void HeatEquation<2>::assemble_rhs();
-template void HeatEquation<3>::assemble_rhs();
+template void ConvectionDiffusionSolver<2>::copy_local_to_global_rhs(const Copy &);
+template void ConvectionDiffusionSolver<3>::copy_local_to_global_rhs(const Copy &);
+
+template void ConvectionDiffusionSolver<2>::assemble_rhs();
+template void ConvectionDiffusionSolver<3>::assemble_rhs();
+
 
 } // namespace RMHD

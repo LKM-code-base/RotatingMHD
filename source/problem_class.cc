@@ -1,4 +1,3 @@
-#include <rotatingMHD/global.h>
 #include <rotatingMHD/problem_class.h>
 
 #include <deal.II/base/quadrature_lib.h>
@@ -18,14 +17,151 @@ SolutionTransferContainer<dim>::SolutionTransferContainer()
 error_vector_size(0)
 {}
 
+
+
 template<int dim>
-void SolutionTransferContainer<dim>::add_entity(
-std::shared_ptr<Entities::FE_FieldBase<dim>> entity, bool flag)
+void SolutionTransferContainer<dim>::serialize
+(const std::string &file_name) const
 {
-  entities.emplace_back(std::make_pair(entity.get(), flag));
+  Assert(!empty(),
+         ExcMessage("The entities container is empty."))
+
+  using SolutionTransferType =
+  parallel::distributed::SolutionTransfer<dim, LinearAlgebra::MPI::Vector>;
+
+  // Store the current solutions into a std::vector
+  const std::vector<TransferVectorType> transfer_vectors = get_transfer_vectors();
+
+  // Initiate the objects responsible for the solution transfer
+  std::vector<SolutionTransferType> transfer_objects = get_transfer_objects();
+  // Prepare each entry for the solution transfer
+  for (std::size_t i=0; i<entities.size(); ++i)
+    transfer_objects[i].prepare_for_serialization(transfer_vectors[i]);
+
+  // Cast pointer
+  const parallel::distributed::Triangulation<dim> *dist_triangulation =
+      dynamic_cast<const parallel::distributed::Triangulation<dim> *>(triangulation);
+
+  AssertThrow(dist_triangulation != nullptr,
+              ExcInternalError());
+
+  // Serialize
+  dist_triangulation->save(file_name);
+
+}
+
+
+template<int dim>
+void SolutionTransferContainer<dim>::deserialize
+(Triangulation<dim> &tria,
+ const std::string  &file_name)
+{
+  AssertThrow(&tria == &(*triangulation),
+              ExcMessage("Input triangulation is equal to that of the finite "
+                         "element fields."));
+
+  // Cast pointer
+  parallel::distributed::Triangulation<dim> *dist_triangulation =
+      dynamic_cast<parallel::distributed::Triangulation<dim> *>(&tria);
+
+  AssertThrow(dist_triangulation != nullptr,
+              ExcInternalError());
+
+  try
+  {
+    dist_triangulation->load(file_name);
+  }
+  catch (...)
+  {
+      AssertThrow(false,
+                  ExcMessage("Cannot open snapshot mesh file or read the"
+                             "triangulation stored there."));
+  }
+
+  for (auto &entity: entities)
+  {
+    entity.first->setup_dofs();
+    entity.first->setup_vectors();
+
+    VectorType  distributed_solution(entity.first->distributed_vector);
+    VectorType  distributed_old_solution(entity.first->distributed_vector);
+    VectorType  distributed_old_old_solution(entity.first->distributed_vector);
+
+    DeserializeVectorType x_solution(3);
+    x_solution[0] = &distributed_solution;
+    x_solution[1] = &distributed_old_solution;
+    x_solution[2] = &distributed_old_old_solution;
+
+    SolutionTransferType solution_transfer(entity.first->get_dof_handler());
+
+    solution_transfer.deserialize(x_solution);
+
+    entity.first->solution = distributed_solution;
+    entity.first->old_solution = distributed_old_solution;
+    entity.first->old_old_solution = distributed_old_old_solution;
+  }
+}
+
+
+
+
+template<int dim>
+void SolutionTransferContainer<dim>::add_entity
+(Entities::FE_FieldBase<dim> &entity,
+ bool flag)
+{
+  const Triangulation<dim>  &tria{entity.get_triangulation()};
+
+  if (entities.empty())
+    triangulation = &tria;
+  else
+    AssertThrow(&tria == &(*triangulation),
+                ExcMessage("Entities do not share the same triangulation."));
+
+  entities.emplace_back(std::make_pair(&entity, flag));
   if (flag)
     error_vector_size += 1;
 }
+
+
+
+template <int dim>
+std::vector<typename SolutionTransferContainer<dim>::SolutionTransferType>
+SolutionTransferContainer<dim>::get_transfer_objects() const
+{
+  std::vector<typename SolutionTransferContainer<dim>::SolutionTransferType>
+  transfer_objects;
+
+  for (const auto &field: entities)
+    transfer_objects.emplace_back(field.first->get_dof_handler());
+
+  return (transfer_objects);
+}
+
+
+
+template <int dim>
+std::vector<typename SolutionTransferContainer<dim>::TransferVectorType>
+SolutionTransferContainer<dim>::get_transfer_vectors() const
+{
+  std::vector<typename SolutionTransferContainer<dim>::TransferVectorType>
+  transfer_vectors;
+
+  for (const auto &field: entities)
+  {
+    typename SolutionTransferContainer<dim>::TransferVectorType
+    vector(3);
+    vector[0] = &(field.first->solution);
+    vector[1] = &(field.first->old_solution);
+    vector[2] = &(field.first->old_old_solution);
+
+    transfer_vectors.push_back(vector);
+  }
+
+  return (transfer_vectors);
+}
+
+
 
 template<int dim>
 Problem<dim>::Problem(const RunTimeParameters::ProblemBaseParameters &prm_)
@@ -166,17 +302,12 @@ void Problem<dim>::adaptive_mesh_refinement()
   Assert(!container.empty(),
          ExcMessage("The entities container is empty."))
 
-  using SolutionTransferType =
-  parallel::distributed::SolutionTransfer<dim, LinearAlgebra::MPI::Vector>;
+  const std::vector<typename SolutionTransferContainer<dim>::FE_Field>
+  entities = container.get_field_collection();
 
-  using TransferVectorType =
-  std::vector<const LinearAlgebra::MPI::Vector *>;
+  std::vector<typename SolutionTransferContainer<dim>::SolutionTransferType>
+  transfer_objects = container.get_transfer_objects();
 
-  std::vector<SolutionTransferType> solution_transfers;
-
-  /*! Initiates the objects responsible for the solution transfer */
-  for (auto const &entity: container.entities)
-    solution_transfers.emplace_back(entity.first->get_dof_handler());
 
   {
     TimerOutput::Scope t(*computing_timer,
@@ -200,15 +331,15 @@ void Problem<dim>::adaptive_mesh_refinement()
 
     // Computes the estimated error per cell of all the pertinent
     // entities
-    for (unsigned int i = 0; i < container.entities.size(); ++i)
+    for (unsigned int i = 0; i < container.get_field_collection().size(); ++i)
     {
-      if (container.entities[i].second)
+      if (entities[i].second)
       {
         KellyErrorEstimator<dim>::estimate(
-          container.entities[i].first->get_dof_handler(),
-          QGauss<dim-1>(container.entities[i].first->fe_degree() + 1),
+          entities[i].first->get_dof_handler(),
+          QGauss<dim-1>(entities[i].first->fe_degree() + 1),
           std::map<types::boundary_id, const Function<dim> *>(),
-          container.entities[i].first->solution,
+          entities[i].first->solution,
           estimated_errors_per_cell[j],
           ComponentMask(),
           nullptr,
@@ -265,21 +396,14 @@ void Problem<dim>::adaptive_mesh_refinement()
 
     // Stores the current solutions into std::vector declared below
     // and prepare each entry for the solution transfer
-    std::vector<TransferVectorType> x_solutions;
+    const std::vector<typename SolutionTransferContainer<dim>::TransferVectorType>
+    transfer_vectors = container.get_transfer_vectors();
 
-    for (auto const &entity : container.entities)
-    {
-      TransferVectorType x_solution(3);
-      x_solution[0] = &(entity.first)->solution;
-      x_solution[1] = &(entity.first)->old_solution;
-      x_solution[2] = &(entity.first)->old_old_solution;
-      x_solutions.emplace_back(x_solution);
-    }
+    AssertDimension(transfer_objects.size(), transfer_vectors.size());
 
     triangulation.prepare_coarsening_and_refinement();
-    for (unsigned int i = 0; i < solution_transfers.size(); ++i)
-      solution_transfers[i].prepare_for_coarsening_and_refinement(
-        x_solutions[i]);
+    for (size_t i = 0; i < transfer_objects.size(); ++i)
+      transfer_objects[i].prepare_for_coarsening_and_refinement(transfer_vectors[i]);
 
     // Execute the mesh refinement/coarsening
     *pcout << " Executing coarsening and refining..." << std::endl;
@@ -305,7 +429,7 @@ void Problem<dim>::adaptive_mesh_refinement()
   int n_total_dofs = 0;
 
   // Reinitiate the entities to accomodate to the new mesh
-  for (auto &entity: container.entities)
+  for (auto &entity: entities)
   {
     (entity.first)->setup_dofs();
 
@@ -334,7 +458,7 @@ void Problem<dim>::adaptive_mesh_refinement()
     TimerOutput::Scope t(*computing_timer,
                          "Problem: Adaptive mesh refinement Pt. 2");
 
-    for (unsigned int i = 0; i < container.entities.size(); ++i)
+    for (size_t i = 0; i<entities.size(); ++i)
     {
       // Temporary vectors to extract the interpolated solutions back
       // into the entities
@@ -342,7 +466,7 @@ void Problem<dim>::adaptive_mesh_refinement()
       LinearAlgebra::MPI::Vector  distributed_tmp_old_solution;
       LinearAlgebra::MPI::Vector  distributed_tmp_old_old_solution;
 
-      distributed_tmp_solution.reinit(container.entities[i].first->distributed_vector);
+      distributed_tmp_solution.reinit(entities[i].first->distributed_vector);
       distributed_tmp_old_solution.reinit(distributed_tmp_solution);
       distributed_tmp_old_old_solution.reinit(distributed_tmp_solution);
 
@@ -352,19 +476,19 @@ void Problem<dim>::adaptive_mesh_refinement()
       tmp[2] = &(distributed_tmp_old_old_solution);
 
       // Interpolate and apply constraints to the temporary vectors
-      solution_transfers[i].interpolate(tmp);
+      transfer_objects[i].interpolate(tmp);
 
-      const AffineConstraints<LinearAlgebra::MPI::Vector::value_type> &
-      current_constraints = container.entities[i].first->get_constraints();
+      const AffineConstraints<LinearAlgebra::MPI::Vector::value_type>
+      &current_constraints = entities[i].first->get_constraints();
 
       current_constraints.distribute(distributed_tmp_solution);
       current_constraints.distribute(distributed_tmp_old_solution);
       current_constraints.distribute(distributed_tmp_old_old_solution);
 
       // Pass the interpolated vectors to the fields' vector instances
-      (container.entities[i].first)->solution          = distributed_tmp_solution;
-      (container.entities[i].first)->old_solution      = distributed_tmp_old_solution;
-      (container.entities[i].first)->old_old_solution  = distributed_tmp_old_old_solution;
+      (entities[i].first)->solution          = distributed_tmp_solution;
+      (entities[i].first)->old_solution      = distributed_tmp_old_solution;
+      (entities[i].first)->old_old_solution  = distributed_tmp_old_old_solution;
     }
   }
 }
