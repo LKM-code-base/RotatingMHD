@@ -32,7 +32,66 @@ void MagneticInduction<dim>::setup_pseudo_pressure()
   pseudo_pressure->clear_boundary_conditions();
   pseudo_pressure->setup_boundary_conditions();
 
-  /* Set boundary conditions */
+  // Check for unsupported boundary conditions
+  {
+    std::vector<types::boundary_id> constrained_boundary_ids =
+      magnetic_field->get_boundary_conditions().get_constrained_boundary_ids();
+
+    const typename Entities::BoundaryConditionsBase<dim>::BCMapping
+      tangential_component_boundary_conditions =
+        magnetic_field->get_tangential_component_boundary_condition();
+
+    std::vector<types::boundary_id> tangential_component_boundary_ids;
+
+    for (auto const &tangential_component_boundary_condition :
+          tangential_component_boundary_conditions)
+      tangential_component_boundary_ids.push_back(
+        tangential_component_boundary_condition.first);
+
+    std::sort(constrained_boundary_ids.begin(),
+              constrained_boundary_ids.end());
+
+    std::sort(tangential_component_boundary_ids.begin(),
+              tangential_component_boundary_ids.end());
+
+    AssertThrow(tangential_component_boundary_ids
+                  == constrained_boundary_ids,
+                ExcMessage("Only tangential component boundary "
+                            "conditions are currently being supported "
+                            "in the code."));
+  }
+
+  // Homogeneous tangential boundary conditions are set at unconstrained
+  // boundaries
+  std::vector<types::boundary_id> unconstrained_boundary_ids =
+    magnetic_field->get_boundary_conditions().get_unconstrained_boundary_ids();
+
+  if (unconstrained_boundary_ids.size() != 0)
+  {
+    *this->pcout << std::endl
+                  << "Warning: No boundary conditions for the magnetic field were "
+                  << "assigned on the boundaries {";
+
+    for (const auto &unconstrained_boundary_id : unconstrained_boundary_ids)
+    {
+      *this->pcout << unconstrained_boundary_id << ", ";
+      magnetic_field->set_tangential_component_boundary_condition(
+        unconstrained_boundary_id);
+    }
+
+    *this->pcout << "\b\b}. Homogeneous tangential component boundary "
+                  "conditions will be assumed in order to properly "
+                  "constraint the problem.\n"
+                  << std::endl;
+  }
+
+  // Tangential component boundary conditions in the magnetic field
+  // space translate into homogeneous Dirichlet boundary conditions
+  // in the pseudo-pressure space
+  for (const auto &tangential_component_bc :
+        magnetic_field->get_tangential_component_boundary_condition())
+    pseudo_pressure->set_dirichlet_boundary_condition(
+                      tangential_component_bc.first);
 
   pseudo_pressure->close_boundary_conditions();
   pseudo_pressure->apply_boundary_conditions();
@@ -51,7 +110,20 @@ void MagneticInduction<dim>::setup_auxiliary_scalar()
   this->auxiliary_scalar->clear_boundary_conditions();
   this->auxiliary_scalar->setup_boundary_conditions();
 
-  /* Set boundary conditions */
+  // Dirichlet boundary conditions in the pseudo pressure space
+  // translate into homogeneous Dirichlet boundary conditions in the
+  // auxiliary scalar space
+  for (const auto &dirichlet_bc : pseudo_pressure->get_dirichlet_boundary_conditions())
+    this->auxiliary_scalar->set_dirichlet_boundary_condition(dirichlet_bc.first);
+
+  // The remaining unconstrained boundaries in the auxiliary scalar
+  // space are set to homogeneous Neumann boundary conditions
+  std::vector<types::boundary_id> unconstrained_boundary_ids =
+    pseudo_pressure->get_boundary_conditions().get_unconstrained_boundary_ids();
+
+  for (const auto &unconstrained_boundary_id: unconstrained_boundary_ids)
+    this->auxiliary_scalar->set_neumann_boundary_condition(unconstrained_boundary_id);
+
 
   this->auxiliary_scalar->close_boundary_conditions();
   this->auxiliary_scalar->apply_boundary_conditions();

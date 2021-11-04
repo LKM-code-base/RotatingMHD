@@ -463,6 +463,10 @@ public:
                                                  = std::shared_ptr<Function<dim>>(),
                                                const bool  time_dependent_bc = false);
 
+  const typename BoundaryConditionsBase<dim>::BCMapping &
+  get_tangential_component_boundary_condition() const;
+
+
   /*!
    * @brief Set a boundary condition on the tangential components of the field.
    */
@@ -538,6 +542,17 @@ FE_VectorField<dim, VectorType>::get_neumann_boundary_conditions() const
   return (static_cast<const VectorBoundaryConditions<dim> *>(this->boundary_conditions)
             ->neumann_bcs);
 }
+
+
+
+template <int dim, typename VectorType>
+const typename BoundaryConditionsBase<dim>::BCMapping &
+FE_VectorField<dim, VectorType>::get_tangential_component_boundary_condition() const
+{
+  return (static_cast<const VectorBoundaryConditions<dim> *>(this->boundary_conditions)
+            ->tangential_flux_bcs);
+}
+
 
 
 /*!

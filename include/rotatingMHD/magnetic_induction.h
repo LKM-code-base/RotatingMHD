@@ -131,7 +131,7 @@ const RunTimeParameters::MagneticInduction            &parameters;
  * the magnetic field.
  *
  */
-std::shared_ptr<Entities::FE_ScalarField<dim>>        magnetic_field;
+std::shared_ptr<Entities::FE_VectorField<dim>>        magnetic_field;
 
 /*!
  * @brief A shared pointer to the @ref FE_VectorField, representing
@@ -228,7 +228,7 @@ void assemble_diffusion_step_rhs() override;
  * diffusion step on a single cell.
  */
 void assemble_local_diffusion_step_rhs(
-  const typename DoFHandler<dim>::active_cell_iterator              &cell,
+  const typename DoFHandler<dim>::active_cell_iterator             &cell,
   AssemblyData::MagneticInduction::DiffusionStepRHS::Scratch<dim>  &scratch,
   AssemblyData::MagneticInduction::DiffusionStepRHS::Copy          &data);
 

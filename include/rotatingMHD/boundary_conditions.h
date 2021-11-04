@@ -126,6 +126,12 @@ public:
   std::vector<types::boundary_id> get_unconstrained_boundary_ids() const;
 
   /*!
+   * @brief Returns a vector containing the boundary indicators of the
+   * constrained boundaries.
+   */
+  std::vector<types::boundary_id> get_constrained_boundary_ids() const;
+
+  /*!
    * @brief This method sets a Dirichlet boundary condition by adding pair of a
    * boundary id and a function to @ref BoundaryConditionsBase::dirichlet_bcs.
    *
@@ -278,6 +284,16 @@ inline void BoundaryConditionsBase<dim>::extract_boundary_ids()
   boundary_ids = triangulation.get_boundary_ids();
   flag_extract_boundary_ids = false;
 }
+
+
+
+template <int dim>
+inline std::vector<types::boundary_id> BoundaryConditionsBase<dim>::
+get_constrained_boundary_ids() const
+{
+  return (constrained_boundaries);
+}
+
 
 
 template <int dim>
