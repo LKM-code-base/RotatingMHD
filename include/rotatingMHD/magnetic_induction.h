@@ -185,7 +185,7 @@ void setup_vectors() override;
  * the system of equations in its steady-state at \f$ t = 0 \f$.
  *
  */
-void zeroth_step() override;
+void initialization_step() override;
 
 /*!
  * @brief A method performing the diffusion step.
@@ -265,13 +265,13 @@ void copy_local_to_global_projection_step_rhs(
  * @brief
  *
  */
-void assemble_zeroth_step_rhs() override;
+void assemble_initialization_step_rhs() override;
 
 /*!
  * @brief This method assembles the local right-hand side of the zeroth
  * step on a single cell.
  */
-void assemble_local_zeroth_step_rhs(
+void assemble_local_initialization_step_rhs(
   const typename DoFHandler<dim>::active_cell_iterator          &cell,
   AssemblyData::MagneticInduction::ZerothStepRHS::Scratch<dim>  &scratch,
   AssemblyData::MagneticInduction::ZerothStepRHS::Copy          &data);
@@ -280,7 +280,7 @@ void assemble_local_zeroth_step_rhs(
  * @brief This method copies the local right-hand side of the zeroth
  * step into the global vector.
  */
-void copy_local_to_global_zeroth_step_rhs(
+void copy_local_to_global_initialization_step_rhs(
   const AssemblyData::MagneticInduction::ZerothStepRHS::Copy  &data);
 
 /*!

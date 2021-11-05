@@ -13,7 +13,7 @@ namespace Solvers
 
 
 template <int dim>
-void MagneticInduction<dim>::zeroth_step()
+void MagneticInduction<dim>::initialization_step()
 {
   if (this->ptr_supply_term != nullptr)
     this->ptr_supply_term->set_time(this->time_stepping.get_start_time());
@@ -24,7 +24,7 @@ void MagneticInduction<dim>::zeroth_step()
 
     TimerOutput::Scope  t(*this->computing_timer, "Magnetic Induction: Zeroth step - RHS Assembly");
 
-    assemble_zeroth_step_rhs();
+    assemble_initialization_step_rhs();
 
     if (parameters.verbose)
       *this->pcout << " done!" << std::endl
@@ -42,7 +42,7 @@ void MagneticInduction<dim>::zeroth_step()
 
     std::pair<int, double> feedback;
 
-    feedback = this->solve_zeroth_step();
+    feedback = this->solve_initialization_step();
 
     if (parameters.verbose)
       *this->pcout << " done!" << std::endl
@@ -142,7 +142,7 @@ void MagneticInduction<dim>::correction_step(const bool /* */)
 
   pseudo_pressure->solution = distributed_old_pseudo_pressure;
 
-  if (this->flag_mean_value_constrain)
+  if (this->flag_mean_value_constraint)
   {
     const LinearAlgebra::MPI::Vector::value_type mean_value
       = VectorTools::compute_mean_value(pseudo_pressure->get_dof_handler(),
@@ -169,8 +169,8 @@ void MagneticInduction<dim>::correction_step(const bool /* */)
 
 
 // Explicit instantiations
-template void RMHD::Solvers::MagneticInduction<2>::zeroth_step();
-template void RMHD::Solvers::MagneticInduction<3>::zeroth_step();
+template void RMHD::Solvers::MagneticInduction<2>::initialization_step();
+template void RMHD::Solvers::MagneticInduction<3>::initialization_step();
 
 template void RMHD::Solvers::MagneticInduction<2>::diffusion_step(const bool);
 template void RMHD::Solvers::MagneticInduction<3>::diffusion_step(const bool);

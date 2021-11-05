@@ -14,7 +14,7 @@ namespace Solvers
 
 
 template <int dim>
-void MagneticInduction<dim>::assemble_zeroth_step_rhs()
+void MagneticInduction<dim>::assemble_initialization_step_rhs()
 {
   if (parameters.verbose)
     *this->pcout << "  Magnetic induction: Assembling zeroth step's right hand side...";
@@ -22,7 +22,7 @@ void MagneticInduction<dim>::assemble_zeroth_step_rhs()
   TimerOutput::Scope  t(*this->computing_timer, "Magnetic induction: Zeroth step - RHS assembly");
 
   // Reset data
-  this->zeroth_step_rhs = 0.;
+  this->initialization_step_rhs = 0.;
 
   // Initiate the quadrature formula for exact numerical integration
   const QGauss<dim>   quadrature_formula(pseudo_pressure->fe_degree() + 1);
@@ -36,7 +36,7 @@ void MagneticInduction<dim>::assemble_zeroth_step_rhs()
            AssemblyData::MagneticInduction::ZerothStepRHS::Scratch<dim> &scratch,
            AssemblyData::MagneticInduction::ZerothStepRHS::Copy         &data)
     {
-      this->assemble_local_zeroth_step_rhs(cell,
+      this->assemble_local_initialization_step_rhs(cell,
                                            scratch,
                                            data);
     };
@@ -45,7 +45,7 @@ void MagneticInduction<dim>::assemble_zeroth_step_rhs()
   auto copier =
     [this](const AssemblyData::MagneticInduction::ZerothStepRHS::Copy &data)
     {
-      this->copy_local_to_global_zeroth_step_rhs(data);
+      this->copy_local_to_global_initialization_step_rhs(data);
     };
 
   // Assemble using the WorkStream approach
@@ -86,20 +86,20 @@ void MagneticInduction<dim>::assemble_zeroth_step_rhs()
       pseudo_pressure->get_finite_element().dofs_per_cell));
 
   // Compress global data
-  this->zeroth_step_rhs.compress(VectorOperation::add);
+  this->initialization_step_rhs.compress(VectorOperation::add);
 
   if (parameters.verbose)
     *this->pcout << " done!" << std::endl
                  << "    Right-hand side's L2-norm = "
                  << std::scientific << std::setprecision(6)
-                 << this->zeroth_step_rhs.l2_norm()
+                 << this->initialization_step_rhs.l2_norm()
                  << std::endl;
 }
 
 
 
 template <int dim>
-void MagneticInduction<dim>::assemble_local_zeroth_step_rhs(
+void MagneticInduction<dim>::assemble_local_initialization_step_rhs(
   const typename DoFHandler<dim>::active_cell_iterator            &cell,
   AssemblyData::MagneticInduction::ZerothStepRHS::Scratch<dim> &scratch,
   AssemblyData::MagneticInduction::ZerothStepRHS::Copy         &data)
@@ -207,13 +207,13 @@ void MagneticInduction<dim>::assemble_local_zeroth_step_rhs(
 
 
 template <int dim>
-void MagneticInduction<dim>::copy_local_to_global_zeroth_step_rhs(
+void MagneticInduction<dim>::copy_local_to_global_initialization_step_rhs(
   const AssemblyData::MagneticInduction::ZerothStepRHS::Copy &data)
 {
   pseudo_pressure->get_constraints().distribute_local_to_global(
     data.local_rhs,
     data.local_dof_indices,
-    this->zeroth_step_rhs,
+    this->initialization_step_rhs,
     data.local_matrix_for_inhomogeneous_bc);
 }
 
@@ -226,19 +226,19 @@ void MagneticInduction<dim>::copy_local_to_global_zeroth_step_rhs(
 } // namespace RMHD
 
 // Explicit instantiations
-template void RMHD::Solvers::MagneticInduction<2>::assemble_zeroth_step_rhs();
-template void RMHD::Solvers::MagneticInduction<3>::assemble_zeroth_step_rhs();
+template void RMHD::Solvers::MagneticInduction<2>::assemble_initialization_step_rhs();
+template void RMHD::Solvers::MagneticInduction<3>::assemble_initialization_step_rhs();
 
-template void RMHD::Solvers::MagneticInduction<2>::assemble_local_zeroth_step_rhs
+template void RMHD::Solvers::MagneticInduction<2>::assemble_local_initialization_step_rhs
 (const typename DoFHandler<2>::active_cell_iterator               &,
  RMHD::AssemblyData::MagneticInduction::ZerothStepRHS::Scratch<2> &,
  RMHD::AssemblyData::MagneticInduction::ZerothStepRHS::Copy       &);
-template void RMHD::Solvers::MagneticInduction<3>::assemble_local_zeroth_step_rhs
+template void RMHD::Solvers::MagneticInduction<3>::assemble_local_initialization_step_rhs
 (const typename DoFHandler<3>::active_cell_iterator               &,
  RMHD::AssemblyData::MagneticInduction::ZerothStepRHS::Scratch<3> &,
  RMHD::AssemblyData::MagneticInduction::ZerothStepRHS::Copy       &);
 
-template void RMHD::Solvers::MagneticInduction<2>::copy_local_to_global_zeroth_step_rhs
+template void RMHD::Solvers::MagneticInduction<2>::copy_local_to_global_initialization_step_rhs
 (const RMHD::AssemblyData::MagneticInduction::ZerothStepRHS::Copy &);
-template void RMHD::Solvers::MagneticInduction<3>::copy_local_to_global_zeroth_step_rhs
+template void RMHD::Solvers::MagneticInduction<3>::copy_local_to_global_initialization_step_rhs
 (const RMHD::AssemblyData::MagneticInduction::ZerothStepRHS::Copy &);

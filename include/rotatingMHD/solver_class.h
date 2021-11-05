@@ -433,7 +433,7 @@ LinearAlgebra::MPI::Vector        projection_step_rhs;
 double                            norm_projection_step_rhs;
 
 /*!
- * @brief The system matrix of the zeroth step.
+ * @brief The system matrix of the initialization step.
  *
  * @details The system matrix corresponds to the stiffness matrix of the
  * Lagrange multiplier field. Its entries only change if the
@@ -441,15 +441,15 @@ double                            norm_projection_step_rhs;
  * otherwise an assembly would be required if the timestep changes.
  *
  */
-LinearAlgebra::MPI::SparseMatrix  zeroth_step_system_matrix;
+LinearAlgebra::MPI::SparseMatrix  initialization_step_system_matrix;
 
 /*!
  * @brief Vector representing the right-hand side of the linear system
- * of the zeroth step performed to compute admissible initial conditions
+ * of the initialization step performed to compute admissible initial conditions
  * for the Lagrange multiplier.
  *
  */
-LinearAlgebra::MPI::Vector        zeroth_step_rhs;
+LinearAlgebra::MPI::Vector        initialization_step_rhs;
 
 /*!
  * @brief The preconditioner of the diffusion step.
@@ -464,14 +464,6 @@ std::shared_ptr<LinearAlgebra::PreconditionBase> diffusion_step_preconditioner;
 std::shared_ptr<LinearAlgebra::PreconditionBase> projection_step_preconditioner;
 
 /*!
- * @brief The preconditioner of the pre-step performed to compute admissible initial conditions
- * for the Lagrange multiplier
- *
- */
-std::shared_ptr<LinearAlgebra::PreconditionBase> zeroth_step_preconditioner;
-
-
-/*!
   * @brief A flag indicating if the auxiliary scalar field  \f$ \phi\f$
   * is to be initiated.
   * @details The initiation is done by the @ref setup_phi method.
@@ -484,7 +476,7 @@ bool                                  flag_setup_auxiliary_scalar;
  * zero.
  *
  */
-bool                                  flag_mean_value_constrain;
+bool                                  flag_mean_value_constraint;
 
 /*!
  * @brief A virtual method for the set-up of the solver's linear
@@ -536,7 +528,7 @@ virtual void setup_vectors() override;
  * the system of equations in its steady-state at \f$ t = 0 \f$.
  *
  */
-virtual void zeroth_step() = 0;
+virtual void initialization_step() = 0;
 
 /*!
  * @brief A method performing the diffusion step.
@@ -637,16 +629,16 @@ virtual void copy_local_to_global_matrices_scalar_fields(
 
 /*!
  * @brief A pure virtual method assembling the right-hand side vector
- * of the zeroth step.
+ * of the initialization step.
  *
  */
-virtual void assemble_zeroth_step_rhs() = 0;
+virtual void assemble_initialization_step_rhs() = 0;
 
 /*!
- * @brief A pure virtual method solving the zeroth step.
+ * @brief A pure virtual method solving the initialization step.
  *
  */
-virtual std::pair<int, double> solve_zeroth_step();
+virtual std::pair<int, double> solve_initialization_step();
 
 /*!
  * @brief A pure virtual method assembling the system matrix and the
