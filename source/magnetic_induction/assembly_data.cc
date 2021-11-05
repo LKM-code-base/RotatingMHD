@@ -92,7 +92,7 @@ grad_phi(data.dofs_per_cell)
 
 
 
-namespace ZerothStepRHS
+namespace InitializationStepRHS
 {
 
 
@@ -163,7 +163,7 @@ grad_phi(this->dofs_per_cell)
 
 
 
-} // namespace ZerothStepRHS
+} // namespace InitializationStepRHS
 
 
 namespace DiffusionStepRHS
@@ -349,8 +349,8 @@ phi(this->dofs_per_cell)
 template struct RMHD::AssemblyData::MagneticInduction::AdvectionMatrix::Scratch<2>;
 template struct RMHD::AssemblyData::MagneticInduction::AdvectionMatrix::Scratch<3>;
 
-template struct RMHD::AssemblyData::MagneticInduction::ZerothStepRHS::Scratch<2>;
-template struct RMHD::AssemblyData::MagneticInduction::ZerothStepRHS::Scratch<3>;
+template struct RMHD::AssemblyData::MagneticInduction::InitializationStepRHS::Scratch<2>;
+template struct RMHD::AssemblyData::MagneticInduction::InitializationStepRHS::Scratch<3>;
 
 template struct RMHD::AssemblyData::MagneticInduction::DiffusionStepRHS::Scratch<2>;
 template struct RMHD::AssemblyData::MagneticInduction::DiffusionStepRHS::Scratch<3>;

@@ -625,7 +625,7 @@ struct Scratch : ScratchBase<dim>
 
 
 
-namespace ZerothStepRHS
+namespace InitializationStepRHS
 {
 
 
@@ -669,7 +669,7 @@ struct Scratch : ScratchBase<dim>
 
 
 
-} // namespace ZerothStepRHS
+} // namespace InitializationStepRHS
 
 
 

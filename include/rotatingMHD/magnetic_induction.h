@@ -273,15 +273,15 @@ void assemble_initialization_step_rhs() override;
  */
 void assemble_local_initialization_step_rhs(
   const typename DoFHandler<dim>::active_cell_iterator          &cell,
-  AssemblyData::MagneticInduction::ZerothStepRHS::Scratch<dim>  &scratch,
-  AssemblyData::MagneticInduction::ZerothStepRHS::Copy          &data);
+  AssemblyData::MagneticInduction::InitializationStepRHS::Scratch<dim>  &scratch,
+  AssemblyData::MagneticInduction::InitializationStepRHS::Copy          &data);
 
 /*!
  * @brief This method copies the local right-hand side of the zeroth
  * step into the global vector.
  */
 void copy_local_to_global_initialization_step_rhs(
-  const AssemblyData::MagneticInduction::ZerothStepRHS::Copy  &data);
+  const AssemblyData::MagneticInduction::InitializationStepRHS::Copy  &data);
 
 /*!
  * @brief
