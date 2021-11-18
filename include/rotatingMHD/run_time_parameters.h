@@ -414,7 +414,8 @@ Stream& operator<<(Stream &stream, const ProjectionSolverParametersBase &prm);
 
 
 /*!
- * @brief
+ * @brief A struct containing all the parameters related to a magnetic
+ * induction problem.
  *
  */
 struct MagneticInduction : public ProjectionSolverParametersBase
@@ -446,7 +447,8 @@ void parse_parameters(ParameterHandler &prm);
 /*!
   * @brief Method forwarding parameters to a stream object.
   *
-  * @details This method does not add a `std::endl` to the stream at the end.
+  * @details This method does not add a `std::endl` to the stream at
+  * the end.
   *
   */
 template<typename Stream>
@@ -464,7 +466,8 @@ double  C8;
 /*!
  * @brief Method forwarding parameters to a stream object.
  *
- * @details This method does not add a `std::endl` to the stream at the end.
+ * @details This method does not add a `std::endl` to the stream at
+ * the end.
  *
  */
 template<typename Stream>

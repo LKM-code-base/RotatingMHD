@@ -463,6 +463,12 @@ public:
                                                  = std::shared_ptr<Function<dim>>(),
                                                const bool  time_dependent_bc = false);
 
+  /*!
+   * @brief A get method returning a constant reference to the
+   * @ref BoundaryConditionsBase<dim>::BCMapping& object containing the
+   * tangential component boundary conditions.
+   *
+   */
   const typename BoundaryConditionsBase<dim>::BCMapping &
   get_tangential_component_boundary_condition() const;
 
