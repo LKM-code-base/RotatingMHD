@@ -45,7 +45,7 @@ SET(TARGET_SRC
     magnetic_induction/assembly_data.cc
     magnetic_induction/assembly_diffusion_step_rhs.cc
     magnetic_induction/assembly_projection_step_rhs.cc
-    magnetic_induction/assembly_zeroth_step_rhs.cc
+    magnetic_induction/assembly_initialization_step_rhs.cc
     magnetic_induction/setup.cc
     magnetic_induction/solve.cc
 )
