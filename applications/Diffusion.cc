@@ -100,7 +100,7 @@ private:
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
-  HeatEquation<dim>                             advection_diffusion;
+  ConvectionDiffusionSolver<dim>                             advection_diffusion;
 
   ConvergenceTable                              convergence_table;
 
