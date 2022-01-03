@@ -34,7 +34,7 @@ void MagneticInduction<dim>::assemble_diffusion_step()
      this->diffusion_step_mass_matrix);
 
     this->diffusion_step_mass_plus_stiffness_matrix.add
-    (this->time_stepping.get_gamma()[0] * parameters.C8,
+    (this->time_stepping.get_gamma()[0] * parameters.C,
      this->diffusion_step_stiffness_matrix);
   }
 
@@ -238,14 +238,6 @@ void MagneticInduction<dim>::assemble_local_diffusion_step_rhs(
       magnetic_field->old_old_solution,
       scratch.old_old_magnetic_field_gradients);
 
-    scratch.magnetic_field_fe_values[vector_extractor].get_function_divergences(
-      magnetic_field->old_solution,
-      scratch.old_magnetic_field_divergences);
-
-    scratch.magnetic_field_fe_values[vector_extractor].get_function_divergences(
-      magnetic_field->old_old_solution,
-      scratch.old_old_magnetic_field_divergences);
-
     if (velocity != nullptr)
     {
       typename DoFHandler<dim>::active_cell_iterator
@@ -273,37 +265,17 @@ void MagneticInduction<dim>::assemble_local_diffusion_step_rhs(
         velocity->old_old_solution,
         scratch.old_old_velocity_gradients);
 
-      scratch.velocity_fe_values[vector_extractor].get_function_divergences(
-        velocity->old_solution,
-        scratch.old_old_velocity_divergences);
-
-      scratch.velocity_fe_values[vector_extractor].get_function_divergences(
-        velocity->old_old_solution,
-        scratch.old_old_velocity_divergences);
-
       for (unsigned int q = 0; q < scratch.n_q_points; ++q)
         advection_term[q] =
           beta[0] *
-          (scratch.old_velocity_values[q] *
-          scratch.old_magnetic_field_divergences[q]
-          -
-          scratch.old_magnetic_field_values[q] *
-          scratch.old_velocity_divergences[q]
-          +
-          scratch.old_velocity_gradients[q] *
+          (scratch.old_velocity_gradients[q] *
           scratch.old_magnetic_field_values[q]
           -
           scratch.old_magnetic_field_gradients[q] *
           scratch.old_velocity_values[q])
           +
           beta[1] *
-          (scratch.old_old_velocity_values[q] *
-          scratch.old_old_magnetic_field_divergences[q]
-          -
-          scratch.old_old_magnetic_field_values[q] *
-          scratch.old_old_velocity_divergences[q]
-          +
-          scratch.old_old_velocity_gradients[q] *
+          (scratch.old_old_velocity_gradients[q] *
           scratch.old_old_magnetic_field_values[q]
           -
           scratch.old_old_magnetic_field_gradients[q] *
@@ -322,26 +294,14 @@ void MagneticInduction<dim>::assemble_local_diffusion_step_rhs(
       for (unsigned int q = 0; q < scratch.n_q_points; ++q)
         advection_term[q] =
           beta[0] *
-          (scratch.velocity_values[q] *
-          scratch.old_magnetic_field_divergences[q]
-          -
-          scratch.old_magnetic_field_values[q] *
-          trace(scratch.velocity_gradients[q])
-          +
-          scratch.velocity_gradients[q] *
+          (scratch.velocity_gradients[q] *
           scratch.old_magnetic_field_values[q]
           -
           scratch.old_magnetic_field_gradients[q] *
           scratch.velocity_values[q])
           +
           beta[1] *
-          (scratch.velocity_values[q] *
-          scratch.old_old_magnetic_field_divergences[q]
-          -
-          scratch.old_old_magnetic_field_values[q] *
-          trace(scratch.velocity_gradients[q])
-          +
-          scratch.velocity_gradients[q] *
+          (scratch.velocity_gradients[q] *
           scratch.old_old_magnetic_field_values[q]
           -
           scratch.old_old_magnetic_field_gradients[q] *
@@ -382,7 +342,7 @@ void MagneticInduction<dim>::assemble_local_diffusion_step_rhs(
                scratch.old_old_auxiliary_scalar_gradients[q]);
 
     diffusion_term[q] =
-              parameters.C8 *
+              parameters.C *
               (gamma[1] *
                scratch.old_magnetic_field_curls[q]
                +
@@ -393,8 +353,6 @@ void MagneticInduction<dim>::assemble_local_diffusion_step_rhs(
     for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
     {
       scratch.phi[i]      = scratch.magnetic_field_fe_values[vector_extractor].value(i,q);
-      scratch.grad_phi[i] = scratch.magnetic_field_fe_values[vector_extractor].gradient(i,q);
-      scratch.div_phi[i]  = scratch.magnetic_field_fe_values[vector_extractor].divergence(i,q);
       scratch.curl_phi[i] = scratch.magnetic_field_fe_values[vector_extractor].curl(i,q);
     }
 
@@ -426,7 +384,7 @@ void MagneticInduction<dim>::assemble_local_diffusion_step_rhs(
                  scratch.phi[j] *
                  scratch.phi[i]
                  +
-                 gamma[0] * parameters.C8 *
+                 gamma[0] * parameters.C *
                  scratch.curl_phi[j] *
                  scratch.curl_phi[i]) *
                 scratch.magnetic_field_fe_values.JxW(q);
@@ -437,17 +395,7 @@ void MagneticInduction<dim>::assemble_local_diffusion_step_rhs(
             if (velocity != nullptr)
               data.local_matrix_for_inhomogeneous_bc(j,i) +=
                 scratch.phi[j] *
-                ((eta[0] * scratch.old_velocity_values[q]
-                  +
-                  eta[1] * scratch.old_old_velocity_values[q]) *
-                 scratch.div_phi[i]
-                 -
-                 scratch.phi[i] *
-                 (eta[0] * scratch.old_velocity_divergences[q]
-                  +
-                  eta[1] * scratch.old_old_velocity_divergences[q])
-                 +
-                 (eta[0] * scratch.old_velocity_gradients[q]
+                ((eta[0] * scratch.old_velocity_gradients[q]
                   +
                   eta[1] * scratch.old_old_velocity_gradients[q]) *
                  scratch.phi[i]
@@ -455,22 +403,18 @@ void MagneticInduction<dim>::assemble_local_diffusion_step_rhs(
                  scratch.grad_phi[i] *
                  (eta[0] * scratch.old_velocity_values[q]
                   +
-                  eta[1] * scratch.old_old_velocity_values[q])) *
+                  eta[1] * scratch.old_old_velocity_values[q])
+                ) *
                 scratch.magnetic_field_fe_values.JxW(q);
             else if (ptr_velocity_function != nullptr)
               data.local_matrix_for_inhomogeneous_bc(j,i) +=
                 scratch.phi[j] *
-                (scratch.velocity_values[q] *
-                 scratch.div_phi[i]
-                 -
-                 scratch.phi[i] *
-                 scratch.velocity_divergences[q]
-                 +
-                 scratch.velocity_gradients[q] *
+                (scratch.velocity_gradients[q] *
                  scratch.phi[i]
                  -
                  scratch.grad_phi[i] *
-                 scratch.velocity_values[q]) *
+                 scratch.velocity_values[q]
+                 ) *
                 scratch.magnetic_field_fe_values.JxW(q);
           }
         } // Loop over the i-th column's rows of the local matrix

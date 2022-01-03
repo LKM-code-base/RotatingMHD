@@ -305,10 +305,8 @@ void initialization_step() override;
  * \cdot \nabla \sigma^{\sharp, k}\dint{v}\\& -
  * \int_\Omega \sum_{j=1}^s \frac{\alpha_j^{k}}{\Delta t^k} \bs{q}
  * \cdot \boldsymbol{\mathfrak{B}}^{k-j}  \dint{v} \\
- *   & + \int_\Omega \sum_{j=1}^s \beta_j^k \bs{q} \cdot [ (\nabla
- *    \cdot \boldsymbol{\mathfrak{B}}^{k-j}) \bs{v}^{k-j} +
- *    (\nabla \cdot \bs{v}^{k-j}) \boldsymbol{\mathfrak{B}}^{k-j}
- *    \\ & \qquad \qquad \qquad \quad + \boldsymbol{\mathfrak{B}}^{k-j}
+ *   & + \int_\Omega \sum_{j=1}^s \beta_j^k \bs{q} \cdot [
+ *     \boldsymbol{\mathfrak{B}}^{k-j}
  *    \cdot (\nabla \otimes \bs{v}^{k-j}) -
  *    \bs{v}^{k-j} \cdot (\nabla \otimes \boldsymbol{\mathfrak{B}}^{k-j})]
  *    \dint{v} \\
@@ -355,9 +353,9 @@ void projection_step(const bool reinit_preconditioner) override;
  *
  * @details The diffusion step consist of vector addition
  * \f[
- *    \Sigma^k = \Sigma^{k-1} + \Phi^k,
+ *    \sigma^k = \sigma^{k-1} + \phi^k,
  * \f]
- * where \f$ \Sigma\f$ and \f$ \Phi \f$ contain the nodal values of
+ * where \f$ \sigma\f$ and \f$ \phi \f$ contain the nodal values of
  * pseudo pressure field and the auxiliary scalar field, respectively.
  * The superindices indicate their respective time step.
  *

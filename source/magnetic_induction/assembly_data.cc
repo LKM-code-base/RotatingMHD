@@ -45,14 +45,10 @@ velocity_fe_values(
 velocity_values(this->n_q_points),
 old_velocity_values(this->n_q_points),
 old_old_velocity_values(this->n_q_points),
-velocity_divergences(this->n_q_points),
-old_velocity_divergences(this->n_q_points),
-old_old_velocity_divergences(this->n_q_points),
 velocity_gradients(this->n_q_points),
 old_velocity_gradients(this->n_q_points),
 old_old_velocity_gradients(this->n_q_points),
 phi(this->dofs_per_cell),
-div_phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell)
 {}
 
@@ -75,14 +71,10 @@ velocity_fe_values(
 velocity_values(data.n_q_points),
 old_velocity_values(data.n_q_points),
 old_old_velocity_values(data.n_q_points),
-velocity_divergences(data.n_q_points),
-old_velocity_divergences(data.n_q_points),
-old_old_velocity_divergences(data.n_q_points),
 velocity_gradients(data.n_q_points),
 old_velocity_gradients(data.n_q_points),
 old_old_velocity_gradients(data.n_q_points),
 phi(data.dofs_per_cell),
-div_phi(data.dofs_per_cell),
 grad_phi(data.dofs_per_cell)
 {}
 
@@ -201,8 +193,6 @@ velocity_fe_values(
   velocity_update_flags),
 old_magnetic_field_values(this->n_q_points),
 old_old_magnetic_field_values(this->n_q_points),
-old_magnetic_field_divergences(this->n_q_points),
-old_old_magnetic_field_divergences(this->n_q_points),
 old_magnetic_field_gradients(this->n_q_points),
 old_old_magnetic_field_gradients(this->n_q_points),
 old_magnetic_field_curls(this->n_q_points),
@@ -210,9 +200,6 @@ old_old_magnetic_field_curls(this->n_q_points),
 velocity_values(this->n_q_points),
 old_velocity_values(this->n_q_points),
 old_old_velocity_values(this->n_q_points),
-velocity_divergences(this->n_q_points),
-old_velocity_divergences(this->n_q_points),
-old_old_velocity_divergences(this->n_q_points),
 velocity_gradients(this->n_q_points),
 old_velocity_gradients(this->n_q_points),
 old_old_velocity_gradients(this->n_q_points),
@@ -222,7 +209,6 @@ old_old_auxiliary_scalar_gradients(this->n_q_points),
 supply_term_values(this->n_q_points),
 phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell),
-div_phi(this->dofs_per_cell),
 curl_phi(this->dofs_per_cell)
 {}
 
@@ -249,17 +235,12 @@ velocity_fe_values(
   data.velocity_fe_values.get_update_flags()),
 old_magnetic_field_values(this->n_q_points),
 old_old_magnetic_field_values(this->n_q_points),
-old_magnetic_field_divergences(this->n_q_points),
-old_old_magnetic_field_divergences(this->n_q_points),
 old_magnetic_field_gradients(this->n_q_points),
 old_old_magnetic_field_gradients(this->n_q_points),
 old_magnetic_field_curls(this->n_q_points),
 old_old_magnetic_field_curls(this->n_q_points),
 old_velocity_values(this->n_q_points),
 old_old_velocity_values(this->n_q_points),
-velocity_divergences(this->n_q_points),
-old_velocity_divergences(this->n_q_points),
-old_old_velocity_divergences(this->n_q_points),
 old_velocity_gradients(this->n_q_points),
 old_old_velocity_gradients(this->n_q_points),
 old_pseudo_pressure_gradients(this->n_q_points),
@@ -268,7 +249,6 @@ old_old_auxiliary_scalar_gradients(this->n_q_points),
 supply_term_values(this->n_q_points),
 phi(this->dofs_per_cell),
 grad_phi(this->dofs_per_cell),
-div_phi(this->dofs_per_cell),
 curl_phi(this->dofs_per_cell)
 {}
 

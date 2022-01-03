@@ -194,7 +194,7 @@ void MagneticInduction<dim>::assemble_local_initialization_step_rhs(
             for (unsigned int i = 0; i < scratch.dofs_per_cell; ++i)
             {
               data.local_rhs(i) +=
-                              parameters.C8 *
+                              parameters.C *
                               scratch.face_phi[i] *
                               scratch.magnetic_field_face_laplacians[q] *
                               scratch.normal_vectors[q] *

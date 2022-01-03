@@ -728,7 +728,7 @@ Stream& operator<<(Stream &stream, const ProjectionSolverParametersBase &prm)
 MagneticInduction::MagneticInduction()
 :
 ProjectionSolverParametersBase(),
-C8(1.0)
+C(1.0)
 {}
 
 

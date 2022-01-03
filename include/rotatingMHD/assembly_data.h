@@ -600,12 +600,6 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  old_old_velocity_values;
 
-  std::vector<double>         velocity_divergences;
-
-  std::vector<double>         old_velocity_divergences;
-
-  std::vector<double>         old_old_velocity_divergences;
-
   std::vector<Tensor<2,dim>>  velocity_gradients;
 
   std::vector<Tensor<2,dim>>  old_velocity_gradients;
@@ -613,8 +607,6 @@ struct Scratch : ScratchBase<dim>
   std::vector<Tensor<2,dim>>  old_old_velocity_gradients;
 
   std::vector<Tensor<1,dim>>  phi;
-
-  std::vector<double>         div_phi;
 
   std::vector<Tensor<2,dim>>  grad_phi;
 };
@@ -708,10 +700,6 @@ struct Scratch : ScratchBase<dim>
 
   std::vector<Tensor<1,dim>>  old_old_magnetic_field_values;
 
-  std::vector<double>         old_magnetic_field_divergences;
-
-  std::vector<double>         old_old_magnetic_field_divergences;
-
   std::vector<Tensor<2,dim>>  old_magnetic_field_gradients;
 
   std::vector<Tensor<2,dim>>  old_old_magnetic_field_gradients;
@@ -725,12 +713,6 @@ struct Scratch : ScratchBase<dim>
   std::vector<Tensor<1,dim>>  old_velocity_values;
 
   std::vector<Tensor<1,dim>>  old_old_velocity_values;
-
-  std::vector<double>         velocity_divergences;
-
-  std::vector<double>         old_velocity_divergences;
-
-  std::vector<double>         old_old_velocity_divergences;
 
   std::vector<Tensor<2,dim>>  velocity_gradients;
 
@@ -749,8 +731,6 @@ struct Scratch : ScratchBase<dim>
   std::vector<Tensor<1,dim>>  phi;
 
   std::vector<Tensor<2,dim>>  grad_phi;
-
-  std::vector<double>         div_phi;
 
   std::vector<curl_type>      curl_phi;
 };

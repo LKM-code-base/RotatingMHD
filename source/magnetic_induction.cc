@@ -37,9 +37,9 @@ magnetic_field(magnetic_field)
         ExcMessage("The magnetic field's shared pointer has not been"
                     " initialized."));
 
-  Assert(parameters.C8 > 0.0,
-        ExcLowerRangeType<double>(parameters.C8, 0.0));
-  AssertIsFinite(parameters.C8);
+  Assert(parameters.C > 0.0,
+        ExcLowerRangeType<double>(parameters.C, 0.0));
+  AssertIsFinite(parameters.C);
 
   velocity              = nullptr;
   ptr_velocity_function = nullptr;
@@ -75,9 +75,9 @@ velocity(velocity)
   Assert(velocity.get() != nullptr,
         ExcMessage("The magnetic field's shared pointer has not been"
                     " initialized."));
-  Assert(parameters.C8 > 0.0,
-        ExcLowerRangeType<double>(parameters.C8, 0.0));
-  AssertIsFinite(parameters.C8);
+  Assert(parameters.C > 0.0,
+        ExcLowerRangeType<double>(parameters.C, 0.0));
+  AssertIsFinite(parameters.C);
 
   ptr_velocity_function = nullptr;
 }
@@ -109,9 +109,9 @@ ptr_velocity_function(*velocity_function)
         ExcMessage("The magnetic field's shared pointer has not been"
                     " initialized."));
 
-  Assert(parameters.C8 > 0.0,
-        ExcLowerRangeType<double>(parameters.C8, 0.0));
-  AssertIsFinite(parameters.C8);
+  Assert(parameters.C > 0.0,
+        ExcLowerRangeType<double>(parameters.C, 0.0));
+  AssertIsFinite(parameters.C);
 
   velocity = nullptr;
 }

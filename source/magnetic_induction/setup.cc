@@ -56,9 +56,8 @@ void MagneticInduction<dim>::setup_pseudo_pressure()
 
     AssertThrow(tangential_component_boundary_ids
                   == constrained_boundary_ids,
-                ExcMessage("Only tangential component boundary "
-                            "conditions are currently being supported "
-                            "in the code."));
+                ExcMessage("Only boundary conditions imposed on the"
+                           "tangential component are currently supported."));
   }
 
   // Homogeneous tangential boundary conditions are set at unconstrained

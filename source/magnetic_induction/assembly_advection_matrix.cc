@@ -121,10 +121,6 @@ void MagneticInduction<dim>::assemble_local_advection_matrix(
                                 scratch.n_q_points,
                                 Tensor<2,dim>());
 
-  std::vector<double>         velocity_divergences(
-                                scratch.n_q_points,
-                                0.0);
-
   // Velocity's cell data
   if (velocity != nullptr)
   {
@@ -153,14 +149,6 @@ void MagneticInduction<dim>::assemble_local_advection_matrix(
       velocity->old_old_solution,
       scratch.old_old_velocity_gradients);
 
-    scratch.velocity_fe_values[vector_extractor].get_function_divergences(
-      velocity->old_solution,
-      scratch.old_velocity_divergences);
-
-    scratch.velocity_fe_values[vector_extractor].get_function_divergences(
-      velocity->old_old_solution,
-      scratch.old_old_velocity_divergences);
-
     for (unsigned int i = 0; i < scratch.n_q_points; ++i)
     {
       scratch.velocity_values[i] =
@@ -170,10 +158,6 @@ void MagneticInduction<dim>::assemble_local_advection_matrix(
       scratch.velocity_gradients[i] =
         eta[0] * scratch.old_velocity_gradients[i] +
         eta[1] * scratch.old_old_velocity_gradients[i];
-
-      scratch.velocity_divergences[i] =
-        eta[0] * scratch.old_velocity_divergences[i] +
-        eta[1] * scratch.old_old_velocity_divergences[i];
     }
   }
   else if (ptr_velocity_function != nullptr)
@@ -185,9 +169,6 @@ void MagneticInduction<dim>::assemble_local_advection_matrix(
     ptr_velocity_function->gradient_list(
       scratch.magnetic_field_fe_values.get_quadrature_points(),
       scratch.velocity_gradients);
-
-    for (unsigned int i = 0; i < scratch.n_q_points; ++i)
-      scratch.velocity_divergences[i] = trace(scratch.velocity_gradients[i]);
   }
   else
   {
@@ -198,10 +179,6 @@ void MagneticInduction<dim>::assemble_local_advection_matrix(
     ZeroTensorFunction<2,dim>().value_list(
       scratch.magnetic_field_fe_values.get_quadrature_points(),
       scratch.velocity_gradients);
-
-    ZeroFunction<dim>().value_list(
-      scratch.magnetic_field_fe_values.get_quadrature_points(),
-      scratch.velocity_divergences);
   }
 
   // Loop over quadrature points
@@ -212,7 +189,6 @@ void MagneticInduction<dim>::assemble_local_advection_matrix(
     {
       scratch.phi[i]      = scratch.magnetic_field_fe_values[vector_extractor].value(i, q);
       scratch.grad_phi[i] = scratch.magnetic_field_fe_values[vector_extractor].gradient(i, q);
-      scratch.div_phi[i]  = scratch.magnetic_field_fe_values[vector_extractor].divergence(i,q);
     }
 
     // Loop over local degrees of freedom
@@ -220,13 +196,7 @@ void MagneticInduction<dim>::assemble_local_advection_matrix(
       for (unsigned int j = 0; j < scratch.dofs_per_cell; ++j)
         data.local_matrix(i,j) +=
           scratch.phi[i] *
-          (scratch.velocity_values[q] *
-           scratch.div_phi[j]
-           -
-           scratch.phi[j] *
-           scratch.velocity_divergences[q]
-           +
-           scratch.velocity_gradients[q] *
+          (scratch.velocity_gradients[q] *
            scratch.phi[j]
            -
            scratch.grad_phi[j] *

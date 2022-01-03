@@ -458,7 +458,7 @@ friend Stream& operator<<(Stream &stream, const ProjectionSolverParametersBase &
  * @brief The factor multiplying the diffusion term.
  *
  */
-double  C8;
+double  C;
 };
 
 
