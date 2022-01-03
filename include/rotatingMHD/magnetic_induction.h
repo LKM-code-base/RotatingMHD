@@ -446,10 +446,6 @@ void copy_local_to_global_initialization_step_rhs(
  * =
  * \int
  * \bs{q} \cdot [
- * (\nabla \cdot \boldsymbol{\mathfrak{B}}^{k}) \bs{v}^{k}
- * +
- * (\nabla \cdot \bs{v}^{k}) \boldsymbol{\mathfrak{B}}^{k}
- * +
  * \boldsymbol{\mathfrak{B}}^{k} \cdot (\nabla \otimes \bs{v}^{k})
  * -
  * \bs{v}^{k} \cdot (\nabla \otimes \boldsymbol{\mathfrak{B}}^{k})]
