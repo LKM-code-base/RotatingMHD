@@ -41,11 +41,11 @@ SET(TARGET_SRC
     convection_diffusion/solve.cc
     # magnetic induction
     magnetic_induction.cc
-    magnetic_induction/assembly_advection_matrix.cc
+    magnetic_induction/assemble_advection_matrix.cc
+    magnetic_induction/assemble_diffusion_step_rhs.cc
+    magnetic_induction/assemble_projection_step_rhs.cc
+    magnetic_induction/assemble_initialization_step_rhs.cc
     magnetic_induction/assembly_data.cc
-    magnetic_induction/assembly_diffusion_step_rhs.cc
-    magnetic_induction/assembly_projection_step_rhs.cc
-    magnetic_induction/assembly_initialization_step_rhs.cc
     magnetic_induction/setup.cc
     magnetic_induction/solve.cc
 )

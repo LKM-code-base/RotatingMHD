@@ -313,9 +313,9 @@ void MagneticInduction<dim>::assemble_local_diffusion_step_rhs(
   if (this->ptr_supply_term != nullptr)
   {
     this->ptr_supply_term->set_time(this->time_stepping.get_next_time());
-    this->ptr_supply_term->value_list(
-      scratch.magnetic_field_fe_values.get_quadrature_points(),
-      scratch.supply_term_values);
+
+    this->ptr_supply_term->value_list(scratch.magnetic_field_fe_values.get_quadrature_points(),
+                                      scratch.supply_term_values);
   }
 
   // Loop over quadrature points

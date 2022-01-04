@@ -112,15 +112,6 @@ void MagneticInduction<dim>::assemble_local_advection_matrix(
   // Magnetic field's cell data
   scratch.magnetic_field_fe_values.reinit(cell);
 
-  // Instantiation of velocity related quantities
-  std::vector<Tensor<1,dim>>  velocity_values(
-                                scratch.n_q_points,
-                                Tensor<1,dim>());
-
-  std::vector<Tensor<2,dim>>  velocity_gradients(
-                                scratch.n_q_points,
-                                Tensor<2,dim>());
-
   // Velocity's cell data
   if (velocity != nullptr)
   {
