@@ -564,6 +564,221 @@ struct Scratch : ScratchBase<dim>
 
 } // namespace HeatEquation
 
+
+
+namespace MagneticInduction
+{
+
+
+
+namespace AdvectionMatrix
+{
+
+using Copy = Generic::Matrix::Copy;
+
+template <int dim>
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &magnetic_field_fe,
+          const UpdateFlags         magnetic_field_update_flags,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags);
+
+  Scratch(const Scratch<dim>    &data);
+
+  using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
+
+  FEValues<dim>               magnetic_field_fe_values;
+
+  FEValues<dim>               velocity_fe_values;
+
+  std::vector<Tensor<1,dim>>  velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_old_velocity_values;
+
+  std::vector<Tensor<2,dim>>  velocity_gradients;
+
+  std::vector<Tensor<2,dim>>  old_velocity_gradients;
+
+  std::vector<Tensor<2,dim>>  old_old_velocity_gradients;
+
+  std::vector<Tensor<1,dim>>  phi;
+
+  std::vector<Tensor<2,dim>>  grad_phi;
+};
+
+
+
+} // namespace AdvectionMatrix
+
+
+
+namespace InitializationStepRHS
+{
+
+
+
+using Copy = Generic::RightHandSide::Copy;
+
+
+
+template <int dim>
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const Quadrature<dim-1>   &face_quadrature_formula,
+          const FiniteElement<dim>  &magnetic_field_fe,
+          const UpdateFlags         magnetic_field_face_update_flags,
+          const FiniteElement<dim>  &pseudo_pressure_fe,
+          const UpdateFlags         pseudo_pressure_update_flags,
+          const UpdateFlags         pseudo_pressure_face_update_flags);
+
+  Scratch(const Scratch<dim>    &data);
+
+  FEFaceValues<dim>           magnetic_field_fe_face_values;
+
+  FEValues<dim>               pseudo_pressure_fe_values;
+
+  FEFaceValues<dim>           pseudo_pressure_fe_face_values;
+
+  const unsigned int          n_face_q_points;
+
+  std::vector<Tensor<1,dim>>  magnetic_field_face_laplacians;
+
+  std::vector<Tensor<1,dim>>  normal_vectors;
+
+  std::vector<Tensor<1,dim>>  supply_term_values;
+
+  std::vector<double>         face_phi;
+
+  std::vector<Tensor<1,dim>>  grad_phi;
+};
+
+
+
+} // namespace InitializationStepRHS
+
+
+
+namespace DiffusionStepRHS
+{
+
+
+
+using Copy = Generic::RightHandSide::Copy;
+
+
+
+template <int dim>
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &magnetic_field_fe,
+          const UpdateFlags         magnetic_field_update_flags,
+          const FiniteElement<dim>  &pseudo_pressure_fe,
+          const UpdateFlags         pseudo_pressure_update_flags,
+          const FiniteElement<dim>  &velocity_fe,
+          const UpdateFlags         velocity_update_flags);
+
+  Scratch(const Scratch<dim>    &data);
+
+  using curl_type = typename FEValuesViews::Vector< dim >::curl_type;
+
+  FEValues<dim>               magnetic_field_fe_values;
+
+  FEValues<dim>               pseudo_pressure_fe_values;
+
+  FEValues<dim>               velocity_fe_values;
+
+  std::vector<Tensor<1,dim>>  old_magnetic_field_values;
+
+  std::vector<Tensor<1,dim>>  old_old_magnetic_field_values;
+
+  std::vector<Tensor<2,dim>>  old_magnetic_field_gradients;
+
+  std::vector<Tensor<2,dim>>  old_old_magnetic_field_gradients;
+
+  std::vector<curl_type>      old_magnetic_field_curls;
+
+  std::vector<curl_type>      old_old_magnetic_field_curls;
+
+  std::vector<Tensor<1,dim>>  velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_velocity_values;
+
+  std::vector<Tensor<1,dim>>  old_old_velocity_values;
+
+  std::vector<Tensor<2,dim>>  velocity_gradients;
+
+  std::vector<Tensor<2,dim>>  old_velocity_gradients;
+
+  std::vector<Tensor<2,dim>>  old_old_velocity_gradients;
+
+  std::vector<Tensor<1,dim>>  old_pseudo_pressure_gradients;
+
+  std::vector<Tensor<1,dim>>  old_auxiliary_scalar_gradients;
+
+  std::vector<Tensor<1,dim>>  old_old_auxiliary_scalar_gradients;
+
+  std::vector<Tensor<1,dim>>  supply_term_values;
+
+  std::vector<Tensor<1,dim>>  phi;
+
+  std::vector<Tensor<2,dim>>  grad_phi;
+
+  std::vector<curl_type>      curl_phi;
+};
+
+
+
+} // namespace DiffusionStepRHS
+
+
+namespace ProjectionStepRHS
+{
+
+
+
+using Copy = Generic::RightHandSide::Copy;
+
+
+
+template <int dim>
+struct Scratch : ScratchBase<dim>
+{
+  Scratch(const Mapping<dim>        &mapping,
+          const Quadrature<dim>     &quadrature_formula,
+          const FiniteElement<dim>  &magnetic_field_fe,
+          const UpdateFlags         magnetic_field_update_flags,
+          const FiniteElement<dim>  &auxiliary_scalar_fe,
+          const UpdateFlags         auxiliary_scalar_update_flags);
+
+  Scratch(const Scratch<dim>    &data);
+
+  FEValues<dim>       magnetic_field_fe_values;
+
+  FEValues<dim>       auxiliary_scalar_fe_values;
+
+  std::vector<double> magnetic_field_divergences;
+
+  std::vector<double> phi;
+};
+
+
+
+} // ProjectionStepRHS
+
+
+
+} // namespace MagneticInduction
+
+
 } // namespace AssemblyData
 
 } // namespace RMHD

@@ -725,6 +725,85 @@ Stream& operator<<(Stream &stream, const ProjectionSolverParametersBase &prm)
 
 
 
+MagneticInduction::MagneticInduction()
+:
+ProjectionSolverParametersBase(),
+C(1.0)
+{}
+
+
+
+MagneticInduction::MagneticInduction
+(const std::string &parameter_filename)
+:
+MagneticInduction()
+{
+  ParameterHandler prm;
+  declare_parameters(prm);
+
+  std::ifstream parameter_file(parameter_filename.c_str());
+
+  if (!parameter_file)
+  {
+    parameter_file.close();
+
+    std::ostringstream message;
+    message << "Input parameter file <"
+            << parameter_filename << "> not found. Creating a"
+            << std::endl
+            << "template file of the same name."
+            << std::endl;
+
+    std::ofstream parameter_out(parameter_filename.c_str());
+    prm.print_parameters(parameter_out,
+                         ParameterHandler::OutputStyle::Text);
+
+    AssertThrow(false, ExcMessage(message.str().c_str()));
+  }
+
+  prm.parse_input(parameter_file);
+
+  parse_parameters(prm);
+}
+
+
+
+void MagneticInduction::declare_parameters(ParameterHandler &prm)
+{
+  prm.enter_subsection("Magnetic induction solver parameters");
+  {
+    ProjectionSolverParametersBase::declare_parameters(prm);
+  }
+  prm.leave_subsection();
+}
+
+
+
+void MagneticInduction::parse_parameters(ParameterHandler &prm)
+{
+  prm.enter_subsection("Magnetic induction solver parameters");
+  {
+    ProjectionSolverParametersBase::parse_parameters(prm);
+  }
+  prm.leave_subsection();
+}
+
+
+
+template<typename Stream>
+Stream& operator<<(Stream &stream, const MagneticInduction &prm)
+{
+  internal::add_header(stream);
+  internal::add_line(stream, "Magnetic induction discretization parameters");
+  internal::add_header(stream);
+
+  stream << static_cast<ProjectionSolverParametersBase>(prm);
+
+  return (stream);
+}
+
+
+
 NavierStokesParameters::NavierStokesParameters()
 :
 pressure_correction_scheme(PressureCorrectionScheme::rotational),
@@ -1934,6 +2013,11 @@ template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::ProjectionSolverParametersBase &);
 template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
 (dealii::ConditionalOStream &, const RMHD::RunTimeParameters::ProjectionSolverParametersBase &);
+
+template std::ostream & RMHD::RunTimeParameters::operator<<
+(std::ostream &, const RMHD::RunTimeParameters::MagneticInduction &);
+template dealii::ConditionalOStream & RMHD::RunTimeParameters::operator<<
+(dealii::ConditionalOStream &, const RMHD::RunTimeParameters::MagneticInduction &);
 
 template std::ostream & RMHD::RunTimeParameters::operator<<
 (std::ostream &, const RMHD::RunTimeParameters::NavierStokesParameters &);

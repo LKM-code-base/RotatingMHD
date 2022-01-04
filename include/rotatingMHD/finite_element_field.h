@@ -464,6 +464,16 @@ public:
                                                const bool  time_dependent_bc = false);
 
   /*!
+   * @brief A get method returning a constant reference to the
+   * @ref BoundaryConditionsBase<dim>::BCMapping& object containing the
+   * tangential component boundary conditions.
+   *
+   */
+  const typename BoundaryConditionsBase<dim>::BCMapping &
+  get_tangential_component_boundary_condition() const;
+
+
+  /*!
    * @brief Set a boundary condition on the tangential components of the field.
    */
   void set_tangential_component_boundary_condition(const types::boundary_id  boundary_id,
@@ -538,6 +548,17 @@ FE_VectorField<dim, VectorType>::get_neumann_boundary_conditions() const
   return (static_cast<const VectorBoundaryConditions<dim> *>(this->boundary_conditions)
             ->neumann_bcs);
 }
+
+
+
+template <int dim, typename VectorType>
+const typename BoundaryConditionsBase<dim>::BCMapping &
+FE_VectorField<dim, VectorType>::get_tangential_component_boundary_condition() const
+{
+  return (static_cast<const VectorBoundaryConditions<dim> *>(this->boundary_conditions)
+            ->tangential_flux_bcs);
+}
+
 
 
 /*!

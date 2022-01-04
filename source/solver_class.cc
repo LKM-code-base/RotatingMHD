@@ -436,7 +436,7 @@ void ProjectionSolverBase<dim>::initialization_step()
   if (ptr_supply_term != nullptr)
     ptr_supply_term->set_time(this->time_stepping.get_start_time());
 
-  assemble_initialization_step();
+  assemble_initialization_step_rhs();
 
   solve_initialization_step();
 
@@ -624,7 +624,7 @@ std::pair<int, double> ProjectionSolverBase<dim>::solve_diffusion_step(const boo
 template <int dim>
 void ProjectionSolverBase<dim>::projection_step(const bool reinit_preconditioner)
 {
-  assemble_projection_step();
+  assemble_projection_step_rhs();
 
   solve_projection_step(reinit_preconditioner);
 }

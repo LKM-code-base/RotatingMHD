@@ -536,7 +536,7 @@ virtual void initialization_step() = 0;
  * @param reinit_preconditioner A boolean indicating if the
  * preconditioner is to be re-built.
  */
-void diffusion_step(const bool reinit_preconditioner);
+virtual void diffusion_step(const bool reinit_preconditioner);
 
 /*!
  * @brief A method performing the projection step.
@@ -544,7 +544,7 @@ void diffusion_step(const bool reinit_preconditioner);
  * @param reinit_preconditioner A boolean indicating if the
  * preconditioner is to be re-built.
  */
-void projection_step(const bool reinit_preconditioner);
+virtual void projection_step(const bool reinit_preconditioner);
 
 /*!
  * @brief A method performing the correction step.
@@ -632,7 +632,7 @@ virtual void copy_local_to_global_matrices_scalar_fields(
  * of the initialization step.
  *
  */
-virtual void assemble_initialization_step() = 0;
+virtual void assemble_initialization_step_rhs() = 0;
 
 /*!
  * @brief A pure virtual method solving the initialization step.
@@ -646,6 +646,13 @@ virtual std::pair<int, double> solve_initialization_step();
  *
  */
 virtual void assemble_diffusion_step() = 0;
+
+/*!
+ * @brief A pure virtual method assembling the right-hand side vector
+ * of the diffusion step.
+ *
+ */
+virtual void assemble_diffusion_step_rhs() = 0;
 
 /*!
  * @brief A virtual method solving the diffusion step.
@@ -666,7 +673,7 @@ virtual std::pair<int, double> solve_diffusion_step(
  * of the projection step.
  *
  */
-virtual void assemble_projection_step() = 0;
+virtual void assemble_projection_step_rhs() = 0;
 
 /*!
  * @brief A virtual method solving the projection step.
