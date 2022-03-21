@@ -8,16 +8,16 @@ namespace RMHD
 {
 
 template <int dim>
-HeatEquation<dim>::HeatEquation
+ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 (const RunTimeParameters::HeatEquationParameters  &parameters,
  TimeDiscretization::VSIMEXMethod                 &time_stepping,
- std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+ std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
  const std::shared_ptr<Mapping<dim>>              external_mapping,
  const std::shared_ptr<ConditionalOStream>        external_pcout,
  const std::shared_ptr<TimerOutput>               external_timer)
 :
 parameters(parameters),
-mpi_communicator(temperature->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 temperature(temperature),
 flag_matrices_were_updated(true)
@@ -60,17 +60,17 @@ flag_matrices_were_updated(true)
 }
 
 template <int dim>
-HeatEquation<dim>::HeatEquation
+ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 (const RunTimeParameters::HeatEquationParameters  &parameters,
  TimeDiscretization::VSIMEXMethod                 &time_stepping,
- std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
- std::shared_ptr<Entities::VectorEntity<dim>>     &velocity,
+ std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
+ std::shared_ptr<Entities::FE_VectorField<dim>>     &velocity,
  const std::shared_ptr<Mapping<dim>>              external_mapping,
  const std::shared_ptr<ConditionalOStream>        external_pcout,
  const std::shared_ptr<TimerOutput>               external_timer)
 :
 parameters(parameters),
-mpi_communicator(temperature->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 temperature(temperature),
 velocity(velocity),
@@ -116,17 +116,17 @@ flag_matrices_were_updated(true)
 }
 
 template <int dim>
-HeatEquation<dim>::HeatEquation
+ConvectionDiffusionSolver<dim>::ConvectionDiffusionSolver
 (const RunTimeParameters::HeatEquationParameters  &parameters,
  TimeDiscretization::VSIMEXMethod                 &time_stepping,
- std::shared_ptr<Entities::ScalarEntity<dim>>     &temperature,
+ std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
  std::shared_ptr<TensorFunction<1, dim>>          &velocity,
  const std::shared_ptr<Mapping<dim>>              external_mapping,
  const std::shared_ptr<ConditionalOStream>        external_pcout,
  const std::shared_ptr<TimerOutput>               external_timer)
 :
 parameters(parameters),
-mpi_communicator(temperature->mpi_communicator),
+mpi_communicator(MPI_COMM_WORLD),
 time_stepping(time_stepping),
 temperature(temperature),
 velocity_function_ptr(velocity),
@@ -175,5 +175,5 @@ flag_matrices_were_updated(true)
 
 // explicit instantiations
 
-template class RMHD::HeatEquation<2>;
-template class RMHD::HeatEquation<3>;
+template class RMHD::ConvectionDiffusionSolver<2>;
+template class RMHD::ConvectionDiffusionSolver<3>;

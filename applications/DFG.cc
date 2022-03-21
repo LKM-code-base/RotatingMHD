@@ -1,10 +1,10 @@
 /*!
- *@file DFG
- *@brief The source file for solving the DFG benchmark.
+ * @file DFG
+ *
+ * @brief The source file for solving the DFG benchmark.
+ *
  */
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/equation_data.h>
 #include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
@@ -14,19 +14,103 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/dofs/dof_tools.h>
-#include <deal.II/grid/grid_in.h>
+#include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/grid/manifold_lib.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <rotatingMHD/finite_element_field.h>
 
+#include <algorithm>
+#include <filesystem>
 #include <iostream>
 #include <string>
 
-namespace RMHD
+namespace DFGBenchmark
 {
 
 using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+/*!
+ * @class VelocityInflowBoundaryCondition
+ *
+ * @brief The velocity profile at the inlet of the channel.
+ *
+ * @details The velocity profile is given by the following function
+ * \f[
+ * \bs{v}(y)= v_x(y) \ex= v_0 \left(\frac{2}{H}\right)^2 y (H-y) \ex \,,
+ * \f]
+ *
+ * where \f$ H \f$ denotes the height of the channel and \f$ v_0 \f$ is the
+ * maximum velocity in the middle of the channel. Typically, the maximum velocity is
+ * chosen as \f$ v_0=\frac{3}{2} \f$ such that the mean velocity is unity.
+ *
+ */
+template <int dim>
+class VelocityInflowBoundaryCondition : public Function<dim>
+{
+public:
+  /*!
+   * Default constructor.
+   */
+  VelocityInflowBoundaryCondition(const double time = 0,
+                                  const double maximum_velocity = 1.5,
+                                  const double height = 4.1);
+
+  /*!
+   * Overloading method evaluating the function.
+   */
+  virtual void vector_value(const Point<dim>  &p,
+                            Vector<double>    &values) const override;
+
+private:
+  /*!
+   * The maximum velocity at the middle of the channel.
+   */
+  const double maximum_velocity;
+
+  /*!
+   * The height of the channel.
+   */
+  const double height;
+};
+
+template <int dim>
+VelocityInflowBoundaryCondition<dim>::VelocityInflowBoundaryCondition
+(const double time,
+ const double maximum_velocity,
+ const double height)
+:
+Function<dim>(dim, time),
+maximum_velocity(maximum_velocity),
+height(height)
+{}
+
+
+
+template <int dim>
+void VelocityInflowBoundaryCondition<dim>::vector_value
+(const Point<dim>  &point,
+ Vector<double>    &values) const
+{
+  values[0] = 4.0 * maximum_velocity * point(1) * ( height - point(1) )
+      / ( height * height );
+
+  for (unsigned d=1; d<dim; ++d)
+    values[d] = 0.0;
+}
+
+template<int dim>
+using VelocityInitialCondition = Functions::ZeroFunction<dim>;
+
+template<int dim>
+using PressureInitialCondition = Functions::ZeroFunction<dim>;
+
+}  // namespace EquationData
 
 /*!
  * @class DFG
@@ -278,25 +362,27 @@ public:
   DFG(const RunTimeParameters::ProblemParameters &parameters);
 
   void run();
+
 private:
 
-  const RunTimeParameters::ProblemParameters   &parameters;
+  const types::boundary_id  channel_wall_bndry_id{3};
+  const types::boundary_id  cylinder_bndry_id{2};
+  const types::boundary_id  channel_inlet_bndry_id{0};
+  const types::boundary_id  channel_outlet_bndry_id{1};
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  BenchmarkData::DFGBechmarkRequest<dim>        benchmark_request;
+  BenchmarkData::DFGBechmarkRequests<dim>        benchmark_requests;
 
-  EquationData::DFG::VelocityInitialCondition<dim>
-                                                velocity_initial_condition;
+  EquationData::VelocityInitialCondition<dim>   velocity_initial_condition;
 
-  EquationData::DFG::PressureInitialCondition<dim>
-                                                pressure_initial_condition;
+  EquationData::PressureInitialCondition<dim>   pressure_initial_condition;
 
   double                                        cfl_number;
 
@@ -319,12 +405,11 @@ template <int dim>
 DFG<dim>::DFG(const RunTimeParameters::ProblemParameters &parameters)
 :
 Problem<dim>(parameters),
-parameters(parameters),
-velocity(std::make_shared<Entities::VectorEntity<dim>>
+velocity(std::make_shared<Entities::FE_VectorField<dim>>
          (parameters.fe_degree_velocity,
           this->triangulation,
           "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>
          (parameters.fe_degree_pressure,
           this->triangulation,
           "Pressure")),
@@ -336,7 +421,7 @@ navier_stokes(parameters.navier_stokes_parameters,
               this->mapping,
               this->pcout,
               this->computing_timer),
-benchmark_request(),
+benchmark_requests(parameters.Re, cylinder_bndry_id),
 velocity_initial_condition(dim),
 pressure_initial_condition()
 {
@@ -344,42 +429,69 @@ pressure_initial_condition()
   make_grid();
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
   initialize();
-  this->container.add_entity(velocity);
-  this->container.add_entity(pressure, false);
-  this->container.add_entity(navier_stokes.phi, false);
+  this->container.add_entity(*velocity);
+  this->container.add_entity(*pressure, false);
+  this->container.add_entity(*navier_stokes.phi, false);
 }
 
-template <int dim>
-void DFG<dim>::make_grid()
+
+template <>
+void DFG<2>::make_grid()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Triangulation");
 
-  /*
-   *
-   * SG: Why are we reading the grid from the filesystem? There is a method to
-   * do this! GridGenerator::channel_with_cylinder
-   *
-   */
-  GridIn<dim> grid_in;
-  grid_in.attach_triangulation(this->triangulation);
+  // Create serial triangulation
+  Triangulation<2>  tria;
+  GridGenerator::channel_with_cylinder(tria, 0.03, 2, 2.0, true);
 
+  // Scale the geometry
+  GridTools::scale(10.0, tria);
+
+  // Reset all manifolds
+  tria.reset_all_manifolds();
+
+  // Copy triangulation
+  this->triangulation.copy_triangulation(tria);
+
+  // Check that manifold ids are correct
+  const types::manifold_id polar_manifold_id = 0;
+  const types::manifold_id tfi_manifold_id   = 1;
+  const std::vector<types::manifold_id> manifold_ids = this->triangulation.get_manifold_ids();
+  AssertThrow(std::find(manifold_ids.begin(), manifold_ids.end(), polar_manifold_id) != manifold_ids.end(),
+              ExcInternalError());
+  AssertThrow(std::find(manifold_ids.begin(), manifold_ids.end(), tfi_manifold_id) != manifold_ids.end(),
+              ExcInternalError());
+
+  // Attach new manifolds
+  PolarManifold<2>  polar_manifold(Point<2>(2.0, 2.0));
+  this->triangulation.set_manifold(0, polar_manifold);
+
+  TransfiniteInterpolationManifold<2> inner_manifold;
+  inner_manifold.initialize(this->triangulation);
+  this->triangulation.set_manifold(1, inner_manifold);
+
+  // Perform global refinements
+  this->triangulation.refine_global(prm.spatial_discretization_parameters.n_initial_global_refinements);
+
+  // Perform one level local refinement of the cells located at the boundary
+  for (unsigned int i=0;
+       i<prm.spatial_discretization_parameters.n_initial_boundary_refinements;
+       ++i)
   {
-    std::string   filename = "dfg.inp";
-    std::ifstream file(filename);
-    Assert(file, ExcFileNotOpen(filename.c_str()));
-    grid_in.read_ucd(file);
+    for (auto &cell: this->triangulation.active_cell_iterators())
+      if (cell->at_boundary() && cell->is_locally_owned())
+        cell->set_refine_flag();
+    this->triangulation.execute_coarsening_and_refinement();
   }
-
-  const PolarManifold<dim> inner_boundary;
-  this->triangulation.set_all_manifold_ids_on_boundary(2, 1);
-  this->triangulation.set_manifold(1, inner_boundary);
 
   *this->pcout << "Number of active cells                = "
                << this->triangulation.n_active_cells() << std::endl;
 }
+
+
 
 template <int dim>
 void DFG<dim>::setup_dofs()
@@ -390,31 +502,40 @@ void DFG<dim>::setup_dofs()
   pressure->setup_dofs();
 
   *this->pcout << "Number of velocity degrees of freedom = "
-               << (velocity->dof_handler)->n_dofs()
+               << velocity->n_dofs()
                << std::endl
                << "Number of pressure degrees of freedom = "
-               << (pressure->dof_handler)->n_dofs()
+               << pressure->n_dofs()
                << std::endl
                << "Number of total degrees of freedom    = "
-               << (pressure->dof_handler->n_dofs() +
-                  velocity->dof_handler->n_dofs())
+               << (pressure->n_dofs() +
+                  velocity->n_dofs())
                << std::endl << std::endl;
 }
+
+
 
 template <int dim>
 void DFG<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
-  velocity->boundary_conditions.set_dirichlet_bcs
-  (0,
-   std::make_shared<EquationData::DFG::VelocityInflowBoundaryCondition<dim>>(
-     parameters.time_discretization_parameters.start_time));
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
 
-  velocity->boundary_conditions.set_dirichlet_bcs(2);
-  velocity->boundary_conditions.set_dirichlet_bcs(3);
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
 
-  pressure->boundary_conditions.set_dirichlet_bcs(1);
+  velocity->set_dirichlet_boundary_condition
+  (channel_inlet_bndry_id,
+   std::make_shared<EquationData::VelocityInflowBoundaryCondition<dim>>
+   (time_stepping.get_start_time())
+  );
+
+  velocity->set_dirichlet_boundary_condition(channel_wall_bndry_id);
+  velocity->set_dirichlet_boundary_condition(cylinder_bndry_id);
+
+  pressure->set_dirichlet_boundary_condition(channel_outlet_bndry_id);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -441,11 +562,12 @@ void DFG<dim>::postprocessing()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Postprocessing");
 
-  benchmark_request.compute_pressure_difference(pressure);
-  benchmark_request.compute_drag_and_lift_coefficients(velocity,
-                                                        pressure);
-  benchmark_request.print_step_data(time_stepping);
-  benchmark_request.update_table(time_stepping);
+  benchmark_requests.update(this->time_stepping.get_current_time(),
+                           this->time_stepping.get_step_number(),
+                           *velocity,
+                           *pressure);
+
+  *this->pcout << benchmark_requests << std::endl;
 }
 
 template <int dim>
@@ -460,16 +582,16 @@ void DFG<dim>::output()
 
   DataOut<dim>        data_out;
 
-  data_out.add_data_vector(*(velocity->dof_handler),
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
 
-  data_out.add_data_vector(*(pressure->dof_handler),
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
 
-  data_out.build_patches(velocity->fe_degree);
+  data_out.build_patches(velocity->fe_degree());
 
   static int out_index = 0;
 
@@ -492,9 +614,14 @@ void DFG<dim>::update_solution_vectors()
 template <int dim>
 void DFG<dim>::run()
 {
+  const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
+
   *this->pcout << "Solving until t = 350..." << std::endl;
 
-  while (time_stepping.get_current_time() <= 350.0)
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+               << std::endl;
+  while (time_stepping.get_current_time() <= 350.0 &&
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -514,6 +641,8 @@ void DFG<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
 
     // Snapshot stage, all time calls should be done with get_current_time()
     if ((time_stepping.get_step_number() %
@@ -522,10 +651,11 @@ void DFG<dim>::run()
           time_stepping.get_end_time()))
       postprocessing();
   }
+  const unsigned int n_remaining_steps{n_steps - time_stepping.get_step_number()};
 
   *this->pcout << "Restarting..." << std::endl;
-
   time_stepping.restart();
+
   velocity->old_old_solution = velocity->solution;
   navier_stokes.clear();
 
@@ -533,7 +663,11 @@ void DFG<dim>::run()
                << time_stepping.get_end_time()
                << "..." << std::endl;
 
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+               << std::endl;
+
+  while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
+         time_stepping.get_step_number() < n_remaining_steps)
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -553,6 +687,8 @@ void DFG<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
 
     // Snapshot stage, all time calls should be done with get_current_time()
     if ((time_stepping.get_step_number() %
@@ -568,25 +704,96 @@ void DFG<dim>::run()
       output();
   }
 
-  benchmark_request.write_table_to_file("dfg_benchmark.tex");
+  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+  {
+    if (!std::filesystem::exists(this->prm.graphical_output_directory))
+    {
+      try
+      {
+        std::filesystem::create_directories(this->prm.graphical_output_directory);
+      }
+      catch (std::exception &exc)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::cerr << "Exception in the creation of the output directory: "
+                  << std::endl
+                  << exc.what() << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+      catch (...)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                    << std::endl;
+        std::cerr << "Unknown exception in the creation of the output directory!"
+                  << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+    }
 
-  *(this->pcout) << std::fixed;
+    const std::filesystem::path path{this->prm.graphical_output_directory};
 
+    std::filesystem::path filename = path / "benchmark_data.txt";
+
+    try
+    {
+      std::ofstream fstream(filename.string());
+      benchmark_requests.write_text(fstream);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output file: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output file!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
 }
 
-} // namespace RMHD
+} // namespace DFGBenchmark
 
 int main(int argc, char *argv[])
 {
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace DFGBenchmark;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 1);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
 
-      RunTimeParameters::ProblemParameters parameter_set("DFG.prm");
+      std::string parameter_filename;
+      if (argc >= 2)
+        parameter_filename = argv[1];
+      else
+        parameter_filename = "DFG.prm";
+
+      RunTimeParameters::ProblemParameters parameter_set(parameter_filename);
 
       DFG<2> simulation(parameter_set);
 

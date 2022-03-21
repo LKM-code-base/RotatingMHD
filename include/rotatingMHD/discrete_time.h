@@ -1,6 +1,12 @@
 #ifndef INCLUDE_ROTATINGMHD_DISCRETE_TIME_H_
 #define INCLUDE_ROTATINGMHD_DISCRETE_TIME_H_
 
+#include <deal.II/base/conditional_ostream.h>
+
+#include <boost/serialization/access.hpp>
+
+#include <ostream>
+
 namespace RMHD
 {
 
@@ -10,6 +16,8 @@ namespace TimeDiscretization
 class DiscreteTime
 {
 public:
+  DiscreteTime() = default;
+
   DiscreteTime(const double start_time,
                const double end_time,
                const double desired_start_step_size = 0.);
@@ -56,7 +64,20 @@ public:
   void
   set_end_time(const double new_end_time);
 
-  private:
+  /*!
+   * @brief Output of the current step number, the current time and the size of
+   * the time step.
+   */
+  friend std::ostream& operator<<(std::ostream &stream, const DiscreteTime &time);
+  friend dealii::ConditionalOStream& operator<<(dealii::ConditionalOStream &stream,
+                                                const DiscreteTime &time);
+
+private:
+  friend class boost::serialization::access;
+
+  template<typename Archive>
+  void serialize(Archive &ar, const unsigned int version);
+
   double start_time;
 
   double end_time;
@@ -71,6 +92,20 @@ public:
 
   unsigned int step_number;
 };
+
+
+/*!
+ * @brief Output of the current step number, the current time and the size of
+ * the time step.
+ */
+std::ostream& operator<<(std::ostream &stream, const DiscreteTime &time);
+
+/*!
+ * @brief Output of the current step number, the current time and the size of
+ * the time step.
+ */
+dealii::ConditionalOStream& operator<<(dealii::ConditionalOStream &stream,
+                                       const DiscreteTime &time);
 
 
 /*---------------------- Inline functions ------------------------------*/
@@ -154,9 +189,9 @@ DiscreteTime::get_step_number() const
  return (step_number);
 }
 
-} // namespace RMHD
-
 } // namespace TimeDiscretization
+
+} // namespace RMHD
 
 
 #endif /* INCLUDE_ROTATINGMHD_DISCRETE_TIME_H_ */

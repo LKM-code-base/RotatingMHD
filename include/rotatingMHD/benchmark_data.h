@@ -1,21 +1,12 @@
 #ifndef INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 #define INCLUDE_ROTATINGMHD_DFG_BENCHMARK_DATA_H_
 
-#include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/time_discretization.h>
-#include <rotatingMHD/run_time_parameters.h>
-#include <rotatingMHD/assembly_data.h>
+#include <rotatingMHD/finite_element_field.h>
 
 #include <deal.II/base/point.h>
+#include <deal.II/fe/mapping_q.h>
+#include <deal.II/fe/mapping_q1.h>
 #include <deal.II/base/table_handler.h>
-#include <deal.II/base/timer.h>
-#include <deal.II/base/utilities.h>
-#include <deal.II/distributed/tria.h>
-#include <deal.II/dofs/dof_handler.h>
-#include <deal.II/fe/fe_q.h>
-#include <deal.II/fe/fe_values.h>
-#include <deal.II/fe/fe_system.h>
-#include <deal.II/lac/trilinos_vector.h>
 
 #include <iostream>
 #include <vector>
@@ -45,17 +36,39 @@ namespace BenchmarkData
  *
  */
 template <int dim>
-struct DFGBechmarkRequest
+struct DFGBechmarkRequests
 {
-
+public:
   /*!
    *
    * @brief The default constructor of the structure.
    *
    */
-  DFGBechmarkRequest(const double reynolds_number = 100.0,
-                     const double reference_length = 1.0);
+  DFGBechmarkRequests(const double reynolds_number = 100.0,
+                      const types::boundary_id  cylinder_boundary_id = 2);
 
+  /*!
+   * @brief Output of the benchmark data to the terminal.
+   */
+  template<typename Stream, int dim_>
+  friend Stream& operator<<(Stream &stream, const DFGBechmarkRequests<dim_> &dfg);
+
+  /*!
+   * @brief A method that updates @ref data_table with the step number,
+   * the current dimensionless time, @ref pressure_difference,
+   * @ref drag_coefficient and the @ref lift_coefficient.
+   */
+  void update(const double                         time,
+              const unsigned int                   step_number,
+              const Entities::FE_VectorField<dim> &velocity,
+              const Entities::FE_ScalarField<dim> &pressure);
+
+  /*!
+   * @brief A method that outputs the @ref data_table into a file.
+   */
+  void write_text(std::ostream  &file) const;
+
+private:
   /*!
    * @brief The Reynolds number of the problem.
    *
@@ -67,6 +80,11 @@ struct DFGBechmarkRequest
    *
    */
   const double  Re;
+
+  /*!
+   * @brief Boundary identifier assigned to the boundary of the cylinder.
+   */
+  const types::boundary_id  cylinder_boundary_id;
 
   /*!
    * @brief The point \f$ \mathrm{P}_\text{front} \f$ at the front side of the
@@ -148,8 +166,7 @@ struct DFGBechmarkRequest
   /*!
    * @brief This method computes the @ref pressure_difference.
    */
-  void compute_pressure_difference
-  (const std::shared_ptr<Entities::ScalarEntity<dim>> &pressure);
+  void compute_pressure_difference(const Entities::FE_ScalarField<dim> &pressure);
 
   /*!
    * @brief This method computes the @ref drag_coefficient and the
@@ -174,34 +191,22 @@ struct DFGBechmarkRequest
    *
    */
   void compute_drag_and_lift_coefficients
-  (const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-   const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
-   const types::boundary_id                             cylinder_boundary_id = 2);
+  (const Entities::FE_VectorField<dim>  &velocity,
+   const Entities::FE_ScalarField<dim>  &pressure);
 
-  /*!
-   * @brief A method that updates @ref data_table with the step number,
-   * the current dimensionless time, @ref pressure_difference,
-   * @ref drag_coefficient and the @ref lift_coefficient.
-   */
-  void update_table(TimeDiscretization::DiscreteTime  &time);
-
-  /*!
-   * @brief A method that prints @ref data_table with the step number,
-   * the current dimensionless time, @ref pressure_difference,
-   * @ref drag_coefficient and the @ref lift_coefficient.
-   */
-  void print_step_data(TimeDiscretization::DiscreteTime &time);
-
-  /*!
-   * @brief A method that outputs the @ref data_table into a file.
-   */
-  void write_table_to_file(const std::string &file);
 };
 
-template<int dim> class MIT;
 
+
+/*!
+ * @brief Method forwarding benchmark requests to a stream object.
+ *
+ * @details This method does not add a `std::endl` to the stream at the end.
+ */
 template<typename Stream, int dim>
-Stream& operator<<(Stream &, const MIT<dim> &);
+Stream& operator<<(Stream &stream, const DFGBechmarkRequests<dim> &prm);
+
+
 
 /*!
  * @class MIT
@@ -213,91 +218,42 @@ Stream& operator<<(Stream &, const MIT<dim> &);
  * first sample point.
  */
 template <int dim>
-class MIT
+struct MIT
 {
 public:
   /*!
    * @brief Constructor.
    */
-  MIT(const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-      const std::shared_ptr<Entities::ScalarEntity<dim>>  &pressure,
-      const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-      TimeDiscretization::VSIMEXMethod                    &time_stepping,
-      const unsigned int                                  left_wall_boundary_id,
-      const unsigned int                                  right_wall_boundary_id,
-      const std::shared_ptr<Mapping<dim>>                 external_mapping
-                                = std::shared_ptr<Mapping<dim>>(),
-      const std::shared_ptr<ConditionalOStream>           external_pcout
-                                = std::shared_ptr<ConditionalOStream>(),
-      const std::shared_ptr<TimerOutput>                  external_timer
-                                = std::shared_ptr<TimerOutput>());
-
-  /*!
-   * @brief A method that computes all the benchmark data with the
-   * last computed field variables.
-   */
-  void compute_benchmark_data();
-
-  /*!
-   * @brief Outputs the computed benchmark data to a text file in
-   * org mode format.
-   */
-  void print_data_to_file(std::string file_name);
-
+  MIT(const types::boundary_id  left_wall_boundary_id,
+      const types::boundary_id  right_wall_boundary_id);
 
   /*!
    * @brief Output of the benchmark data to the terminal.
    */
   template<typename Stream, int dim_>
-  friend Stream& operator<<(Stream &stream, const MIT<dim_> &mit);
+  friend Stream& operator<<(Stream &, const MIT<dim_> &);
+
+  /*!
+   * @brief A method that computes all the benchmark data with the
+   * last computed field variables.
+   */
+  void update(const double                          time,
+              const unsigned int                    step_number,
+              const Entities::FE_VectorField<dim>  &velocity,
+              const Entities::FE_ScalarField<dim>  &pressure,
+              const Entities::FE_ScalarField<dim>  &temperature);
+
+  /*!
+   * @brief Outputs the computed benchmark data to a text file in
+   * org mode format.
+   */
+  void write_text(std::ostream  &file) const;
 
 private:
   /*!
-   * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
-   */
-  const MPI_Comm                                &mpi_communicator;
-
-  /*!
-   * @brief A reference to the class controlling the temporal discretization.
-   */
-  const TimeDiscretization::VSIMEXMethod        &time_stepping;
-
-  /*!
-   * @brief A shared pointer to a conditional output stream object.
-   */
-  std::shared_ptr<ConditionalOStream>           pcout;
-
-  /*!
-   * @brief A shared pointer to a monitor of the computing times.
-   */
-  std::shared_ptr<TimerOutput>                  computing_timer;
-
-  /*!
-   * @brief A shared pointer to the mapping to be used throughout the solver.
-   */
-  std::shared_ptr<Mapping<dim>>                 mapping;
-
-  /*!
-   * @brief A shared pointer to the velocity field's numerical
-   * representation.
-   */
-  const std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
-
-  /*!
-   * @brief A shared pointer to the pressure field's numerical
-   * representation.
-   */
-  const std::shared_ptr<const Entities::ScalarEntity<dim>>  pressure;
-
-  /*!
-   * @brief A shared pointer to the temperature field's numerical
-   * representation.
-   */
-  const std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
-
-  /*!
    * @brief A vector containing all the points at which data will be
    * sampled.
+   *
    * @details The points are
    * \f[
    * P_1 = (0.1810,\, 7.3700), \quad
@@ -306,11 +262,13 @@ private:
    * P_4 = (0.8190,\, 7.3700), \quad \textrm{and} \quad
    * P_5 = (0.1810,\, 4.0000).
    * \f]
+   *
    */
   std::vector<Point<dim>>                       sample_points;
 
   /*!
    * @brief A vector containing the pertinent pressure differences.
+   *
    * @details Defined as
    * \f[
    * \Delta p_{ij} = p_i - p_j
@@ -318,6 +276,7 @@ private:
    * where the subindices indicate the sample point. The computed
    * differences are \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and
    * \f$ \Delta p_{35} \f$.
+   *
    */
   std::vector<double>                           pressure_differences;
 
@@ -329,20 +288,21 @@ private:
   /*!
    * @brief The temperature at the sample point \f$ P_1 \f$.
    */
-  double                                        temperature_at_p1;
+  double  temperature_at_p1;
 
   /*!
    * @brief The stream function at the sample point \f$ P_1 \f$.
    */
-  double                                        stream_function_at_p1;
+//  double  stream_function_at_p1;
 
   /*!
    * @brief The vorticity norm at the sample point \f$ P_1 \f$.
    */
-  double                                        vorticity_at_p1;
+//  double  vorticity_at_p1;
 
   /*!
    * @brief The Nusselt number at the left and right walls.
+   *
    * @details They are given by
    * \f[
    * \mathit{Nu}_{1,2} = \dfrac{1}{H} \int_{\Gamma_{1,2}} \nabla \vartheta
@@ -350,62 +310,73 @@ private:
    * \f]
    * where the subindices 0 and 1 indicate the left and right walls
    * respectively.
+   *
    */
-  std::pair<double, double>                     nusselt_numbers;
+  std::pair<double, double> nusselt_numbers;
 
   /*!
    * @brief The skewness metric.
+   *
    * @details Given by
    * \f[
    * \varepsilon_{12} = \vartheta_1 + \vartheta_2
    * \f]
    * where the subindices indicate the sample point.
+   *
    */
-  double                                        skewness_metric;
+  double  skewness_metric;
 
   /*!
    * @brief The average velocity metric.
+   *
    * @details Given by
    * \f[
    * \hat{u} = \sqrt{ \dfrac{1}{2HW} \int_\Omega \bs{u} \cdot \bs{u} \dint v}
-   * \f]   */
-  double                                        average_velocity_metric;
+   * \f]
+   *
+   */
+  double  average_velocity_metric;
 
   /*!
    * @brief The average vorticity metric.
    * @details Given by
    * \f[
    * \hat{\omega} = \sqrt{ \dfrac{1}{2HW} \int_\Omega
-   * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}   * \f]   */
-  double                                        average_vorticity_metric;
+   * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}   * \f]
+   *
+   */
+  double  average_vorticity_metric;
 
   /*!
    * @brief The table which stores all the benchmark data.
    */
-  TableHandler                                  data;
+  TableHandler    data;
 
   /*!
    * @brief The width of the cavity.
    * @details Given by  \f$ W = 1.0 \f$.
+   *
    */
-  const double                                  width;
+  const double      width;
 
   /*!
    * @brief The height of the cavity.
+   *
    * @details Given by  \f$ H = 8.0 \f$.
+   *
    */
-  const double                                  height;
+  const double      height;
 
   /*!
    * @brief The areaa of the cavity.
    * @details Given by  \f$ A = WH \f$
    */
-  const double                                  area;
+  const double      area;
 
   /*!
    * @brief The boundary id of the cavity's left wall.
    */
-  const unsigned int                            left_wall_boundary_id;
+  const unsigned int  left_wall_boundary_id;
 
   /*!
    * @brief The boundary id of the cavity's right wall.
@@ -422,7 +393,9 @@ private:
    * \f$ \Delta p_{14} \f$, \f$ \Delta p_{51} \f$ and
    * \f$ \Delta p_{35} \f$.
    */
-  void compute_point_data();
+  void compute_point_data(const Entities::FE_VectorField<dim>  &velocity,
+                          const Entities::FE_ScalarField<dim>  &pressure,
+                          const Entities::FE_ScalarField<dim>  &temperature);
 
   /*!
    * @brief A method that computes the Nusselt number of the
@@ -435,7 +408,7 @@ private:
    * where the subindices 0 and 1 indicate the left and right walls
    * respectively.
    * */
-  void compute_wall_data();
+  void compute_wall_data(const Entities::FE_ScalarField<dim>  &temperature);
 
   /*!
    * @brief A method that computes the average velocity and vorticity
@@ -448,15 +421,16 @@ private:
    * (\nabla \times \bs{u}) \cdot (\nabla \times \bs{u}) \dint v}
    * \f]
    */
-  void compute_global_data();
+  void compute_global_data(const Entities::FE_VectorField<dim>  &velocity);
 };
 
 
 
-template<int dim> class ChristensenBenchmark;
-
 template<typename Stream, int dim>
-Stream& operator<<(Stream &, const ChristensenBenchmark<dim> &);
+Stream& operator<<(Stream &, const MIT<dim> &);
+
+
+
 
 /*!
  * @class ChristensenBenchmark
@@ -472,92 +446,35 @@ public:
   /*!
    * @brief Constructor.
    */
-  ChristensenBenchmark(
-    const std::shared_ptr<Entities::VectorEntity<dim>>  &velocity,
-    const std::shared_ptr<Entities::ScalarEntity<dim>>  &temperature,
-    const std::shared_ptr<Entities::VectorEntity<dim>>  &magnetic_field,
-    const TimeDiscretization::VSIMEXMethod              &time_stepping,
-    const RunTimeParameters::DimensionlessNumbers       &dimensionless_numbers,
-    const double                                        outer_radius,
-    const double                                        inner_radius,
-    const unsigned int                                  case_number,
-    const std::shared_ptr<Mapping<dim>>                 external_mapping
-                              = std::shared_ptr<Mapping<dim>>(),
-    const std::shared_ptr<ConditionalOStream>           external_pcout
-                              = std::shared_ptr<ConditionalOStream>(),
-    const std::shared_ptr<TimerOutput>                  external_timer
-                              = std::shared_ptr<TimerOutput>());
+  ChristensenBenchmark(const double outer_radius,
+                       const double inner_radius,
+                       const unsigned int case_number = 0);
 
   /*!
    * @brief A method that computes all the benchmark data with the
    * last computed field variables.
    */
-  void compute_benchmark_data();
+  void update(const double time,
+              const unsigned int step_number,
+              const Entities::FE_VectorField<dim> &velocity,
+              const Entities::FE_ScalarField<dim> &temperature,
+              const Mapping<dim>                  &mapping = MappingQ1<dim>());
 
   /*!
    * @brief Outputs the computed benchmark data to a text file in
    * org mode format.
    */
-  void print_data_to_file(std::string file_name);
+  void write_text(std::ostream &file) const;
 
 
   /*!
    * @brief Output of the benchmark data to the terminal.
    */
   template<typename Stream, int dim_>
-  friend Stream& operator<<(Stream &stream, const ChristensenBenchmark<dim_> &mit);
+  friend Stream& operator<<(Stream &, const ChristensenBenchmark<dim_> &);
 
 
 private:
-  /*!
-   * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
-   */
-  const MPI_Comm                                &mpi_communicator;
-
-  /*!
-   * @brief A reference to the class controlling the temporal discretization.
-   */
-  const TimeDiscretization::VSIMEXMethod        &time_stepping;
-
-  /*!
-   * @brief A shared pointer to a conditional output stream object.
-   */
-  std::shared_ptr<ConditionalOStream>           pcout;
-
-  /*!
-   * @brief A shared pointer to a monitor of the computing times.
-   */
-  std::shared_ptr<TimerOutput>                  computing_timer;
-
-  /*!
-   * @brief A shared pointer to the mapping to be used throughout the solver.
-   */
-  std::shared_ptr<Mapping<dim>>                 mapping;
-
-  /*!
-   * @brief A shared pointer to the velocity field's numerical
-   * representation.
-   */
-  const std::shared_ptr<const Entities::VectorEntity<dim>>  velocity;
-
-  /*!
-   * @brief A shared pointer to the temperature field's numerical
-   * representation.
-   */
-  const std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
-
-  /*!
-   * @brief A shared pointer to the magnetic flux field's numerical
-   * representation.
-   */
-  const std::shared_ptr<const Entities::VectorEntity<dim>>  magnetic_field;
-
-  /*!
-   * @brief A reference to the struct containing all the relevant
-   * dimensionless numbers.
-   */
-  const RunTimeParameters::DimensionlessNumbers             &dimensionless_numbers;
-
   /*!
    * @brief The number of the case to be performed.
    */
@@ -567,55 +484,37 @@ private:
    * @brief The radius of the sample point. Set as the mid-depth radius
    * \f$ r = \tfrac{1}{2}(r_i + r_o) \f$.
    */
-  const double  sample_point_radius;
+  const double  sampling_radius;
 
   /*!
-   * @brief The colatitude of the sampling point. Set as the equatiorial
-   * plane, *i. e.*, \f$ \theta = 90 \f$.
+   * @brief The colatitude of the sampling point. Set as the equatorial
+   * plane, *i. e.*, \f$ \theta = \pi / 2\f$.
    */
-  const double  sample_point_colatitude;
+  const double  sampling_colatitude;
 
   /*!
    * @brief The longitude of the sampling point. Set by the conditions
    * \f$ u_{\textrm{r}} = 0 \f$ and \f$ \pd{ u_{\textrm{r}}}{\phi} > 0\f$.
    */
-  double        sample_point_longitude;
+  double        sampling_longitude;
 
   /*!
    * @brief The sample point.
    */
-  Point<dim>    sample_point;
-
-  /*!
-   * @brief The drift frequency.
-   */
-  double        drift_frequency;
+  Point<dim>    sampling_point;
 
   /*!
    * @brief The mean kinetic energy density
+   *
    * @details Given by
    * \f[
    * E_{\textrm{kin}} = \frac{1}{2V} \int_\Omega \bs{u} \cdot \bs{u} \dint{v}
    * \f]
    * where \f$ V \f$ is the volume of the shell,
-   * \f$ \Omega \f$ the shell domain and
-   * \f$ \bs{u} \f$ the velocity field.
+   * \f$ \Omega \f$ the shell domain and \f$ \bs{u} \f$ the velocity field.
+   *
    */
   double        mean_kinetic_energy_density;
-
-  /*!
-   * @brief The mean magnetic energy density
-   * @details Given by
-   * \f[
-   * E_{\textrm{mag}} = \frac{1}{2V \Ekman \magPrandtl} \int_\Omega \bs{B} \cdot \bs{B} \dint{v}
-   * \f]
-   * where \f$ V \f$ is the volume of the shell,
-   * \f$ \Ekman \f$ the Ekman number,
-   * \f$ \magPrandtl \f$ the magnetic Prandtl number,
-   * \f$ \Omega \f$ the shell domain and
-   * \f$ \bs{B} \f$ the magnetic field.
-   */
-  double        mean_magnetic_energy_density;
 
   /*!
    * @brief The volume of the discrete domain.
@@ -625,17 +524,12 @@ private:
   /*!
    * @brief The temperature evaluated at the @ref sample_point.
    */
-  double        temperature_at_sample_point;
+  double        temperature_at_sampling_point;
 
   /*!
    * @brief The velocity vector evaluated at the @ref sample_point.
    */
-  double        azimuthal_velocity_at_sample_point;
-
-  /*!
-   * @brief The magnetic flux vector evaluated at the @ref sample_point.
-   */
-  double        polar_magnetic_field_at_sample_point;
+  double        azimuthal_velocity_at_sampling_point;
 
   /*!
    * @brief The table which stores all the benchmark data.
@@ -644,30 +538,15 @@ private:
 
   /*!
    * @brief A method that computes the @ref drift_frequency, the
-   * @ref mean_kinetic_energy_density and the
-   * @ref mean_magnetic_energy_density.
-   * @todo Compute drift frequency
+   * @ref mean_kinetic_energy_density and the @ref mean_magnetic_energy_density.
+   *
    */
-  void compute_global_data();
-
-  /*!
-   * @brief This method assembles the local mass and the local stiffness
-   * matrices of the velocity field on a single cell.
-   */
-  void compute_local_global_squared_norms(
-    const typename DoFHandler<dim>::active_cell_iterator &cell,
-    AssemblyData::Benchmarks::Christensen::Scratch<dim>  &scratch,
-    AssemblyData::Benchmarks::Christensen::Copy          &data);
-
-  /*!
-   * @brief This method copies the local mass and the local stiffness matrices
-   * of the velocity field on a single cell into the global matrices.
-   */
-  void copy_local_to_global_squared_norms(
-    const AssemblyData::Benchmarks::Christensen::Copy  &data);
+  void compute_global_data(const Entities::FE_VectorField<dim> &velocity,
+                           const Mapping<dim>                  &mapping = MappingQ1<dim>());
 
   /*!
    * @brief A method that locates the sample point.
+   *
    * @details The radius and the colatitude are set as the mid-depth
    * radius and the equatorial plane respectively. The longitude is
    * determine by the conditions
@@ -676,46 +555,62 @@ private:
    * \textrm{and} \qquad
    * \pd{ u_{\textrm{r}}}{\phi} > 0.
    * \f]
+   *
    */
-  void find_sample_point();
+  void find_sampling_point
+  (const Entities::FE_VectorField<dim> &velocity,
+   const Mapping<dim>                  &mapping);
 
   /*!
    * @brief A method that computes the value of the radial velocity
    * at the given spherical coordinates
    */
-  double compute_radial_velocity(
-    const double radius,
-    const double azimuthal_angle,
-    const double polar_angle = numbers::PI_2) const;
+  double compute_radial_velocity
+  (const double radius,
+   const double azimuthal_angle,
+   const double polar_angle,
+   const Entities::FE_VectorField<dim> &velocity,
+   const Mapping<dim>                  &mapping = MappingQ1<dim>()) const;
 
   /*!
    * @brief A method that computes a root of the radial velocity w.r.t.
    * the longitude.
+   *
    * @details The method is employs around the boost's
    * bracket_and_solve_root method.
    */
-  double compute_zero_of_radial_velocity(
-    const double       phi_guess,
-    const bool         local_slope,
-    const double       tol,
-    const unsigned int &max_iter) const;
+  double compute_zero_of_radial_velocity
+  (const double       phi_guess,
+   const bool         local_slope,
+   const double       tol,
+   const unsigned int max_iter,
+   const Entities::FE_VectorField<dim> &velocity,
+   const Mapping<dim>                  &mapping = MappingQ1<dim>()) const;
 
   /*!
    * @brief A method that computes the value of the derivative of the
    * radial velocity w.r.t. to the longitude at the given spherical
    * coordinates
    */
-  double compute_azimuthal_gradient_of_radial_velocity(
-    const double radius,
-    const double azimuthal_angle,
-    const double polar_angle = numbers::PI_2) const;
+  double compute_azimuthal_gradient_of_radial_velocity
+  (const double radius,
+   const double azimuthal_angle,
+   const double polar_angle,
+   const Entities::FE_VectorField<dim> &velocity,
+   const Mapping<dim>                  &mapping = MappingQ1<dim>()) const;
 
   /*!
    * @brief A method that computes the velocity vector and the temperature
    * at the @ref sample_point.
    */
-  void compute_point_data();
+  void compute_point_data(const Entities::FE_VectorField<dim> &velocity,
+                          const Entities::FE_ScalarField<dim> &temperature,
+                          const Mapping<dim>                  &mapping);
+
 };
+
+template<typename Stream, int dim>
+Stream& operator<<(Stream &, const ChristensenBenchmark<dim> &);
 
 } // namespace BenchmarkData
 

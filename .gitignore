@@ -2,14 +2,15 @@
 *.d
 
 # Applications
-applications/Couette
+applications/Christensen
 applications/DFG
-applications/Guermond
-applications/GuermondNeumannBC
 applications/MIT
-applications/TGV
-applications/ThermalTGV
 applications/step-35
+convergence_tests/Couette
+convergence_tests/Guermond
+convergence_tests/GuermondNeumannBC
+convergence_tests/TGV
+convergence_tests/ThermalTGV
 
 # Compiled Object files
 *.slo
@@ -68,6 +69,8 @@ applications/step-35
 
 # CMake
 Bytes
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
@@ -80,6 +83,13 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 /build/
+tests/applications/*/*.debug/
+tests/rotatingMHD/*.debug/
+tests/rotatingMHD/*/*.debug/
+tests/applications/*/*.release/
+tests/rotatingMHD/*.release/
+tests/rotatingMHD/*/*.release/
+
 
 # Eclipse
 .cproject

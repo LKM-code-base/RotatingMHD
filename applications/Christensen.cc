@@ -1,35 +1,322 @@
+#include <rotatingMHD/angular_velocity.h>
 #include <rotatingMHD/benchmark_data.h>
-#include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/equation_data.h>
-#include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/convection_diffusion_solver.h>
+#include <rotatingMHD/finite_element_field.h>
+#include <rotatingMHD/navier_stokes_projection.h>
 #include <rotatingMHD/problem_class.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
 
 #include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/geometric_utilities.h>
 #include <deal.II/base/utilities.h>
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/grid/grid_generator.h>
-#include <deal.II/grid/grid_in.h>
 #include <deal.II/grid/grid_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
 
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 #include <memory>
 #include <string>
 #include <iomanip>
-namespace RMHD
+
+namespace ChristensenBenchmark
 {
 
 using namespace dealii;
+using namespace RMHD;
+
+namespace EquationData
+{
+
+/*!
+ * @class Omega
+ *
+ * @brief The angular velocity of the rotating frame of reference.
+ *
+ * @details Given by
+ * \f[
+ * \ \bs{\omega} = \ez
+ * \f]
+ * where \f$ \bs{\omega} \f$ is the angular velocity and
+ * \f$ \ez \f$ the unit vector in the \f$ z \f$-direction.
+ */
+template <int dim>
+class Omega: public AngularVelocity<dim>
+{
+public:
+  /*
+   * @brief Default constructor.
+   */
+  Omega(const double time = 0);
+
+  /*
+   * @brief Overloads the value method such that
+   * \f[
+   * \ \bs{\omega} = \ez\,.
+   * \f]
+   */
+  virtual typename AngularVelocity<dim>::value_type value() const override;
+
+};
+
+
+
+template <int dim>
+Omega<dim>::Omega(const double time)
+:
+AngularVelocity<dim>(time)
+{}
+
+
+
+template <int dim>
+typename AngularVelocity<dim>::value_type Omega<dim>::value() const
+{
+  typename AngularVelocity<dim>::value_type value;
+  value = 0;
+
+  if constexpr(dim == 2)
+    value[0] = 1.0;
+  else if constexpr(dim == 3)
+    value[2] = 1.0;
+
+  return (value);
+}
+
+/*!
+ * @class TemperatureInitialCondition
+ *
+ * @brief The initial temperature field of the Christensen benchmark.
+ *
+ * @details Given by
+ * \f[
+ * \vartheta = \frac{r_o r_i}{r} - r_i + \frac{210 A}{\sqrt{17920 \pi}}
+ * (1-3x^2+3x^4-x^6) \sin^4 \theta \cos 4 \phi
+ * \f]
+ * where \f$ \vartheta \f$ is the temperature field,
+ * \f$ r \f$ the radius,
+ * \f$ r_i \f$ the inner radius of the shell,
+ * \f$ r_o \f$ the outer radius,
+ * \f$ A \f$ the amplitude of the harmonic perturbation,
+ * \f$ x \f$ a quantitiy defined as \f$ x = 2r - r_i - r_o\f$,
+ * \f$ \theta \f$ the colatitude (polar angle) and
+ * \f$ \phi \f$ the longitude (azimuthal angle).
+ */
+template <int dim>
+class TemperatureInitialCondition : public Function<dim>
+{
+public:
+  TemperatureInitialCondition(const double inner_radius,
+                              const double outer_radius,
+                              const double A = 0.1,
+                              const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+private:
+  /*!
+   * @brief Inner radius of the shell.
+   */
+  const double inner_radius;
+
+  /*!
+   * @brief Outer radius of the shell.
+   */
+  const double outer_radius;
+
+  /*!
+   * @brief Amplitude of the harmonic perturbation.
+   */
+  const double A;
+};
+
+
+
+template <int dim>
+TemperatureInitialCondition<dim>::TemperatureInitialCondition
+(const double inner_radius,
+ const double outer_radius,
+ const double A,
+ const double time)
+:
+Function<dim>(1, time),
+inner_radius(inner_radius),
+outer_radius(outer_radius),
+A(A)
+{
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
+}
+
+
+
+template<int dim>
+double TemperatureInitialCondition<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  double temperature;
+
+  const std::array<double, dim> spherical_coordinates = GeometricUtilities::Coordinates::to_spherical(point);
+
+  // Radius
+  const double r        = spherical_coordinates[0];
+  // Azimuthal angle
+  const double phi      = spherical_coordinates[1];
+  // Polar angle
+  double theta;
+  if constexpr(dim == 2)
+    theta = numbers::PI_2;
+  else if constexpr(dim == 3)
+    theta = spherical_coordinates[2];
+
+  const double x_0    = 2. * r - inner_radius - outer_radius;
+
+  temperature = outer_radius * inner_radius / r
+                - inner_radius
+                + 210. * A / std::sqrt(17920. * M_PI) *
+                  (1. - 3. * x_0 * x_0 + 3. * std::pow(x_0, 4) - std::pow(x_0,6)) *
+                  pow(std::sin(theta), 4) *
+                  std::cos(4. * phi);
+
+  return temperature;
+}
+
+
+
+/*!
+ * @class TemperatureBoundaryCondition
+ *
+ * @brief The boundary conditions of the temperature field of the
+ * Christensen benchmark.
+ *
+ * @details At the inner boundary the temperature is set to \f$ 1.0 \f$
+ * and at the outer boundary to \f$ 0.0 \f$.
+ *
+ */
+template <int dim>
+class TemperatureBoundaryCondition : public Function<dim>
+{
+public:
+  TemperatureBoundaryCondition(const double inner_radius,
+                               const double outer_radius,
+                               const double time = 0);
+
+  virtual double value(const Point<dim> &p,
+                       const unsigned int component = 0) const override;
+
+private:
+  /*!
+   * @brief Inner radius of the shell.
+   */
+  const double inner_radius;
+
+  /*!
+   * @brief Outer radius of the shell.
+   */
+  const double outer_radius;
+};
+
+
+
+template <int dim>
+TemperatureBoundaryCondition<dim>::TemperatureBoundaryCondition
+(const double inner_radius,
+ const double outer_radius,
+ const double time)
+:
+Function<dim>(1, time),
+inner_radius(inner_radius),
+outer_radius(outer_radius)
+{
+  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
+}
+
+
+
+template<int dim>
+double TemperatureBoundaryCondition<dim>::value
+(const Point<dim> &point,
+ const unsigned int /* component */) const
+{
+  const double r = point.norm();
+
+  double value = (r > 0.5*(inner_radius + outer_radius)) ? 0.0 : 1.0;
+
+  return (value);
+}
+
+
+
+/*!
+ * @class GravityVector
+ *
+ * @brief The gravity field
+ *
+ * @details Given by the linear function
+ * \f[
+ * \ \bs{g} = \frac{1}{r_o} r\bs{e}_\textrm{r}
+ * \f]
+ * where \f$ \bs{g} \f$ is the gravity field,
+ * \f$ r_o \f$ the outer radius of the shell and
+ * \f$ \bs{r} \f$ the radius vector.
+ *
+ */
+template <int dim>
+class GravityVector: public TensorFunction<1, dim>
+{
+public:
+  GravityVector(const double outer_radius,
+                const double time = 0);
+
+  virtual Tensor<1, dim> value(const Point<dim> &point) const override;
+
+private:
+
+  /*!
+   * @brief Outer radius of the shell.
+   */
+  const double outer_radius;
+};
+
+
+
+template <int dim>
+GravityVector<dim>::GravityVector
+(const double outer_radius,
+ const double time)
+:
+TensorFunction<1, dim>(time),
+outer_radius(outer_radius)
+{}
+
+
+
+template <int dim>
+Tensor<1, dim> GravityVector<dim>::value(const Point<dim> &point) const
+{
+  Tensor<1, dim> value(point);
+
+  value /= -outer_radius;
+
+  return value;
+}
+
+
+}  // namespace EquationData
+
+
 
 /*!
  * @class Christensen
+ *
  * @brief Class solving the problem formulated in the Christensen benchmark.
+ *
  * @details The benchmark considers the case of a buoyancy-driven flow
  * for which the Boussinesq approximation is assumed to hold true,
  * <em> i. e.</em>, the fluid's behaviour is described by the following
@@ -75,9 +362,11 @@ using namespace dealii;
  * \f]
  * and the parameters are \f$ \Prandtl = 0.71 \f$ and
  * \f$ \Rayleigh = 3.4\times 10^5. \f$
+ *
  * @note The temperature's Dirichlet boundary conditions are implemented
  * with a factor \f$ [1-\exp(-10 t)] \f$ to smooth the dynamic response
  * of the system.
+ *
  * @todo Add a picture
  */
 template <int dim>
@@ -101,32 +390,31 @@ private:
 
   const unsigned int                            outer_boundary_id;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
-  std::shared_ptr<Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  temperature;
 
-  std::shared_ptr<Entities::VectorEntity<dim>>  magnetic_field;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  magnetic_field;
 
-  std::shared_ptr<EquationData::Christensen::TemperatureInitialCondition<dim>>
+  std::shared_ptr<EquationData::TemperatureInitialCondition<dim>>
                                                 temperature_initial_conditions;
 
-  std::shared_ptr<EquationData::Christensen::TemperatureBoundaryCondition<dim>>
+  std::shared_ptr<EquationData::TemperatureBoundaryCondition<dim>>
                                                 temperature_boundary_conditions;
 
-  EquationData::Christensen::GravityVector<dim> gravity_vector;
+  EquationData::GravityVector<dim>              gravity_vector;
 
-  EquationData::Christensen::AngularVelocity<dim>
-                                                angular_velocity;
+  EquationData::Omega<dim>                      angular_velocity;
 
   TimeDiscretization::VSIMEXMethod              time_stepping;
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  HeatEquation<dim>                             heat_equation;
+  ConvectionDiffusionSolver<dim>                             heat_equation;
 
-  BenchmarkData::ChristensenBenchmark<dim>      christensen_benchmark;
+  BenchmarkData::ChristensenBenchmark<dim>      benchmark_requests;
 
   double                                        cfl_number;
 
@@ -155,30 +443,30 @@ outer_radius(20./13.),
 A(0.1),
 inner_boundary_id(0),
 outer_boundary_id(1),
-velocity(std::make_shared<Entities::VectorEntity<dim>>(
+velocity(std::make_shared<Entities::FE_VectorField<dim>>(
            parameters.fe_degree_velocity,
            this->triangulation,
            "Velocity")),
-pressure(std::make_shared<Entities::ScalarEntity<dim>>(
+pressure(std::make_shared<Entities::FE_ScalarField<dim>>(
            parameters.fe_degree_pressure,
            this->triangulation,
            "Pressure")),
-temperature(std::make_shared<Entities::ScalarEntity<dim>>(
+temperature(std::make_shared<Entities::FE_ScalarField<dim>>(
               parameters.fe_degree_temperature,
               this->triangulation,
               "Temperature")),
-magnetic_field(std::make_shared<Entities::VectorEntity<dim>>(
+magnetic_field(std::make_shared<Entities::FE_VectorField<dim>>(
               1/*parameters.fe_degree_magnetic_field*/,
               this->triangulation,
               "Magnetic field")),
 temperature_initial_conditions(
-  std::make_shared<EquationData::Christensen::TemperatureInitialCondition<dim>>(
+  std::make_shared<EquationData::TemperatureInitialCondition<dim>>(
     inner_radius,
     outer_radius,
     A,
     parameters.time_discretization_parameters.start_time)),
 temperature_boundary_conditions(
-  std::make_shared<EquationData::Christensen::TemperatureBoundaryCondition<dim>>(
+  std::make_shared<EquationData::TemperatureBoundaryCondition<dim>>(
     inner_radius,
     outer_radius,
     parameters.time_discretization_parameters.start_time)),
@@ -201,19 +489,10 @@ heat_equation(parameters.heat_equation_parameters,
               this->mapping,
               this->pcout,
               this->computing_timer),
-christensen_benchmark(velocity,
-                      temperature,
-                      magnetic_field,
-                      time_stepping,
-                      parameters,
-                      inner_radius,
-                      outer_radius,
-                      0,
-                      this->mapping,
-                      this->pcout,
-                      this->computing_timer)
+benchmark_requests(inner_radius, outer_radius)
 {
-  Assert(outer_radius > inner_radius, ExcMessage("The outer radius has to be greater then the inner radius"))
+  Assert(outer_radius > inner_radius,
+         ExcMessage("The outer radius has to be greater then the inner radius"));
 
   *this->pcout << parameters << std::endl;
 
@@ -222,16 +501,16 @@ christensen_benchmark(velocity,
   make_grid(parameters.spatial_discretization_parameters.n_initial_global_refinements);
   setup_dofs();
   setup_constraints();
-  velocity->reinit();
-  pressure->reinit();
-  temperature->reinit();
+  velocity->setup_vectors();
+  pressure->setup_vectors();
+  temperature->setup_vectors();
   initialize();
 
   // Stores all the fields to the SolutionTransfer container
-  this->container.add_entity(velocity);
-  this->container.add_entity(pressure, false);
-  this->container.add_entity(navier_stokes.phi, false);
-  this->container.add_entity(temperature, false);
+  this->container.add_entity(*velocity);
+  this->container.add_entity(*pressure, false);
+  this->container.add_entity(*navier_stokes.phi, false);
+  this->container.add_entity(*temperature, false);
 
   log_file << "Step" << ","
            << "Time" << ","
@@ -240,7 +519,8 @@ christensen_benchmark(velocity,
            << "D_norm" << ","
            << "P_norm" << ","
            << "H_norm" << ","
-           << std::endl;}
+           << std::endl;
+}
 
 template <int dim>
 void Christensen<dim>::make_grid(const unsigned int n_global_refinements)
@@ -291,18 +571,16 @@ void Christensen<dim>::setup_dofs()
   *(this->pcout) << "Spatial discretization:"
                  << std::endl
                  << " Number of velocity degrees of freedom    = "
-                 << (velocity->dof_handler)->n_dofs()
+                 << velocity->n_dofs()
                  << std::endl
                  << " Number of pressure degrees of freedom    = "
-                 << pressure->dof_handler->n_dofs()
+                 << pressure->n_dofs()
                  << std::endl
                  << " Number of temperature degrees of freedom = "
-                 << temperature->dof_handler->n_dofs()
+                 << temperature->n_dofs()
                  << std::endl
                  << " Number of total degrees of freedom       = "
-                 << (velocity->dof_handler->n_dofs() +
-                     pressure->dof_handler->n_dofs() +
-                     temperature->dof_handler->n_dofs())
+                 << (velocity->n_dofs() + pressure->n_dofs() + temperature->n_dofs())
                  << std::endl << std::endl;
 }
 
@@ -311,23 +589,29 @@ void Christensen<dim>::setup_constraints()
 {
   TimerOutput::Scope  t(*this->computing_timer, "Problem: Setup - Boundary conditions");
 
+  velocity->clear_boundary_conditions();
+  pressure->clear_boundary_conditions();
+  temperature->clear_boundary_conditions();
+
+  velocity->setup_boundary_conditions();
+  pressure->setup_boundary_conditions();
+  temperature->setup_boundary_conditions();
+
   // Homogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  velocity->boundary_conditions.set_dirichlet_bcs(inner_boundary_id);
-  velocity->boundary_conditions.set_dirichlet_bcs(outer_boundary_id);
+  velocity->set_dirichlet_boundary_condition(inner_boundary_id);
+  velocity->set_dirichlet_boundary_condition(outer_boundary_id);
 
   // The pressure itself has no boundary conditions. A datum needs to be
   // set to make the system matrix regular
-  pressure->boundary_conditions.set_datum_at_boundary();
+  pressure->set_datum_boundary_condition();
 
   // Inhomogeneous Dirichlet boundary conditions over the whole boundary
   // for the velocity field.
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    inner_boundary_id,
-    temperature_boundary_conditions);
-  temperature->boundary_conditions.set_dirichlet_bcs(
-    outer_boundary_id,
-    temperature_boundary_conditions);
+  temperature->set_dirichlet_boundary_condition(inner_boundary_id,
+                                                temperature_boundary_conditions);
+  temperature->set_dirichlet_boundary_condition(outer_boundary_id,
+                                                temperature_boundary_conditions);
 
   velocity->close_boundary_conditions();
   pressure->close_boundary_conditions();
@@ -362,14 +646,12 @@ void Christensen<dim>::postprocessing()
 
   // Computes all the benchmark's data. See documentation of the
   // class for further information.
-  christensen_benchmark.compute_benchmark_data();
+  benchmark_requests.update(time_stepping.get_current_time(),
+                               time_stepping.get_step_number(),
+                               *velocity,
+                               *temperature,
+                               *this->mapping);
 
-  // Time stepping output
-  *this->pcout << time_stepping << " ["
-               << std::setw(5)
-               << std::fixed << std::setprecision(1)
-               << time_stepping.get_current_time()/time_stepping.get_end_time() * 100.
-               << "%] \n";
   // Outputs CFL number and norms of the right-hand sides
   *this->pcout << "CFL = " << std::scientific << std::setprecision(2)
                << cfl_number
@@ -382,7 +664,7 @@ void Christensen<dim>::postprocessing()
                << heat_equation.get_rhs_norm()
                << ")\n";
   // Outputs the benchmark's data to the terminal
-  *this->pcout << christensen_benchmark << std::endl << std::endl;
+  *this->pcout << benchmark_requests << std::endl << std::endl;
 
   log_file << time_stepping.get_step_number() << ","
            << time_stepping.get_current_time() << ","
@@ -393,7 +675,76 @@ void Christensen<dim>::postprocessing()
            << heat_equation.get_rhs_norm()
            << std::endl;
 
-  christensen_benchmark.print_data_to_file("Christensen_Benchmark");
+  if (Utilities::MPI::this_mpi_process(this->mpi_communicator) == 0)
+  {
+    if (!std::filesystem::exists(this->prm.graphical_output_directory))
+    {
+      try
+      {
+        std::filesystem::create_directories(this->prm.graphical_output_directory);
+      }
+      catch (std::exception &exc)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::cerr << "Exception in the creation of the output directory: "
+                  << std::endl
+                  << exc.what() << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+      catch (...)
+      {
+        std::cerr << std::endl << std::endl
+                  << "----------------------------------------------------"
+                    << std::endl;
+        std::cerr << "Unknown exception in the creation of the output directory!"
+                  << std::endl
+                  << "Aborting!" << std::endl
+                  << "----------------------------------------------------"
+                  << std::endl;
+        std::abort();
+      }
+    }
+
+    const std::filesystem::path path{this->prm.graphical_output_directory};
+
+    std::filesystem::path filename = path / "benchmark_data.txt";
+
+    try
+    {
+      std::ofstream fstream(filename.string());
+      benchmark_requests.write_text(fstream);
+    }
+    catch (std::exception &exc)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::cerr << "Exception in the creation of the output file: "
+                << std::endl
+                << exc.what() << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+    catch (...)
+    {
+      std::cerr << std::endl << std::endl
+                << "----------------------------------------------------"
+                  << std::endl;
+      std::cerr << "Unknown exception in the creation of the output file!"
+                << std::endl
+                << "Aborting!" << std::endl
+                << "----------------------------------------------------"
+                << std::endl;
+      std::abort();
+    }
+  }
 }
 
 template <int dim>
@@ -409,14 +760,14 @@ void Christensen<dim>::output()
 
   // Loading the DataOut instance with the solution vectors
   DataOut<dim>        data_out;
-  data_out.add_data_vector(*velocity->dof_handler,
+  data_out.add_data_vector(velocity->get_dof_handler(),
                            velocity->solution,
                            names,
                            component_interpretation);
-  data_out.add_data_vector(*pressure->dof_handler,
+  data_out.add_data_vector(pressure->get_dof_handler(),
                            pressure->solution,
                            "Pressure");
-  data_out.add_data_vector(*temperature->dof_handler,
+  data_out.add_data_vector(temperature->get_dof_handler(),
                            temperature->solution,
                            "Temperature");
 
@@ -428,7 +779,7 @@ void Christensen<dim>::output()
   // triangulation.
 
   data_out.build_patches(*this->mapping,
-                         velocity->fe_degree,
+                         velocity->fe_degree(),
                          DataOut<dim>::curved_inner_cells);
 
 
@@ -460,7 +811,10 @@ void Christensen<dim>::run()
   temperature->solution = temperature->old_solution;
   output();
 
-  while (time_stepping.get_current_time() < time_stepping.get_end_time())
+  const unsigned int n_steps = this->prm.time_discretization_parameters.n_maximum_steps;
+
+  while (time_stepping.get_current_time() < time_stepping.get_end_time() &&
+         (n_steps > 0? time_stepping.get_step_number() < n_steps: true))
   {
     // The VSIMEXMethod instance starts each loop at t^{k-1}
 
@@ -481,6 +835,8 @@ void Christensen<dim>::run()
     // Advances the VSIMEXMethod instance to t^{k}
     update_solution_vectors();
     time_stepping.advance_time();
+    *this->pcout << static_cast<TimeDiscretization::DiscreteTime &>(time_stepping)
+                 << std::endl;
 
     // Performs post-processing
     if ((time_stepping.get_step_number() %
@@ -501,19 +857,28 @@ void Christensen<dim>::run()
                    time_stepping.get_end_time()))
       output();
   }
+
+
+
+
+
+
+
+
+
+
 }
 
-} // namespace RMHD
+} // namespace ChristensenBenchmark
 
 int main(int argc, char *argv[])
 {
   try
   {
       using namespace dealii;
-      using namespace RMHD;
+      using namespace ChristensenBenchmark;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(
-        argc, argv, 2);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 2);
 
       RunTimeParameters::ProblemParameters parameter_set("Christensen.prm");
 

@@ -1,20 +1,16 @@
 #ifndef INCLUDE_ROTATINGMHD_PROBLEM_CLASS_H_
 #define INCLUDE_ROTATINGMHD_PROBLEM_CLASS_H_
 
-#include <rotatingMHD/entities_structs.h>
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/time_discretization.h>
 #include <rotatingMHD/run_time_parameters.h>
 
 #include <deal.II/base/function.h>
 #include <deal.II/base/timer.h>
-
 #include <deal.II/distributed/solution_transfer.h>
 #include <deal.II/distributed/grid_refinement.h>
-
 #include <deal.II/fe/mapping_q.h>
-
 #include <deal.II/grid/grid_refinement.h>
-
 #include <deal.II/numerics/error_estimator.h>
 #include <deal.II/numerics/solution_transfer.h>
 
@@ -34,19 +30,26 @@ using namespace dealii;
 template <int dim>
 struct SolutionTransferContainer
 {
+public:
   /*!
    * @brief A typedef for the std::pair composed of a pointer to a
-   * @ref Entities::EntityBase instance and a boolean.
+   * @ref Entities::FE_FieldBase instance and a boolean.
    * @details The boolean indicates wheter the entity is to be
    * considered by the error estimation or not.
    */
-  using EntityEntry = std::pair<Entities::EntityBase<dim> *, bool>;
+  using FE_Field = std::pair<Entities::FE_FieldBase<dim>* const, bool>;
 
-  /*!
-   * @brief A std::vector with all the entities to be considered in
-   * a solution transfer
-   */
-  std::vector<EntityEntry>  entities;
+  using VectorType = LinearAlgebra::MPI::Vector;
+
+  using SolutionTransferType =
+  parallel::distributed::SolutionTransfer<dim, LinearAlgebra::MPI::Vector>;
+
+  using TransferVectorType =
+  std::vector<const LinearAlgebra::MPI::Vector *>;
+
+  using DeserializeVectorType =
+  std::vector<LinearAlgebra::MPI::Vector *>;
+
 
   /*!
    * @brief Default constructor.
@@ -71,20 +74,38 @@ struct SolutionTransferContainer
   bool empty() const;
 
   /*!
-   * @brief Adds the passed on EntityBase instance and flag to the
+   * @brief Adds the passed on FE_FieldBase instance and flag to the
    * entities struct member.
    * @details If no boolean is passed, it is assumed that the entity
    * is to be considered by the error estimation.
    */
-  void add_entity(std::shared_ptr<Entities::EntityBase<dim>> entity, bool flag = true);
+  void add_entity(Entities::FE_FieldBase<dim> &entity, bool flag = true);
+
+  void serialize(const std::string &file_name) const;
+
+  void deserialize(Triangulation<dim> &tria,
+                   const std::string  &file_name);
+
+  const std::vector<FE_Field>& get_field_collection() const;
+
+  std::vector<SolutionTransferType>  get_transfer_objects() const;
+
+  std::vector<TransferVectorType>    get_transfer_vectors() const;
 
 private:
-
   /*!
    * @brief The size of the std::vector instance containing all the
    * Vector instances to be considered by the error estimation.
    */
-  unsigned int              error_vector_size;
+  unsigned int  error_vector_size;
+
+  const Triangulation<dim> *triangulation;
+
+  /*!
+   * @brief A std::vector with all the entities to be considered in
+   * a solution transfer
+   */
+  std::vector<FE_Field>  entities;
 };
 
 template <int dim>
@@ -92,6 +113,14 @@ inline unsigned int SolutionTransferContainer<dim>::get_error_vector_size() cons
 {
   return error_vector_size;
 }
+
+template <int dim>
+inline const std::vector<typename SolutionTransferContainer<dim>::FE_Field>&
+SolutionTransferContainer<dim>::get_field_collection() const
+{
+  return (entities);
+}
+
 
 template <int dim>
 inline bool SolutionTransferContainer<dim>::empty() const
@@ -158,24 +187,6 @@ protected:
   virtual void clear();
 
   /*!
-   * @brief Projects the @p function on the finite element space contained
-   * in the @p entity and saves the result in the @p vector.
-   */
-  void project_function
-  (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::EntityBase<dim>> entity,
-   LinearAlgebra::MPI::Vector                      &vector);
-
-  /*!
-   * @brief Interpolates the @p function on the finite element space contained
-   * in the @p entity and saves the result in the @p vector.
-   */
-  void interpolate_function
-  (const Function<dim>                             &function,
-   const std::shared_ptr<Entities::EntityBase<dim>> entity,
-   LinearAlgebra::MPI::Vector                      &vector);
-
-  /*!
    * @brief Loads the initial conditions to the pertinent solution
    * vector
    * @details Projects the @ref function at simulation's start time
@@ -190,24 +201,10 @@ protected:
    * apply the constraints instead of projection?
    */
   void set_initial_conditions
-  (std::shared_ptr<Entities::EntityBase<dim>> entity,
+  (std::shared_ptr<Entities::FE_FieldBase<dim>> entity,
    Function<dim>                              &function,
    const TimeDiscretization::VSIMEXMethod     &time_stepping,
    const bool                                 boolean = false);
-
-  /*!
-   * @brief Computes the error of the numerical solution against
-   * the analytical solution.
-   *
-   * @details The error is calculated by subtracting the /f$ L_2/f$
-   * projection of the given function from the solution vector and
-   * computing the absolute value of the residum.
-   *
-   */
-  void compute_error
-  (LinearAlgebra::MPI::Vector                 &error_vector,
-   std::shared_ptr<Entities::EntityBase<dim>> entity,
-   Function<dim>                              &exact_solution);
 
   /*!
    *  @brief Computes the next time step according to the

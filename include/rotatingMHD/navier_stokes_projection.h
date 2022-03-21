@@ -4,13 +4,14 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/timer.h>
 
-#include <rotatingMHD/assembly_data.h>
-#include <rotatingMHD/entities_structs.h>
-#include <rotatingMHD/equation_data.h>
+#include <rotatingMHD/angular_velocity.h>
+#include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/navier_stokes_projection/assembly_data.h>
 
+#include <array>
 #include <memory>
 #include <string>
 #include <vector>
@@ -84,8 +85,8 @@ public:
   NavierStokesProjection
   (const RunTimeParameters::NavierStokesParameters  &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
+   std::shared_ptr<Entities::FE_VectorField<dim>> &velocity,
+   std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =
@@ -103,9 +104,9 @@ public:
   NavierStokesProjection
   (const RunTimeParameters::NavierStokesParameters        &parameters,
    TimeDiscretization::VSIMEXMethod             &time_stepping,
-   std::shared_ptr<Entities::VectorEntity<dim>> &velocity,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &pressure,
-   std::shared_ptr<Entities::ScalarEntity<dim>> &temperature,
+   std::shared_ptr<Entities::FE_VectorField<dim>> &velocity,
+   std::shared_ptr<Entities::FE_ScalarField<dim>> &pressure,
+   std::shared_ptr<Entities::FE_ScalarField<dim>> &temperature,
    const std::shared_ptr<Mapping<dim>>          external_mapping =
        std::shared_ptr<Mapping<dim>>(),
    const std::shared_ptr<ConditionalOStream>    external_pcout =
@@ -118,7 +119,7 @@ public:
    * the field computed during the projection step and later used in
    * the pressure-correction step.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>   phi;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>   phi;
 
 
   /*!
@@ -133,7 +134,7 @@ public:
    *  the projection method problem.
    *
    *  @details Initializes the vector and matrices using the information
-   *  contained in the VectorEntity and ScalarEntity structs passed on
+   *  contained in the FE_VectorField and FE_ScalarField structs passed on
    *  in the constructor (The velocity and the pressure respectively).
    *  The boolean passed as argument control if the pressure is to be
    *  normalized.
@@ -146,7 +147,7 @@ public:
    *  @details Stores the memory address of the body force function in
    *  the pointer @ref body_force.
    */
-  void set_body_force(RMHD::EquationData::VectorFunction<dim> &body_force);
+  void set_body_force(TensorFunction<1, dim> &body_force);
 
   /*!
    *  @brief Sets the gravity unit vector of the problem.
@@ -154,7 +155,7 @@ public:
    *  @details Stores the memory address of the gravity unit vector
    *  function in the pointer @ref gravity_vector_ptr.
    */
-  void set_gravity_vector(RMHD::EquationData::VectorFunction<dim> &gravity_vector);
+  void set_gravity_vector(TensorFunction<1, dim> &gravity_vector);
 
   /*!
    *  @brief Sets the angular velocity of the rotating frame of
@@ -163,7 +164,7 @@ public:
    *  @details Stores the memory address of the angular velocity unit vector
    *  function in the pointer @ref angular_velocity_vector_ptr.
    */
-  void set_angular_velocity_vector(RMHD::EquationData::AngularVelocity<dim> &angular_velocity_vector);
+  void set_angular_velocity_vector(RMHD::AngularVelocity<dim> &angular_velocity_vector);
 
   /*!
    *  @brief Solves the problem for one single timestep.
@@ -228,7 +229,7 @@ private:
   /*!
    * @brief The MPI communicator which is equal to `MPI_COMM_WORLD`.
    */
-  const MPI_Comm                         &mpi_communicator;
+  const MPI_Comm                          mpi_communicator;
 
   /*!
    * @brief Pointer to a conditional output stream object.
@@ -248,38 +249,51 @@ private:
   /*!
    * @brief A reference to the entity of velocity field.
    */
-  std::shared_ptr<Entities::VectorEntity<dim>>  velocity;
+  std::shared_ptr<Entities::FE_VectorField<dim>>  velocity;
 
   /*!
    * @brief A reference to the entity of the pressure field.
    */
-  std::shared_ptr<Entities::ScalarEntity<dim>>  pressure;
+  std::shared_ptr<Entities::FE_ScalarField<dim>>  pressure;
 
   /*!
    * @brief A reference to the entity of the temperature field.
    */
-  std::shared_ptr<const Entities::ScalarEntity<dim>>  temperature;
+  std::shared_ptr<const Entities::FE_ScalarField<dim>>  temperature;
 
   /*!
    * @brief A pointer to the body force function.
    */
-  RMHD::EquationData::VectorFunction<dim>    *body_force_ptr;
+  TensorFunction<1, dim>  *body_force_ptr;
 
   /*!
    * @brief A pointer to the gravity unit vector function.
    */
-  RMHD::EquationData::VectorFunction<dim>    *gravity_vector_ptr;
+  TensorFunction<1, dim>  *gravity_vector_ptr;
 
   /*!
    * @brief A pointer to unit vector function of the angular velocity of
    * the rotating frame of reference.
    */
-  RMHD::EquationData::AngularVelocity<dim>    *angular_velocity_vector_ptr;
+  RMHD::AngularVelocity<dim>   *angular_velocity_vector_ptr;
 
   /*!
    * @brief A reference to the class controlling the temporal discretization.
    */
-  const TimeDiscretization::VSIMEXMethod &time_stepping;
+  const TimeDiscretization::VSIMEXMethod     &time_stepping;
+
+  /*!
+    * @brief A vector containing the \f$ \alpha_0 \f$ of the previous time steps.
+    */
+  std::array<double, 2> previous_alpha_zeros = {1.0, 1.0};
+
+  /*!
+   * @brief A vector containing the sizes of the previous time steps.
+   * @details The DiscreteTime class stores only the previous time step.
+   * This member stores \f$ n \f$ time steps prior to it, where \f$ n \f$
+   * is the order of the scheme.
+   */
+  std::array<double, 2> previous_step_sizes = {0.0, 0.0};
 
   /*!
    * @brief System matrix used to solve for the velocity field in the diffusion
@@ -494,7 +508,7 @@ private:
 
   /*!
    * @brief This method solves the linear system of the diffusion step. Updates
-   * the Entities::VectorEntity::solution vector of the #velocity.
+   * the Entities::FE_VectorField::solution vector of the #velocity.
    */
   void solve_diffusion_step(const bool reinit_prec);
 
@@ -510,14 +524,14 @@ private:
 
   /*!
    * @brief This method solves the linear system of the projection step. Updates
-   * the Entities::ScalarEntity::solution vector of the pressure correction
+   * the Entities::FE_ScalarField::solution vector of the pressure correction
    * #phi.
    */
   void solve_projection_step(const bool reinit_prec);
 
   /*!
    * @brief This method performs the pressure update of the projection step.
-   * Updates the Entities::ScalarEntity::solution vector of the #pressure.
+   * Updates the Entities::FE_ScalarField::solution vector of the #pressure.
    */
   void pressure_correction(const bool reinit_prec);
 
@@ -631,7 +645,11 @@ private:
    */
   void assemble_local_diffusion_step_rhs(
     const typename DoFHandler<dim>::active_cell_iterator                 &cell,
-    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Scratch<dim> &scratch,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::HDScratch<dim> &scratch,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data);
+  void assemble_local_diffusion_step_rhs(
+    const typename DoFHandler<dim>::active_cell_iterator                 &cell,
+    AssemblyData::NavierStokesProjection::DiffusionStepRHS::HDCScratch<dim> &scratch,
     AssemblyData::NavierStokesProjection::DiffusionStepRHS::Copy         &data);
 
   /*!

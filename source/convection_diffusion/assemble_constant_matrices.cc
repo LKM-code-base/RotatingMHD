@@ -7,8 +7,10 @@
 namespace RMHD
 {
 
+using Copy = AssemblyData::HeatEquation::ConstantMatrices::Copy;
+
 template <int dim>
-void HeatEquation<dim>::assemble_constant_matrices()
+void ConvectionDiffusionSolver<dim>::assemble_constant_matrices()
 {
   if (parameters.verbose)
     *pcout << "  Heat Equation: Assembling constant matrices...";
@@ -19,16 +21,14 @@ void HeatEquation<dim>::assemble_constant_matrices()
   mass_matrix       = 0.;
   stiffness_matrix  = 0.;
 
-  // Compute the highest polynomial degree from all the integrands
-  const int p_degree = 2 * temperature->fe_degree;
-
   // Initiate the quadrature formula for exact numerical integration
-  const QGauss<dim>   quadrature_formula(std::ceil(0.5 * double(p_degree + 1)));
+  const QGauss<dim>   quadrature_formula(temperature->fe_degree()  + 1);
 
   // Set up the lamba function for the local assembly operation
+  using Scratch = typename AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>;
   auto worker =
     [this](const typename DoFHandler<dim>::active_cell_iterator         &cell,
-           AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>   &scratch,
+           Scratch   &scratch,
            AssemblyData::HeatEquation::ConstantMatrices::Copy           &data)
     {
       this->assemble_local_constant_matrices(cell,
@@ -38,7 +38,7 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
   // Set up the lamba function for the copy local to global operation
   auto copier =
-    [this](const AssemblyData::HeatEquation::ConstantMatrices::Copy &data)
+    [this](const Copy &data)
     {
       this->copy_local_to_global_constant_matrices(data);
     };
@@ -49,19 +49,16 @@ void HeatEquation<dim>::assemble_constant_matrices()
 
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->begin_active()),
+              temperature->get_dof_handler().begin_active()),
    CellFilter(IteratorFilters::LocallyOwnedCell(),
-              (temperature->dof_handler)->end()),
+              temperature->get_dof_handler().end()),
    worker,
    copier,
-   AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim>(
-    *mapping,
-    quadrature_formula,
-    temperature->fe,
-    update_values|
-    update_gradients|
-    update_JxW_values),
-   AssemblyData::HeatEquation::ConstantMatrices::Copy(temperature->fe.dofs_per_cell));
+   Scratch(*mapping,
+           quadrature_formula,
+           temperature->get_finite_element(),
+           update_values|update_gradients|update_JxW_values),
+   Copy(temperature->get_finite_element().dofs_per_cell));
 
   // Compress global data
   mass_matrix.compress(VectorOperation::add);
@@ -72,10 +69,10 @@ void HeatEquation<dim>::assemble_constant_matrices()
 }
 
 template <int dim>
-void HeatEquation<dim>::assemble_local_constant_matrices
+void ConvectionDiffusionSolver<dim>::assemble_local_constant_matrices
 (const typename DoFHandler<dim>::active_cell_iterator       &cell,
  AssemblyData::HeatEquation::ConstantMatrices::Scratch<dim> &scratch,
- AssemblyData::HeatEquation::ConstantMatrices::Copy         &data)
+ Copy &data)
 {
   // Reset local data
   data.local_mass_matrix      = 0.;
@@ -126,14 +123,14 @@ void HeatEquation<dim>::assemble_local_constant_matrices
 }
 
 template <int dim>
-void HeatEquation<dim>::copy_local_to_global_constant_matrices
-(const AssemblyData::HeatEquation::ConstantMatrices::Copy   &data)
+void ConvectionDiffusionSolver<dim>::copy_local_to_global_constant_matrices
+(const Copy   &data)
 {
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
                                       data.local_mass_matrix,
                                       data.local_dof_indices,
                                       mass_matrix);
-  temperature->constraints.distribute_local_to_global(
+  temperature->get_constraints().distribute_local_to_global(
                                       data.local_stiffness_matrix,
                                       data.local_dof_indices,
                                       stiffness_matrix);
@@ -143,19 +140,19 @@ void HeatEquation<dim>::copy_local_to_global_constant_matrices
 } // namespace RMHD
 
 // explicit instantiations
-template void RMHD::HeatEquation<2>::assemble_constant_matrices();
-template void RMHD::HeatEquation<3>::assemble_constant_matrices();
+template void RMHD::ConvectionDiffusionSolver<2>::assemble_constant_matrices();
+template void RMHD::ConvectionDiffusionSolver<3>::assemble_constant_matrices();
 
-template void RMHD::HeatEquation<2>::assemble_local_constant_matrices
+template void RMHD::ConvectionDiffusionSolver<2>::assemble_local_constant_matrices
 (const typename DoFHandler<2>::active_cell_iterator             &,
  RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<2> &,
  RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy       &);
-template void RMHD::HeatEquation<3>::assemble_local_constant_matrices
+template void RMHD::ConvectionDiffusionSolver<3>::assemble_local_constant_matrices
 (const typename DoFHandler<3>::active_cell_iterator             &,
  RMHD::AssemblyData::HeatEquation::ConstantMatrices::Scratch<3> &,
  RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy       &);
 
-template void RMHD::HeatEquation<2>::copy_local_to_global_constant_matrices
+template void RMHD::ConvectionDiffusionSolver<2>::copy_local_to_global_constant_matrices
 (const RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy &);
-template void RMHD::HeatEquation<3>::copy_local_to_global_constant_matrices
+template void RMHD::ConvectionDiffusionSolver<3>::copy_local_to_global_constant_matrices
 (const RMHD::AssemblyData::HeatEquation::ConstantMatrices::Copy &);

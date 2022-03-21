@@ -1,0 +1,192 @@
++------------------------------------------+----------------------+
+| Problem parameters                                              |
++------------------------------------------+----------------------+
+| Problem type                             | boussinesq           |
+| Spatial dimension                        | 2                    |
+| Mapping                                  | MappingQ<2>(1)       |
+| Mapping - Apply to interior cells        | false                |
+| Finite Element - Velocity                | FE_Q<2>(2)^2         |
+| Finite Element - Pressure                | FE_Q<2>(1)           |
+| Finite Element - Temperature             | FE_Q<2>(2)           |
+| Verbose                                  | false                |
++------------------------------------------+----------------------+
+| Output control parameters                                       |
++------------------------------------------+----------------------+
+| Graphical output frequency               | 5                    |
+| Terminal output frequency                | 1                    |
+| Graphical output directory               | MITResults/          |
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
+| Dimensionless numbers                                           |
++------------------------------------------+----------------------+
+| Prandtl number                           | 0.71                 |
+| Rayleigh number                          | 340000               |
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
+| Refinement control parameters                                   |
++------------------------------------------+----------------------+
+| Adaptive mesh refinement                 | False                |
+| Number of initial adapt. refinements     | 0                    |
+| Number of initial global refinements     | 0                    |
+| Number of initial boundary refinements   | 0                    |
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
+| Timestepping parameters                                         |
++------------------------------------------+----------------------+
+| IMEX scheme                              | BDF2                 |
+| Maximum number of time steps             | 5                    |
+| Adaptive timestepping                    | false                |
+| Initial time step                        | 0.05                 |
+| Start time                               | 0                    |
+| Final time                               | 1                    |
+| Verbose                                  | false                |
++------------------------------------------+----------------------++------------------------------------------+----------------------+
+| Navier-Stokes discretization parameters                         |
++------------------------------------------+----------------------+
+| Incremental pressure-correction scheme   | rotational           |
+| Convective term weak form                | skew-symmetric       |
+| Convective temporal form                 | semi-implicit        |
+| Preconditioner update frequency          | 10                   |
++------------------------------------------+----------------------+
+| Linear solver parameters - Diffusion step                       |
++------------------------------------------+----------------------+
+| Maximum number of iterations             | 1000                 |
+| Relative tolerance                       | 1e-10                |
+| Absolute tolerance                       | 1e-11                |
+| Preconditioner                           | ILU                  |
+|   Fill-in level                          | 2                    |
+|   Overlap                                | 2                    |
+|   Relative tolerance                     | 1.01                 |
+|   Absolute tolerance                     | 1e-05                |
++------------------------------------------+----------------------+
+| Linear solver parameters - Projection step                      |
++------------------------------------------+----------------------+
+| Maximum number of iterations             | 1000                 |
+| Relative tolerance                       | 1e-10                |
+| Absolute tolerance                       | 1e-11                |
+| Preconditioner                           | ILU                  |
+|   Fill-in level                          | 2                    |
+|   Overlap                                | 2                    |
+|   Relative tolerance                     | 1.01                 |
+|   Absolute tolerance                     | 1e-05                |
++------------------------------------------+----------------------+
+| Linear solver parameters - Correction step                      |
++------------------------------------------+----------------------+
+| Maximum number of iterations             | 1000                 |
+| Relative tolerance                       | 1e-10                |
+| Absolute tolerance                       | 1e-11                |
+| Preconditioner                           | ILU                  |
+|   Fill-in level                          | 2                    |
+|   Overlap                                | 2                    |
+|   Relative tolerance                     | 1.01                 |
+|   Absolute tolerance                     | 1e-05                |
++------------------------------------------+----------------------+
+| Linear solver parameters - Poisson pre-step                     |
++------------------------------------------+----------------------+
+| Maximum number of iterations             | 1000                 |
+| Relative tolerance                       | 1e-10                |
+| Absolute tolerance                       | 1e-11                |
+| Preconditioner                           | ILU                  |
+|   Fill-in level                          | 2                    |
+|   Overlap                                | 2                    |
+|   Relative tolerance                     | 1.01                 |
+|   Absolute tolerance                     | 1e-05                |
++------------------------------------------+----------------------+
++------------------------------------------+----------------------+
+| Heat equation solver parameters                                 |
++------------------------------------------+----------------------+
+| Convective term weak form                | skew-symmetric       |
+| Convective temporal form                 | semi-implicit        |
+| Preconditioner update frequency          | 10                   |
++------------------------------------------+----------------------+
+| Linear solver parameters - Heat equation                        |
++------------------------------------------+----------------------+
+| Maximum number of iterations             | 1000                 |
+| Relative tolerance                       | 1e-10                |
+| Absolute tolerance                       | 1e-11                |
+| Preconditioner                           | ILU                  |
+|   Fill-in level                          | 2                    |
+|   Overlap                                | 2                    |
+|   Relative tolerance                     | 1.01                 |
+|   Absolute tolerance                     | 1e-05                |
++------------------------------------------+----------------------+
+
+
++----------+----------+----------+----------+----------+----------+
+|    C1    |    C2    |    C3    |    C4    |    C5    |    C6    |
++----------+----------+----------+----------+----------+----------+
+|  0.0e+00 |  1.4e-03 |  1.0e+00 |  2.0e-03 |  0.0e+00 |  1.0e+00 |
++----------+----------+----------+----------+----------+----------+
+
+
+Triangulation:
+ Number of initial active cells           = 2048
+ Maximum aspect ratio                     = 2.5e+00
+
+Spatial discretization:
+ Number of velocity degrees of freedom    = 16962
+ Number of pressure degrees of freedom    = 2193
+ Number of temperature degrees of freedom = 8481
+ Number of total degrees of freedom       = 27636
+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Velocity entity                      |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 1       | Dirichlet  | ZeroFunction<2, double>                  |
+| 2       | Dirichlet  | ZeroFunction<2, double>                  |
+| 3       | Dirichlet  | ZeroFunction<2, double>                  |
+| 4       | Dirichlet  | ZeroFunction<2, double>                  |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Pressure entity                      |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| A datum has been set at the boundary                            |
+| Unconstrained boundary ids: 1, 2, 3, 4                          |
++---------+------------+------------------------------------------+
++---------+------------+------------------------------------------+
+| Boundary conditions of the Temperature entity                   |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 3       | Neumann    | ZeroFunction<2, double>                  |
+| 4       | Neumann    | ZeroFunction<2, double>                  |
+| 1       | Dirichlet  | MITBenchmark::EquationData::TemperatureBoundaryCondition<2> |
+| 2       | Dirichlet  | MITBenchmark::EquationData::TemperatureBoundaryCondition<2> |
++---------+------------+------------------------------------------+
+Step =      0, Current time = 0.0e+00, Next time step = 5.0e-02
++---------+------------+------------------------------------------+
+| Boundary conditions of the Phi entity                           |
++---------+------------+------------------------------------------+
+| Bdy. id |    Type    |              Function                    |
+| 1       | Neumann    | ZeroFunction<2, double>                  |
+| 2       | Neumann    | ZeroFunction<2, double>                  |
+| 3       | Neumann    | ZeroFunction<2, double>                  |
+| 4       | Neumann    | ZeroFunction<2, double>                  |
+| A datum has been set at the boundary                            |
++---------+------------+------------------------------------------+
+Step =      1, Current time = 5.0e-02, Next time step = 5.0e-02
+    u_x(x_1) = 0.000000e+00, T(x_1) = -2.174536e-06
+    Δp_14 = 0.000000e+00, Nusselt number = 1.321238e+01
+    velocity metric = 0.000000e+00, vorticity metric = 0.000000e+00
+    CFL = 0, Norms: (0.000000e+00, 0.000000e+00, 1.547670e-02)
+Step =      2, Current time = 1.000000e-01, Next time step = 5.000000e-02
+    u_x(x_1) = 0.000000e+00, T(x_1) = 6.036688e-07
+    Δp_14 = 6.049072e-04, Nusselt number = 1.796707e+01
+    velocity metric = 3.802242e-04, vorticity metric = 3.373622e-02
+    CFL = 0, Norms: (1.671646e-03, 2.174036e-03, 5.243469e-02)
+Step =      3, Current time = 1.500000e-01, Next time step = 5.000000e-02
+    u_x(x_1) = 4.886913e-05, T(x_1) = -3.999109e-06
+    Δp_14 = 9.653787e-04, Nusselt number = 1.865888e+01
+    velocity metric = 1.020592e-03, vorticity metric = 8.075528e-02
+    CFL = 0.00280606, Norms: (4.341569e-03, 2.759352e-03, 8.653707e-02)
+Step =      4, Current time = 2.000000e-01, Next time step = 5.000000e-02
+    u_x(x_1) = 1.058997e-04, T(x_1) = -5.582552e-06
+    Δp_14 = 1.297565e-03, Nusselt number = 1.773748e+01
+    velocity metric = 1.863321e-03, vorticity metric = 1.318951e-01
+    CFL = 0.00651288, Norms: (7.650244e-03, 2.653826e-03, 1.171727e-01)
+Step =      5, Current time = 2.500000e-01, Next time step = 5.000000e-02
+    u_x(x_1) = 1.794247e-04, T(x_1) = -4.804999e-06
+    Δp_14 = 1.589342e-03, Nusselt number = 1.632366e+01
+    velocity metric = 2.857000e-03, vorticity metric = 1.834179e-01
+    CFL = 0.0112493, Norms: (1.137241e-02, 2.391940e-03, 1.429581e-01)
