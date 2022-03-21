@@ -924,7 +924,8 @@ EXCLUDE                = ../tests/ \
                          ../applications/CMakeLists.txt \
                          ../applications/CMakeFiles/ \
                          ../source/CMakeLists.txt \
-                         ../source/CMakeFiles/
+                         ../source/CMakeFiles/ \
+                         ../python/
 
 # The EXCLUDE_SYMLINKS tag can be used to select whether or not files or
 # directories that are symbolic links (a Unix file system feature) are excluded
@@ -1645,7 +1646,6 @@ MATHJAX_EXTENSIONS     = TeX/AMSmath \
                          TeX/AMSsymbols \
                          TeX/AMSfonts \
                          TeX/mathtools \
-                         TeX/bm \
                          TeX/xfrac
 
 # The MATHJAX_CODEFILE tag can be used to specify a file with javascript pieces
@@ -1823,7 +1823,8 @@ EXTRA_PACKAGES         = {amsmath} \
                          {amsfonts} \
                          {mathtools} \
                          {bm} \
-                         {xfrac}
+                         {xfrac} \
+                         {amssymb}
 
 # The LATEX_HEADER tag can be used to specify a personal LaTeX header for the
 # generated LaTeX document. The header should contain everything until the first

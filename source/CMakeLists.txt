@@ -10,12 +10,13 @@ SET(TARGET_SRC
     convection_diffusion.cc
     data_postprocessors.cc
     discrete_time.cc
-    finite_element_field.cc    
+    finite_element_field.cc
     problem_class.cc
     run_time_parameters.cc
     time_discretization.cc
     utility.cc
     vector_tools.cc
+    solver_class.cc
     # incompressible navier stokes
     navier_stokes_projection.cc
     navier_stokes_projection/assemble_advection_matrix.cc
@@ -38,6 +39,15 @@ SET(TARGET_SRC
     convection_diffusion/assembly_data.cc
     convection_diffusion/setup.cc
     convection_diffusion/solve.cc
+    # magnetic induction
+    magnetic_induction.cc
+    magnetic_induction/assemble_advection_matrix.cc
+    magnetic_induction/assemble_diffusion_step_rhs.cc
+    magnetic_induction/assemble_projection_step_rhs.cc
+    magnetic_induction/assemble_initialization_step_rhs.cc
+    magnetic_induction/assembly_data.cc
+    magnetic_induction/setup.cc
+    magnetic_induction/solve.cc
 )
 ADD_LIBRARY(rotatingMHD SHARED ${TARGET_SRC})
 DEAL_II_SETUP_TARGET(rotatingMHD)
