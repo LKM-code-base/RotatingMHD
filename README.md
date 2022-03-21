@@ -37,5 +37,4 @@ To do list
 Questions
 - [ ] High Reynolds number tests and inspection of the solution w.r.t. instabilities
 - [ ] Stabilizitation of convectivion dominated flows?!
-- [ ] Assessment of the performance in the MIT benchmark
 

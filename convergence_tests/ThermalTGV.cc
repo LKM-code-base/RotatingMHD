@@ -206,7 +206,7 @@ private:
 
   std::shared_ptr<TensorFunction<1,dim>> 				velocity_exact_solution;
 
-  HeatEquation<dim>                             heat_equation;
+  ConvectionDiffusionSolver<dim>                             heat_equation;
 
   ConvergenceTable                              convergence_table;
 

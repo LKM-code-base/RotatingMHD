@@ -7,6 +7,8 @@
 #include <deal.II/base/exceptions.h>
 #include <deal.II/base/parameter_handler.h>
 
+#include <boost/serialization/access.hpp>
+
 #include <iostream>
 #include <vector>
 
@@ -166,6 +168,8 @@ class VSIMEXMethod : public DiscreteTime
 
 public:
 
+  VSIMEXMethod();
+
   /*!
   * @brief The constructor of the class.
   */
@@ -285,6 +289,11 @@ public:
   bool coefficients_changed() const;
 
 private:
+  friend class boost::serialization::access;
+
+  template<typename Archive>
+  void serialize(Archive &ar, const unsigned int version);
+
   /*!
    * @brief Order of the VSIMEX scheme.
    */
@@ -335,7 +344,7 @@ private:
    * \f$\omega\f$.
    * @details The ratio is given by \f$\omega=\frac{\Delta t_n}{\Delta t_{n-1}}\f$.
    */
-  double              omega;
+  double  omega;
 
    /*!
    * @brief The minimum size of the time step.
@@ -353,7 +362,7 @@ private:
    * @details The flag is set as true if @ref omega is anything other
    * than 1.0 and is set as false if @ref is equal to 1.0.
    */
-  bool                flag_coefficients_changed;
+  bool    flag_coefficients_changed;
 
 };
 

@@ -11,7 +11,7 @@ namespace RMHD
 using Copy = AssemblyData::HeatEquation::AdvectionMatrix::Copy;
 
 template <int dim>
-void HeatEquation<dim>::assemble_advection_matrix()
+void ConvectionDiffusionSolver<dim>::assemble_advection_matrix()
 {
   if (parameters.verbose)
     *pcout << "  Heat Equation: Assembling advection matrix...";
@@ -56,7 +56,7 @@ void HeatEquation<dim>::assemble_advection_matrix()
 
   const UpdateFlags advection_update_flags = update_values|
                                              update_gradients|
-                                             update_JxW_values |
+                                             update_JxW_values|
                                              update_quadrature_points;
   WorkStream::run
   (CellFilter(IteratorFilters::LocallyOwnedCell(),
@@ -81,7 +81,7 @@ void HeatEquation<dim>::assemble_advection_matrix()
 }
 
 template <int dim>
-void HeatEquation<dim>::assemble_local_advection_matrix
+void ConvectionDiffusionSolver<dim>::assemble_local_advection_matrix
 (const typename DoFHandler<dim>::active_cell_iterator       &cell,
  AssemblyData::HeatEquation::AdvectionMatrix::Scratch<dim>  &scratch,
  Copy &data)
@@ -158,7 +158,7 @@ void HeatEquation<dim>::assemble_local_advection_matrix
 } // assemble_local_advection_matrix
 
 template <int dim>
-void HeatEquation<dim>::copy_local_to_global_advection_matrix
+void ConvectionDiffusionSolver<dim>::copy_local_to_global_advection_matrix
 (const Copy &data)
 {
   temperature->get_constraints().distribute_local_to_global(
@@ -170,19 +170,19 @@ void HeatEquation<dim>::copy_local_to_global_advection_matrix
 } // namespace RMHD
 
 // explicit instantiations
-template void RMHD::HeatEquation<2>::assemble_advection_matrix();
-template void RMHD::HeatEquation<3>::assemble_advection_matrix();
+template void RMHD::ConvectionDiffusionSolver<2>::assemble_advection_matrix();
+template void RMHD::ConvectionDiffusionSolver<3>::assemble_advection_matrix();
 
-template void RMHD::HeatEquation<2>::assemble_local_advection_matrix
+template void RMHD::ConvectionDiffusionSolver<2>::assemble_local_advection_matrix
 (const typename DoFHandler<2>::active_cell_iterator             &,
  RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Scratch<2>  &,
  RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy        &);
-template void RMHD::HeatEquation<3>::assemble_local_advection_matrix
+template void RMHD::ConvectionDiffusionSolver<3>::assemble_local_advection_matrix
 (const typename DoFHandler<3>::active_cell_iterator             &,
  RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Scratch<3>  &,
  RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy        &);
 
-template void RMHD::HeatEquation<2>::copy_local_to_global_advection_matrix
+template void RMHD::ConvectionDiffusionSolver<2>::copy_local_to_global_advection_matrix
 (const RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy  &);
-template void RMHD::HeatEquation<3>::copy_local_to_global_advection_matrix
+template void RMHD::ConvectionDiffusionSolver<3>::copy_local_to_global_advection_matrix
 (const RMHD::AssemblyData::HeatEquation::AdvectionMatrix::Copy  &);
