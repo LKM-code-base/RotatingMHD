@@ -412,7 +412,7 @@ private:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  HeatEquation<dim>                             heat_equation;
+  ConvectionDiffusionSolver<dim>                             heat_equation;
 
   BenchmarkData::ChristensenBenchmark<dim>      benchmark_requests;
 
@@ -507,10 +507,10 @@ benchmark_requests(inner_radius, outer_radius)
   initialize();
 
   // Stores all the fields to the SolutionTransfer container
-  this->container.add_entity(velocity);
-  this->container.add_entity(pressure, false);
-  this->container.add_entity(navier_stokes.phi, false);
-  this->container.add_entity(temperature, false);
+  this->container.add_entity(*velocity);
+  this->container.add_entity(*pressure, false);
+  this->container.add_entity(*navier_stokes.phi, false);
+  this->container.add_entity(*temperature, false);
 
   log_file << "Step" << ","
            << "Time" << ","

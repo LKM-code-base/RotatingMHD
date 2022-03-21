@@ -15,7 +15,7 @@ namespace RMHD
 
 
 template <int dim>
-void HeatEquation<dim>::setup()
+void ConvectionDiffusionSolver<dim>::setup()
 {
   setup_matrices();
 
@@ -27,7 +27,7 @@ void HeatEquation<dim>::setup()
 
 
 template <int dim>
-void HeatEquation<dim>::setup_matrices()
+void ConvectionDiffusionSolver<dim>::setup_matrices()
 {
   if (parameters.verbose)
     *pcout << "  Heat Equation: Setting up matrices...";
@@ -114,7 +114,7 @@ void HeatEquation<dim>::setup_matrices()
 
 
 template <int dim>
-void HeatEquation<dim>::
+void ConvectionDiffusionSolver<dim>::
 setup_vectors()
 {
   if (parameters.verbose)
@@ -132,7 +132,7 @@ setup_vectors()
 
 
 template <int dim>
-void HeatEquation<dim>::set_source_term(Function<dim> &source_term)
+void ConvectionDiffusionSolver<dim>::set_source_term(Function<dim> &source_term)
 {
   source_term_ptr = &source_term;
 }
@@ -141,14 +141,14 @@ void HeatEquation<dim>::set_source_term(Function<dim> &source_term)
 } // namespace RMHD
 
 // explicit instantiations
-template void RMHD::HeatEquation<2>::setup();
-template void RMHD::HeatEquation<3>::setup();
+template void RMHD::ConvectionDiffusionSolver<2>::setup();
+template void RMHD::ConvectionDiffusionSolver<3>::setup();
 
-template void RMHD::HeatEquation<2>::setup_matrices();
-template void RMHD::HeatEquation<3>::setup_matrices();
+template void RMHD::ConvectionDiffusionSolver<2>::setup_matrices();
+template void RMHD::ConvectionDiffusionSolver<3>::setup_matrices();
 
-template void RMHD::HeatEquation<2>::setup_vectors();
-template void RMHD::HeatEquation<3>::setup_vectors();
+template void RMHD::ConvectionDiffusionSolver<2>::setup_vectors();
+template void RMHD::ConvectionDiffusionSolver<3>::setup_vectors();
 
-template void RMHD::HeatEquation<2>::set_source_term(Function<2> &);
-template void RMHD::HeatEquation<3>::set_source_term(Function<3> &);
+template void RMHD::ConvectionDiffusionSolver<2>::set_source_term(Function<2> &);
+template void RMHD::ConvectionDiffusionSolver<3>::set_source_term(Function<3> &);

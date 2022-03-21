@@ -182,7 +182,7 @@ private:
 
   NavierStokesProjection<dim>                   navier_stokes;
 
-  HeatEquation<dim>                             heat_equation;
+  ConvectionDiffusionSolver<dim>                             heat_equation;
 
   BenchmarkData::MIT<dim>                       benchmark_requests;
 
@@ -256,10 +256,10 @@ gravity_vector(parameters.time_discretization_parameters.start_time)
   initialize();
 
   // Stores all the fields to the SolutionTransfor container
-  this->container.add_entity(velocity);
-  this->container.add_entity(pressure, false);
-  this->container.add_entity(navier_stokes.phi, false);
-  this->container.add_entity(temperature, false);
+  this->container.add_entity(*velocity);
+  this->container.add_entity(*pressure, false);
+  this->container.add_entity(*navier_stokes.phi, false);
+  this->container.add_entity(*temperature, false);
 
 }
 

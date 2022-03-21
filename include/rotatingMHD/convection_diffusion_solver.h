@@ -5,11 +5,11 @@
 #include <deal.II/base/timer.h>
 #include <deal.II/base/tensor_function.h>
 
-#include <rotatingMHD/assembly_data.h>
 #include <rotatingMHD/finite_element_field.h>
 #include <rotatingMHD/global.h>
 #include <rotatingMHD/run_time_parameters.h>
 #include <rotatingMHD/time_discretization.h>
+#include <rotatingMHD/convection_diffusion/assembly_data.h>
 
 #include <memory>
 #include <string>
@@ -45,7 +45,7 @@ using namespace dealii;
  */
 
 template <int dim>
-class HeatEquation
+class ConvectionDiffusionSolver
 {
 
 public:
@@ -56,7 +56,7 @@ public:
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
-  HeatEquation
+  ConvectionDiffusionSolver
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
    std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
@@ -74,7 +74,7 @@ public:
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
-  HeatEquation
+  ConvectionDiffusionSolver
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
    std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
@@ -93,7 +93,7 @@ public:
    * @details Stores a local reference to the input parameters and
    * pointers for the mapping and terminal output entities.
    */
-  HeatEquation
+  ConvectionDiffusionSolver
   (const RunTimeParameters::HeatEquationParameters  &parameters,
    TimeDiscretization::VSIMEXMethod                 &time_stepping,
    std::shared_ptr<Entities::FE_ScalarField<dim>>     &temperature,
@@ -331,14 +331,18 @@ private:
   void copy_local_to_global_advection_matrix(
     const AssemblyData::HeatEquation::AdvectionMatrix::Copy &data);
 
-
   /*!
    * @brief This method assembles the right-hand side on a single cell.
    */
   void assemble_local_rhs(
     const typename DoFHandler<dim>::active_cell_iterator    &cell,
-    AssemblyData::HeatEquation::RightHandSide::Scratch<dim> &scratch,
+    AssemblyData::HeatEquation::RightHandSide::CDScratch<dim> &scratch,
     AssemblyData::HeatEquation::RightHandSide::Copy         &data);
+  void assemble_local_rhs(
+    const typename DoFHandler<dim>::active_cell_iterator    &cell,
+    AssemblyData::HeatEquation::RightHandSide::HDCDScratch<dim> &scratch,
+    AssemblyData::HeatEquation::RightHandSide::Copy         &data);
+
   /*!
    * @brief This method copies the local right-hand side into its global
    * conterpart.
@@ -348,7 +352,7 @@ private:
 };
 
 template <int dim>
-inline double HeatEquation<dim>::get_rhs_norm() const
+inline double ConvectionDiffusionSolver<dim>::get_rhs_norm() const
 {
   return (rhs_norm);
 }

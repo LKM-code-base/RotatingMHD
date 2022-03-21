@@ -1,8 +1,14 @@
-#include <rotatingMHD/discrete_time.h>
-
-#include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/exceptions.h>
 
+#include <rotatingMHD/discrete_time.h>
+
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+
+#include <iomanip>
+#include <iostream>
 
 namespace RMHD
 {
@@ -50,8 +56,7 @@ namespace
 
 
 
-template<typename Stream>
-Stream& operator<<(Stream &stream, const DiscreteTime &time)
+std::ostream& operator<<(std::ostream &stream, const DiscreteTime &time)
 {
   stream << "Step = "
          << std::right
@@ -70,6 +75,27 @@ Stream& operator<<(Stream &stream, const DiscreteTime &time)
   return (stream);
 }
 
+
+
+dealii::ConditionalOStream& operator<<(dealii::ConditionalOStream &stream,
+                                       const DiscreteTime &time)
+{
+  stream << "Step = "
+         << std::right
+         << std::setw(6)
+         << time.get_step_number()
+         << ","
+         << std::left
+         << " Current time = "
+         << std::scientific
+         << time.get_current_time()
+         << ","
+         << " Next time step = "
+         << std::scientific
+         << time.get_next_step_size();
+
+  return (stream);
+}
 
 
 
@@ -123,13 +149,32 @@ Stream& operator<<(Stream &stream, const DiscreteTime &time)
                                      end_time);
  }
 
+
+
+template <class Archive>
+void DiscreteTime::serialize(Archive &ar, const unsigned int /* version */)
+{
+  ar & start_time;
+  ar & end_time;
+  ar & current_time;
+  ar & next_time;
+  ar & previous_time;
+  ar & start_step_size;
+  ar & step_number;
+}
+
+
 } // namespace TimeDiscretization
 
 } // namespace RMHD
 
+// explicit instantiations
+template void RMHD::TimeDiscretization::DiscreteTime::serialize
+(boost::archive::binary_oarchive &, const unsigned int);
+template void RMHD::TimeDiscretization::DiscreteTime::serialize
+(boost::archive::binary_iarchive &, const unsigned int);
 
-template std::ostream & RMHD::TimeDiscretization::operator<<
-(std::ostream &, const RMHD::TimeDiscretization::DiscreteTime &);
-template dealii::ConditionalOStream & RMHD::TimeDiscretization::operator<<
-(dealii::ConditionalOStream &, const RMHD::TimeDiscretization::DiscreteTime &);
-
+template void RMHD::TimeDiscretization::DiscreteTime::serialize
+(boost::archive::text_oarchive &, const unsigned int);
+template void RMHD::TimeDiscretization::DiscreteTime::serialize
+(boost::archive::text_iarchive &, const unsigned int);
